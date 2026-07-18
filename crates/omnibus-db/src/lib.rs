@@ -12,6 +12,9 @@ const MIGRATIONS: &[&str] = &[include_str!("../migrations/001_init.sql")];
 mod activity;
 pub use activity::{EventRow, KnownConnector};
 
+mod records;
+pub use records::{NewProject, NewTask, NewTaskResource, Project, Task, TaskResource, TaskStatus};
+
 /// Storage configuration.
 #[derive(Clone)]
 pub struct DbConfig {
