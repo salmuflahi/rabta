@@ -4,18 +4,32 @@ import { useEffect } from "react";
 import { CommandSender } from "./panels/CommandSender";
 import { ConnectorsPanel } from "./panels/ConnectorsPanel";
 import { LogPanel } from "./panels/LogPanel";
-import { useStore, type ConnectorInfo } from "./store";
+import {
+  useStore,
+  type ConnectorInfo,
+  type KnownConnector,
+  type PersistedEvent,
+} from "./store";
 
 export default function App() {
   const append = useStore((s) => s.append);
   const setConnectors = useStore((s) => s.setConnectors);
+  const preload = useStore((s) => s.preload);
 
   useEffect(() => {
     const refresh = () =>
       invoke<ConnectorInfo[]>("connectors")
         .then(setConnectors)
-        .catch((err) => console.error("failed to refresh connectors", err));
-    refresh();
+        .catch((e) => console.error("connectors refresh failed:", e));
+
+    Promise.all([
+      invoke<PersistedEvent[]>("recent_events", { limit: 200 }),
+      invoke<KnownConnector[]>("known_connectors"),
+    ])
+      .then(([events, known]) => preload(events, known))
+      .catch((e) => console.error("history preload failed:", e))
+      .then(refresh);
+
     const unlisten = listen<{ type: string; [k: string]: unknown }>("hub-event", (e) => {
       append(e.payload);
       if (e.payload.type === "connectorConnected" || e.payload.type === "connectorDisconnected") {
@@ -25,7 +39,7 @@ export default function App() {
     return () => {
       unlisten.then((f) => f());
     };
-  }, [append, setConnectors]);
+  }, [append, setConnectors, preload]);
 
   return (
     <div className="h-screen bg-neutral-900 text-neutral-200 grid grid-cols-[300px_1fr] grid-rows-[1fr_200px] font-mono text-sm">

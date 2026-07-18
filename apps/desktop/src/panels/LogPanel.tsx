@@ -54,8 +54,12 @@ export function LogPanel() {
       </div>
       <div ref={scroller} className="flex-1 overflow-y-auto p-2 text-xs">
         {shown.map((e) => (
-          <div key={e.seq} className="whitespace-pre-wrap break-all">
+          <div
+            key={e.seq}
+            className={`whitespace-pre-wrap break-all ${e.historical ? "text-neutral-600" : ""}`}
+          >
             <span className="text-neutral-500">{e.at}</span>{" "}
+            {e.historical && <span className="text-neutral-600">[hist]</span>}{" "}
             <span className="text-neutral-400">{e.type}</span> {JSON.stringify(e)}
           </div>
         ))}

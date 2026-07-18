@@ -2123,6 +2123,7 @@ dependencies = [
 name = "omnibus-desktop"
 version = "0.1.0"
 dependencies = [
+ "omnibus-db",
  "omnibus-hub",
  "serde",
  "serde_json",
