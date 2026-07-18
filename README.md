@@ -16,5 +16,6 @@ cargo test    # protocol fixtures, hub handshake/commands/events integration tes
 2. In another terminal: `pnpm --filter fake-connector start -- --chatty` — a simulated VS Code connector appears in the Connectors panel (green dot, `workspace, editor` capabilities) and starts emitting `editor.fileOpened` events into the activity log every few seconds.
 3. In the command sender, pick `fake-vscode`, keep `workspace.open` with args `{"path": "/tmp/demo"}`, hit send — the response `{ "opened": "/tmp/demo" }` appears inline and in the log.
 4. Ctrl-C the connector — its dot turns red within ~15 s (`connectorDisconnected` in the log). Restart it — it reconnects and re-registers without restarting the app.
+5. Quit the app and relaunch it — recent activity reappears as dimmed `[hist]` entries and previously-seen connectors show as known-but-disconnected rows, restored from `~/Library/Application Support/com.omnibus.dev/omnibus.db`.
 
-The hub also runs without Tauri: `cargo run -p omnibus-hub --example headless` (`OMNIBUS_DATA_DIR` overrides the discovery-file location).
+The hub also runs without Tauri: `cargo run -p omnibus-hub --example headless` (`OMNIBUS_DATA_DIR` overrides the discovery-file location; `--record` persists activity like the app does).

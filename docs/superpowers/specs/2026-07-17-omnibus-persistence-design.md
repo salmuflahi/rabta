@@ -1,7 +1,7 @@
 # OmniBus — Persistence (Phase 5)
 
 **Date:** 2026-07-17
-**Status:** Draft for review
+**Status:** Implemented
 **Scope:** `omnibus-db` crate (SQLite schema + typed API + migrations), a recorder wiring hub activity into it, dev-console preload of persisted history.
 **Out of scope:** project/task UI (phase 6), auth enforcement, task capsules (phase 8), event replay/export, cloud sync.
 
