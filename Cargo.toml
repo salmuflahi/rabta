@@ -1,3 +1,3 @@
 [workspace]
 resolver = "2"
-members = ["crates/omnibus-hub", "apps/desktop/src-tauri"]
+members = ["crates/omnibus-db", "crates/omnibus-hub", "apps/desktop/src-tauri"]
