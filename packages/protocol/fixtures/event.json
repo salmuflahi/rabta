@@ -1,0 +1,1 @@
+{ "v": 1, "id": "55555555-5555-5555-5555-555555555555", "kind": "event", "payload": { "name": "editor.fileOpened", "data": { "path": "src/main.ts" } } }

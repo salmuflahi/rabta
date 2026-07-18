@@ -1,0 +1,1 @@
+{ "v": 1, "id": "33333333-3333-3333-3333-333333333333", "kind": "command", "payload": { "target": "c-1", "name": "workspace.open", "args": { "path": "/tmp/demo" } } }

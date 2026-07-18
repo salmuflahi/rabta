@@ -1,0 +1,1 @@
+{ "v": 1, "id": "66666666-6666-6666-6666-666666666666", "kind": "error", "payload": { "code": "version_mismatch", "message": "unsupported protocol version" } }
