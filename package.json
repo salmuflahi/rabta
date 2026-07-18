@@ -1,0 +1,8 @@
+{
+  "name": "omnibus",
+  "private": true,
+  "scripts": {
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build"
+  }
+}
