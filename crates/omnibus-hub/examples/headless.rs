@@ -14,7 +14,12 @@ async fn main() {
     let hub = Hub::start(HubConfig::new(data_dir)).await.expect("hub failed to start");
     eprintln!("hub listening on 127.0.0.1:{}", hub.port());
     let mut events = hub.subscribe();
-    while let Ok(ev) = events.recv().await {
+    loop {
+        let ev = match events.recv().await {
+            Ok(ev) => ev,
+            Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+            Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+        };
         println!("{}", serde_json::to_string(&ev).unwrap());
         if probe {
             if let HubEvent::ConnectorConnected { connector } = &ev {

@@ -11,7 +11,10 @@ export default function App() {
   const setConnectors = useStore((s) => s.setConnectors);
 
   useEffect(() => {
-    const refresh = () => invoke<ConnectorInfo[]>("connectors").then(setConnectors);
+    const refresh = () =>
+      invoke<ConnectorInfo[]>("connectors")
+        .then(setConnectors)
+        .catch((err) => console.error("failed to refresh connectors", err));
     refresh();
     const unlisten = listen<{ type: string; [k: string]: unknown }>("hub-event", (e) => {
       append(e.payload);

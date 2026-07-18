@@ -20,7 +20,7 @@ in a dev-console UI.
 2. Run the fake connector from a terminal — it appears in the UI as connected, with its capabilities listed.
 3. From the UI, send it a command (e.g. `workspace.open`) — the fake connector responds and the response appears in the activity log.
 4. The fake connector emits unsolicited events (e.g. simulated "file opened") — they appear in the log.
-5. Kill the fake connector — the UI shows it disconnected within ~5 seconds.
+5. Kill the fake connector — the UI shows it disconnected within ~15 seconds (liveness: 5 s pings, two missed pongs).
 6. Restart the fake connector — it reconnects and re-registers without restarting the app.
 7. `pnpm test` and `cargo test` pass, including an integration test that runs the hub headless with a real WebSocket round-trip.
 
@@ -210,10 +210,17 @@ commands, and forwards the `HubEvent` stream to the frontend via Tauri events.
 SDK surface (TS):
 
 ```ts
-const c = await connect({ name: "fake-vscode", kind: "fake", capabilities: ["workspace", "editor"] });
-c.onCommand("workspace.open", async (args) => ({ opened: args.path }));
+const c = await connect(
+  { name: "fake-vscode", kind: "fake", capabilities: ["workspace", "editor"] },
+  (c) => {
+    c.onCommand("workspace.open", async (args) => ({ opened: args.path }));
+  }
+);
 c.emit("editor.fileOpened", { path: "src/main.ts" });
 ```
+
+`connect(opts, setup?)` — `setup` runs before dialing so command handlers are
+registered before the first command can arrive.
 
 The SDK handles discovery (reads `hub.json`), the hello/welcome handshake, ping/pong,
 Zod validation of inbound frames, and **reconnection with exponential backoff** (1 s → 30 s
@@ -255,7 +262,7 @@ grows out of (the connectors panel survives; the rest becomes a debug view).
 | Command timeout (10 s) | Hub synthesizes `{ ok: false, error: "timeout" }` response; connector's late reply is dropped and logged |
 | Connector disconnect | Registry marks it offline, pending requests to it fail fast, UI updates; SDK reconnects with backoff |
 | App/hub restart | New port written to `hub.json`; SDK re-reads discovery file on each reconnect attempt |
-| Port bind failure | Hub retries with a fresh OS-assigned port; fatal error dialog only if binding fails entirely |
+| Port bind failure | Hub binds an OS-assigned port (port 0); this is not retried with another port — a bind failure surfaces as a fatal startup error |
 
 Guiding rule (from the project principles): the hub never takes destructive action on
 behalf of a connector, and a misbehaving connector can only ever hurt itself.
@@ -271,6 +278,8 @@ behalf of a connector, and a misbehaving connector can only ever hurt itself.
   register, send command, receive response/events, disconnect. No Tauri involved.
 - **SDK integration test (TS)** — run against the headless hub binary (`cargo run -p omnibus-hub --example headless`), covering handshake, command handling, and reconnect.
 - UI is verified manually via the success criteria; no UI test framework in this slice.
+- Negative fixtures (frames both sides must REJECT) are deferred; rejection-parity is
+  currently covered only by targeted tests (wrong `v`, unknown kind) on each side.
 
 ---
 

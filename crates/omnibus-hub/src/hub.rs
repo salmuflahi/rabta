@@ -87,6 +87,8 @@ struct State {
 
 type Shared = Arc<Mutex<State>>;
 
+/// A running hub: owns the listening socket, connector registry, and event
+/// broadcaster; `Hub::start` returns one already accepting connections.
 pub struct Hub {
     port: u16,
     cfg: HubConfig,
@@ -109,6 +111,7 @@ impl Hub {
         Ok(Hub { port, cfg, state, events, accept_task })
     }
 
+    /// The OS-assigned TCP port the hub is listening on.
     pub fn port(&self) -> u16 {
         self.port
     }
@@ -284,6 +287,14 @@ async fn handle_connection(
         tokio::select! {
             incoming = source.next() => match incoming {
                 Some(Ok(WsMessage::Text(txt))) => match serde_json::from_str::<Envelope>(txt.as_ref()) {
+                    Ok(env) if env.v != PROTOCOL_VERSION => {
+                        strikes += 1;
+                        let _ = send_env(&mut sink, &envelope(Message::Error(ErrorMsg {
+                            code: "bad_message".into(),
+                            message: "unsupported envelope version".into(),
+                        }))).await;
+                        if strikes >= 3 { break; }
+                    }
                     Ok(env) => match env.msg {
                         Message::Pong(_) => unanswered_pings = 0,
                         Message::Response(r) => {

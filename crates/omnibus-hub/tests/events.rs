@@ -64,6 +64,40 @@ async fn detects_dead_connector_via_missed_pongs() {
 }
 
 #[tokio::test]
+async fn rejects_envelope_with_wrong_protocol_version() {
+    let dir = tempfile::tempdir().unwrap();
+    let hub = Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap();
+    let mut rx = hub.subscribe();
+    let mut ws = register(hub.port(), "wrong-version").await;
+    assert!(matches!(next_event(&mut rx).await, HubEvent::ConnectorConnected { .. }));
+
+    // Otherwise-valid event envelope, but `v` doesn't match PROTOCOL_VERSION.
+    ws.send(
+        json!({"v":99,"id":"e","kind":"event","payload":{"name":"editor.fileOpened","data":{"path":"a.ts"}}})
+            .to_string()
+            .into(),
+    )
+    .await
+    .unwrap();
+
+    let reply = tokio::time::timeout(Duration::from_secs(2), ws.next())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    let reply: serde_json::Value = serde_json::from_str(reply.to_text().unwrap()).unwrap();
+    assert_eq!(reply["kind"], "error");
+    assert_eq!(reply["payload"]["code"], "bad_message");
+
+    // No EventReceived should have been broadcast for the rejected frame.
+    match tokio::time::timeout(Duration::from_millis(200), rx.recv()).await {
+        Err(_) => {} // timed out waiting for an event: correct, none was sent
+        Ok(Ok(other)) => panic!("expected no hub event, got {other:?}"),
+        Ok(Err(e)) => panic!("broadcast channel error: {e:?}"),
+    }
+}
+
+#[tokio::test]
 async fn closes_connection_after_three_bad_frames() {
     let dir = tempfile::tempdir().unwrap();
     let hub = Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap();

@@ -31,8 +31,14 @@ pub fn run() {
             let mut events = hub.subscribe();
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                while let Ok(ev) = events.recv().await {
-                    let _ = handle.emit("hub-event", &ev);
+                loop {
+                    match events.recv().await {
+                        Ok(ev) => {
+                            let _ = handle.emit("hub-event", &ev);
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                    }
                 }
             });
             app.manage(HubHandle(hub));

@@ -16,6 +16,7 @@ pub struct Envelope {
     pub msg: Message,
 }
 
+/// The payload half of an `Envelope`, tagged on the wire by `kind`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(tag = "kind", content = "payload", rename_all = "lowercase")]
 pub enum Message {
@@ -29,6 +30,7 @@ pub enum Message {
     Pong(Value),
 }
 
+/// The kind of process a connector identifies itself as during `hello`.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ConnectorKind {
@@ -37,6 +39,7 @@ pub enum ConnectorKind {
     Chrome,
 }
 
+/// First frame a connector sends; identifies it and negotiates protocol version.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Hello {
     pub name: String,
@@ -46,12 +49,14 @@ pub struct Hello {
     pub capabilities: Vec<String>,
 }
 
+/// The hub's reply to a valid `hello`, assigning the connector its id.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Welcome {
     #[serde(rename = "connectorId")]
     pub connector_id: String,
 }
 
+/// A request routed from the hub to a connector, awaiting a `Response`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Command {
     pub target: String,
@@ -59,6 +64,7 @@ pub struct Command {
     pub args: Value,
 }
 
+/// A connector's reply to a `Command`, matched by `request_id`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Response {
     #[serde(rename = "requestId")]
@@ -70,12 +76,14 @@ pub struct Response {
     pub error: Option<String>,
 }
 
+/// An unsolicited notification a connector emits, not tied to any request.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Event {
     pub name: String,
     pub data: Value,
 }
 
+/// An error frame the hub sends in response to a bad or rejected message.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ErrorMsg {
     pub code: String,
