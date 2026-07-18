@@ -25,6 +25,7 @@ export class Connector {
   private ws: WebSocket | null = null;
   private closed = false;
   private backoff = INITIAL_BACKOFF_MS;
+  private redialTimer: NodeJS.Timeout | null = null;
 
   constructor(private opts: ConnectOptions) {}
 
@@ -41,6 +42,10 @@ export class Connector {
   /** Closes the connection permanently (no reconnect). */
   close(): void {
     this.closed = true;
+    if (this.redialTimer !== null) {
+      clearTimeout(this.redialTimer);
+      this.redialTimer = null;
+    }
     this.ws?.close();
   }
 
@@ -63,6 +68,7 @@ export class Connector {
   }
 
   private dial(onWelcome?: () => void, onFatal?: (e: Error) => void): void {
+    if (this.closed) return;
     let port: number;
     try {
       // Re-read on every attempt: a restarted hub writes a fresh port.
@@ -128,13 +134,19 @@ export class Connector {
       }
       case "error":
         if (env.payload.code === "version_mismatch") {
-          // Spec: surface clearly and do NOT retry.
+          // Spec: surface clearly and do NOT retry. Always log to the
+          // console — this can happen well after the first `welcome` (e.g.
+          // on a reconnect to a since-upgraded hub), at which point the
+          // `start()` promise this `onFatal` closes over has already
+          // settled and calling it again is a silent no-op. Additionally
+          // still call `onFatal` so a first dial that hasn't resolved yet
+          // (this is the very first frame received) rejects `start()`.
           this.closed = true;
           const err = new Error(
             "hub requires a different protocol version — update this connector"
           );
-          if (onFatal) onFatal(err);
-          else console.error(err.message);
+          console.error(err.message);
+          onFatal?.(err);
         }
         break;
     }
@@ -142,7 +154,10 @@ export class Connector {
 
   private scheduleRedial(onWelcome?: () => void, onFatal?: (e: Error) => void): void {
     if (this.closed) return;
-    setTimeout(() => this.dial(onWelcome, onFatal), this.backoff);
+    this.redialTimer = setTimeout(() => {
+      this.redialTimer = null;
+      this.dial(onWelcome, onFatal);
+    }, this.backoff);
     this.backoff = Math.min(this.backoff * 2, MAX_BACKOFF_MS);
   }
 }
