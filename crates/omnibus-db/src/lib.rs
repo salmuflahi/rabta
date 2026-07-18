@@ -15,6 +15,9 @@ pub use activity::{EventRow, KnownConnector};
 mod records;
 pub use records::{NewProject, NewTask, NewTaskResource, Project, Task, TaskResource, TaskStatus};
 
+mod recorder;
+pub use recorder::Recorder;
+
 /// Storage configuration.
 #[derive(Clone)]
 pub struct DbConfig {
