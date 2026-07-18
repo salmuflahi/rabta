@@ -19,6 +19,7 @@ fn a_project(db: &Db, name: &str) -> omnibus_db::Project {
 fn project_crud_round_trip() {
     let db = db();
     let p = a_project(&db, "omnibus");
+    assert_eq!(p.created_at, p.updated_at);
     let listed = db.list_projects().unwrap();
     assert_eq!(listed, vec![p.clone()]);
     db.delete_project(&p.id).unwrap();
@@ -44,6 +45,7 @@ fn task_crud_and_status() {
     let db = db();
     let p = a_project(&db, "omnibus");
     let t = db.create_task(NewTask { project_id: p.id.clone(), title: "fix login".into() }).unwrap();
+    assert_eq!(t.created_at, t.updated_at);
     assert_eq!(t.status, TaskStatus::Open);
     db.set_task_status(&t.id, TaskStatus::Done).unwrap();
     let tasks = db.list_tasks(&p.id).unwrap();

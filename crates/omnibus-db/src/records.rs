@@ -47,6 +47,7 @@ impl TaskStatus {
             TaskStatus::Done => "done",
         }
     }
+    // Parse status from string; schema's CHECK (status IN ('open','done')) makes Open fallback unreachable.
     fn parse(s: &str) -> TaskStatus {
         if s == "done" { TaskStatus::Done } else { TaskStatus::Open }
     }
@@ -87,14 +88,15 @@ pub struct TaskResource {
 impl Db {
     /// Creates a project; fails on duplicate name (UNIQUE constraint).
     pub fn create_project(&self, new: NewProject) -> Result<Project> {
+        let ts = now();
         let p = Project {
             id: new_id(),
             name: new.name,
             repo_path: new.repo_path,
             dev_url: new.dev_url,
             default_branch: new.default_branch,
-            created_at: now(),
-            updated_at: now(),
+            created_at: ts.clone(),
+            updated_at: ts,
         };
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -135,13 +137,14 @@ impl Db {
 
     /// Creates a task in status `open`.
     pub fn create_task(&self, new: NewTask) -> Result<Task> {
+        let ts = now();
         let t = Task {
             id: new_id(),
             project_id: new.project_id,
             title: new.title,
             status: TaskStatus::Open,
-            created_at: now(),
-            updated_at: now(),
+            created_at: ts.clone(),
+            updated_at: ts,
         };
         let conn = self.conn.lock().unwrap();
         conn.execute(
