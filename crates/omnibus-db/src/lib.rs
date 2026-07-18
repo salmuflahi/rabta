@@ -9,6 +9,9 @@ use rusqlite::Connection;
 /// Embedded migrations, applied in order via SQLite's `user_version`.
 const MIGRATIONS: &[&str] = &[include_str!("../migrations/001_init.sql")];
 
+mod activity;
+pub use activity::{EventRow, KnownConnector};
+
 /// Storage configuration.
 #[derive(Clone)]
 pub struct DbConfig {
@@ -35,20 +38,17 @@ pub type Result<T> = std::result::Result<T, DbError>;
 /// which is exactly SQLite's model.
 #[derive(Clone)]
 pub struct Db {
-    conn: Arc<Mutex<Connection>>,
-    #[allow(dead_code)]
-    cfg: DbConfig,
+    pub(crate) conn: Arc<Mutex<Connection>>,
+    pub(crate) cfg: DbConfig,
 }
 
 /// Current UTC time as ISO-8601 text — the storage timestamp format.
-#[allow(dead_code)]
-fn now() -> String {
+pub(crate) fn now() -> String {
     chrono::Utc::now().to_rfc3339()
 }
 
 /// Fresh UUID v4 string — the storage id format.
-#[allow(dead_code)]
-fn new_id() -> String {
+pub(crate) fn new_id() -> String {
     uuid::Uuid::new_v4().to_string()
 }
 
