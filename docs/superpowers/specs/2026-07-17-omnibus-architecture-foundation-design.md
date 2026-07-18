@@ -1,7 +1,7 @@
 # OmniBus — Architecture Foundation (Phases 1–4)
 
 **Date:** 2026-07-17
-**Status:** Draft for review (rev 2, after review feedback)
+**Status:** Implemented (restructured for readability 2026-07-18; content unchanged)
 **Scope:** Tauri desktop shell, shared protocol, local event hub, fake connector, dev-console UI.
 **Out of scope:** SQLite database, task capsules, real VS Code/Chrome connectors, Git operations, GitHub integration. Each of those gets its own spec later.
 
@@ -9,10 +9,23 @@
 
 ## Goal
 
-Prove the core OmniBus architecture end-to-end before building any real integration:
-a desktop app hosts a local hub; a connector process registers with it over WebSocket;
-commands, responses, and events flow through a shared protocol; everything is visible
-in a dev-console UI.
+**What:** Prove the core OmniBus architecture end-to-end before building any real integration: a desktop app hosts a local hub; a connector process registers with it over WebSocket; commands, responses, and events flow through a shared protocol; everything is visible in a dev-console UI.
+
+**Why this order:** Building a real VS Code extension first would entangle "does the architecture work" with "does the VS Code API cooperate." A fake connector isolates the first question, which is the one this phase must answer.
+
+```
+              OmniBus Desktop (Tauri)
+        ┌──────────────────────────────┐
+        │  Dev-console UI  ◄── events ─┐
+        │                              │
+        │            Hub ──────────────┘
+        └─────────────┬────────────────┘
+                      │ WebSocket (127.0.0.1)
+                      │ shared protocol
+              ┌───────┴────────┐
+              │ Fake connector │  (stands in for VS Code)
+              └────────────────┘
+```
 
 ### Success criteria
 
@@ -82,6 +95,9 @@ A phase is complete when:
 
 ## Ownership
 
+Each component owns exactly one kind of responsibility, so "where does this code go?"
+has one answer:
+
 - **The Hub owns:** connection acceptance, the connector registry, command routing,
   request/response correlation, timeouts, liveness.
 - **A Connector owns:** tool-specific behavior only (what `workspace.open` *does*).
@@ -94,31 +110,45 @@ smart connectors.
 
 ## Key decision: where the hub lives
 
-**Chosen: inside the Tauri app's Rust process**, as a library crate (`crates/omnibus-hub`) started by the Tauri backend on launch.
+**What:** The hub is a Rust library crate (`crates/omnibus-hub`) running **inside the Tauri app's process**, started by the Tauri backend on launch. It binds **127.0.0.1 only**, on an OS-assigned port, and never listens on external interfaces.
 
-Alternatives considered:
+**Why:** One process to launch, package, and debug — and because the hub sits behind a clean library interface, extracting it into a daemon later is a packaging change, not a rewrite.
 
-- **Separate daemon (`omnibusd`)** — connectors would survive UI restarts, but it doubles the process-management and packaging complexity for zero MVP benefit. Because the hub is a library crate behind a clean interface, extracting it into a daemon later is a packaging change, not a rewrite.
+**Alternatives considered:**
+
+- **Separate daemon (`omnibusd`)** — connectors would survive UI restarts, but it doubles process-management and packaging complexity for zero MVP benefit.
 - **No WebSocket; Tauri IPC / stdio per connector** — rejected. The eventual VS Code and Chrome extensions can only realistically reach us over a local socket; building the foundation on any other transport would invalidate the architecture we're trying to prove.
 
-The hub binds **127.0.0.1 only**, on an OS-assigned port. It never listens on external interfaces.
+**Trade-off accepted:** connectors disconnect when the app closes. The SDK's reconnect logic makes this a non-event in practice.
 
 ## Key decision: protocol source of truth
 
-The protocol is defined **twice, deliberately**: Zod schemas in TypeScript (`packages/protocol`) and serde structs in Rust (inside `crates/omnibus-hub/src/protocol.rs`). A shared set of JSON fixture files is tested against **both** implementations, so drift fails CI instead of failing at runtime. The fixtures are what make the double definition safe, which is why they stay in scope despite the "simplest implementation" principle. Code generation (e.g. from JSON Schema) is deferred — with ~10 message types it's more tooling than it saves.
+**What:** The protocol is defined **twice, deliberately** — Zod schemas in TypeScript (`packages/protocol`) and serde structs in Rust (`crates/omnibus-hub/src/protocol.rs`).
+
+**Why twice:** each side gets idiomatic, zero-overhead types instead of generated glue. With ~10 message types, code generation (e.g. from JSON Schema) is more tooling than it saves.
+
+**What makes it safe:** a shared set of JSON fixture files is tested against **both** implementations, so drift fails CI instead of failing at runtime. The fixtures are the mechanism that makes the double definition tolerable — which is why they stay in scope despite the "simplest implementation" principle.
+
+```
+   packages/protocol/fixtures/*.json     (single source of truth)
+              │                │
+       vitest │                │ cargo test
+              ▼                ▼
+        Zod schemas      serde structs
+        (TypeScript)        (Rust)
+
+        drift on either side = red CI
+```
 
 ## Deferred: authentication
 
-There is **no authentication in this phase**. `hub.json` contains only the port, the
-`hello` message carries no secret, and there is no `auth_failed` error.
+**What:** There is **no authentication in this phase**. `hub.json` contains only the port, the `hello` message carries no secret, and there is no `auth_failed` error.
 
-This is a deliberate deferral, not an oversight. One caveat to record now: **any
-webpage in any browser can open a WebSocket to `127.0.0.1:<port>`**, so an
-unauthenticated hub is reachable by arbitrary websites. That is harmless while the
-only clients are our own local processes, but authentication (a secret in `hub.json`,
-or per-connector tokens once the database exists) **must land before the Chrome
-connector phase**. Until then, the hub rejects any connection that carries a browser
-`Origin` header — one `if`, not an auth system.
+**Why defer:** every client in this phase is our own local process; an auth handshake would add debugging friction during the weeks it matters most, while protecting against nothing.
+
+**The caveat that makes this a deferral, not a deletion:** any webpage in any browser can open a WebSocket to `127.0.0.1:<port>`, so an unauthenticated hub is reachable by arbitrary websites. That is harmless while the only clients are our own local processes, but authentication (a secret in `hub.json`, or per-connector tokens once the database exists) **must land before the Chrome connector phase**.
+
+**Stopgap until then:** the hub rejects any connection that carries a browser `Origin` header — one `if`, not an auth system.
 
 ---
 
@@ -160,7 +190,28 @@ Transport: JSON text frames over a local WebSocket. Every frame is an **envelope
 }
 ```
 
+Versioning from day one (`v: 1`) so incompatible future changes are detectable at the
+handshake instead of producing silent misbehavior.
+
 ### Lifecycle
+
+A connector's life, end to end:
+
+```
+Fake Connector                    Hub
+      │                            │
+      │  (reads hub.json for port) │
+      │──────── hello ────────────►│  validate version
+      │◄─────── welcome ───────────│  assign connectorId
+      │                            │
+      │◄─────── command ───────────│  routed from UI
+      │──────── response ─────────►│  correlated by requestId
+      │                            │
+      │──────── event ────────────►│──► UI activity log
+      │                            │
+      │◄─────── ping ──────────────│  every 5 s
+      │──────── pong ─────────────►│  2 missed → dead
+```
 
 1. **Discovery** — on startup the hub writes `hub.json` to the OmniBus app-data dir
    (`~/Library/Application Support/com.omnibus.dev/hub.json`): `{ port }`.
@@ -181,14 +232,11 @@ Transport: JSON text frames over a local WebSocket. Every frame is an **envelope
 
 ## Hub (`crates/omnibus-hub`)
 
-Tokio-based. Responsibilities: accept WS connections, validate hellos, maintain the
-registry, route commands/responses/events, enforce timeouts, emit **hub events**
-(connector connected/disconnected, message traffic) on a broadcast channel.
+**What:** a tokio-based library that accepts WS connections, validates hellos, maintains the registry, routes commands/responses/events, enforces timeouts, and emits **hub events** (connector connected/disconnected, message traffic) on a broadcast channel.
 
-The **public interface below is the contract; the internal concurrency model is the
-implementer's choice.** A single actor task owning all state with mpsc channels is a
-reasonable starting point, but if a `Mutex`/`RwLock` around a registry map turns out
-simpler, use that — this spec mandates behavior, not concurrency style.
+**Why a broadcast channel:** anything that wants to observe hub activity — the UI log today, persistence later — subscribes to the same stream. Observers can be added without touching the hub.
+
+**Concurrency model is deliberately unspecified:** the public interface below is the contract; the internals are the implementer's choice. A single actor task owning all state with mpsc channels is a reasonable starting point, but if a `Mutex`/`RwLock` around a registry map turns out simpler, use that — this spec mandates behavior, not concurrency style.
 
 Public interface (used by both the Tauri shell and integration tests):
 
@@ -207,6 +255,8 @@ commands, and forwards the `HubEvent` stream to the frontend via Tauri events.
 
 ## Connector SDK (`packages/connector-sdk`) and fake connector
 
+**What:** the SDK is everything a connector needs that is not tool-specific; the fake connector is a Node CLI built on it that simulates a VS Code-like tool.
+
 SDK surface (TS):
 
 ```ts
@@ -222,15 +272,9 @@ c.emit("editor.fileOpened", { path: "src/main.ts" });
 `connect(opts, setup?)` — `setup` runs before dialing so command handlers are
 registered before the first command can arrive.
 
-The SDK handles discovery (reads `hub.json`), the hello/welcome handshake, ping/pong,
-Zod validation of inbound frames, and **reconnection with exponential backoff** (1 s → 30 s
-cap — required by success criterion 6).
+**What the SDK owns** (so no connector reimplements it): discovery (reads `hub.json`), the hello/welcome handshake, ping/pong, Zod validation of inbound frames, and **reconnection with exponential backoff** (1 s → 30 s cap — required by success criterion 6).
 
-The **fake connector** (`connectors/fake`) is a Node CLI built on the SDK. It simulates a
-VS Code-like tool: in-memory workspace state, handlers for `workspace.open`,
-`workspace.state`, `editor.openFiles`, and a `--chatty` flag that emits random editor events
-every few seconds (useful for exercising the UI log). It doubles as the reference example
-for the SDK.
+**Why the fake connector exists:** it simulates a VS Code-like tool — in-memory workspace state, handlers for `workspace.open`, `workspace.state`, `editor.openFiles`, and a `--chatty` flag that emits editor events every few seconds (useful for exercising the UI log) — and it doubles as the reference example for the SDK.
 
 ---
 
