@@ -74,6 +74,9 @@ pub fn run() {
             // Recorder: broadcast -> channel -> dedicated blocking thread.
             // SQLite writes are honest blocking work, so they get a real thread
             // instead of stalling the async runtime.
+            // Deliberate trade-off: the channel is unbounded and this thread is
+            // never joined on quit, so events still queued at shutdown can be
+            // lost. Acceptable for a debug event log.
             let (tx, rx) = std::sync::mpsc::channel::<Value>();
             let mut rec_events = hub.subscribe();
             tauri::async_runtime::spawn(async move {

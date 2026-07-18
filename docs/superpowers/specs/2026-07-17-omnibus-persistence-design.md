@@ -95,7 +95,7 @@ Headless example: `--record` flag composes the same recorder, making persistence
 ## Testing
 
 - **`omnibus-db` unit tests** (in-memory): CRUD round-trips per table, `UNIQUE(name, kind)` and `projects.name` constraints, cascade deletes, event-cap enforcement, migration idempotence (`open` twice; `user_version` advances once).
-- **Recorder integration test**: spawn the headless hub with `--record` and a temp data dir, connect a real WebSocket client, register + emit events, assert event rows and the connector upsert landed.
+- **Recorder integration test**: drive the `Recorder` in-process against a real hub and a real WebSocket connector (not by spawning `--record`), register + emit events, assert event rows and the connector upsert landed. `--record` itself is covered by the manual walkthrough.
 - **UI**: walkthrough per success criterion 1; no UI test framework (unchanged from foundation).
 
 ## Build order

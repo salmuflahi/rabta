@@ -36,6 +36,8 @@ impl Default for DbConfig {
 pub enum DbError {
     #[error("sqlite error: {0}")]
     Sqlite(#[from] rusqlite::Error),
+    #[error("database schema version {0} is newer than this build supports")]
+    SchemaTooNew(i64),
 }
 
 pub type Result<T> = std::result::Result<T, DbError>;
@@ -98,10 +100,65 @@ impl Db {
 
 /// Applies any migrations beyond the connection's current `user_version`.
 fn migrate(conn: &Connection) -> Result<()> {
+    apply_migrations(conn, MIGRATIONS)
+}
+
+/// Applies `migrations` beyond the connection's current `user_version`, in
+/// order. Each migration (its SQL plus the `user_version` bump) runs inside
+/// one transaction, so a failure partway through a migration rolls back that
+/// migration's DDL and leaves `user_version` unchanged — the database is
+/// never left half-applied. Errors if the database's recorded `user_version`
+/// is already ahead of `migrations.len()` (an older build opened against a
+/// newer schema).
+fn apply_migrations(conn: &Connection, migrations: &[&str]) -> Result<()> {
     let applied: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-    for (i, sql) in MIGRATIONS.iter().enumerate().skip(applied as usize) {
-        conn.execute_batch(sql)?;
-        conn.pragma_update(None, "user_version", (i as i64) + 1)?;
+    if applied > migrations.len() as i64 {
+        return Err(DbError::SchemaTooNew(applied));
+    }
+    for (i, sql) in migrations.iter().enumerate().skip(applied as usize) {
+        let tx = conn.unchecked_transaction()?;
+        tx.execute_batch(sql)?;
+        tx.pragma_update(None, "user_version", (i as i64) + 1)?;
+        tx.commit()?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn broken_migration_rolls_back_and_leaves_version_unchanged() {
+        let conn = Connection::open_in_memory().unwrap();
+        let migrations: &[&str] = &[
+            "CREATE TABLE good (id TEXT);",
+            "CREATE TABLE also_good (id TEXT); THIS IS NOT SQL;",
+        ];
+
+        let result = apply_migrations(&conn, migrations);
+        assert!(result.is_err(), "expected broken migration to error");
+
+        let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
+        assert_eq!(version, 1, "user_version must not advance past the last good migration");
+
+        let also_good_exists: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'also_good'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(also_good_exists, 0, "also_good must not exist after a rolled-back migration");
+    }
+
+    #[test]
+    fn schema_too_new_errors() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.pragma_update(None, "user_version", 99i64).unwrap();
+
+        let migrations: &[&str] = &["CREATE TABLE good (id TEXT);"];
+        let result = apply_migrations(&conn, migrations);
+        assert!(matches!(result, Err(DbError::SchemaTooNew(99))));
+    }
 }

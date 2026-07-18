@@ -107,7 +107,10 @@ export const useStore = create<Store>((set) => ({
           connectedSince: new Date(k.lastSeen).toLocaleTimeString(),
         }));
       return {
-        log: [...historical, ...s.log].slice(-MAX_LOG),
+        // Drop any previously-seeded historical entries before re-seeding so
+        // a second preload (React StrictMode's double effect in dev) replaces
+        // rather than duplicates them.
+        log: [...historical, ...s.log.filter((e) => !e.historical)].slice(-MAX_LOG),
         connectors: [...s.connectors, ...seeded],
       };
     }),

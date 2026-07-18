@@ -14,7 +14,9 @@ export function ConnectorsPanel() {
           </div>
           <div className="text-neutral-500 break-all text-xs">{c.id}</div>
           <div className="text-neutral-400 text-xs">{c.capabilities.join(", ") || "—"}</div>
-          <div className="text-neutral-500 text-xs">since {c.connectedSince}</div>
+          <div className="text-neutral-500 text-xs">
+            {c.connected ? "since" : "last seen"} {c.connectedSince}
+          </div>
         </div>
       ))}
     </div>
