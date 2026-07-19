@@ -8,9 +8,10 @@ async fn start_hub() -> (Hub, tempfile::TempDir) {
     (hub, dir)
 }
 
-fn hello(name: &str, version: u8) -> String {
+fn hello(name: &str, version: u8, secret: &str) -> String {
     json!({"v": 1, "id": "t-hello", "kind": "hello", "payload": {
-        "name": name, "kind": "fake", "protocolVersion": version, "capabilities": ["workspace"]
+        "name": name, "kind": "fake", "protocolVersion": version, "capabilities": ["workspace"],
+        "secret": secret
     }})
     .to_string()
 }
@@ -20,11 +21,11 @@ async fn writes_discovery_file_and_registers_connector() {
     let (hub, dir) = start_hub().await;
     let disco: Value =
         serde_json::from_str(&std::fs::read_to_string(dir.path().join("hub.json")).unwrap()).unwrap();
-    assert_eq!(disco, json!({ "port": hub.port() }));
+    assert_eq!(disco, json!({ "port": hub.port(), "secret": hub.secret() }));
 
     let (mut ws, _) =
         tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
-    ws.send(hello("test-conn", 1).into()).await.unwrap();
+    ws.send(hello("test-conn", 1, hub.secret()).into()).await.unwrap();
     let reply: Value =
         serde_json::from_str(ws.next().await.unwrap().unwrap().to_text().unwrap()).unwrap();
     assert_eq!(reply["kind"], "welcome");
@@ -38,10 +39,12 @@ async fn writes_discovery_file_and_registers_connector() {
 
 #[tokio::test]
 async fn rejects_protocol_version_mismatch() {
+    // Version check happens before the auth gate (see hub.rs), so a valid
+    // secret is supplied here to prove that's the reason this is rejected.
     let (hub, _dir) = start_hub().await;
     let (mut ws, _) =
         tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
-    ws.send(hello("old-conn", 99).into()).await.unwrap();
+    ws.send(hello("old-conn", 99, hub.secret()).into()).await.unwrap();
     let reply: Value =
         serde_json::from_str(ws.next().await.unwrap().unwrap().to_text().unwrap()).unwrap();
     assert_eq!(reply["kind"], "error");

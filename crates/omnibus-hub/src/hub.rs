@@ -2,7 +2,7 @@
 //! shared state (registry + pending requests) lives behind a single Mutex.
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use futures_util::stream::SplitSink;
@@ -25,6 +25,11 @@ pub struct HubConfig {
     pub data_dir: PathBuf,
     pub command_timeout: Duration,
     pub ping_interval: Duration,
+    /// Live token map keyed "{name}/{kind}"; shared with the embedding app,
+    /// which owns persistence. The hub only reads it.
+    pub tokens: Arc<RwLock<HashMap<String, String>>>,
+    /// How long a parked pairing request waits for the user.
+    pub pairing_timeout: Duration,
 }
 
 impl HubConfig {
@@ -33,6 +38,8 @@ impl HubConfig {
             data_dir,
             command_timeout: Duration::from_secs(10),
             ping_interval: Duration::from_secs(5),
+            tokens: Arc::new(RwLock::new(HashMap::new())),
+            pairing_timeout: Duration::from_secs(120),
         }
     }
 }
@@ -57,6 +64,7 @@ pub enum HubEvent {
     CommandSent { connector_id: String, request_id: String, name: String, args: Value },
     ResponseReceived { connector_id: String, request_id: String, ok: bool, result: Value },
     EventReceived { connector_id: String, name: String, data: Value },
+    PairingRequested { pairing_id: String, name: String, kind: String },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -83,6 +91,8 @@ struct State {
     connectors: HashMap<String, Connected>,
     /// requestId -> (connectorId it was sent to, waiter)
     pending: HashMap<String, (String, Waiter)>,
+    /// pairingId -> (name, kind, resolver). Removed on resolve or timeout.
+    pairings: HashMap<String, (String, String, oneshot::Sender<Option<String>>)>,
 }
 
 type Shared = Arc<Mutex<State>>;
@@ -91,6 +101,9 @@ type Shared = Arc<Mutex<State>>;
 /// broadcaster; `Hub::start` returns one already accepting connections.
 pub struct Hub {
     port: u16,
+    /// Per-start shared secret, written to `hub.json` for local (non-browser)
+    /// connectors that read the discovery file directly.
+    secret: Arc<String>,
     cfg: HubConfig,
     state: Shared,
     events: broadcast::Sender<HubEvent>,
@@ -103,17 +116,39 @@ impl Hub {
         let listener = TcpListener::bind("127.0.0.1:0").await?;
         let port = listener.local_addr()?.port();
         std::fs::create_dir_all(&cfg.data_dir)?;
-        std::fs::write(cfg.data_dir.join("hub.json"), json!({ "port": port }).to_string())?;
+        let secret = Uuid::new_v4().to_string();
+        let path = cfg.data_dir.join("hub.json");
+        std::fs::write(&path, json!({ "port": port, "secret": secret }).to_string())?;
+        let mut perms = std::fs::metadata(&path)?.permissions();
+        std::os::unix::fs::PermissionsExt::set_mode(&mut perms, 0o600);
+        std::fs::set_permissions(&path, perms)?;
+        let secret = Arc::new(secret);
         let (events, _) = broadcast::channel(256);
         let state: Shared = Default::default();
-        let accept_task =
-            tokio::spawn(accept_loop(listener, state.clone(), events.clone(), cfg.clone()));
-        Ok(Hub { port, cfg, state, events, accept_task })
+        let accept_task = tokio::spawn(accept_loop(
+            listener,
+            state.clone(),
+            events.clone(),
+            cfg.clone(),
+            secret.clone(),
+        ));
+        Ok(Hub { port, secret, cfg, state, events, accept_task })
     }
 
     /// The OS-assigned TCP port the hub is listening on.
     pub fn port(&self) -> u16 {
         self.port
+    }
+
+    /// The per-start shared secret (also written to `hub.json`).
+    pub fn secret(&self) -> &str {
+        &self.secret
+    }
+
+    /// A clone of the live token map handle, for callers (desktop layer,
+    /// tests) that need to insert tokens issued via pairing.
+    pub fn tokens_handle(&self) -> Arc<RwLock<HashMap<String, String>>> {
+        self.cfg.tokens.clone()
     }
 
     /// Live stream of hub activity for the UI log.
@@ -124,6 +159,31 @@ impl Hub {
     /// Snapshot of currently connected connectors.
     pub async fn connectors(&self) -> Vec<ConnectorInfo> {
         self.state.lock().await.connectors.values().map(|c| c.info.clone()).collect()
+    }
+
+    /// Snapshot of pairing requests currently parked awaiting resolution:
+    /// (pairing_id, name, kind).
+    pub async fn pending_pairings(&self) -> Vec<(String, String, String)> {
+        self.state
+            .lock()
+            .await
+            .pairings
+            .iter()
+            .map(|(id, (name, kind, _))| (id.clone(), name.clone(), kind.clone()))
+            .collect()
+    }
+
+    /// Resolves a parked pairing request: `Some(token)` approves and issues
+    /// that token, `None` denies. Returns `false` if `pairing_id` is unknown
+    /// (already resolved, timed out, or never existed).
+    pub async fn resolve_pairing(&self, pairing_id: &str, token: Option<String>) -> bool {
+        match self.state.lock().await.pairings.remove(pairing_id) {
+            Some((_, _, tx)) => {
+                let _ = tx.send(token);
+                true
+            }
+            None => false,
+        }
     }
 
     /// Routes a command to `target` and awaits its response (Task 5).
@@ -189,21 +249,45 @@ async fn accept_loop(
     state: Shared,
     events: broadcast::Sender<HubEvent>,
     cfg: HubConfig,
+    secret: Arc<String>,
 ) {
     while let Ok((stream, _)) = listener.accept().await {
-        tokio::spawn(handle_connection(stream, state.clone(), events.clone(), cfg.clone()));
+        tokio::spawn(handle_connection(
+            stream,
+            state.clone(),
+            events.clone(),
+            cfg.clone(),
+            secret.clone(),
+        ));
     }
 }
 
-/// Rejects browser connections until authentication exists (see spec,
-/// "Deferred: authentication").
-fn reject_origin(req: &Request, resp: HsResponse) -> Result<HsResponse, ErrorResponse> {
-    if req.headers().contains_key("origin") {
-        let mut denied = ErrorResponse::new(Some("browser connections not allowed".to_string()));
+/// Absent origin (native processes) and browser-extension origins may
+/// proceed to authentication; web origins are rejected outright.
+fn origin_allowed(req: &Request) -> bool {
+    match req.headers().get("origin").and_then(|v| v.to_str().ok()) {
+        None => true,
+        Some(o) => o.starts_with("chrome-extension://") || o.starts_with("moz-extension://"),
+    }
+}
+
+fn check_origin(req: &Request, resp: HsResponse) -> Result<HsResponse, ErrorResponse> {
+    if origin_allowed(req) {
+        Ok(resp)
+    } else {
+        let mut denied = ErrorResponse::new(Some("origin not allowed".to_string()));
         *denied.status_mut() = tokio_tungstenite::tungstenite::http::StatusCode::FORBIDDEN;
         Err(denied)
-    } else {
-        Ok(resp)
+    }
+}
+
+/// The lowercase wire tag for a `ConnectorKind` (matches its serde repr),
+/// used to build the "{name}/{kind}" token-map key.
+fn kind_tag(kind: ConnectorKind) -> &'static str {
+    match kind {
+        ConnectorKind::Fake => "fake",
+        ConnectorKind::Vscode => "vscode",
+        ConnectorKind::Chrome => "chrome",
     }
 }
 
@@ -223,15 +307,20 @@ async fn handle_connection(
     state: Shared,
     events: broadcast::Sender<HubEvent>,
     cfg: HubConfig,
+    secret: Arc<String>,
 ) {
-    let Ok(ws) = tokio_tungstenite::accept_hdr_async(stream, reject_origin).await else { return };
+    let Ok(ws) = tokio_tungstenite::accept_hdr_async(stream, check_origin).await else { return };
     let (mut sink, mut source) = ws.split();
 
-    // Handshake: first frame must be a valid hello within 5 s.
+    // Handshake: first frame must be a valid hello or pair within 5 s.
     let hello = match tokio::time::timeout(Duration::from_secs(5), source.next()).await {
         Ok(Some(Ok(WsMessage::Text(txt)))) => {
             match serde_json::from_str::<Envelope>(txt.as_ref()) {
                 Ok(Envelope { msg: Message::Hello(h), .. }) => h,
+                Ok(Envelope { msg: Message::Pair(p), .. }) => {
+                    handle_pairing(p, &mut sink, &state, &events, &cfg).await;
+                    return;
+                }
                 _ => {
                     let _ = send_env(
                         &mut sink,
@@ -247,12 +336,33 @@ async fn handle_connection(
         }
         _ => return,
     };
+    // Binding order: protocol-version check FIRST, then auth. This preserves
+    // the pre-existing version-mismatch behavior/test (a stale client should
+    // learn it's on the wrong version even without credentials) and gives a
+    // more specific error before we bother validating secrets/tokens.
     if hello.protocol_version != PROTOCOL_VERSION {
         let _ = send_env(
             &mut sink,
             &envelope(Message::Error(ErrorMsg {
                 code: "version_mismatch".into(),
                 message: "unsupported protocol version".into(),
+            })),
+        )
+        .await;
+        return;
+    }
+
+    let token_key = format!("{}/{}", hello.name, kind_tag(hello.kind));
+    let authed = hello.secret.as_deref() == Some(secret.as_str())
+        || hello.token.as_deref().is_some_and(|t| {
+            cfg.tokens.read().unwrap().get(&token_key).map(String::as_str) == Some(t)
+        });
+    if !authed {
+        let _ = send_env(
+            &mut sink,
+            &envelope(Message::Error(ErrorMsg {
+                code: "auth_failed".into(),
+                message: "invalid credentials".into(),
             })),
         )
         .await;
@@ -353,6 +463,59 @@ async fn handle_connection(
         }
     }
     cleanup(&state, &events, &id).await;
+}
+
+/// Handles a `pair` first frame in place of `hello`: parks the request,
+/// announces it via `HubEvent::PairingRequested`, then waits for
+/// `Hub::resolve_pairing` (approval, denial) or `cfg.pairing_timeout` to
+/// elapse. Always ends the connection — an approved connector must
+/// reconnect with `hello { token }` to actually register.
+async fn handle_pairing(
+    p: Pair,
+    sink: &mut Sink,
+    state: &Shared,
+    events: &broadcast::Sender<HubEvent>,
+    cfg: &HubConfig,
+) {
+    let pairing_id = Uuid::new_v4().to_string();
+    let name = p.name;
+    let kind = kind_tag(p.kind).to_string();
+    let (tx, rx) = oneshot::channel::<Option<String>>();
+    state.lock().await.pairings.insert(pairing_id.clone(), (name.clone(), kind.clone(), tx));
+    let _ = events.send(HubEvent::PairingRequested {
+        pairing_id: pairing_id.clone(),
+        name,
+        kind,
+    });
+
+    let outcome = tokio::time::timeout(cfg.pairing_timeout, rx).await;
+    // No-op if `resolve_pairing` already removed the entry when it fired.
+    state.lock().await.pairings.remove(&pairing_id);
+    match outcome {
+        Ok(Ok(Some(token))) => {
+            let _ = send_env(sink, &envelope(Message::Paired(Paired { token }))).await;
+        }
+        Ok(Ok(None)) | Ok(Err(_)) => {
+            let _ = send_env(
+                sink,
+                &envelope(Message::Error(ErrorMsg {
+                    code: "pairing_denied".into(),
+                    message: "pairing request denied".into(),
+                })),
+            )
+            .await;
+        }
+        Err(_) => {
+            let _ = send_env(
+                sink,
+                &envelope(Message::Error(ErrorMsg {
+                    code: "pairing_timeout".into(),
+                    message: "pairing request timed out".into(),
+                })),
+            )
+            .await;
+        }
+    }
 }
 
 /// Removes the connector from the registry, fails its pending requests fast,

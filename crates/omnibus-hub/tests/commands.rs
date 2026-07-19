@@ -11,7 +11,7 @@ async fn hub_with_echo_connector(cfg: HubConfig) -> (Hub, String, tempfile::Temp
     let (mut ws, _) =
         tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
     ws.send(
-        json!({"v":1,"id":"h","kind":"hello","payload":{"name":"echo","kind":"fake","protocolVersion":1,"capabilities":["workspace"]}})
+        json!({"v":1,"id":"h","kind":"hello","payload":{"name":"echo","kind":"fake","protocolVersion":1,"capabilities":["workspace"],"secret":hub.secret()}})
             .to_string()
             .into(),
     )
@@ -69,7 +69,7 @@ async fn command_times_out_when_connector_never_answers() {
     let (mut ws, _) =
         tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
     ws.send(
-        json!({"v":1,"id":"h","kind":"hello","payload":{"name":"deaf","kind":"fake","protocolVersion":1,"capabilities":[]}})
+        json!({"v":1,"id":"h","kind":"hello","payload":{"name":"deaf","kind":"fake","protocolVersion":1,"capabilities":[],"secret":hub.secret()}})
             .to_string()
             .into(),
     )

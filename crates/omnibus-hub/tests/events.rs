@@ -3,12 +3,13 @@ use omnibus_hub::{Hub, HubConfig, HubEvent};
 use serde_json::json;
 use std::time::Duration;
 
-async fn register(port: u16, name: &str) -> tokio_tungstenite::WebSocketStream<
+async fn register(hub: &Hub, name: &str) -> tokio_tungstenite::WebSocketStream<
     tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
 > {
-    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{port}")).await.unwrap();
+    let (mut ws, _) =
+        tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
     ws.send(
-        json!({"v":1,"id":"h","kind":"hello","payload":{"name":name,"kind":"fake","protocolVersion":1,"capabilities":[]}})
+        json!({"v":1,"id":"h","kind":"hello","payload":{"name":name,"kind":"fake","protocolVersion":1,"capabilities":[],"secret":hub.secret()}})
             .to_string()
             .into(),
     )
@@ -27,7 +28,7 @@ async fn fans_out_connector_events_to_subscribers() {
     let dir = tempfile::tempdir().unwrap();
     let hub = Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap();
     let mut rx = hub.subscribe();
-    let mut ws = register(hub.port(), "emitter").await;
+    let mut ws = register(&hub, "emitter").await;
     assert!(matches!(next_event(&mut rx).await, HubEvent::ConnectorConnected { .. }));
 
     ws.send(
@@ -53,7 +54,7 @@ async fn detects_dead_connector_via_missed_pongs() {
     cfg.ping_interval = Duration::from_millis(100);
     let hub = Hub::start(cfg).await.unwrap();
     let mut rx = hub.subscribe();
-    let _ws = register(hub.port(), "silent").await; // never answers pings
+    let _ws = register(&hub, "silent").await; // never answers pings
     assert!(matches!(next_event(&mut rx).await, HubEvent::ConnectorConnected { .. }));
     let deadline = std::time::Instant::now();
     loop {
@@ -68,7 +69,7 @@ async fn rejects_envelope_with_wrong_protocol_version() {
     let dir = tempfile::tempdir().unwrap();
     let hub = Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap();
     let mut rx = hub.subscribe();
-    let mut ws = register(hub.port(), "wrong-version").await;
+    let mut ws = register(&hub, "wrong-version").await;
     assert!(matches!(next_event(&mut rx).await, HubEvent::ConnectorConnected { .. }));
 
     // Otherwise-valid event envelope, but `v` doesn't match PROTOCOL_VERSION.
@@ -101,7 +102,7 @@ async fn rejects_envelope_with_wrong_protocol_version() {
 async fn closes_connection_after_three_bad_frames() {
     let dir = tempfile::tempdir().unwrap();
     let hub = Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap();
-    let mut ws = register(hub.port(), "garbler").await;
+    let mut ws = register(&hub, "garbler").await;
     for _ in 0..3 {
         ws.send("not json".to_string().into()).await.unwrap();
     }
