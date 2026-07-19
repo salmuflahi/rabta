@@ -35,6 +35,7 @@ pub struct ActivateSummary {
 #[derive(Debug, Clone)]
 struct PendingRestore {
     kind: String,
+    generation: u64,
     open_files: Vec<String>,
     terminals: Vec<(String, Option<String>)>, // (cwd, name)
 }
@@ -47,6 +48,8 @@ pub struct Capsules {
     settle: Duration,
     active_task: Arc<Mutex<Option<String>>>,
     pending: Arc<Mutex<Option<PendingRestore>>>,
+    activation_lock: Arc<tokio::sync::Mutex<()>>,
+    generation: Arc<std::sync::atomic::AtomicU64>,
 }
 
 fn kind_str(kind: ConnectorKind) -> &'static str {
@@ -67,6 +70,8 @@ impl Capsules {
             settle,
             active_task: Arc::new(Mutex::new(None)),
             pending: Arc::new(Mutex::new(None)),
+            activation_lock: Arc::new(tokio::sync::Mutex::new(())),
+            generation: Arc::new(std::sync::atomic::AtomicU64::new(0)),
         }
     }
 
@@ -106,6 +111,9 @@ impl Capsules {
     /// Auto-saves the outgoing active task (if any), then restores `task_id`'s
     /// capsule best-effort per connector, and marks it active.
     pub async fn activate_task(&self, task_id: &str) -> Result<ActivateSummary, String> {
+        let _serialized = self.activation_lock.lock().await;
+        let generation =
+            self.generation.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
         // Spec: one pending restore slot, replaced by the newer activation —
         // every activation must reset it, not just cross-folder vscode ones.
         *self.pending.lock().unwrap() = None;
@@ -142,13 +150,16 @@ impl Capsules {
             };
             match r.connector_kind.as_str() {
                 "vscode" => {
-                    match self.restore_vscode(conn, &r.payload, &mut errors).await {
+                    match self.restore_vscode(conn, &r.payload, generation, &mut errors).await {
                         RestoreOutcome::Applied => applied.push("vscode".into()),
                         RestoreOutcome::Pending => pending.push("vscode".into()),
                     }
                 }
                 "fake" => {
-                    if let Some(folder) = r.payload["workspaceFolder"].as_str() {
+                    let folder = r.payload["workspaceFolder"]
+                        .as_str()
+                        .or_else(|| r.payload["root"].as_str());
+                    if let Some(folder) = folder {
                         if let Err(e) = self
                             .hub
                             .send_command(&conn.id, "workspace.open", json!({ "path": folder }))
@@ -158,6 +169,8 @@ impl Capsules {
                         } else {
                             applied.push("fake".into());
                         }
+                    } else {
+                        skipped.push(r.connector_kind.clone());
                     }
                 }
                 _ => skipped.push(r.connector_kind.clone()),
@@ -172,13 +185,21 @@ impl Capsules {
         &self,
         conn: &ConnectorInfo,
         payload: &Value,
+        generation: u64,
         errors: &mut Vec<String>,
     ) -> RestoreOutcome {
         let target_folder = payload["workspaceFolder"].as_str();
-        let open_files: Vec<String> = payload["openFiles"]
+        let mut open_files: Vec<String> = payload["openFiles"]
             .as_array()
             .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
             .unwrap_or_default();
+        // Open the active file last so editor focus lands on it.
+        if let Some(active) = payload["activeFile"].as_str() {
+            if let Some(pos) = open_files.iter().position(|f| f == active) {
+                let f = open_files.remove(pos);
+                open_files.push(f);
+            }
+        }
         let terminals: Vec<(String, Option<String>)> = payload["terminals"]
             .as_array()
             .map(|a| {
@@ -200,6 +221,7 @@ impl Capsules {
             Some(target) if current_folder.as_deref() != Some(target) => {
                 *self.pending.lock().unwrap() = Some(PendingRestore {
                     kind: "vscode".into(),
+                    generation,
                     open_files,
                     terminals,
                 });
@@ -234,10 +256,12 @@ impl Capsules {
             }
         }
         for (cwd, name) in terminals {
-            if let Err(e) = self
-                .hub
-                .send_command(connector_id, "terminal.create", json!({ "cwd": cwd, "name": name }))
-                .await
+            let mut args = json!({ "cwd": cwd });
+            if let Some(n) = name {
+                args["name"] = json!(n);
+            }
+            if let Err(e) =
+                self.hub.send_command(connector_id, "terminal.create", args).await
             {
                 errors.push(format!("terminal.create {cwd}: {e}"));
             }
@@ -275,11 +299,23 @@ impl Capsules {
                     };
                     if let Some(p) = taken {
                         tokio::time::sleep(self.settle).await;
-                        let mut errors = vec![];
-                        self.apply_editor_state(&connector.id, &p.open_files, &p.terminals, &mut errors)
+                        if self.generation.load(std::sync::atomic::Ordering::SeqCst) != p.generation
+                        {
+                            eprintln!(
+                                "capsule continuation: superseded by newer activation; skipped"
+                            );
+                        } else {
+                            let mut errors = vec![];
+                            self.apply_editor_state(
+                                &connector.id,
+                                &p.open_files,
+                                &p.terminals,
+                                &mut errors,
+                            )
                             .await;
-                        for e in errors {
-                            eprintln!("capsule continuation: {e}");
+                            for e in errors {
+                                eprintln!("capsule continuation: {e}");
+                            }
                         }
                     }
                 }

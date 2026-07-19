@@ -19,10 +19,21 @@ async fn scripted_connector(
     seen: mpsc::UnboundedSender<(String, Value)>,
     respond: impl Fn(&str, &Value) -> Value + Send + 'static,
 ) -> tokio::task::JoinHandle<()> {
+    scripted_connector_kind(port, "vscode", seen, respond).await
+}
+
+/// Connects a scripted connector of the given `kind`. Every command it
+/// receives is forwarded to `seen`; replies come from `respond`.
+async fn scripted_connector_kind(
+    port: u16,
+    kind: &str,
+    seen: mpsc::UnboundedSender<(String, Value)>,
+    respond: impl Fn(&str, &Value) -> Value + Send + 'static,
+) -> tokio::task::JoinHandle<()> {
     let (mut ws, _) =
         tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{port}")).await.unwrap();
     ws.send(
-        json!({"v":1,"id":"h","kind":"hello","payload":{"name":"vscode","kind":"vscode","protocolVersion":1,"capabilities":["workspace","editor","terminal"]}})
+        json!({"v":1,"id":"h","kind":"hello","payload":{"name":kind,"kind":kind,"protocolVersion":1,"capabilities":["workspace","editor","terminal"]}})
             .to_string()
             .into(),
     )
@@ -68,6 +79,10 @@ fn state(folder: &str, files: &[&str]) -> Value {
         "activeFile": files.first(),
         "terminals": [{"name": "zsh", "cwd": folder}]
     })
+}
+
+fn fake_state(root: &str, files: &[&str]) -> Value {
+    json!({ "root": root, "openFiles": files })
 }
 
 async fn setup() -> (Arc<Hub>, Db, Capsules, String, tempfile::TempDir) {
@@ -231,4 +246,98 @@ async fn newer_activation_clears_stale_pending_restore() {
             "stale pending from task A must not apply after B's activation"
         );
     }
+}
+
+#[tokio::test]
+async fn activate_fake_capsule_opens_root_workspace() {
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(&task_id, "fake", "workspace", &fake_state("/repo/f", &["a"]))
+        .unwrap();
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector_kind(hub.port(), "fake", tx, |_, _| json!({})).await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let summary = capsules.activate_task(&task_id).await.unwrap();
+    assert_eq!(summary.applied, vec!["fake"]);
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    let opened = names.iter().find(|(n, _)| n == "workspace.open");
+    assert!(opened.is_some(), "connector should have received workspace.open, got {names:?}");
+    assert_eq!(opened.unwrap().1["path"].as_str(), Some("/repo/f"));
+}
+
+#[tokio::test]
+async fn mid_settle_activation_supersedes_pending() {
+    // A dedicated Capsules with a longer settle window so we can land an
+    // activation squarely inside it.
+    let dir = tempfile::tempdir().unwrap();
+    let hub = Arc::new(Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap());
+    let db = Db::open_in_memory(DbConfig::default()).unwrap();
+    let p = db
+        .create_project(NewProject {
+            name: "proj".into(),
+            repo_path: "/tmp/proj".into(),
+            dev_url: None,
+            default_branch: "main".into(),
+        })
+        .unwrap();
+    let task_a = db.create_task(NewTask { project_id: p.id.clone(), title: "a".into() }).unwrap().id;
+    let task_b = db.create_task(NewTask { project_id: p.id, title: "b".into() }).unwrap().id;
+    let capsules = Capsules::new(hub.clone(), db.clone(), Duration::from_millis(300));
+    capsules.spawn_continuation_on(tokio::runtime::Handle::current());
+
+    // A's capsule points at a DIFFERENT folder -> activation defers to pending.
+    db.replace_task_resources(
+        &task_a,
+        "vscode",
+        "workspace",
+        &state("/repo/other", &["/repo/other/old.ts"]),
+    )
+    .unwrap();
+    // B's capsule matches the current folder -> plain apply, no pending.
+    db.replace_task_resources(&task_b, "vscode", "workspace", &state("/repo/a", &[])).unwrap();
+
+    let (tx, _rx) = mpsc::unbounded_channel();
+    let conn = scripted_connector(hub.port(), tx, |name, _| match name {
+        "workspace.state" => state("/repo/a", &[]),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let a = capsules.activate_task(&task_a).await.unwrap();
+    assert_eq!(a.pending, vec!["vscode"], "A defers cross-folder");
+
+    // Simulate the window reload: drop the connection, reconnect.
+    conn.abort();
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    let (tx2, mut rx2) = mpsc::unbounded_channel();
+    let _conn2 = scripted_connector(hub.port(), tx2, |name, _| match name {
+        "workspace.state" => state("/repo/a", &[]),
+        _ => json!({}),
+    })
+    .await;
+
+    // The reconnect starts the continuation's 300ms settle sleep. ~100ms
+    // into that window, activate B: same-folder, so it applies immediately
+    // and bumps the generation past A's pending.
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    let b = capsules.activate_task(&task_b).await.unwrap();
+    assert!(b.pending.is_empty(), "B is same-folder");
+
+    // Total wait since reconnect is well past the 300ms settle window.
+    tokio::time::sleep(Duration::from_millis(400)).await;
+    let mut names = vec![];
+    while let Ok((name, args)) = rx2.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        !names
+            .iter()
+            .any(|(n, a)| n == "editor.openFile" && a["path"].as_str() == Some("/repo/other/old.ts")),
+        "stale pending from task A must not apply after B's mid-settle activation: {names:?}"
+    );
 }
