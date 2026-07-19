@@ -17,7 +17,8 @@ cargo test    # protocol fixtures, hub handshake/commands/events integration tes
 3. In the command sender, pick `fake-vscode`, keep `workspace.open` with args `{"path": "/tmp/demo"}`, hit send — the response `{ "opened": "/tmp/demo" }` appears inline and in the log.
 4. Ctrl-C the connector — its dot turns red within ~15 s (`connectorDisconnected` in the log). Restart it — it reconnects and re-registers without restarting the app.
 5. Create a task under a project, hit **save state** while the editor is connected — the task remembers your workspace (files, folder, terminals). **activate** it later to restore everything; switching tasks saves the outgoing one automatically.
-6. Quit the app and relaunch it — recent activity reappears as dimmed `[hist]` entries and previously-seen connectors show as known-but-disconnected rows, restored from `~/Library/Application Support/com.omnibus.dev/omnibus.db`.
+6. Each project row shows its git position (branch, dirty count, ahead/behind) with fetch, safe branch switching (refused on a dirty tree — OmniBus never discards or stashes work), and branch creation. Capsules now save and restore the branch too.
+7. Quit the app and relaunch it — recent activity reappears as dimmed `[hist]` entries and previously-seen connectors show as known-but-disconnected rows, restored from `~/Library/Application Support/com.omnibus.dev/omnibus.db`.
 
 To connect a real editor: `pnpm --filter omnibus-vscode build`, then `cursor --extensionDevelopmentPath="$PWD/connectors/vscode" /path/to/a/repo` (works in VS Code too) — the editor appears as a `vscode` connector and answers `workspace.state`, `editor.openFile`, and `terminal.create`.
 

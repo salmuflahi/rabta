@@ -1,7 +1,7 @@
 # OmniBus — Safe Git Operations (Phase 9)
 
 **Date:** 2026-07-19
-**Status:** Draft for review
+**Status:** Implemented
 **Scope:** Git status/branches/fetch/checkout/create-branch for registered projects; branch state in capsules; git controls in the Projects view; absorbed phase-6 follow-ups (CSP, input trimming, storage-error wording).
 **Out of scope:** pull/merge/rebase, commit/push, stash management, remote management, credential handling beyond the user's own git config, submodules, GitHub API (phase 11).
 
