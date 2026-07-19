@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { useStore, type Project, type RepoInspection } from "../store";
+import { GitLine } from "./GitLine";
 import { TasksSection } from "./TasksSection";
 
 export function ProjectsView() {
@@ -105,6 +106,7 @@ export function ProjectsView() {
                 </button>
               )}
             </div>
+            <GitLine projectId={p.id} />
             <TasksSection projectId={p.id} />
           </div>
         ))}

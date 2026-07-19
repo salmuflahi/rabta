@@ -16,6 +16,9 @@ interface SaveSummary {
 }
 
 function summarize(r: TaskResource): string {
+  if (r.connectorKind === "git") {
+    return `git: ${typeof r.payload.branch === "string" ? r.payload.branch : "?"}`;
+  }
   const files = Array.isArray(r.payload.openFiles) ? r.payload.openFiles.length : 0;
   const terms = Array.isArray(r.payload.terminals) ? r.payload.terminals.length : 0;
   return `${r.connectorKind}: ${files} files, ${terms} terminals · ${new Date(r.createdAt).toLocaleTimeString()}`;
