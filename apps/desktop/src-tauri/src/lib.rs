@@ -4,6 +4,8 @@ use serde_json::Value;
 use tauri::{Emitter, Manager, State};
 use tokio::sync::broadcast::error::RecvError;
 
+pub mod projects;
+
 struct HubHandle(Hub);
 struct DbHandle(Db);
 
