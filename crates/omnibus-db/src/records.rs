@@ -1,5 +1,6 @@
 //! Projects, tasks, and task resources — the data model phases 6+ build on.
 use rusqlite::params;
+use rusqlite::OptionalExtension;
 use serde::Serialize;
 use serde_json::Value;
 
@@ -128,6 +129,29 @@ impl Db {
         Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
     }
 
+    /// One project by id.
+    pub fn get_project(&self, id: &str) -> Result<Option<Project>> {
+        let conn = self.conn.lock().unwrap();
+        Ok(conn
+            .query_row(
+                "SELECT id, name, repo_path, dev_url, default_branch, created_at, updated_at \
+                 FROM projects WHERE id = ?1",
+                params![id],
+                |r| {
+                    Ok(Project {
+                        id: r.get(0)?,
+                        name: r.get(1)?,
+                        repo_path: r.get(2)?,
+                        dev_url: r.get(3)?,
+                        default_branch: r.get(4)?,
+                        created_at: r.get(5)?,
+                        updated_at: r.get(6)?,
+                    })
+                },
+            )
+            .optional()?)
+    }
+
     /// Deletes a project; tasks and resources cascade.
     pub fn delete_project(&self, id: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();
@@ -173,6 +197,28 @@ impl Db {
             })
         })?;
         Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
+    }
+
+    /// One task by id.
+    pub fn get_task(&self, id: &str) -> Result<Option<Task>> {
+        let conn = self.conn.lock().unwrap();
+        Ok(conn
+            .query_row(
+                "SELECT id, project_id, title, status, created_at, updated_at \
+                 FROM tasks WHERE id = ?1",
+                params![id],
+                |r| {
+                    Ok(Task {
+                        id: r.get(0)?,
+                        project_id: r.get(1)?,
+                        title: r.get(2)?,
+                        status: TaskStatus::parse(&r.get::<_, String>(3)?),
+                        created_at: r.get(4)?,
+                        updated_at: r.get(5)?,
+                    })
+                },
+            )
+            .optional()?)
     }
 
     /// Updates a task's status and `updated_at`.

@@ -113,3 +113,14 @@ fn replace_task_resources_replaces_only_that_kind() {
     let vs = all.iter().find(|r| r.connector_kind == "vscode").unwrap();
     assert_eq!(vs.payload, json!({"openFiles": ["b.ts"]}), "old vscode row replaced");
 }
+
+#[test]
+fn get_task_and_project_by_id() {
+    let db = db();
+    let p = a_project(&db, "omnibus");
+    let t = db.create_task(NewTask { project_id: p.id.clone(), title: "t".into() }).unwrap();
+    assert_eq!(db.get_project(&p.id).unwrap().unwrap().name, "omnibus");
+    assert_eq!(db.get_task(&t.id).unwrap().unwrap().title, "t");
+    assert!(db.get_project("nope").unwrap().is_none());
+    assert!(db.get_task("nope").unwrap().is_none());
+}

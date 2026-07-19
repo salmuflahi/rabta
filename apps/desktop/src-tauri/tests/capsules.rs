@@ -8,6 +8,9 @@ use omnibus_hub::{Hub, HubConfig};
 use serde_json::{json, Value};
 use tokio::sync::mpsc;
 
+mod common;
+use common::{git, repo_with_commit};
+
 type Ws = tokio_tungstenite::WebSocketStream<
     tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
 >;
@@ -340,4 +343,71 @@ async fn mid_settle_activation_supersedes_pending() {
             .any(|(n, a)| n == "editor.openFile" && a["path"].as_str() == Some("/repo/other/old.ts")),
         "stale pending from task A must not apply after B's mid-settle activation: {names:?}"
     );
+}
+
+async fn project_with_repo(db: &Db, repo: &std::path::Path) -> String {
+    let p = db
+        .create_project(omnibus_db::NewProject {
+            name: format!("git-proj-{}", repo.display()),
+            repo_path: repo.to_str().unwrap().to_string(),
+            dev_url: None,
+            default_branch: "main".into(),
+        })
+        .unwrap();
+    db.create_task(omnibus_db::NewTask { project_id: p.id, title: "git task".into() }).unwrap().id
+}
+
+#[tokio::test]
+async fn save_capsule_records_current_branch() {
+    let (hub, db, capsules, _t, _dir) = setup().await;
+    let _ = hub; // no connectors needed
+    let repo = repo_with_commit().await;
+    let task = project_with_repo(&db, repo.path()).await;
+
+    let summary = capsules.save_capsule(&task).await.unwrap();
+    assert!(summary.captured.contains(&"git".to_string()), "got {summary:?}");
+
+    let rows = db.task_resources(&task).unwrap();
+    let git_row = rows.iter().find(|r| r.connector_kind == "git").unwrap();
+    assert_eq!(git_row.resource_type, "branch");
+    assert_eq!(git_row.payload["branch"], serde_json::json!("main"));
+}
+
+#[tokio::test]
+async fn activate_restores_branch_on_clean_tree() {
+    let (_hub, db, capsules, _t, _dir) = setup().await;
+    let repo = repo_with_commit().await;
+    let task = project_with_repo(&db, repo.path()).await;
+    db.replace_task_resources(&task, "git", "branch", &serde_json::json!({"branch": "main"}))
+        .unwrap();
+    // Move the repo off main; activation must bring it back.
+    git(repo.path(), &["switch", "-c", "elsewhere"]).await;
+
+    let summary = capsules.activate_task(&task).await.unwrap();
+    assert!(summary.applied.contains(&"git".to_string()), "got {summary:?}");
+    assert_eq!(
+        omnibus_desktop_lib::git::status(repo.path()).await.unwrap().branch.as_deref(),
+        Some("main")
+    );
+}
+
+#[tokio::test]
+async fn activate_refuses_branch_switch_on_dirty_tree() {
+    let (_hub, db, capsules, _t, _dir) = setup().await;
+    let repo = repo_with_commit().await;
+    let task = project_with_repo(&db, repo.path()).await;
+    db.replace_task_resources(&task, "git", "branch", &serde_json::json!({"branch": "main"}))
+        .unwrap();
+    git(repo.path(), &["switch", "-c", "elsewhere"]).await;
+    std::fs::write(repo.path().join("a.txt"), "precious\n").unwrap();
+
+    let summary = capsules.activate_task(&task).await.unwrap();
+    assert!(summary.skipped.contains(&"git".to_string()), "got {summary:?}");
+    assert!(summary.errors.iter().any(|e| e.contains("never discards")), "got {summary:?}");
+    assert_eq!(
+        omnibus_desktop_lib::git::status(repo.path()).await.unwrap().branch.as_deref(),
+        Some("elsewhere"),
+        "branch unchanged"
+    );
+    assert_eq!(std::fs::read_to_string(repo.path().join("a.txt")).unwrap(), "precious\n");
 }

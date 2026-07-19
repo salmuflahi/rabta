@@ -80,6 +80,23 @@ impl Capsules {
         self.active_task.lock().unwrap().clone()
     }
 
+    /// The repo path of the project owning `task_id`, if both still exist.
+    async fn repo_for_task(&self, task_id: &str) -> Result<Option<String>, String> {
+        let db = self.db.clone();
+        let tid = task_id.to_string();
+        tokio::task::spawn_blocking(move || -> Result<Option<String>, String> {
+            let Some(task) = db.get_task(&tid).map_err(|e| e.to_string())? else {
+                return Ok(None);
+            };
+            Ok(db
+                .get_project(&task.project_id)
+                .map_err(|e| e.to_string())?
+                .map(|p| p.repo_path))
+        })
+        .await
+        .map_err(|e| e.to_string())?
+    }
+
     /// Captures `workspace.state` from every connected capturable connector
     /// into the task's capsule (latest-only per kind).
     pub async fn save_capsule(&self, task_id: &str) -> Result<SaveSummary, String> {
@@ -105,6 +122,31 @@ impl Capsules {
                 Err(e) => skipped.push(format!("{kind}: {e}")),
             }
         }
+
+        // The "git" virtual kind: capture the project's current branch.
+        match self.repo_for_task(task_id).await {
+            Ok(Some(repo)) => match crate::git::status(std::path::Path::new(&repo)).await {
+                Ok(st) => match st.branch {
+                    Some(branch) => {
+                        let db = self.db.clone();
+                        let tid = task_id.to_string();
+                        let payload = serde_json::json!({ "branch": branch });
+                        tokio::task::spawn_blocking(move || {
+                            db.replace_task_resources(&tid, "git", "branch", &payload)
+                        })
+                        .await
+                        .map_err(|e| e.to_string())?
+                        .map_err(|e| e.to_string())?;
+                        captured.push("git".to_string());
+                    }
+                    None => skipped.push("git: detached HEAD".to_string()),
+                },
+                Err(e) => skipped.push(format!("git: {e}")),
+            },
+            Ok(None) => skipped.push("git: task or project not found".to_string()),
+            Err(e) => skipped.push(format!("git: {e}")),
+        }
+
         Ok(SaveSummary { captured, skipped })
     }
 
@@ -138,10 +180,49 @@ impl Capsules {
                 .map_err(|e| e.to_string())?
         };
 
-        let connectors = self.hub.connectors().await;
         let mut applied = vec![];
         let mut pending = vec![];
         let mut skipped = vec![];
+
+        // Git first: a branch switch changes files on disk, so editor
+        // restore must come after. Refusals are reported, never forced.
+        if let Some(git_row) = resources
+            .iter()
+            .find(|r| r.connector_kind == "git" && r.resource_type == "branch")
+        {
+            match (git_row.payload["branch"].as_str(), self.repo_for_task(task_id).await) {
+                (Some(target), Ok(Some(repo))) => {
+                    let repo = std::path::Path::new(&repo);
+                    match crate::git::status(repo).await {
+                        Ok(st) if st.branch.as_deref() == Some(target) => {
+                            applied.push("git".to_string());
+                        }
+                        Ok(_) => match crate::git::checkout(repo, target).await {
+                            Ok(()) => applied.push("git".to_string()),
+                            Err(e) => {
+                                errors.push(format!("git: {e}"));
+                                skipped.push("git".to_string());
+                            }
+                        },
+                        Err(e) => {
+                            errors.push(format!("git: {e}"));
+                            skipped.push("git".to_string());
+                        }
+                    }
+                }
+                (None, _) => skipped.push("git".to_string()),
+                (_, Ok(None)) => {
+                    errors.push("git: task or project not found".to_string());
+                    skipped.push("git".to_string());
+                }
+                (_, Err(e)) => {
+                    errors.push(format!("git: {e}"));
+                    skipped.push("git".to_string());
+                }
+            }
+        }
+
+        let connectors = self.hub.connectors().await;
         for r in resources.iter().filter(|r| r.resource_type == "workspace") {
             let Some(conn) = connectors.iter().find(|c| kind_str(c.kind) == r.connector_kind)
             else {
