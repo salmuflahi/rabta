@@ -10,11 +10,14 @@ import {
   type KnownConnector,
   type PersistedEvent,
 } from "./store";
+import { ProjectsView } from "./views/ProjectsView";
 
 export default function App() {
   const append = useStore((s) => s.append);
   const setConnectors = useStore((s) => s.setConnectors);
   const preload = useStore((s) => s.preload);
+  const view = useStore((s) => s.view);
+  const setView = useStore((s) => s.setView);
 
   useEffect(() => {
     const refresh = () =>
@@ -41,11 +44,30 @@ export default function App() {
     };
   }, [append, setConnectors, preload]);
 
+  const tab = (v: "projects" | "debug", label: string) => (
+    <button
+      onClick={() => setView(v)}
+      className={`px-3 py-1 ${view === v ? "bg-neutral-700" : "bg-neutral-800"}`}
+    >
+      {label}
+    </button>
+  );
+
   return (
-    <div className="h-screen bg-neutral-900 text-neutral-200 grid grid-cols-[300px_1fr] grid-rows-[1fr_200px] font-mono text-sm">
-      <ConnectorsPanel />
-      <LogPanel />
-      <CommandSender />
+    <div className="h-screen bg-neutral-900 text-neutral-200 font-mono text-sm flex flex-col">
+      <header className="flex gap-2 p-2 border-b border-neutral-700">
+        {tab("projects", "Projects")}
+        {tab("debug", "Debug")}
+      </header>
+      {view === "projects" ? (
+        <ProjectsView />
+      ) : (
+        <div className="flex-1 min-h-0 grid grid-cols-[300px_1fr] grid-rows-[1fr_200px]">
+          <ConnectorsPanel />
+          <LogPanel />
+          <CommandSender />
+        </div>
+      )}
     </div>
   );
 }

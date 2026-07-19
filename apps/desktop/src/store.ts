@@ -41,6 +41,22 @@ let seq = 0;
 
 const knownId = (c: { name: string; kind: string }) => `known:${c.name}:${c.kind}`;
 
+export interface Project {
+  id: string;
+  name: string;
+  repoPath: string;
+  devUrl: string | null;
+  defaultBranch: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RepoInspection {
+  exists: boolean;
+  isGitRepo: boolean;
+  defaultBranch: string | null;
+}
+
 interface Store {
   connectors: ConnectorRow[];
   log: LogEntry[];
@@ -50,12 +66,20 @@ interface Store {
   /** Pre-seed the log with persisted events and the panel with known connectors. */
   preload: (events: PersistedEvent[], known: KnownConnector[]) => void;
   togglePause: () => void;
+  view: "projects" | "debug";
+  setView: (view: "projects" | "debug") => void;
+  projects: Project[];
+  setProjects: (projects: Project[]) => void;
 }
 
 export const useStore = create<Store>((set) => ({
   connectors: [],
   log: [],
   paused: false,
+  view: "projects",
+  setView: (view) => set({ view }),
+  projects: [],
+  setProjects: (projects) => set({ projects }),
   // Live list from the hub; previously-seen-but-absent rows stay, shown
   // disconnected. Synthetic known-rows are dropped once a live row with the
   // same (name, kind) exists.
