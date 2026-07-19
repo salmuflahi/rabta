@@ -119,7 +119,9 @@ pub async fn checkout(repo: &Path, branch: &str) -> Result<(), String> {
     if !exists.success() {
         return Err(format!("branch '{branch}' does not exist locally"));
     }
-    run_git(repo, &["switch", branch]).await.map(|_| ())
+    // --no-guess closes the show-ref→switch TOCTOU sliver where a deleted
+    // local branch could DWIM-create from a remote.
+    run_git(repo, &["switch", "--no-guess", branch]).await.map(|_| ())
 }
 
 /// Creates and switches to a new branch. Safe with a dirty tree: changes

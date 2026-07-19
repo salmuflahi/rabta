@@ -393,17 +393,30 @@ async fn activate_restores_branch_on_clean_tree() {
 
 #[tokio::test]
 async fn activate_refuses_branch_switch_on_dirty_tree() {
-    let (_hub, db, capsules, _t, _dir) = setup().await;
+    let (hub, db, capsules, _t, _dir) = setup().await;
     let repo = repo_with_commit().await;
     let task = project_with_repo(&db, repo.path()).await;
     db.replace_task_resources(&task, "git", "branch", &serde_json::json!({"branch": "main"}))
         .unwrap();
+    db.replace_task_resources(&task, "vscode", "workspace", &state("/repo/a", &[])).unwrap();
     git(repo.path(), &["switch", "-c", "elsewhere"]).await;
     std::fs::write(repo.path().join("a.txt"), "precious\n").unwrap();
+
+    let (tx, _rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector(hub.port(), tx, |name, _| match name {
+        "workspace.state" => state("/repo/a", &[]), // same folder, editor restore proceeds
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
 
     let summary = capsules.activate_task(&task).await.unwrap();
     assert!(summary.skipped.contains(&"git".to_string()), "got {summary:?}");
     assert!(summary.errors.iter().any(|e| e.contains("never discards")), "got {summary:?}");
+    assert!(
+        summary.applied.contains(&"vscode".to_string()),
+        "editor restore must proceed despite git refusal: got {summary:?}"
+    );
     assert_eq!(
         omnibus_desktop_lib::git::status(repo.path()).await.unwrap().branch.as_deref(),
         Some("elsewhere"),

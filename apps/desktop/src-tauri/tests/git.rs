@@ -119,3 +119,11 @@ async fn fetch_updates_ahead_behind_against_local_remote() {
     let st = status(repo.path()).await.unwrap();
     assert_eq!((st.ahead, st.behind), (1, 1));
 }
+
+#[tokio::test]
+async fn fetch_failure_surfaces_error() {
+    let repo = repo_with_commit().await;
+    git(repo.path(), &["remote", "add", "origin", "/nonexistent/omnibus-remote"]).await;
+    let err = fetch(repo.path()).await.unwrap_err();
+    assert!(!err.is_empty());
+}
