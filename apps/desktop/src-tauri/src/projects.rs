@@ -49,6 +49,9 @@ pub fn validate_and_create(
     dev_url: Option<&str>,
     default_branch: &str,
 ) -> Result<Project, String> {
+    let repo_path = repo_path.trim();
+    let dev_url = dev_url.map(str::trim).filter(|s| !s.is_empty());
+
     if name.trim().is_empty() {
         return Err("project name must not be empty".to_string());
     }
@@ -86,6 +89,7 @@ fn friendly_db_error(e: DbError) -> String {
     if msg.contains("UNIQUE constraint failed: projects.name") {
         "a project with this name already exists".to_string()
     } else {
-        format!("failed to save project: {msg}")
+        eprintln!("project save failed: {msg}");
+        "failed to save project — see the app log for details".to_string()
     }
 }

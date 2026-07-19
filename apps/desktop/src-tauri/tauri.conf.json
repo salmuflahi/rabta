@@ -11,6 +11,6 @@
   },
   "app": {
     "windows": [{ "title": "OmniBus", "width": 1100, "height": 700 }],
-    "security": { "csp": null }
+    "security": { "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'" }
   }
 }

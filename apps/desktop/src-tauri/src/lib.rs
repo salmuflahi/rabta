@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -8,6 +9,7 @@ use tauri::{Emitter, Manager, State};
 use tokio::sync::broadcast::error::RecvError;
 
 use crate::capsules::{ActivateSummary, Capsules, SaveSummary};
+use crate::git::GitStatus;
 use crate::projects::RepoInspection;
 
 pub mod capsules;
@@ -166,6 +168,47 @@ async fn task_resources(db: State<'_, DbHandle>, task_id: String) -> Result<Vec<
         .map_err(|e| e.to_string())?
 }
 
+/// Resolves a registered project's repo path or a clear error.
+async fn repo_of(db: &DbHandle, project_id: &str) -> Result<PathBuf, String> {
+    let db = db.0.clone();
+    let id = project_id.to_string();
+    let project = tauri::async_runtime::spawn_blocking(move || db.get_project(&id))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())?;
+    project.map(|p| PathBuf::from(p.repo_path)).ok_or_else(|| "project not found".to_string())
+}
+
+/// Current git status of a registered project.
+#[tauri::command]
+async fn git_status(db: State<'_, DbHandle>, project_id: String) -> Result<GitStatus, String> {
+    git::status(&repo_of(&db, &project_id).await?).await
+}
+
+/// Local branches of a registered project.
+#[tauri::command]
+async fn git_branches(db: State<'_, DbHandle>, project_id: String) -> Result<Vec<String>, String> {
+    git::branches(&repo_of(&db, &project_id).await?).await
+}
+
+/// `git fetch --all` — updates remote-tracking refs, never merges.
+#[tauri::command]
+async fn git_fetch(db: State<'_, DbHandle>, project_id: String) -> Result<String, String> {
+    git::fetch(&repo_of(&db, &project_id).await?).await
+}
+
+/// Safe branch switch: refuses on a dirty tree, never forces.
+#[tauri::command]
+async fn git_checkout(db: State<'_, DbHandle>, project_id: String, branch: String) -> Result<(), String> {
+    git::checkout(&repo_of(&db, &project_id).await?, &branch).await
+}
+
+/// Creates and switches to a new branch (safe with uncommitted changes).
+#[tauri::command]
+async fn git_create_branch(db: State<'_, DbHandle>, project_id: String, name: String) -> Result<(), String> {
+    git::create_branch(&repo_of(&db, &project_id).await?, &name).await
+}
+
 /// Builds and runs the OmniBus Tauri application: opens the database (fatal
 /// on failure), starts the hub, records hub activity, and forwards the event
 /// stream to the frontend as `hub-event`.
@@ -250,7 +293,12 @@ pub fn run() {
             list_tasks,
             set_task_status,
             delete_task,
-            task_resources
+            task_resources,
+            git_status,
+            git_branches,
+            git_fetch,
+            git_checkout,
+            git_create_branch
         ])
         .run(tauri::generate_context!())
         .expect("error while running OmniBus");

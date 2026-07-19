@@ -101,3 +101,14 @@ fn create_rejects_bad_inputs_without_storing() {
     assert!(validate_and_create(&db, "p", good, Some("not a url"), "main").is_err());
     assert!(db.list_projects().unwrap().is_empty(), "nothing may be stored on rejection");
 }
+
+#[test]
+fn create_trims_repo_path_and_dev_url() {
+    let db = db();
+    let dir = git_fixture("ref: refs/heads/main\n");
+    let padded = format!("  {}  ", dir.path().to_str().unwrap());
+    let p = validate_and_create(&db, "trimmed", &padded, Some("  http://localhost:3000  "), "main")
+        .unwrap();
+    assert_eq!(p.repo_path, dir.path().to_str().unwrap());
+    assert_eq!(p.dev_url.as_deref(), Some("http://localhost:3000"));
+}
