@@ -1,0 +1,292 @@
+//! Task capsules: capture connected connectors' state into task resources
+//! and restore it on activation. App-level orchestration — the hub routes,
+//! the db stores, this module decides.
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+use omnibus_db::Db;
+use omnibus_hub::protocol::ConnectorKind;
+use omnibus_hub::{ConnectorInfo, Hub, HubEvent};
+use serde::Serialize;
+use serde_json::{json, Value};
+
+/// Connector kinds capsules know how to capture and restore.
+const CAPTURABLE: &[&str] = &["vscode", "fake"];
+
+/// Result of an explicit or automatic capsule save.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveSummary {
+    pub captured: Vec<String>,
+    pub skipped: Vec<String>,
+}
+
+/// Result of a task activation (restore).
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivateSummary {
+    pub applied: Vec<String>,
+    pub pending: Vec<String>,
+    pub skipped: Vec<String>,
+    pub saved_previous: Option<String>,
+    pub errors: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+struct PendingRestore {
+    kind: String,
+    open_files: Vec<String>,
+    terminals: Vec<(String, Option<String>)>, // (cwd, name)
+}
+
+/// Capsule orchestrator. Cheap to clone; one per app.
+#[derive(Clone)]
+pub struct Capsules {
+    hub: Arc<Hub>,
+    db: Db,
+    settle: Duration,
+    active_task: Arc<Mutex<Option<String>>>,
+    pending: Arc<Mutex<Option<PendingRestore>>>,
+}
+
+fn kind_str(kind: ConnectorKind) -> &'static str {
+    match kind {
+        ConnectorKind::Fake => "fake",
+        ConnectorKind::Vscode => "vscode",
+        ConnectorKind::Chrome => "chrome",
+    }
+}
+
+impl Capsules {
+    /// `settle` is the wait between a connector re-registering and the
+    /// pending restore being applied (spec default 1500 ms; short in tests).
+    pub fn new(hub: Arc<Hub>, db: Db, settle: Duration) -> Capsules {
+        Capsules {
+            hub,
+            db,
+            settle,
+            active_task: Arc::new(Mutex::new(None)),
+            pending: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    /// The task currently considered active (in-memory, this phase).
+    pub fn active_task(&self) -> Option<String> {
+        self.active_task.lock().unwrap().clone()
+    }
+
+    /// Captures `workspace.state` from every connected capturable connector
+    /// into the task's capsule (latest-only per kind).
+    pub async fn save_capsule(&self, task_id: &str) -> Result<SaveSummary, String> {
+        let mut captured = vec![];
+        let mut skipped = vec![];
+        for c in self.hub.connectors().await {
+            let kind = kind_str(c.kind);
+            if !CAPTURABLE.contains(&kind) {
+                continue;
+            }
+            match self.hub.send_command(&c.id, "workspace.state", json!({})).await {
+                Ok(state) => {
+                    let db = self.db.clone();
+                    let (tid, k) = (task_id.to_string(), kind.to_string());
+                    tokio::task::spawn_blocking(move || {
+                        db.replace_task_resources(&tid, &k, "workspace", &state)
+                    })
+                    .await
+                    .map_err(|e| e.to_string())?
+                    .map_err(|e| e.to_string())?;
+                    captured.push(kind.to_string());
+                }
+                Err(e) => skipped.push(format!("{kind}: {e}")),
+            }
+        }
+        Ok(SaveSummary { captured, skipped })
+    }
+
+    /// Auto-saves the outgoing active task (if any), then restores `task_id`'s
+    /// capsule best-effort per connector, and marks it active.
+    pub async fn activate_task(&self, task_id: &str) -> Result<ActivateSummary, String> {
+        let mut errors = vec![];
+        let previous = self.active_task();
+        let mut saved_previous = None;
+        if let Some(prev) = previous.filter(|p| p != task_id) {
+            match self.save_capsule(&prev).await {
+                Ok(_) => saved_previous = Some(prev),
+                Err(e) => errors.push(format!("auto-save of previous task failed: {e}")),
+            }
+        }
+
+        let resources = {
+            let db = self.db.clone();
+            let tid = task_id.to_string();
+            tokio::task::spawn_blocking(move || db.task_resources(&tid))
+                .await
+                .map_err(|e| e.to_string())?
+                .map_err(|e| e.to_string())?
+        };
+
+        let connectors = self.hub.connectors().await;
+        let mut applied = vec![];
+        let mut pending = vec![];
+        let mut skipped = vec![];
+        for r in resources.iter().filter(|r| r.resource_type == "workspace") {
+            let Some(conn) = connectors.iter().find(|c| kind_str(c.kind) == r.connector_kind)
+            else {
+                skipped.push(r.connector_kind.clone());
+                continue;
+            };
+            match r.connector_kind.as_str() {
+                "vscode" => {
+                    match self.restore_vscode(conn, &r.payload, &mut errors).await {
+                        RestoreOutcome::Applied => applied.push("vscode".into()),
+                        RestoreOutcome::Pending => pending.push("vscode".into()),
+                    }
+                }
+                "fake" => {
+                    if let Some(folder) = r.payload["workspaceFolder"].as_str() {
+                        if let Err(e) = self
+                            .hub
+                            .send_command(&conn.id, "workspace.open", json!({ "path": folder }))
+                            .await
+                        {
+                            errors.push(format!("fake workspace.open: {e}"));
+                        } else {
+                            applied.push("fake".into());
+                        }
+                    }
+                }
+                _ => skipped.push(r.connector_kind.clone()),
+            }
+        }
+
+        *self.active_task.lock().unwrap() = Some(task_id.to_string());
+        Ok(ActivateSummary { applied, pending, skipped, saved_previous, errors })
+    }
+
+    async fn restore_vscode(
+        &self,
+        conn: &ConnectorInfo,
+        payload: &Value,
+        errors: &mut Vec<String>,
+    ) -> RestoreOutcome {
+        let target_folder = payload["workspaceFolder"].as_str();
+        let open_files: Vec<String> = payload["openFiles"]
+            .as_array()
+            .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+            .unwrap_or_default();
+        let terminals: Vec<(String, Option<String>)> = payload["terminals"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|t| {
+                        t["cwd"].as_str().map(|cwd| {
+                            (cwd.to_string(), t["name"].as_str().map(String::from))
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let current = self.hub.send_command(&conn.id, "workspace.state", json!({})).await;
+        let current_folder =
+            current.as_ref().ok().and_then(|s| s["workspaceFolder"].as_str().map(String::from));
+
+        match target_folder {
+            Some(target) if current_folder.as_deref() != Some(target) => {
+                *self.pending.lock().unwrap() = Some(PendingRestore {
+                    kind: "vscode".into(),
+                    open_files,
+                    terminals,
+                });
+                if let Err(e) = self
+                    .hub
+                    .send_command(&conn.id, "workspace.open", json!({ "path": target }))
+                    .await
+                {
+                    errors.push(format!("workspace.open: {e}"));
+                }
+                RestoreOutcome::Pending
+            }
+            _ => {
+                self.apply_editor_state(&conn.id, &open_files, &terminals, errors).await;
+                RestoreOutcome::Applied
+            }
+        }
+    }
+
+    async fn apply_editor_state(
+        &self,
+        connector_id: &str,
+        open_files: &[String],
+        terminals: &[(String, Option<String>)],
+        errors: &mut Vec<String>,
+    ) {
+        for path in open_files {
+            if let Err(e) =
+                self.hub.send_command(connector_id, "editor.openFile", json!({ "path": path })).await
+            {
+                errors.push(format!("openFile {path}: {e}"));
+            }
+        }
+        for (cwd, name) in terminals {
+            if let Err(e) = self
+                .hub
+                .send_command(connector_id, "terminal.create", json!({ "cwd": cwd, "name": name }))
+                .await
+            {
+                errors.push(format!("terminal.create {cwd}: {e}"));
+            }
+        }
+    }
+
+    /// Starts the reconnect continuation on Tauri's runtime (app path).
+    pub fn spawn_continuation(&self) {
+        let me = self.clone();
+        tauri::async_runtime::spawn(async move { me.continuation_loop().await });
+    }
+
+    /// Starts the reconnect continuation on an explicit runtime (test path).
+    pub fn spawn_continuation_on(&self, handle: tokio::runtime::Handle) {
+        let me = self.clone();
+        handle.spawn(async move { me.continuation_loop().await });
+    }
+
+    /// Completes a pending cross-folder restore when a connector of the
+    /// pending kind re-registers after its window reload.
+    async fn continuation_loop(&self) {
+        use tokio::sync::broadcast::error::RecvError;
+        let mut events = self.hub.subscribe();
+        loop {
+            match events.recv().await {
+                Ok(HubEvent::ConnectorConnected { connector }) => {
+                    let taken = {
+                        let mut slot = self.pending.lock().unwrap();
+                        if slot.as_ref().map(|p| p.kind == kind_str(connector.kind)).unwrap_or(false)
+                        {
+                            slot.take()
+                        } else {
+                            None
+                        }
+                    };
+                    if let Some(p) = taken {
+                        tokio::time::sleep(self.settle).await;
+                        let mut errors = vec![];
+                        self.apply_editor_state(&connector.id, &p.open_files, &p.terminals, &mut errors)
+                            .await;
+                        for e in errors {
+                            eprintln!("capsule continuation: {e}");
+                        }
+                    }
+                }
+                Ok(_) => {}
+                Err(RecvError::Lagged(_)) => continue,
+                Err(RecvError::Closed) => break,
+            }
+        }
+    }
+}
+
+enum RestoreOutcome {
+    Applied,
+    Pending,
+}

@@ -2123,6 +2123,7 @@ dependencies = [
 name = "omnibus-desktop"
 version = "0.1.0"
 dependencies = [
+ "futures-util",
  "omnibus-db",
  "omnibus-hub",
  "serde",
@@ -2131,6 +2132,7 @@ dependencies = [
  "tauri-build",
  "tempfile",
  "tokio",
+ "tokio-tungstenite",
  "url",
 ]
 

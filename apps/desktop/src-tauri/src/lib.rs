@@ -6,6 +6,7 @@ use tokio::sync::broadcast::error::RecvError;
 
 use crate::projects::RepoInspection;
 
+pub mod capsules;
 pub mod projects;
 
 struct HubHandle(Hub);
