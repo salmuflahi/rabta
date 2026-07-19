@@ -19,7 +19,7 @@ async fn recorder_persists_hub_activity() {
     let (mut ws, _) =
         tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
     ws.send(
-        json!({"v":1,"id":"h","kind":"hello","payload":{"name":"rec-test","kind":"fake","protocolVersion":1,"capabilities":["workspace"]}})
+        json!({"v":1,"id":"h","kind":"hello","payload":{"name":"rec-test","kind":"fake","protocolVersion":1,"capabilities":["workspace"],"secret":hub.secret()}})
             .to_string()
             .into(),
     )

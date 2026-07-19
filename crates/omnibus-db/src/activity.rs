@@ -91,6 +91,29 @@ impl Db {
         Ok(())
     }
 
+    /// Stores/replaces the persistent pairing token for a connector identity,
+    /// creating the row if the connector has never connected.
+    pub fn set_connector_token(&self, name: &str, kind: &str, token: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        let ts = now();
+        conn.execute(
+            "INSERT INTO connectors (id, name, kind, capabilities, token, first_seen, last_seen) \
+             VALUES (?1, ?2, ?3, '[]', ?4, ?5, ?5) \
+             ON CONFLICT(name, kind) DO UPDATE SET token = ?4",
+            params![new_id(), name, kind, token, ts],
+        )?;
+        Ok(())
+    }
+
+    /// All persisted pairing tokens as (name, kind, token).
+    pub fn connector_tokens(&self) -> Result<Vec<(String, String, String)>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt =
+            conn.prepare("SELECT name, kind, token FROM connectors WHERE token IS NOT NULL")?;
+        let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
+        Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
+    }
+
     /// Every connector this machine has seen, most recently seen first.
     pub fn known_connectors(&self) -> Result<Vec<KnownConnector>> {
         let conn = self.conn.lock().unwrap();

@@ -67,3 +67,19 @@ fn touch_connector_seen_updates_last_seen_only_for_known() {
     db.touch_connector_seen("ghost", "fake").unwrap();
     assert_eq!(db.known_connectors().unwrap().len(), 1);
 }
+
+#[test]
+fn connector_token_set_and_load() {
+    let db = db();
+    db.set_connector_token("chrome", "chrome", "tok-1").unwrap();
+    assert_eq!(db.connector_tokens().unwrap(), vec![("chrome".into(), "chrome".into(), "tok-1".into())]);
+    // Upsert on an existing row keeps identity, replaces token.
+    db.upsert_connector("chrome", "chrome", &["tabs".into()]).unwrap();
+    db.set_connector_token("chrome", "chrome", "tok-2").unwrap();
+    let tokens = db.connector_tokens().unwrap();
+    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens[0].2, "tok-2");
+    // Rows without tokens are absent.
+    db.upsert_connector("vscode", "vscode", &[]).unwrap();
+    assert_eq!(db.connector_tokens().unwrap().len(), 1);
+}

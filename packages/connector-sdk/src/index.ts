@@ -11,6 +11,8 @@ export interface ConnectOptions {
   capabilities: string[];
   /** Override the discovery file path (tests). */
   hubFile?: string;
+  /** Persistent token for browser-class connectors; wins over the secret. */
+  token?: string;
 }
 
 export type CommandHandler = (args: unknown) => unknown | Promise<unknown>;
@@ -23,6 +25,7 @@ export class Connector {
   connectorId: string | null = null;
   private handlers = new Map<string, CommandHandler>();
   private ws: WebSocket | null = null;
+  private secret: string | undefined;
   private closed = false;
   private backoff = INITIAL_BACKOFF_MS;
   private redialTimer: NodeJS.Timeout | null = null;
@@ -71,8 +74,11 @@ export class Connector {
     if (this.closed) return;
     let port: number;
     try {
-      // Re-read on every attempt: a restarted hub writes a fresh port.
-      port = JSON.parse(readFileSync(this.hubFile(), "utf8")).port;
+      // Re-read on every attempt: a restarted hub writes a fresh port (and,
+      // on restart, a fresh secret).
+      const disco = JSON.parse(readFileSync(this.hubFile(), "utf8"));
+      port = disco.port;
+      this.secret = typeof disco.secret === "string" ? disco.secret : undefined;
     } catch {
       this.scheduleRedial(onWelcome, onFatal);
       return;
@@ -87,6 +93,7 @@ export class Connector {
           kind: this.opts.kind,
           protocolVersion: PROTOCOL_VERSION,
           capabilities: this.opts.capabilities,
+          ...(this.opts.token ? { token: this.opts.token } : this.secret ? { secret: this.secret } : {}),
         },
       });
     });
@@ -133,17 +140,20 @@ export class Connector {
         break;
       }
       case "error":
-        if (env.payload.code === "version_mismatch") {
+        if (env.payload.code === "version_mismatch" || env.payload.code === "auth_failed") {
           // Spec: surface clearly and do NOT retry. Always log to the
           // console — this can happen well after the first `welcome` (e.g.
-          // on a reconnect to a since-upgraded hub), at which point the
-          // `start()` promise this `onFatal` closes over has already
-          // settled and calling it again is a silent no-op. Additionally
-          // still call `onFatal` so a first dial that hasn't resolved yet
-          // (this is the very first frame received) rejects `start()`.
+          // on a reconnect to a since-upgraded or since-restarted hub), at
+          // which point the `start()` promise this `onFatal` closes over has
+          // already settled and calling it again is a silent no-op.
+          // Additionally still call `onFatal` so a first dial that hasn't
+          // resolved yet (this is the very first frame received) rejects
+          // `start()`.
           this.closed = true;
           const err = new Error(
-            "hub requires a different protocol version — update this connector"
+            env.payload.code === "auth_failed"
+              ? "hub rejected this connector's credentials — restart the hub or re-pair"
+              : "hub requires a different protocol version — update this connector"
           );
           console.error(err.message);
           onFatal?.(err);
