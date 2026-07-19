@@ -87,3 +87,29 @@ fn task_resources_round_trip() {
     db.remove_task_resource(&r.id).unwrap();
     assert!(db.task_resources(&t.id).unwrap().is_empty());
 }
+
+#[test]
+fn replace_task_resources_replaces_only_that_kind() {
+    let db = db();
+    let p = a_project(&db, "omnibus");
+    let t = db.create_task(NewTask { project_id: p.id.clone(), title: "t".into() }).unwrap();
+    db.add_task_resource(NewTaskResource {
+        task_id: t.id.clone(),
+        connector_kind: "chrome".into(),
+        resource_type: "tabs".into(),
+        payload: json!({"tabs": []}),
+    })
+    .unwrap();
+    db.replace_task_resources(&t.id, "vscode", "workspace", &json!({"openFiles": ["a.ts"]})).unwrap();
+    let replaced =
+        db.replace_task_resources(&t.id, "vscode", "workspace", &json!({"openFiles": ["b.ts"]})).unwrap();
+    assert_eq!(replaced.connector_kind, "vscode");
+    assert_eq!(replaced.payload, json!({"openFiles": ["b.ts"]}));
+
+    let all = db.task_resources(&t.id).unwrap();
+    assert_eq!(all.len(), 2, "chrome row untouched, single vscode row");
+    let kinds: Vec<&str> = all.iter().map(|r| r.connector_kind.as_str()).collect();
+    assert!(kinds.contains(&"chrome") && kinds.contains(&"vscode"));
+    let vs = all.iter().find(|r| r.connector_kind == "vscode").unwrap();
+    assert_eq!(vs.payload, json!({"openFiles": ["b.ts"]}), "old vscode row replaced");
+}

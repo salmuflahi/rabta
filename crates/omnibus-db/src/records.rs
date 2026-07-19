@@ -237,4 +237,37 @@ impl Db {
         conn.execute("DELETE FROM task_resources WHERE id = ?1", params![id])?;
         Ok(())
     }
+
+    /// Replaces a task's resources for one connector kind with a single new
+    /// row (capsules are latest-only per kind). Atomic: delete + insert in
+    /// one transaction; rows for other kinds are untouched.
+    pub fn replace_task_resources(
+        &self,
+        task_id: &str,
+        connector_kind: &str,
+        resource_type: &str,
+        payload: &Value,
+    ) -> Result<TaskResource> {
+        let r = TaskResource {
+            id: new_id(),
+            task_id: task_id.to_string(),
+            connector_kind: connector_kind.to_string(),
+            resource_type: resource_type.to_string(),
+            payload: payload.clone(),
+            created_at: now(),
+        };
+        let conn = self.conn.lock().unwrap();
+        let tx = conn.unchecked_transaction()?;
+        tx.execute(
+            "DELETE FROM task_resources WHERE task_id = ?1 AND connector_kind = ?2",
+            params![task_id, connector_kind],
+        )?;
+        tx.execute(
+            "INSERT INTO task_resources (id, task_id, connector_kind, resource_type, payload, created_at) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![r.id, r.task_id, r.connector_kind, r.resource_type, r.payload.to_string(), r.created_at],
+        )?;
+        tx.commit()?;
+        Ok(r)
+    }
 }
