@@ -11,6 +11,7 @@ use crate::capsules::{ActivateSummary, Capsules, SaveSummary};
 use crate::projects::RepoInspection;
 
 pub mod capsules;
+pub mod git;
 pub mod projects;
 
 struct HubHandle(Arc<Hub>);
