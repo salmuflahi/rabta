@@ -11,6 +11,8 @@ export const HelloPayload = z.object({
   kind: ConnectorKind,
   protocolVersion: z.number().int(),
   capabilities: z.array(z.string()),
+  secret: z.string().min(1).optional(),
+  token: z.string().min(1).optional(),
 });
 
 export const WelcomePayload = z.object({ connectorId: z.string().min(1) });
@@ -32,6 +34,10 @@ export const EventPayload = z.object({ name: z.string().min(1), data: z.unknown(
 
 export const ErrorPayload = z.object({ code: z.string().min(1), message: z.string() });
 
+export const PairPayload = z.object({ name: z.string().min(1), kind: ConnectorKind });
+
+export const PairedPayload = z.object({ token: z.string().min(1) });
+
 export const EmptyPayload = z.object({});
 
 const base = { v: z.literal(PROTOCOL_VERSION), id: z.string().min(1) };
@@ -44,6 +50,8 @@ export const Envelope = z.discriminatedUnion("kind", [
   z.object({ ...base, kind: z.literal("response"), payload: ResponsePayload }),
   z.object({ ...base, kind: z.literal("event"), payload: EventPayload }),
   z.object({ ...base, kind: z.literal("error"), payload: ErrorPayload }),
+  z.object({ ...base, kind: z.literal("pair"), payload: PairPayload }),
+  z.object({ ...base, kind: z.literal("paired"), payload: PairedPayload }),
   z.object({ ...base, kind: z.literal("ping"), payload: EmptyPayload }),
   z.object({ ...base, kind: z.literal("pong"), payload: EmptyPayload }),
 ]);

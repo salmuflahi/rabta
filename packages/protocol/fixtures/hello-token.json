@@ -1,0 +1,1 @@
+{ "v": 1, "id": "92222222-2222-2222-2222-222222222222", "kind": "hello", "payload": { "name": "chrome", "kind": "chrome", "protocolVersion": 1, "capabilities": ["tabs"], "token": "tok-123" } }

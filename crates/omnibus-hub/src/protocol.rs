@@ -26,6 +26,8 @@ pub enum Message {
     Response(Response),
     Event(Event),
     Error(ErrorMsg),
+    Pair(Pair),
+    Paired(Paired),
     Ping(Value),
     Pong(Value),
 }
@@ -47,6 +49,23 @@ pub struct Hello {
     #[serde(rename = "protocolVersion")]
     pub protocol_version: u8,
     pub capabilities: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
+}
+
+/// Pairing request: sent instead of `hello` by connectors with no credentials.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Pair {
+    pub name: String,
+    pub kind: ConnectorKind,
+}
+
+/// Pairing approval carrying the newly issued persistent token.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Paired {
+    pub token: String,
 }
 
 /// The hub's reply to a valid `hello`, assigning the connector its id.
