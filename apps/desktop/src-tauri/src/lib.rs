@@ -1,16 +1,21 @@
-use omnibus_db::{Db, DbConfig, EventRow, KnownConnector, Project, Recorder};
+use std::sync::Arc;
+use std::time::Duration;
+
+use omnibus_db::{Db, DbConfig, EventRow, KnownConnector, NewTask, Project, Recorder, Task, TaskResource, TaskStatus};
 use omnibus_hub::{ConnectorInfo, Hub, HubConfig};
 use serde_json::Value;
 use tauri::{Emitter, Manager, State};
 use tokio::sync::broadcast::error::RecvError;
 
+use crate::capsules::{ActivateSummary, Capsules, SaveSummary};
 use crate::projects::RepoInspection;
 
 pub mod capsules;
 pub mod projects;
 
-struct HubHandle(Hub);
+struct HubHandle(Arc<Hub>);
 struct DbHandle(Db);
+struct CapsulesHandle(Capsules);
 
 /// Snapshot of connected connectors for the UI.
 #[tauri::command]
@@ -90,6 +95,76 @@ async fn delete_project(db: State<'_, DbHandle>, id: String) -> Result<(), Strin
         .map_err(|e| e.to_string())?
 }
 
+/// Captures connected connectors' state into the task's capsule.
+#[tauri::command]
+async fn save_capsule(caps: State<'_, CapsulesHandle>, task_id: String) -> Result<SaveSummary, String> {
+    caps.0.save_capsule(&task_id).await
+}
+
+/// Auto-saves the outgoing task, restores this task's capsule, marks it active.
+#[tauri::command]
+async fn activate_task(caps: State<'_, CapsulesHandle>, task_id: String) -> Result<ActivateSummary, String> {
+    caps.0.activate_task(&task_id).await
+}
+
+/// The in-memory active task id, if any.
+#[tauri::command]
+fn active_task(caps: State<'_, CapsulesHandle>) -> Option<String> {
+    caps.0.active_task()
+}
+
+/// Creates a task under a project (status `open`).
+#[tauri::command]
+async fn create_task(db: State<'_, DbHandle>, project_id: String, title: String) -> Result<Task, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        db.create_task(NewTask { project_id, title }).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Tasks for one project, newest first.
+#[tauri::command]
+async fn list_tasks(db: State<'_, DbHandle>, project_id: String) -> Result<Vec<Task>, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || db.list_tasks(&project_id).map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Sets a task's status; accepts "open" or "done".
+#[tauri::command]
+async fn set_task_status(db: State<'_, DbHandle>, id: String, status: String) -> Result<(), String> {
+    let parsed = match status.as_str() {
+        "open" => TaskStatus::Open,
+        "done" => TaskStatus::Done,
+        other => return Err(format!("unknown status: {other}")),
+    };
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || db.set_task_status(&id, parsed).map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Deletes a task; its resources cascade.
+#[tauri::command]
+async fn delete_task(db: State<'_, DbHandle>, id: String) -> Result<(), String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || db.delete_task(&id).map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// A task's capsule rows (for the UI summary).
+#[tauri::command]
+async fn task_resources(db: State<'_, DbHandle>, task_id: String) -> Result<Vec<TaskResource>, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || db.task_resources(&task_id).map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 /// Builds and runs the OmniBus Tauri application: opens the database (fatal
 /// on failure), starts the hub, records hub activity, and forwards the event
 /// stream to the frontend as `hub-event`.
@@ -150,7 +225,11 @@ pub fn run() {
                 }
             });
 
+            let hub = Arc::new(hub);
+            let capsules = Capsules::new(hub.clone(), db.clone(), Duration::from_millis(1500));
+            capsules.spawn_continuation();
             app.manage(HubHandle(hub));
+            app.manage(CapsulesHandle(capsules));
             app.manage(DbHandle(db));
             Ok(())
         })
@@ -162,7 +241,15 @@ pub fn run() {
             inspect_repo_path,
             create_project,
             list_projects,
-            delete_project
+            delete_project,
+            save_capsule,
+            activate_task,
+            active_task,
+            create_task,
+            list_tasks,
+            set_task_status,
+            delete_task,
+            task_resources
         ])
         .run(tauri::generate_context!())
         .expect("error while running OmniBus");
