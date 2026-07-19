@@ -1,7 +1,7 @@
 # OmniBus — Hub Authentication (Phase 10a)
 
 **Date:** 2026-07-19
-**Status:** Draft for review
+**Status:** Implemented
 **Scope:** Mandatory hub authentication: per-run shared secret via `hub.json` (0600), persistent per-connector tokens via a user-approved pairing flow, origin policy, SDK + desktop + UI wiring.
 **Out of scope:** the Chrome connector itself (phase 10b), TLS (localhost only), token rotation/expiry, multi-user.
 

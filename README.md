@@ -20,6 +20,8 @@ cargo test    # protocol fixtures, hub handshake/commands/events integration tes
 6. Each project row shows its git position (branch, dirty count, ahead/behind) with fetch, safe branch switching (refused on a dirty tree — OmniBus never discards or stashes work), and branch creation. Capsules now save and restore the branch too.
 7. Quit the app and relaunch it — recent activity reappears as dimmed `[hist]` entries and previously-seen connectors show as known-but-disconnected rows, restored from `~/Library/Application Support/com.omnibus.dev/omnibus.db`.
 
+Connections are authenticated: native connectors read a per-run secret from `hub.json` (mode 0600) automatically, so nothing changes for them; a browser extension (which can't read files) sends a pairing request that surfaces an approve/deny banner in the app, and on approval gets a persistent token. Random web pages are rejected at the WebSocket handshake.
+
 To connect a real editor: `pnpm --filter omnibus-vscode build`, then `cursor --extensionDevelopmentPath="$PWD/connectors/vscode" /path/to/a/repo` (works in VS Code too) — the editor appears as a `vscode` connector and answers `workspace.state`, `editor.openFile`, and `terminal.create`.
 
 The hub also runs without Tauri: `cargo run -p omnibus-hub --example headless` (`OMNIBUS_DATA_DIR` overrides the discovery-file location; `--record` persists activity like the app does).
