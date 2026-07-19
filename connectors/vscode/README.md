@@ -2,6 +2,10 @@
 
 This is the real VS Code/Cursor connector that bridges VS Code and the local OmniBus hub.
 
+The fake connector under `connectors/fake` stays in the tree as the SDK
+reference implementation — this real extension does not replace or deprecate
+it.
+
 ## Build
 
 ```sh
