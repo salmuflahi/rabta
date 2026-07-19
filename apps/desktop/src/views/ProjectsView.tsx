@@ -1,10 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { useStore, type Project, type RepoInspection } from "../store";
+import { TasksSection } from "./TasksSection";
 
 export function ProjectsView() {
   const projects = useStore((s) => s.projects);
   const setProjects = useStore((s) => s.setProjects);
+  const setActiveTaskId = useStore((s) => s.setActiveTaskId);
   const [name, setName] = useState("");
   const [repoPath, setRepoPath] = useState("");
   const [devUrl, setDevUrl] = useState("");
@@ -20,6 +22,10 @@ export function ProjectsView() {
 
   useEffect(() => {
     refresh();
+  }, []);
+
+  useEffect(() => {
+    invoke<string | null>("active_task").then(setActiveTaskId).catch(() => {});
   }, []);
 
   async function onPathBlur() {
@@ -73,30 +79,33 @@ export function ProjectsView() {
         <h2 className="text-neutral-400 uppercase text-xs mb-2">Projects</h2>
         {projects.length === 0 && <div className="text-neutral-500">none registered</div>}
         {projects.map((p) => (
-          <div key={p.id} className="border border-neutral-700 p-2 mb-2 flex items-center gap-3">
-            <div className="flex-1">
-              <div>
-                {p.name} <span className="text-neutral-500">({p.defaultBranch})</span>
+          <div key={p.id} className="border border-neutral-700 p-2 mb-2 flex flex-col">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <div>
+                  {p.name} <span className="text-neutral-500">({p.defaultBranch})</span>
+                </div>
+                <div className="text-neutral-500 text-xs break-all">{p.repoPath}</div>
+                {p.devUrl && <div className="text-neutral-400 text-xs">{p.devUrl}</div>}
+                <div className="text-neutral-600 text-xs">created {p.createdAt}</div>
               </div>
-              <div className="text-neutral-500 text-xs break-all">{p.repoPath}</div>
-              {p.devUrl && <div className="text-neutral-400 text-xs">{p.devUrl}</div>}
-              <div className="text-neutral-600 text-xs">created {p.createdAt}</div>
+              {confirming === p.id ? (
+                <span className="text-xs flex items-center gap-2">
+                  <span className="text-red-400">delete? tasks and resources go with it</span>
+                  <button onClick={() => remove(p.id)} className="bg-red-900 px-2 py-1">
+                    confirm
+                  </button>
+                  <button onClick={() => setConfirming(null)} className="bg-neutral-800 px-2 py-1">
+                    cancel
+                  </button>
+                </span>
+              ) : (
+                <button onClick={() => setConfirming(p.id)} className="bg-neutral-800 px-2 py-1">
+                  delete
+                </button>
+              )}
             </div>
-            {confirming === p.id ? (
-              <span className="text-xs flex items-center gap-2">
-                <span className="text-red-400">delete? tasks and resources go with it</span>
-                <button onClick={() => remove(p.id)} className="bg-red-900 px-2 py-1">
-                  confirm
-                </button>
-                <button onClick={() => setConfirming(null)} className="bg-neutral-800 px-2 py-1">
-                  cancel
-                </button>
-              </span>
-            ) : (
-              <button onClick={() => setConfirming(p.id)} className="bg-neutral-800 px-2 py-1">
-                delete
-              </button>
-            )}
+            <TasksSection projectId={p.id} />
           </div>
         ))}
       </div>

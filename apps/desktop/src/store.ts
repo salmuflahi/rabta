@@ -57,6 +57,24 @@ export interface RepoInspection {
   defaultBranch: string | null;
 }
 
+export interface Task {
+  id: string;
+  projectId: string;
+  title: string;
+  status: "open" | "done";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskResource {
+  id: string;
+  taskId: string;
+  connectorKind: string;
+  resourceType: string;
+  payload: Record<string, unknown>;
+  createdAt: string;
+}
+
 interface Store {
   connectors: ConnectorRow[];
   log: LogEntry[];
@@ -70,6 +88,8 @@ interface Store {
   setView: (view: "projects" | "debug") => void;
   projects: Project[];
   setProjects: (projects: Project[]) => void;
+  activeTaskId: string | null;
+  setActiveTaskId: (id: string | null) => void;
 }
 
 export const useStore = create<Store>((set) => ({
@@ -80,6 +100,8 @@ export const useStore = create<Store>((set) => ({
   setView: (view) => set({ view }),
   projects: [],
   setProjects: (projects) => set({ projects }),
+  activeTaskId: null,
+  setActiveTaskId: (activeTaskId) => set({ activeTaskId }),
   // Live list from the hub; previously-seen-but-absent rows stay, shown
   // disconnected. Synthetic known-rows are dropped once a live row with the
   // same (name, kind) exists.
