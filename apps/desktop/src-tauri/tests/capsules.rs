@@ -192,3 +192,43 @@ async fn activating_b_autosaves_active_a_first() {
     assert_eq!(rows.len(), 1, "A got auto-saved on switch");
     assert_eq!(rows[0].payload["openFiles"], json!(["/repo/a/current.ts"]));
 }
+
+#[tokio::test]
+async fn newer_activation_clears_stale_pending_restore() {
+    let (hub, db, capsules, task_a, _dir) = setup().await;
+    capsules.spawn_continuation_on(tokio::runtime::Handle::current());
+    let p = db.list_projects().unwrap().remove(0);
+    let task_b = db.create_task(NewTask { project_id: p.id, title: "b".into() }).unwrap().id;
+    // A's capsule points at a DIFFERENT folder -> activation defers to pending.
+    db.replace_task_resources(&task_a, "vscode", "workspace", &state("/repo/other", &["/repo/other/old.ts"]))
+        .unwrap();
+    // B's capsule matches the current folder -> plain apply, no pending.
+    db.replace_task_resources(&task_b, "vscode", "workspace", &state("/repo/a", &[]))
+        .unwrap();
+    let (tx, _rx) = mpsc::unbounded_channel();
+    let conn = scripted_connector(hub.port(), tx, |name, _| match name {
+        "workspace.state" => state("/repo/a", &[]),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let a = capsules.activate_task(&task_a).await.unwrap();
+    assert_eq!(a.pending, vec!["vscode"], "A defers cross-folder");
+    let b = capsules.activate_task(&task_b).await.unwrap();
+    assert!(b.pending.is_empty(), "B is same-folder");
+
+    // Reconnect: the stale pending from A must NOT fire.
+    conn.abort();
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    let (tx2, mut rx2) = mpsc::unbounded_channel();
+    let _conn2 = scripted_connector(hub.port(), tx2, |_, _| json!({})).await;
+    tokio::time::sleep(Duration::from_millis(700)).await;
+    while let Ok((name, args)) = rx2.try_recv() {
+        assert_ne!(
+            (name.as_str(), args["path"].as_str()),
+            ("editor.openFile", Some("/repo/other/old.ts")),
+            "stale pending from task A must not apply after B's activation"
+        );
+    }
+}

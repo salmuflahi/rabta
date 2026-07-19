@@ -106,12 +106,17 @@ impl Capsules {
     /// Auto-saves the outgoing active task (if any), then restores `task_id`'s
     /// capsule best-effort per connector, and marks it active.
     pub async fn activate_task(&self, task_id: &str) -> Result<ActivateSummary, String> {
+        // Spec: one pending restore slot, replaced by the newer activation —
+        // every activation must reset it, not just cross-folder vscode ones.
+        *self.pending.lock().unwrap() = None;
+
         let mut errors = vec![];
         let previous = self.active_task();
         let mut saved_previous = None;
         if let Some(prev) = previous.filter(|p| p != task_id) {
             match self.save_capsule(&prev).await {
-                Ok(_) => saved_previous = Some(prev),
+                Ok(summary) if !summary.captured.is_empty() => saved_previous = Some(prev),
+                Ok(_) => {}
                 Err(e) => errors.push(format!("auto-save of previous task failed: {e}")),
             }
         }
