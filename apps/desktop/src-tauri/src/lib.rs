@@ -1,8 +1,10 @@
-use omnibus_db::{Db, DbConfig, EventRow, KnownConnector, Recorder};
+use omnibus_db::{Db, DbConfig, EventRow, KnownConnector, Project, Recorder};
 use omnibus_hub::{ConnectorInfo, Hub, HubConfig};
 use serde_json::Value;
 use tauri::{Emitter, Manager, State};
 use tokio::sync::broadcast::error::RecvError;
+
+use crate::projects::RepoInspection;
 
 pub mod projects;
 
@@ -40,6 +42,49 @@ async fn recent_events(db: State<'_, DbHandle>, limit: u32) -> Result<Vec<EventR
 async fn known_connectors(db: State<'_, DbHandle>) -> Result<Vec<KnownConnector>, String> {
     let db = db.0.clone();
     tauri::async_runtime::spawn_blocking(move || db.known_connectors().map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Checks a candidate repository path and prefills the default branch.
+#[tauri::command]
+async fn inspect_repo_path(path: String) -> Result<RepoInspection, String> {
+    tauri::async_runtime::spawn_blocking(move || projects::inspect_repo_path(&path))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Validates registration input and stores the project.
+#[tauri::command]
+async fn create_project(
+    db: State<'_, DbHandle>,
+    name: String,
+    repo_path: String,
+    dev_url: Option<String>,
+    default_branch: String,
+) -> Result<Project, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        projects::validate_and_create(&db, &name, &repo_path, dev_url.as_deref(), &default_branch)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// All registered projects.
+#[tauri::command]
+async fn list_projects(db: State<'_, DbHandle>) -> Result<Vec<Project>, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || db.list_projects().map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Deletes a project; its tasks and resources cascade (phase 5 schema).
+#[tauri::command]
+async fn delete_project(db: State<'_, DbHandle>, id: String) -> Result<(), String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || db.delete_project(&id).map_err(|e| e.to_string()))
         .await
         .map_err(|e| e.to_string())?
 }
@@ -112,7 +157,11 @@ pub fn run() {
             connectors,
             send_command,
             recent_events,
-            known_connectors
+            known_connectors,
+            inspect_repo_path,
+            create_project,
+            list_projects,
+            delete_project
         ])
         .run(tauri::generate_context!())
         .expect("error while running OmniBus");
