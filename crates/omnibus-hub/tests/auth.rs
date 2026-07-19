@@ -166,6 +166,82 @@ async fn pairing_deny_and_timeout() {
 }
 
 #[tokio::test]
+async fn late_pair_frame_is_bad_message() {
+    let (hub, _d) = start().await;
+    let (mut ws, _) =
+        tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
+    ws.send(
+        json!({"v":1,"id":"h","kind":"hello","payload":{"name":"t","kind":"fake","protocolVersion":1,"capabilities":[],"secret":hub.secret()}})
+            .to_string()
+            .into(),
+    )
+    .await
+    .unwrap();
+    let welcome: Value =
+        serde_json::from_str(ws.next().await.unwrap().unwrap().to_text().unwrap()).unwrap();
+    assert_eq!(welcome["kind"], "welcome");
+
+    for _ in 0..2 {
+        ws.send(
+            json!({"v":1,"id":"p","kind":"pair","payload":{"name":"t","kind":"fake"}})
+                .to_string()
+                .into(),
+        )
+        .await
+        .unwrap();
+        let reply: Value =
+            serde_json::from_str(ws.next().await.unwrap().unwrap().to_text().unwrap()).unwrap();
+        assert_eq!(reply["kind"], "error");
+        assert_eq!(reply["payload"]["code"], "bad_message");
+    }
+
+    // Third strike: send it, then observe the hub break the loop (three
+    // bad_message error frames may arrive first, mirroring the malformed-
+    // frame close test in events.rs).
+    ws.send(
+        json!({"v":1,"id":"p","kind":"pair","payload":{"name":"t","kind":"fake"}})
+            .to_string()
+            .into(),
+    )
+    .await
+    .unwrap();
+    let mut closed = false;
+    for _ in 0..10 {
+        match tokio::time::timeout(Duration::from_secs(2), ws.next()).await {
+            Ok(None) | Ok(Some(Err(_))) | Err(_) => {
+                closed = true;
+                break;
+            }
+            Ok(Some(Ok(frame))) => {
+                if frame.is_close() {
+                    closed = true;
+                    break;
+                }
+                let reply: Value = serde_json::from_str(frame.to_text().unwrap()).unwrap();
+                assert_eq!(reply["payload"]["code"], "bad_message");
+            }
+        }
+    }
+    assert!(closed, "hub did not close after 3 late pair frames");
+}
+
+#[tokio::test]
+async fn hub_json_replaces_preexisting_file_atomically_at_0600() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("hub.json");
+    std::fs::write(&path, "junk").unwrap();
+    let mut perms = std::fs::metadata(&path).unwrap().permissions();
+    perms.set_mode(0o644);
+    std::fs::set_permissions(&path, perms).unwrap();
+
+    let hub = Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap();
+    let disco: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    assert_eq!(disco["secret"], json!(hub.secret()));
+    assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
+}
+
+#[tokio::test]
 async fn origin_policy_matrix() {
     use tokio_tungstenite::tungstenite::{client::IntoClientRequest, http::HeaderValue};
     let (hub, _d) = start().await;

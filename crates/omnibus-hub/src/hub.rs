@@ -117,11 +117,21 @@ impl Hub {
         let port = listener.local_addr()?.port();
         std::fs::create_dir_all(&cfg.data_dir)?;
         let secret = Uuid::new_v4().to_string();
+        // The secret in hub.json is the local trust boundary: any process
+        // that can read this file can authenticate as a trusted connector.
+        // Create it atomically at 0600 (create_new + mode, no separate
+        // chmod) so there is never a window where another local user could
+        // read the freshly-written secret before permissions land.
+        use std::io::Write;
+        use std::os::unix::fs::OpenOptionsExt;
         let path = cfg.data_dir.join("hub.json");
-        std::fs::write(&path, json!({ "port": port, "secret": secret }).to_string())?;
-        let mut perms = std::fs::metadata(&path)?.permissions();
-        std::os::unix::fs::PermissionsExt::set_mode(&mut perms, 0o600);
-        std::fs::set_permissions(&path, perms)?;
+        let _ = std::fs::remove_file(&path); // fresh perms even if an old file exists
+        let mut f = std::fs::OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .mode(0o600)
+            .open(&path)?;
+        f.write_all(json!({ "port": port, "secret": secret }).to_string().as_bytes())?;
         let secret = Arc::new(secret);
         let (events, _) = broadcast::channel(256);
         let state: Shared = Default::default();
@@ -436,6 +446,17 @@ async fn handle_connection(
                                 name: e.name,
                                 data: e.data,
                             });
+                        }
+                        // Late/duplicate hello or pair after registration:
+                        // not a protocol-version or parse failure, but still
+                        // an unexpected frame — strike it the same way.
+                        Message::Hello(_) | Message::Pair(_) => {
+                            strikes += 1;
+                            let _ = send_env(&mut sink, &envelope(Message::Error(ErrorMsg {
+                                code: "bad_message".into(),
+                                message: "unexpected frame".into(),
+                            }))).await;
+                            if strikes >= 3 { break; }
                         }
                         _ => {}
                     },
