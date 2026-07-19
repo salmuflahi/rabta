@@ -30,19 +30,11 @@ export default function App() {
         .then(setConnectors)
         .catch((e) => console.error("connectors refresh failed:", e));
 
-    Promise.all([
-      invoke<PersistedEvent[]>("recent_events", { limit: 200 }),
-      invoke<KnownConnector[]>("known_connectors"),
-    ])
-      .then(([events, known]) => preload(events, known))
-      .catch((e) => console.error("history preload failed:", e))
-      .then(refresh);
-
-    invoke<PendingPairing[]>("pending_pairings")
-      .then(setPairings)
-      .catch((e) => console.error("pending pairings refresh failed:", e));
-
-    const unlisten = listen<{ type: string; [k: string]: unknown }>("hub-event", (e) => {
+    // Subscribe before issuing any initial-load invokes so an event that
+    // fires while a snapshot request is still in flight is never missed by
+    // a not-yet-registered listener (and can't be clobbered by a stale
+    // snapshot landing afterward — setPairings merges rather than replaces).
+    const unlistenPromise = listen<{ type: string; [k: string]: unknown }>("hub-event", (e) => {
       append(e.payload);
       if (e.payload.type === "connectorConnected" || e.payload.type === "connectorDisconnected") {
         refresh();
@@ -55,8 +47,23 @@ export default function App() {
         });
       }
     });
+
+    unlistenPromise.then(() => {
+      Promise.all([
+        invoke<PersistedEvent[]>("recent_events", { limit: 200 }),
+        invoke<KnownConnector[]>("known_connectors"),
+      ])
+        .then(([events, known]) => preload(events, known))
+        .catch((e) => console.error("history preload failed:", e))
+        .then(refresh);
+
+      invoke<PendingPairing[]>("pending_pairings")
+        .then(setPairings)
+        .catch((e) => console.error("pending pairings refresh failed:", e));
+    });
+
     return () => {
-      unlisten.then((f) => f());
+      unlistenPromise.then((f) => f());
     };
   }, [append, setConnectors, preload, setPairings, addPairing]);
 

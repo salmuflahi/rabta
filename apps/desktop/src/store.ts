@@ -97,6 +97,10 @@ interface Store {
   activeTaskId: string | null;
   setActiveTaskId: (id: string | null) => void;
   pairings: PendingPairing[];
+  /** Merge an initial-load snapshot into the current pairings, keyed by
+   * pairingId. Existing entries (e.g. from a `pairingRequested` event that
+   * arrived before this snapshot resolved) win over the incoming snapshot,
+   * so a race with the event listener can never drop a pending request. */
   setPairings: (pairings: PendingPairing[]) => void;
   addPairing: (pairing: PendingPairing) => void;
   removePairing: (pairingId: string) => void;
@@ -113,7 +117,16 @@ export const useStore = create<Store>((set) => ({
   activeTaskId: null,
   setActiveTaskId: (activeTaskId) => set({ activeTaskId }),
   pairings: [],
-  setPairings: (pairings) => set({ pairings }),
+  setPairings: (incoming) =>
+    set((s) => {
+      const merged = [...s.pairings];
+      for (const p of incoming) {
+        if (!merged.some((existing) => existing.pairingId === p.pairingId)) {
+          merged.push(p);
+        }
+      }
+      return { pairings: merged };
+    }),
   addPairing: (pairing) =>
     set((s) => ({
       pairings: s.pairings.some((p) => p.pairingId === pairing.pairingId)
