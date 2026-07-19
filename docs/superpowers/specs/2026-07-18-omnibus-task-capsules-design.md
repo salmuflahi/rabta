@@ -1,7 +1,7 @@
 # OmniBus — Task Capsules (Phase 8)
 
 **Date:** 2026-07-18
-**Status:** Draft for review
+**Status:** Implemented
 **Scope:** Capsule save/restore across connected connectors (VS Code + fake), task UI under projects, restore continuation across editor window reloads.
 **Out of scope:** git/branch state (phase 9), Chrome tabs (phase 10), cursor/scroll positions, capsule history/versioning, persistent active-task tracking, cross-machine anything.
 
