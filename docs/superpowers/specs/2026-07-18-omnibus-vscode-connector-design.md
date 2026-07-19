@@ -1,7 +1,7 @@
 # OmniBus — VS Code Connector (Phase 7)
 
 **Date:** 2026-07-18
-**Status:** Draft for review
+**Status:** Implemented
 **Scope:** A real VS Code extension (`connectors/vscode`) that registers with the hub via the existing connector SDK: workspace/editor state reads, file/workspace opening, terminal creation, editor events.
 **Out of scope:** task capsules and save/restore orchestration (phase 8), cursor positions (phase 8 decides what restore needs), git operations (phase 9), Chrome (phase 10), extension marketplace packaging/publishing.
 
