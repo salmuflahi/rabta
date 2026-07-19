@@ -45,6 +45,7 @@ export function activate(context: vscode.ExtensionContext): void {
   connect(
     { name: "vscode", kind: "vscode", capabilities: ["workspace", "editor", "terminal"] },
     (c) => {
+      connector = c;
       c.onCommand("workspace.state", () => snapshot());
       c.onCommand("editor.openFiles", () => ({ openFiles: snapshot().openFiles }));
       c.onCommand("editor.openFile", async (args) => {
@@ -54,13 +55,18 @@ export function activate(context: vscode.ExtensionContext): void {
         return { opened: path };
       });
       c.onCommand("workspace.open", (args) => {
-        const { path } = args as { path: string };
+        const { path } = args as { path?: unknown };
+        if (typeof path !== "string" || path.length === 0) {
+          throw new Error("workspace.open requires a non-empty string path");
+        }
         // Reply first — openFolder reloads the window and kills this
         // extension host; the connector re-registers from the new window.
         setTimeout(() => {
-          void vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(path), {
-            forceNewWindow: false,
-          });
+          Promise.resolve(
+            vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(path), {
+              forceNewWindow: false,
+            })
+          ).catch((e) => out.appendLine(`workspace.open failed: ${e}`));
         }, 50);
         return { opening: path };
       });
