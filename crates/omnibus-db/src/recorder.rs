@@ -26,6 +26,15 @@ impl Recorder {
     pub fn handle(&mut self, ev: &Value) {
         let event_type =
             ev.get("type").and_then(Value::as_str).unwrap_or("unknown").to_string();
+
+        // Unauthenticated clients can spam `pair` frames freely (no secret
+        // required to request pairing); persisting each one would let that
+        // spam fill the events table. This is ephemeral UI signal only —
+        // the live banner already gets it via the broadcast channel.
+        if event_type == "pairingRequested" {
+            return;
+        }
+
         let session_id = ev
             .get("connectorId")
             .and_then(Value::as_str)

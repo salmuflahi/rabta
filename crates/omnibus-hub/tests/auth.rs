@@ -165,6 +165,72 @@ async fn pairing_deny_and_timeout() {
     assert!(hub.pending_pairings().await.is_empty());
 }
 
+/// Two `pair` frames for the same (name, kind) — no auth required to send
+/// either — must park only one pairing and broadcast only one
+/// `PairingRequested`; the second connection gets rejected outright rather
+/// than stacking a second banner.
+#[tokio::test]
+async fn duplicate_pairing_request_is_rejected() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cfg = HubConfig::new(dir.path().to_path_buf());
+    cfg.pairing_timeout = Duration::from_secs(5);
+    let hub = Hub::start(cfg).await.unwrap();
+    let mut events = hub.subscribe();
+
+    let (mut ws1, _) =
+        tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
+    ws1.send(
+        json!({"v":1,"id":"p","kind":"pair","payload":{"name":"dup","kind":"chrome"}})
+            .to_string()
+            .into(),
+    )
+    .await
+    .unwrap();
+
+    let pairing_id = loop {
+        match tokio::time::timeout(Duration::from_secs(2), events.recv()).await.unwrap().unwrap() {
+            HubEvent::PairingRequested { pairing_id, name, kind } => {
+                assert_eq!((name.as_str(), kind.as_str()), ("dup", "chrome"));
+                break pairing_id;
+            }
+            _ => continue,
+        }
+    };
+    assert_eq!(hub.pending_pairings().await.len(), 1);
+
+    // Second connection, same (name, kind): must be rejected, not parked.
+    let (mut ws2, _) =
+        tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
+    ws2.send(
+        json!({"v":1,"id":"p","kind":"pair","payload":{"name":"dup","kind":"chrome"}})
+            .to_string()
+            .into(),
+    )
+    .await
+    .unwrap();
+    let reply: Value =
+        serde_json::from_str(ws2.next().await.unwrap().unwrap().to_text().unwrap()).unwrap();
+    assert_eq!(reply["kind"], "error");
+    assert_eq!(reply["payload"]["code"], "bad_message");
+
+    // Still only the original pairing parked.
+    assert_eq!(hub.pending_pairings().await.len(), 1);
+
+    // No second `PairingRequested` for ("dup", "chrome") was broadcast.
+    let mut saw_second = false;
+    while let Ok(Ok(ev)) = tokio::time::timeout(Duration::from_millis(200), events.recv()).await {
+        if let HubEvent::PairingRequested { name, kind, .. } = ev {
+            if name == "dup" && kind == "chrome" {
+                saw_second = true;
+            }
+        }
+    }
+    assert!(!saw_second, "a second PairingRequested was broadcast for a duplicate pair request");
+
+    // Cleanup: resolve the original so nothing lingers past the test.
+    assert!(hub.resolve_pairing(&pairing_id, None).await);
+}
+
 #[tokio::test]
 async fn late_pair_frame_is_bad_message() {
     let (hub, _d) = start().await;

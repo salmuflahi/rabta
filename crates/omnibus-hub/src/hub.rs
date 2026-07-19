@@ -501,6 +501,27 @@ async fn handle_pairing(
     let pairing_id = Uuid::new_v4().to_string();
     let name = p.name;
     let kind = kind_tag(p.kind).to_string();
+
+    // Unauthenticated clients can send `pair` frames freely; without this
+    // check, spamming the same (name, kind) would park a fresh pairing (and
+    // broadcast a fresh `PairingRequested`, stacking banners in the UI) for
+    // every connection. Reject the duplicate outright instead.
+    let already_pending = {
+        let st = state.lock().await;
+        st.pairings.values().any(|(n, k, _)| n == &name && k == &kind)
+    };
+    if already_pending {
+        let _ = send_env(
+            sink,
+            &envelope(Message::Error(ErrorMsg {
+                code: "bad_message".into(),
+                message: "pairing already pending".into(),
+            })),
+        )
+        .await;
+        return;
+    }
+
     let (tx, rx) = oneshot::channel::<Option<String>>();
     state.lock().await.pairings.insert(pairing_id.clone(), (name.clone(), kind.clone(), tx));
     let _ = events.send(HubEvent::PairingRequested {

@@ -63,3 +63,17 @@ async fn recorder_persists_hub_activity() {
     assert_eq!(known[0].kind, "fake");
     assert_eq!(known[0].capabilities, vec!["workspace"]);
 }
+
+/// `pairingRequested` fires with no authentication at all, so an attacker
+/// spamming `pair` frames must not be able to fill the events table.
+#[test]
+fn pairing_requested_is_not_persisted() {
+    let db = Db::open_in_memory(DbConfig::default()).unwrap();
+    let mut recorder = Recorder::new(db.clone());
+
+    let ev = json!({"type":"pairingRequested","pairingId":"p1","name":"spammer","kind":"fake"});
+    recorder.handle(&ev);
+
+    let rows = db.recent_events(50).unwrap();
+    assert!(rows.is_empty(), "pairingRequested must not be persisted, got {rows:?}");
+}
