@@ -18,25 +18,25 @@ type Ws = tokio_tungstenite::WebSocketStream<
 /// Connects a scripted `vscode`-kind connector. Every command it receives is
 /// forwarded to `seen`; replies come from `respond`.
 async fn scripted_connector(
-    port: u16,
+    hub: &Hub,
     seen: mpsc::UnboundedSender<(String, Value)>,
     respond: impl Fn(&str, &Value) -> Value + Send + 'static,
 ) -> tokio::task::JoinHandle<()> {
-    scripted_connector_kind(port, "vscode", seen, respond).await
+    scripted_connector_kind(hub, "vscode", seen, respond).await
 }
 
 /// Connects a scripted connector of the given `kind`. Every command it
 /// receives is forwarded to `seen`; replies come from `respond`.
 async fn scripted_connector_kind(
-    port: u16,
+    hub: &Hub,
     kind: &str,
     seen: mpsc::UnboundedSender<(String, Value)>,
     respond: impl Fn(&str, &Value) -> Value + Send + 'static,
 ) -> tokio::task::JoinHandle<()> {
     let (mut ws, _) =
-        tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{port}")).await.unwrap();
+        tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
     ws.send(
-        json!({"v":1,"id":"h","kind":"hello","payload":{"name":kind,"kind":kind,"protocolVersion":1,"capabilities":["workspace","editor","terminal"]}})
+        json!({"v":1,"id":"h","kind":"hello","payload":{"name":kind,"kind":kind,"protocolVersion":1,"capabilities":["workspace","editor","terminal"],"secret":hub.secret()}})
             .to_string()
             .into(),
     )
@@ -109,7 +109,7 @@ async fn setup() -> (Arc<Hub>, Db, Capsules, String, tempfile::TempDir) {
 async fn save_capsule_captures_workspace_state_into_rows() {
     let (hub, db, capsules, task_id, _dir) = setup().await;
     let (tx, _rx) = mpsc::unbounded_channel();
-    let _conn = scripted_connector(hub.port(), tx, |name, _| match name {
+    let _conn = scripted_connector(&hub, tx, |name, _| match name {
         "workspace.state" => state("/repo/a", &["/repo/a/main.ts"]),
         _ => json!({}),
     })
@@ -132,7 +132,7 @@ async fn activate_same_folder_opens_files_and_terminals() {
     db.replace_task_resources(&task_id, "vscode", "workspace", &state("/repo/a", &["/repo/a/x.ts", "/repo/a/y.ts"]))
         .unwrap();
     let (tx, mut rx) = mpsc::unbounded_channel();
-    let _conn = scripted_connector(hub.port(), tx, |name, _| match name {
+    let _conn = scripted_connector(&hub, tx, |name, _| match name {
         "workspace.state" => state("/repo/a", &[]), // same folder, no files open
         _ => json!({}),
     })
@@ -162,7 +162,7 @@ async fn activate_cross_folder_defers_and_continues_on_reconnect() {
         .unwrap();
     let (tx, rx_ignored) = mpsc::unbounded_channel();
     drop(rx_ignored);
-    let conn = scripted_connector(hub.port(), tx, |name, _| match name {
+    let conn = scripted_connector(&hub, tx, |name, _| match name {
         "workspace.state" => state("/repo/a", &[]), // WRONG folder
         _ => json!({}),
     })
@@ -177,7 +177,7 @@ async fn activate_cross_folder_defers_and_continues_on_reconnect() {
     conn.abort();
     tokio::time::sleep(Duration::from_millis(100)).await;
     let (tx2, mut rx2) = mpsc::unbounded_channel();
-    let _conn2 = scripted_connector(hub.port(), tx2, |_, _| json!({})).await;
+    let _conn2 = scripted_connector(&hub, tx2, |_, _| json!({})).await;
 
     // settle (50ms in tests) + margin, then the continuation must have fired
     tokio::time::sleep(Duration::from_millis(700)).await;
@@ -195,7 +195,7 @@ async fn activating_b_autosaves_active_a_first() {
     let p2 = db.list_projects().unwrap().remove(0);
     let task_b = db.create_task(NewTask { project_id: p2.id, title: "b".into() }).unwrap().id;
     let (tx, _rx) = mpsc::unbounded_channel();
-    let _conn = scripted_connector(hub.port(), tx, |name, _| match name {
+    let _conn = scripted_connector(&hub, tx, |name, _| match name {
         "workspace.state" => state("/repo/a", &["/repo/a/current.ts"]),
         _ => json!({}),
     })
@@ -224,7 +224,7 @@ async fn newer_activation_clears_stale_pending_restore() {
     db.replace_task_resources(&task_b, "vscode", "workspace", &state("/repo/a", &[]))
         .unwrap();
     let (tx, _rx) = mpsc::unbounded_channel();
-    let conn = scripted_connector(hub.port(), tx, |name, _| match name {
+    let conn = scripted_connector(&hub, tx, |name, _| match name {
         "workspace.state" => state("/repo/a", &[]),
         _ => json!({}),
     })
@@ -240,7 +240,7 @@ async fn newer_activation_clears_stale_pending_restore() {
     conn.abort();
     tokio::time::sleep(Duration::from_millis(100)).await;
     let (tx2, mut rx2) = mpsc::unbounded_channel();
-    let _conn2 = scripted_connector(hub.port(), tx2, |_, _| json!({})).await;
+    let _conn2 = scripted_connector(&hub, tx2, |_, _| json!({})).await;
     tokio::time::sleep(Duration::from_millis(700)).await;
     while let Ok((name, args)) = rx2.try_recv() {
         assert_ne!(
@@ -257,7 +257,7 @@ async fn activate_fake_capsule_opens_root_workspace() {
     db.replace_task_resources(&task_id, "fake", "workspace", &fake_state("/repo/f", &["a"]))
         .unwrap();
     let (tx, mut rx) = mpsc::unbounded_channel();
-    let _conn = scripted_connector_kind(hub.port(), "fake", tx, |_, _| json!({})).await;
+    let _conn = scripted_connector_kind(&hub, "fake", tx, |_, _| json!({})).await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     let summary = capsules.activate_task(&task_id).await.unwrap();
@@ -304,7 +304,7 @@ async fn mid_settle_activation_supersedes_pending() {
     db.replace_task_resources(&task_b, "vscode", "workspace", &state("/repo/a", &[])).unwrap();
 
     let (tx, _rx) = mpsc::unbounded_channel();
-    let conn = scripted_connector(hub.port(), tx, |name, _| match name {
+    let conn = scripted_connector(&hub, tx, |name, _| match name {
         "workspace.state" => state("/repo/a", &[]),
         _ => json!({}),
     })
@@ -318,7 +318,7 @@ async fn mid_settle_activation_supersedes_pending() {
     conn.abort();
     tokio::time::sleep(Duration::from_millis(100)).await;
     let (tx2, mut rx2) = mpsc::unbounded_channel();
-    let _conn2 = scripted_connector(hub.port(), tx2, |name, _| match name {
+    let _conn2 = scripted_connector(&hub, tx2, |name, _| match name {
         "workspace.state" => state("/repo/a", &[]),
         _ => json!({}),
     })
@@ -403,7 +403,7 @@ async fn activate_refuses_branch_switch_on_dirty_tree() {
     std::fs::write(repo.path().join("a.txt"), "precious\n").unwrap();
 
     let (tx, _rx) = mpsc::unbounded_channel();
-    let _conn = scripted_connector(hub.port(), tx, |name, _| match name {
+    let _conn = scripted_connector(&hub, tx, |name, _| match name {
         "workspace.state" => state("/repo/a", &[]), // same folder, editor restore proceeds
         _ => json!({}),
     })

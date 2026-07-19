@@ -75,6 +75,12 @@ export interface TaskResource {
   createdAt: string;
 }
 
+export interface PendingPairing {
+  pairingId: string;
+  name: string;
+  kind: string;
+}
+
 interface Store {
   connectors: ConnectorRow[];
   log: LogEntry[];
@@ -90,6 +96,10 @@ interface Store {
   setProjects: (projects: Project[]) => void;
   activeTaskId: string | null;
   setActiveTaskId: (id: string | null) => void;
+  pairings: PendingPairing[];
+  setPairings: (pairings: PendingPairing[]) => void;
+  addPairing: (pairing: PendingPairing) => void;
+  removePairing: (pairingId: string) => void;
 }
 
 export const useStore = create<Store>((set) => ({
@@ -102,6 +112,16 @@ export const useStore = create<Store>((set) => ({
   setProjects: (projects) => set({ projects }),
   activeTaskId: null,
   setActiveTaskId: (activeTaskId) => set({ activeTaskId }),
+  pairings: [],
+  setPairings: (pairings) => set({ pairings }),
+  addPairing: (pairing) =>
+    set((s) => ({
+      pairings: s.pairings.some((p) => p.pairingId === pairing.pairingId)
+        ? s.pairings
+        : [...s.pairings, pairing],
+    })),
+  removePairing: (pairingId) =>
+    set((s) => ({ pairings: s.pairings.filter((p) => p.pairingId !== pairingId) })),
   // Live list from the hub; previously-seen-but-absent rows stay, shown
   // disconnected. Synthetic known-rows are dropped once a live row with the
   // same (name, kind) exists.

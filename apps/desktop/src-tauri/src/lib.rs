@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use omnibus_db::{Db, DbConfig, EventRow, KnownConnector, NewTask, Project, Recorder, Task, TaskResource, TaskStatus};
 use omnibus_hub::{ConnectorInfo, Hub, HubConfig};
+use serde::Serialize;
 use serde_json::Value;
 use tauri::{Emitter, Manager, State};
 use tokio::sync::broadcast::error::RecvError;
@@ -209,6 +210,66 @@ async fn git_create_branch(db: State<'_, DbHandle>, project_id: String, name: St
     git::create_branch(&repo_of(&db, &project_id).await?, &name).await
 }
 
+/// A pairing request awaiting a decision, as shown to the UI.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PendingPairing {
+    pairing_id: String,
+    name: String,
+    kind: String,
+}
+
+/// Pairing requests currently awaiting a decision.
+#[tauri::command]
+async fn pending_pairings(hub: State<'_, HubHandle>) -> Result<Vec<PendingPairing>, String> {
+    Ok(hub
+        .0
+        .pending_pairings()
+        .await
+        .into_iter()
+        .map(|(pairing_id, name, kind)| PendingPairing { pairing_id, name, kind })
+        .collect())
+}
+
+/// Issues a persistent token for a pairing request and approves it.
+#[tauri::command]
+async fn approve_pairing(
+    hub: State<'_, HubHandle>,
+    db: State<'_, DbHandle>,
+    pairing_id: String,
+) -> Result<(), String> {
+    let pending = hub.0.pending_pairings().await;
+    let (_, name, kind) = pending
+        .into_iter()
+        .find(|(id, _, _)| *id == pairing_id)
+        .ok_or("pairing expired or already resolved")?;
+    let token = uuid::Uuid::new_v4().to_string();
+    {
+        let db = db.0.clone();
+        let (n, k, t) = (name.clone(), kind.clone(), token.clone());
+        tauri::async_runtime::spawn_blocking(move || db.set_connector_token(&n, &k, &t))
+            .await
+            .map_err(|e| e.to_string())?
+            .map_err(|e| e.to_string())?;
+    }
+    hub.0.tokens_handle().write().unwrap().insert(format!("{name}/{kind}"), token.clone());
+    if hub.0.resolve_pairing(&pairing_id, Some(token)).await {
+        Ok(())
+    } else {
+        Err("pairing expired before approval".to_string())
+    }
+}
+
+/// Denies a pairing request.
+#[tauri::command]
+async fn deny_pairing(hub: State<'_, HubHandle>, pairing_id: String) -> Result<(), String> {
+    if hub.0.resolve_pairing(&pairing_id, None).await {
+        Ok(())
+    } else {
+        Err("pairing expired or already resolved".to_string())
+    }
+}
+
 /// Builds and runs the OmniBus Tauri application: opens the database (fatal
 /// on failure), starts the hub, records hub activity, and forwards the event
 /// stream to the frontend as `hub-event`.
@@ -221,7 +282,11 @@ pub fn run() {
             let db = Db::open(&data_dir.join("omnibus.db"), DbConfig::default())
                 .map_err(|e| format!("failed to open omnibus.db: {e}"))?;
 
-            let hub = tauri::async_runtime::block_on(Hub::start(HubConfig::new(data_dir)))?;
+            let hub_cfg = HubConfig::new(data_dir);
+            for (name, kind, token) in db.connector_tokens().map_err(|e| e.to_string())? {
+                hub_cfg.tokens.write().unwrap().insert(format!("{name}/{kind}"), token);
+            }
+            let hub = tauri::async_runtime::block_on(Hub::start(hub_cfg))?;
 
             // UI forwarder: broadcast -> Tauri event.
             let mut ui_events = hub.subscribe();
@@ -298,7 +363,10 @@ pub fn run() {
             git_branches,
             git_fetch,
             git_checkout,
-            git_create_branch
+            git_create_branch,
+            pending_pairings,
+            approve_pairing,
+            deny_pairing
         ])
         .run(tauri::generate_context!())
         .expect("error while running OmniBus");
