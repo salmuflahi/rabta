@@ -12,7 +12,7 @@ cargo test    # protocol fixtures, hub handshake/commands/events integration tes
 
 ## Try it
 
-1. `pnpm --filter desktop tauri dev` — the OmniBus window opens; the hub starts automatically and writes `~/Library/Application Support/com.omnibus.dev/hub.json`.
+1. `pnpm --filter desktop tauri dev` — the OmniBus window opens on the **Projects** view; the hub starts automatically and writes `~/Library/Application Support/com.omnibus.dev/hub.json`. Register a project: type a repo path (the default branch prefills from `.git/HEAD`), add a name, hit register — it survives restarts; delete asks for an inline confirm. The **Debug** tab holds the dev console used below.
 2. In another terminal: `pnpm --filter fake-connector start -- --chatty` — a simulated VS Code connector appears in the Connectors panel (green dot, `workspace, editor` capabilities) and starts emitting `editor.fileOpened` events into the activity log every few seconds.
 3. In the command sender, pick `fake-vscode`, keep `workspace.open` with args `{"path": "/tmp/demo"}`, hit send — the response `{ "opened": "/tmp/demo" }` appears inline and in the log.
 4. Ctrl-C the connector — its dot turns red within ~15 s (`connectorDisconnected` in the log). Restart it — it reconnects and re-registers without restarting the app.

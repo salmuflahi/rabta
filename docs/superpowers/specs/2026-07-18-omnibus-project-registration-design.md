@@ -1,7 +1,7 @@
 # OmniBus — Project Registration (Phase 6)
 
 **Date:** 2026-07-18
-**Status:** Draft for review
+**Status:** Implemented
 **Scope:** First product view (Projects), Tauri commands for project CRUD + repo-path validation, view switcher over the existing dev console.
 **Out of scope:** task UI (phase 8), real git operations (phase 9), project editing, repo auto-discovery, owner field (dropped — see Non-goals).
 
