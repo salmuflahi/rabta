@@ -141,7 +141,7 @@ workspace — never your code, keystrokes, or browsing history.
 3. Fake connector (simulated VS Code; validate architecture first)
 4. Local hub (registration, routing, sessions, auth tokens, permission checks)
 5. SQLite DB (projects, tasks, task resources, events, connectors)
-6. Manual project registration (name, repo path, dev URL, owner, default branch)
+6. Manual project registration (name, repo path, dev URL, default branch — owner dropped: single-user, local-first)
 7. VS Code connector (open workspace/files, read state, terminals, status)
 8. Task Capsules (save/restore state across all connectors)
 9. Safe Git ops (status, branch, fetch, checkout, create branch — never force-checkout/reset/discard/auto-stash)
