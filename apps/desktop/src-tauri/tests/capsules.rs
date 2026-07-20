@@ -88,6 +88,10 @@ fn fake_state(root: &str, files: &[&str]) -> Value {
     json!({ "root": root, "openFiles": files })
 }
 
+fn tabs_state(urls: &[&str]) -> Value {
+    json!({ "tabs": urls.iter().map(|u| json!({"url": u, "title": u})).collect::<Vec<_>>() })
+}
+
 async fn setup() -> (Arc<Hub>, Db, Capsules, String, tempfile::TempDir) {
     let dir = tempfile::tempdir().unwrap();
     let hub = Arc::new(Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap());
@@ -423,4 +427,55 @@ async fn activate_refuses_branch_switch_on_dirty_tree() {
         "branch unchanged"
     );
     assert_eq!(std::fs::read_to_string(repo.path().join("a.txt")).unwrap(), "precious\n");
+}
+
+#[tokio::test]
+async fn save_capsule_captures_chrome_tabs() {
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    let (tx, _rx) = mpsc::unbounded_channel();
+    // Scripted chrome-kind connector answering workspace.state with tabs.
+    let _c = scripted_connector_kind(&hub, "chrome", tx, |name, _| match name {
+        "workspace.state" => tabs_state(&["https://a.test", "https://b.test"]),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let summary = capsules.save_capsule(&task_id).await.unwrap();
+    assert!(summary.captured.contains(&"chrome".to_string()), "got {summary:?}");
+    let rows = db.task_resources(&task_id).unwrap();
+    let chrome = rows.iter().find(|r| r.connector_kind == "chrome").unwrap();
+    assert_eq!(chrome.payload["tabs"][0]["url"], "https://a.test");
+}
+
+#[tokio::test]
+async fn activate_opens_chrome_tabs_additively() {
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(&task_id, "chrome", "workspace", &tabs_state(&["https://x.test", "https://y.test"]))
+        .unwrap();
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _c = scripted_connector_kind(&hub, "chrome", tx, |_, _| json!({})).await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let summary = capsules.activate_task(&task_id).await.unwrap();
+    assert!(summary.applied.contains(&"chrome".to_string()), "got {summary:?}");
+    assert!(summary.pending.is_empty(), "chrome restore is not deferred");
+
+    let mut opened = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        if name == "tabs.open" {
+            opened.push(args["url"].as_str().unwrap().to_string());
+        }
+    }
+    assert!(opened.contains(&"https://x.test".to_string()), "got {opened:?}");
+    assert!(opened.contains(&"https://y.test".to_string()), "got {opened:?}");
+}
+
+#[tokio::test]
+async fn activate_chrome_without_browser_is_skipped() {
+    let (_hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(&task_id, "chrome", "workspace", &tabs_state(&["https://z.test"]))
+        .unwrap();
+    let summary = capsules.activate_task(&task_id).await.unwrap();
+    assert!(summary.skipped.contains(&"chrome".to_string()), "got {summary:?}");
 }

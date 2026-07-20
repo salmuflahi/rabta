@@ -11,7 +11,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 /// Connector kinds capsules know how to capture and restore.
-const CAPTURABLE: &[&str] = &["vscode", "fake"];
+const CAPTURABLE: &[&str] = &["vscode", "fake", "chrome"];
 
 /// Result of an explicit or automatic capsule save.
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -254,6 +254,10 @@ impl Capsules {
                         skipped.push(r.connector_kind.clone());
                     }
                 }
+                "chrome" => {
+                    self.restore_chrome(conn, &r.payload, &mut errors).await;
+                    applied.push("chrome".to_string());
+                }
                 _ => skipped.push(r.connector_kind.clone()),
             }
         }
@@ -345,6 +349,24 @@ impl Capsules {
                 self.hub.send_command(connector_id, "terminal.create", args).await
             {
                 errors.push(format!("terminal.create {cwd}: {e}"));
+            }
+        }
+    }
+
+    /// Restores browser tabs additively: opens each captured url. Non-
+    /// destructive (never closes the user's current tabs), so — unlike
+    /// vscode's workspace.open — there is no window reload and no pending
+    /// continuation. Individual failures are collected, never fatal.
+    async fn restore_chrome(&self, conn: &ConnectorInfo, payload: &Value, errors: &mut Vec<String>) {
+        let urls: Vec<String> = payload["tabs"]
+            .as_array()
+            .map(|a| a.iter().filter_map(|t| t["url"].as_str().map(String::from)).collect())
+            .unwrap_or_default();
+        for url in urls {
+            if let Err(e) =
+                self.hub.send_command(&conn.id, "tabs.open", json!({ "url": url })).await
+            {
+                errors.push(format!("tabs.open {url}: {e}"));
             }
         }
     }
