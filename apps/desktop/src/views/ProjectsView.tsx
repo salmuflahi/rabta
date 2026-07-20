@@ -108,7 +108,7 @@ export function ProjectsView() {
                 </button>
               )}
             </div>
-            <GitLine projectId={p.id} />
+            <GitLine key={`${p.id}-${startedNonce[p.id] ?? 0}`} projectId={p.id} />
             <GitHubSection
               projectId={p.id}
               onStarted={() => setStartedNonce((n) => ({ ...n, [p.id]: (n[p.id] ?? 0) + 1 }))}
