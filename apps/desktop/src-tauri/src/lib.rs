@@ -15,6 +15,7 @@ use crate::projects::RepoInspection;
 
 pub mod capsules;
 pub mod git;
+pub mod github;
 pub mod projects;
 
 struct HubHandle(Arc<Hub>);
