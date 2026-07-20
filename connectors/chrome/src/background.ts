@@ -1,4 +1,4 @@
-import { Connection } from "./connection";
+import { Connection, nativeSocket } from "./connection";
 import { isRestorableUrl, snapshotTabs, type RawTab } from "./tabs";
 
 const DEFAULT_PORT = 17872;
@@ -34,7 +34,7 @@ async function connect(port: number) {
     kind: "chrome",
     capabilities: ["tabs"],
     port,
-    makeSocket: (url) => new WebSocket(url) as unknown as import("./connection").SocketLike,
+    makeSocket: (url) => nativeSocket(url),
     store,
     onCommand: async (name, args) => {
       if (name === "workspace.state") return snapshotTabs(await readTabs());

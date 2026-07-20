@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Connection, type SocketLike, type TokenStore } from "../src/connection";
+import { Connection, nativeSocket, type SocketLike, type TokenStore } from "../src/connection";
 
 /** A fake socket the test drives directly. */
 class FakeSocket implements SocketLike {
@@ -150,5 +150,86 @@ describe("Connection token lifecycle", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+/** A fake *native* WebSocket constructor — fires onmessage with a
+ * MessageEvent-like `{ data }` object, not a raw string, matching what a
+ * real browser WebSocket does. Used to prove nativeSocket() adapts it to
+ * SocketLike's `onmessage(data: string)` contract without a real browser. */
+class FakeNativeWebSocket {
+  static instances: FakeNativeWebSocket[] = [];
+  sent: string[] = [];
+  closed = false;
+  onopen: ((ev: unknown) => void) | null = null;
+  onmessage: ((ev: { data: unknown }) => void) | null = null;
+  onclose: ((ev: unknown) => void) | null = null;
+  onerror: ((ev: unknown) => void) | null = null;
+  constructor(public url: string) {
+    FakeNativeWebSocket.instances.push(this);
+  }
+  send(data: string) {
+    this.sent.push(data);
+  }
+  close() {
+    this.closed = true;
+  }
+}
+
+describe("nativeSocket adapter", () => {
+  beforeEach(() => {
+    FakeNativeWebSocket.instances = [];
+  });
+
+  it("translates a MessageEvent-shaped onmessage into a raw string", () => {
+    const sock = nativeSocket("ws://x", FakeNativeWebSocket as never);
+    const raw = FakeNativeWebSocket.instances[0];
+    const received: unknown[] = [];
+    sock.onmessage = (data) => received.push(data);
+
+    // Simulate what a real browser WebSocket does: onmessage fires with a
+    // MessageEvent whose JSON string payload is on `.data`.
+    raw.onmessage?.({ data: '{"v":1,"id":"m1","kind":"welcome","payload":{}}' });
+
+    expect(received).toHaveLength(1);
+    expect(typeof received[0]).toBe("string");
+    expect(received[0]).toBe('{"v":1,"id":"m1","kind":"welcome","payload":{}}');
+  });
+
+  it("forwards onopen and onclose", () => {
+    const sock = nativeSocket("ws://x", FakeNativeWebSocket as never);
+    const raw = FakeNativeWebSocket.instances[0];
+    let opened = false;
+    let closed = false;
+    sock.onopen = () => (opened = true);
+    sock.onclose = () => (closed = true);
+
+    raw.onopen?.(undefined);
+    raw.onclose?.(undefined);
+
+    expect(opened).toBe(true);
+    expect(closed).toBe(true);
+  });
+
+  it("delegates send() and close() to the raw socket", () => {
+    const sock = nativeSocket("ws://x", FakeNativeWebSocket as never);
+    const raw = FakeNativeWebSocket.instances[0];
+
+    sock.send('{"kind":"pair"}');
+    sock.close();
+
+    expect(raw.sent).toEqual(['{"kind":"pair"}']);
+    expect(raw.closed).toBe(true);
+  });
+
+  it("stringifies non-string message payloads defensively", () => {
+    const sock = nativeSocket("ws://x", FakeNativeWebSocket as never);
+    const raw = FakeNativeWebSocket.instances[0];
+    const received: unknown[] = [];
+    sock.onmessage = (data) => received.push(data);
+
+    raw.onmessage?.({ data: 42 });
+
+    expect(received).toEqual(["42"]);
   });
 });

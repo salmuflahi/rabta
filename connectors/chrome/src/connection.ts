@@ -10,6 +10,45 @@ export interface SocketLike {
   onerror: ((e: unknown) => void) | null;
 }
 
+/** Minimal shape of a native browser WebSocket constructor, sufficient for
+ * adapting to SocketLike. `onmessage` receives a MessageEvent-like object
+ * whose payload lives on `.data`, not a raw string. */
+interface NativeSocketCtor {
+  new (url: string): {
+    send(data: string): void;
+    close(): void;
+    onopen: ((ev: unknown) => void) | null;
+    onmessage: ((ev: { data: unknown }) => void) | null;
+    onclose: ((ev: unknown) => void) | null;
+    onerror: ((ev: unknown) => void) | null;
+  };
+}
+
+/** Adapts a browser WebSocket to SocketLike, translating MessageEvent → string.
+ * `ctor` is injectable so the adaptation is testable without a real browser.
+ * The default cast to `NativeSocketCtor` is a deliberate, narrow lie: the
+ * real global `WebSocket` satisfies this shape but TS doesn't know that
+ * without DOM lib types wired up here. */
+export function nativeSocket(
+  url: string,
+  ctor: NativeSocketCtor = WebSocket as unknown as NativeSocketCtor,
+): SocketLike {
+  const raw = new ctor(url);
+  const sock: SocketLike = {
+    send: (d) => raw.send(d),
+    close: () => raw.close(),
+    onopen: null,
+    onmessage: null,
+    onclose: null,
+    onerror: null,
+  };
+  raw.onopen = () => sock.onopen?.();
+  raw.onmessage = (ev) => sock.onmessage?.(typeof ev.data === "string" ? ev.data : String(ev.data));
+  raw.onclose = () => sock.onclose?.();
+  raw.onerror = (ev) => sock.onerror?.(ev);
+  return sock;
+}
+
 /** Persistent token storage (chrome.storage.local in the browser). */
 export interface TokenStore {
   get(): Promise<string | null>;
