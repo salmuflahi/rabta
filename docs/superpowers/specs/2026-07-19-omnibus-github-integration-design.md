@@ -1,7 +1,7 @@
 # OmniBus — GitHub Integration (Phase 11)
 
 **Date:** 2026-07-19
-**Status:** Draft for review
+**Status:** Implemented
 **Scope:** Read a project's open GitHub issues via the user's `gh` CLI; start a task from an issue (creating a safe `issue-N-slug` branch); GitHub controls in the Projects view.
 **Out of scope:** writing to GitHub (no comments, no closing, no PRs), pull requests, GitHub auth *storage* (delegated to `gh`), issue bodies/comments, webhooks/notifications, non-GitHub forges, caching/background sync.
 

@@ -22,6 +22,8 @@ cargo test    # protocol fixtures, hub handshake/commands/events integration tes
 
 Connections are authenticated: native connectors read a per-run secret from `hub.json` (mode 0600) automatically, so nothing changes for them; a browser extension (which can't read files) sends a pairing request that surfaces an approve/deny banner in the app, and on approval gets a persistent token. Random web pages are rejected at the WebSocket handshake.
 
+From a project whose git remote is on GitHub, click **fetch issues** to list open issues (via your own authenticated `gh` CLI — OmniBus stores no GitHub credential), then **start task** on one to create a task and a safe `issue-N-slug` branch. Install the GitHub CLI and run `gh auth login` first.
+
 To connect your browser: `pnpm --filter omnibus-chrome build`, then load `connectors/chrome` as an unpacked extension in Chrome (chrome://extensions → Developer mode → Load unpacked, or launch Chrome with `--load-extension`). It sends a pairing request → approve the banner in OmniBus → it reconnects as a `chrome` connector. Saving a task then captures your open tab URLs (http/https only, never incognito or page content) and activating reopens them.
 
 To connect a real editor: `pnpm --filter omnibus-vscode build`, then `cursor --extensionDevelopmentPath="$PWD/connectors/vscode" /path/to/a/repo` (works in VS Code too) — the editor appears as a `vscode` connector and answers `workspace.state`, `editor.openFile`, and `terminal.create`.
