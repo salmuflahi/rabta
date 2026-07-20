@@ -1,3 +1,5 @@
+mod common;
+
 use omnibus_desktop_lib::github::{branch_name_for_issue, owner_repo_from_remote, parse_issues};
 
 #[test]
@@ -78,4 +80,65 @@ async fn generated_branch_names_pass_git_ref_format() {
             .success();
         assert!(ok, "git rejected generated branch {name:?}");
     }
+}
+
+use common::repo_with_commit;
+use omnibus_db::{Db, DbConfig, NewProject};
+use omnibus_desktop_lib::github::start_issue_task;
+
+async fn project_at(db: &Db, repo: &std::path::Path) -> String {
+    db.create_project(NewProject {
+        name: format!("p-{}", repo.display()),
+        repo_path: repo.to_str().unwrap().to_string(),
+        dev_url: None,
+        default_branch: "main".into(),
+    })
+    .unwrap()
+    .id
+}
+
+#[tokio::test]
+async fn start_issue_task_creates_task_and_branch() {
+    let repo = repo_with_commit().await;
+    let db = Db::open_in_memory(DbConfig::default()).unwrap();
+    let project_id = project_at(&db, repo.path()).await;
+
+    let started = start_issue_task(&db, repo.path(), &project_id, 42, "Fix login bug!").await.unwrap();
+    assert_eq!(started.task.title, "#42 Fix login bug!");
+    assert_eq!(started.branch, "issue-42-fix-login-bug");
+    // task persisted
+    let tasks = db.list_tasks(&project_id).unwrap();
+    assert_eq!(tasks.len(), 1);
+    // branch switched
+    assert_eq!(
+        omnibus_desktop_lib::git::status(repo.path()).await.unwrap().branch.as_deref(),
+        Some("issue-42-fix-login-bug")
+    );
+}
+
+#[tokio::test]
+async fn start_issue_task_carries_dirty_changes() {
+    let repo = repo_with_commit().await;
+    std::fs::write(repo.path().join("wip.txt"), "uncommitted\n").unwrap();
+    let db = Db::open_in_memory(DbConfig::default()).unwrap();
+    let project_id = project_at(&db, repo.path()).await;
+
+    let started = start_issue_task(&db, repo.path(), &project_id, 5, "wip").await.unwrap();
+    assert_eq!(started.branch, "issue-5-wip");
+    // dirty file carried to the new branch, not discarded
+    assert_eq!(std::fs::read_to_string(repo.path().join("wip.txt")).unwrap(), "uncommitted\n");
+}
+
+#[tokio::test]
+async fn start_issue_task_reports_existing_branch_without_failing() {
+    let repo = repo_with_commit().await;
+    let db = Db::open_in_memory(DbConfig::default()).unwrap();
+    let project_id = project_at(&db, repo.path()).await;
+
+    start_issue_task(&db, repo.path(), &project_id, 9, "dup").await.unwrap();
+    // second start of the same issue: branch already exists → still creates a task,
+    // reports the branch outcome, does not error.
+    let again = start_issue_task(&db, repo.path(), &project_id, 9, "dup").await.unwrap();
+    assert_eq!(db.list_tasks(&project_id).unwrap().len(), 2);
+    assert!(!again.branch_note.is_empty());
 }

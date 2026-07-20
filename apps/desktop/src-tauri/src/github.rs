@@ -7,6 +7,8 @@ use std::process::Stdio;
 use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 
+use omnibus_db::{Db, NewTask};
+
 /// An open issue as shown in the UI.
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -152,4 +154,39 @@ async fn run_in(repo: &Path, cmd: &str, args: &[&str]) -> Result<String, String>
     } else {
         Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
     }
+}
+
+/// Outcome of starting work on an issue: the created task, the branch name,
+/// and a human note about whether the branch was created or already existed.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartedTask {
+    pub task: omnibus_db::Task,
+    pub branch: String,
+    pub branch_note: String,
+}
+
+/// Creates a task for an issue (`#N <title>`) and best-effort creates+switches
+/// a safe `issue-N-slug` branch. Task creation is independent of the branch;
+/// the branch uses phase-9's safe `create_branch` (carries changes, never
+/// discards) and its outcome is reported, never fatal.
+pub async fn start_issue_task(
+    db: &Db,
+    repo_path: &Path,
+    project_id: &str,
+    number: u64,
+    title: &str,
+) -> Result<StartedTask, String> {
+    let task = db
+        .create_task(NewTask {
+            project_id: project_id.to_string(),
+            title: format!("#{number} {title}"),
+        })
+        .map_err(|e| e.to_string())?;
+    let branch = branch_name_for_issue(number, title);
+    let branch_note = match crate::git::create_branch(repo_path, &branch).await {
+        Ok(()) => format!("created and switched to {branch}"),
+        Err(e) => format!("branch {branch} not created: {e}"),
+    };
+    Ok(StartedTask { task, branch, branch_note })
 }
