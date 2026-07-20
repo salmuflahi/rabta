@@ -10,6 +10,10 @@ fn parses_owner_repo_from_remote_variants() {
         ("https://gitlab.com/sammy/omnibus.git", None),
         ("/local/path/only", None),
         ("", None),
+        // Regression: handles .git and trailing slash together
+        ("https://github.com/sammy/omnibus.git/", Some(("sammy", "omnibus"))),
+        ("https://github.com/sammy/omnibus/", Some(("sammy", "omnibus"))),
+        ("git@github.com:sammy/omnibus.git/", Some(("sammy", "omnibus"))),
     ];
     for (url, want) in cases {
         let got = owner_repo_from_remote(url);

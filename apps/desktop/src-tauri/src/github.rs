@@ -25,7 +25,8 @@ pub fn owner_repo_from_remote(url: &str) -> Option<(String, String)> {
         .or_else(|| url.strip_prefix("https://github.com/"))
         .or_else(|| url.strip_prefix("ssh://git@github.com/"))
         .or_else(|| url.strip_prefix("http://github.com/"))?;
-    let rest = rest.strip_suffix(".git").unwrap_or(rest).trim_end_matches('/');
+    let rest = rest.trim_end_matches('/');
+    let rest = rest.strip_suffix(".git").unwrap_or(rest);
     let mut parts = rest.splitn(2, '/');
     let owner = parts.next().filter(|s| !s.is_empty())?;
     let repo = parts.next().filter(|s| !s.is_empty() && !s.contains('/'))?;
