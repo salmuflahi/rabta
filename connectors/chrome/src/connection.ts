@@ -43,6 +43,7 @@ export class Connection {
   private ws: SocketLike | null = null;
   private token: string | null = null;
   private closed = false;
+  private connected = false;
   private backoff = INITIAL_BACKOFF;
   private redialTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -56,11 +57,19 @@ export class Connection {
   /** Permanently stops (no reconnect). */
   close(): void {
     this.closed = true;
+    this.connected = false;
     if (this.redialTimer !== null) {
       clearTimeout(this.redialTimer);
       this.redialTimer = null;
     }
     this.ws?.close();
+  }
+
+  /** Emits a fire-and-forget event frame while connected; dropped otherwise
+   * (no queueing — events are best-effort, not commands). */
+  emit(name: string, data: unknown): void {
+    if (!this.connected) return;
+    this.send("event", { name, data });
   }
 
   private send(kind: string, payload: unknown): void {
@@ -77,7 +86,10 @@ export class Connection {
     this.ws = ws;
     ws.onopen = () => void this.handleOpen();
     ws.onmessage = (data) => void this.onFrame(data);
-    ws.onclose = () => this.scheduleRedial();
+    ws.onclose = () => {
+      this.connected = false;
+      this.scheduleRedial();
+    };
     ws.onerror = () => {
       /* a close follows; redial happens there */
     };
@@ -113,6 +125,7 @@ export class Connection {
     switch (env.kind) {
       case "welcome":
         this.backoff = INITIAL_BACKOFF;
+        this.connected = true;
         this.opts.onStatus?.("connected");
         break;
       case "paired":
