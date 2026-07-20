@@ -143,7 +143,7 @@ async fn pairing_deny_and_timeout() {
         .unwrap();
     let id = loop {
         if let Ok(Ok(HubEvent::PairingRequested { pairing_id, .. })) =
-            tokio::time::timeout(Duration::from_secs(2), events.recv()).await.map(|r| r)
+            tokio::time::timeout(Duration::from_secs(2), events.recv()).await
         {
             break pairing_id;
         }
