@@ -11,6 +11,7 @@ use tokio::sync::broadcast::error::RecvError;
 
 use crate::capsules::{ActivateSummary, Capsules, SaveSummary};
 use crate::git::GitStatus;
+use crate::github::{Issue, StartedTask};
 use crate::projects::RepoInspection;
 
 pub mod capsules;
@@ -211,6 +212,32 @@ async fn git_create_branch(db: State<'_, DbHandle>, project_id: String, name: St
     git::create_branch(&repo_of(&db, &project_id).await?, &name).await
 }
 
+/// Whether the GitHub CLI is available for GitHub features.
+#[tauri::command]
+async fn github_available() -> bool {
+    github::gh_available().await
+}
+
+/// Open GitHub issues for a project (via the user's `gh`).
+#[tauri::command]
+async fn github_issues(db: State<'_, DbHandle>, project_id: String) -> Result<Vec<Issue>, String> {
+    let repo = repo_of(&db, &project_id).await?;
+    github::issues(&repo).await
+}
+
+/// Starts a task from an issue: creates the task and a safe issue branch.
+#[tauri::command]
+async fn start_issue_task(
+    db: State<'_, DbHandle>,
+    project_id: String,
+    number: u64,
+    title: String,
+) -> Result<StartedTask, String> {
+    let repo = repo_of(&db, &project_id).await?;
+    let db_inner = db.0.clone();
+    github::start_issue_task(&db_inner, &repo, &project_id, number, &title).await
+}
+
 /// A pairing request awaiting a decision, as shown to the UI.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -373,6 +400,9 @@ pub fn run() {
             git_fetch,
             git_checkout,
             git_create_branch,
+            github_available,
+            github_issues,
+            start_issue_task,
             pending_pairings,
             approve_pairing,
             deny_pairing,

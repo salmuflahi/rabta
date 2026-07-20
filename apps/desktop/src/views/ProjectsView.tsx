@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { useStore, type Project, type RepoInspection } from "../store";
+import { GitHubSection } from "./GitHubSection";
 import { GitLine } from "./GitLine";
 import { TasksSection } from "./TasksSection";
 
@@ -15,6 +16,7 @@ export function ProjectsView() {
   const [pathNote, setPathNote] = useState("");
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [startedNonce, setStartedNonce] = useState<Record<string, number>>({});
 
   const refresh = () =>
     invoke<Project[]>("list_projects")
@@ -107,7 +109,11 @@ export function ProjectsView() {
               )}
             </div>
             <GitLine projectId={p.id} />
-            <TasksSection projectId={p.id} />
+            <GitHubSection
+              projectId={p.id}
+              onStarted={() => setStartedNonce((n) => ({ ...n, [p.id]: (n[p.id] ?? 0) + 1 }))}
+            />
+            <TasksSection key={`${p.id}-${startedNonce[p.id] ?? 0}`} projectId={p.id} />
           </div>
         ))}
       </div>
