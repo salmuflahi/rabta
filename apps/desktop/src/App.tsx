@@ -23,6 +23,8 @@ export default function App() {
   const setPairings = useStore((s) => s.setPairings);
   const addPairing = useStore((s) => s.addPairing);
   const removePairing = useStore((s) => s.removePairing);
+  const hubPort = useStore((s) => s.hubPort);
+  const setHubPort = useStore((s) => s.setHubPort);
 
   useEffect(() => {
     const refresh = () =>
@@ -67,6 +69,12 @@ export default function App() {
     };
   }, [append, setConnectors, preload, setPairings, addPairing]);
 
+  useEffect(() => {
+    invoke<number>("hub_port")
+      .then(setHubPort)
+      .catch(() => {});
+  }, [setHubPort]);
+
   async function decide(pairingId: string, ok: boolean) {
     try {
       await invoke(ok ? "approve_pairing" : "deny_pairing", { pairingId });
@@ -100,9 +108,10 @@ export default function App() {
           </button>
         </div>
       ))}
-      <header className="flex gap-2 p-2 border-b border-neutral-700">
+      <header className="flex gap-2 p-2 border-b border-neutral-700 items-center">
         {tab("projects", "Projects")}
         {tab("debug", "Debug")}
+        <span className="text-neutral-600 text-xs ml-auto">hub 127.0.0.1:{hubPort ?? "…"}</span>
       </header>
       {view === "projects" ? (
         <ProjectsView />

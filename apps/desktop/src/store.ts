@@ -104,6 +104,8 @@ interface Store {
   setPairings: (pairings: PendingPairing[]) => void;
   addPairing: (pairing: PendingPairing) => void;
   removePairing: (pairingId: string) => void;
+  hubPort: number | null;
+  setHubPort: (port: number | null) => void;
 }
 
 export const useStore = create<Store>((set) => ({
@@ -117,6 +119,8 @@ export const useStore = create<Store>((set) => ({
   activeTaskId: null,
   setActiveTaskId: (activeTaskId) => set({ activeTaskId }),
   pairings: [],
+  hubPort: null,
+  setHubPort: (hubPort) => set({ hubPort }),
   setPairings: (incoming) =>
     set((s) => {
       const merged = [...s.pairings];

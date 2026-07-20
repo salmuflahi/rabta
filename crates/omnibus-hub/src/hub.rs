@@ -30,6 +30,10 @@ pub struct HubConfig {
     pub tokens: Arc<RwLock<HashMap<String, String>>>,
     /// How long a parked pairing request waits for the user.
     pub pairing_timeout: Duration,
+    /// Preferred TCP port for discoverability by clients that can't read
+    /// `hub.json` (browsers). `0` means OS-assigned (native default). If the
+    /// preferred port is taken, the hub falls back to an OS-assigned one.
+    pub preferred_port: u16,
 }
 
 impl HubConfig {
@@ -40,6 +44,7 @@ impl HubConfig {
             ping_interval: Duration::from_secs(5),
             tokens: Arc::new(RwLock::new(HashMap::new())),
             pairing_timeout: Duration::from_secs(120),
+            preferred_port: 0,
         }
     }
 }
@@ -113,7 +118,13 @@ pub struct Hub {
 impl Hub {
     /// Binds 127.0.0.1 on an OS-assigned port, writes `hub.json`, starts accepting.
     pub async fn start(cfg: HubConfig) -> std::io::Result<Hub> {
-        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let listener = match cfg.preferred_port {
+            0 => TcpListener::bind("127.0.0.1:0").await?,
+            p => match TcpListener::bind(("127.0.0.1", p)).await {
+                Ok(l) => l,
+                Err(_) => TcpListener::bind("127.0.0.1:0").await?,
+            },
+        };
         let port = listener.local_addr()?.port();
         std::fs::create_dir_all(&cfg.data_dir)?;
         let secret = Uuid::new_v4().to_string();

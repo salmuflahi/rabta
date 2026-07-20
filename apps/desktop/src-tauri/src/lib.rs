@@ -270,6 +270,13 @@ async fn deny_pairing(hub: State<'_, HubHandle>, pairing_id: String) -> Result<(
     }
 }
 
+/// The port the hub actually bound (browser extensions may need it if the
+/// preferred port was taken).
+#[tauri::command]
+fn hub_port(hub: State<'_, HubHandle>) -> u16 {
+    hub.0.port()
+}
+
 /// Builds and runs the OmniBus Tauri application: opens the database (fatal
 /// on failure), starts the hub, records hub activity, and forwards the event
 /// stream to the frontend as `hub-event`.
@@ -282,7 +289,8 @@ pub fn run() {
             let db = Db::open(&data_dir.join("omnibus.db"), DbConfig::default())
                 .map_err(|e| format!("failed to open omnibus.db: {e}"))?;
 
-            let hub_cfg = HubConfig::new(data_dir);
+            let mut hub_cfg = HubConfig::new(data_dir);
+            hub_cfg.preferred_port = 17872;
             for (name, kind, token) in db.connector_tokens().map_err(|e| e.to_string())? {
                 hub_cfg.tokens.write().unwrap().insert(format!("{name}/{kind}"), token);
             }
@@ -366,7 +374,8 @@ pub fn run() {
             git_create_branch,
             pending_pairings,
             approve_pairing,
-            deny_pairing
+            deny_pairing,
+            hub_port
         ])
         .run(tauri::generate_context!())
         .expect("error while running OmniBus");

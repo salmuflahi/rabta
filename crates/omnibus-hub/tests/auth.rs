@@ -324,3 +324,29 @@ async fn origin_policy_matrix() {
         assert_eq!(attempt.is_ok(), allowed, "origin {origin}");
     }
 }
+
+#[tokio::test]
+async fn preferred_port_is_used_when_free() {
+    // Grab a free port, release it, then ask the hub to prefer it.
+    let probe = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let wanted = probe.local_addr().unwrap().port();
+    drop(probe);
+    let dir = tempfile::tempdir().unwrap();
+    let mut cfg = HubConfig::new(dir.path().to_path_buf());
+    cfg.preferred_port = wanted;
+    let hub = Hub::start(cfg).await.unwrap();
+    assert_eq!(hub.port(), wanted);
+}
+
+#[tokio::test]
+async fn falls_back_when_preferred_port_taken() {
+    // Occupy a port, then ask the hub to prefer it — it must still start elsewhere.
+    let squatter = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let taken = squatter.local_addr().unwrap().port();
+    let dir = tempfile::tempdir().unwrap();
+    let mut cfg = HubConfig::new(dir.path().to_path_buf());
+    cfg.preferred_port = taken;
+    let hub = Hub::start(cfg).await.unwrap();
+    assert_ne!(hub.port(), taken);
+    assert!(hub.port() != 0);
+}
