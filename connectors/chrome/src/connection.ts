@@ -44,6 +44,7 @@ export class Connection {
   private token: string | null = null;
   private closed = false;
   private backoff = INITIAL_BACKOFF;
+  private redialTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private opts: ConnectionOptions) {}
 
@@ -55,6 +56,10 @@ export class Connection {
   /** Permanently stops (no reconnect). */
   close(): void {
     this.closed = true;
+    if (this.redialTimer !== null) {
+      clearTimeout(this.redialTimer);
+      this.redialTimer = null;
+    }
     this.ws?.close();
   }
 
@@ -63,6 +68,7 @@ export class Connection {
   }
 
   private async dial(): Promise<void> {
+    if (this.closed) return;
     // Socket creation and handler wiring must be fully synchronous (a
     // reconnect swaps in a fresh socket instance that callers may observe
     // immediately); the token lookup is async (chrome.storage.local) and is
@@ -151,7 +157,10 @@ export class Connection {
 
   private scheduleRedial(): void {
     if (this.closed) return;
-    setTimeout(() => void this.dial(), this.backoff);
+    this.redialTimer = setTimeout(() => {
+      this.redialTimer = null;
+      void this.dial();
+    }, this.backoff);
     this.backoff = Math.min(this.backoff * 2, MAX_BACKOFF);
   }
 }

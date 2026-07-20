@@ -134,4 +134,21 @@ describe("Connection token lifecycle", () => {
     expect(resp.ok).toBe(true);
     expect(resp.result).toEqual({ echoed: { name: "tabs.open", args: { url: "https://x.test" } } });
   });
+
+  it("close() during backoff cancels the pending redial", async () => {
+    vi.useFakeTimers();
+    try {
+      const { conn, sockets } = connectionWith(new MemStore("t"));
+      conn.start();
+      // let the async dial() create the first socket
+      await vi.waitFor(() => expect(sockets.length).toBe(1), { timeout: 100 });
+      sockets[0].open();
+      sockets[0].close(); // drop → schedules a redial (backoff ~1s)
+      conn.close(); // must cancel that scheduled redial
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(sockets.length).toBe(1); // no second socket ever created
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
