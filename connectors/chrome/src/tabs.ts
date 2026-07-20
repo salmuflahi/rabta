@@ -36,3 +36,14 @@ export function snapshotTabs(raw: RawTab[]): TabsState {
   }
   return { tabs };
 }
+
+/** Decides whether a tab update should emit `tab.opened`: a committed
+ * http/https, non-incognito url. Pure — no `chrome` import — so the
+ * incognito exclusion and scheme filter are unit-testable without a
+ * browser. Chrome does not supply a committed `url` on `tabs.onCreated`
+ * (only `pendingUrl`), so this is meant to be driven from `tabs.onUpdated`
+ * once `changeInfo.url` lands. */
+export function openedEventFor(update: { url?: string; incognito: boolean }): { url: string } | null {
+  if (!update.incognito && update.url && isRestorableUrl(update.url)) return { url: update.url };
+  return null;
+}

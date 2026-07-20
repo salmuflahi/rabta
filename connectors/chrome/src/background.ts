@@ -1,7 +1,9 @@
 import { Connection, nativeSocket } from "./connection";
 import { isRestorableUrl, snapshotTabs, type RawTab } from "./tabs";
+import { installTabListeners } from "./tab-events";
 
 const DEFAULT_PORT = 17872;
+const RECONNECT_ALARM = "omnibus-reconnect";
 
 /** chrome.storage.local-backed token store. */
 const store = {
@@ -26,9 +28,13 @@ async function readTabs(): Promise<RawTab[]> {
 }
 
 let connection: Connection | undefined;
+let connected = false;
+let currentPort = DEFAULT_PORT;
 
 async function connect(port: number) {
+  currentPort = port;
   connection?.close();
+  connected = false;
   connection = new Connection({
     name: "chrome",
     kind: "chrome",
@@ -36,6 +42,9 @@ async function connect(port: number) {
     port,
     makeSocket: (url) => nativeSocket(url),
     store,
+    onStatus: (s) => {
+      connected = s === "connected";
+    },
     onCommand: async (name, args) => {
       if (name === "workspace.state") return snapshotTabs(await readTabs());
       if (name === "tabs.open") {
@@ -60,12 +69,24 @@ async function connect(port: number) {
   connection.start();
 }
 
-// Emit tab lifecycle events (http/https only).
-chrome.tabs.onCreated.addListener((t) => {
-  if (t.url && isRestorableUrl(t.url)) connection?.emit("tab.opened", { url: t.url });
-});
-chrome.tabs.onRemoved.addListener(() => {
-  /* url unknown at removal without extra bookkeeping; opened covers the log */
+// Emit reliable tab lifecycle events (committed http/https, non-incognito
+// only): onUpdated for opens (onCreated's `pendingUrl` is not a committed
+// url), onRemoved + the returned tabId→url map for closes. See tab-events.ts.
+installTabListeners(chrome.tabs, (name, data) => connection?.emit(name, data));
+
+// MV3 keepalive: the service worker can be suspended while the hub is down
+// (nothing is keeping it warm — the ping-based lifetime trick only helps
+// once a WebSocket is already open), which would otherwise strand the
+// extension disconnected until some unrelated event revives it. A periodic
+// alarm gives Chrome a reason to wake the worker and retry the connection.
+// Registered at top level (not inside a callback) so it survives service
+// worker restarts, per MV3 requirements.
+chrome.alarms.create(RECONNECT_ALARM, { periodInMinutes: 1 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === RECONNECT_ALARM && !connected) {
+    // connect() closes any prior connection first, so this can't stack.
+    void connect(currentPort);
+  }
 });
 
 chrome.storage.local.get("omnibusPort").then(({ omnibusPort }) => connect(omnibusPort ?? DEFAULT_PORT));

@@ -31,7 +31,7 @@ Builds on merged phases 1–10a. This is the last connector and completes the vi
 1. Load the unpacked extension; it sends a `pair` request; the OmniBus approve banner (10a) appears; approving stores a token and the extension reconnects and shows as a `chrome` connector (green) with capability `tabs`.
 2. The token persists: reload the extension (or restart Chrome) and it reconnects with `hello{token}` — no re-pairing.
 3. `tabs.state` returns only normal `http`/`https` tabs from non-incognito windows — never `chrome://`, extension, `file://`, or incognito URLs (test-enforced on the pure module).
-4. `tabs.open{url}` opens a tab; opening/closing a tab emits `tab.opened`/`tab.closed` into the activity log.
+4. `tabs.open{url}` opens a tab; opening a tab (once it commits a non-incognito http/https url, detected via `chrome.tabs.onUpdated` — `onCreated`'s `pendingUrl` is not a committed url and is unreliable) emits `tab.opened`; closing a previously-tracked tab (`chrome.tabs.onRemoved`, looked up in a tabId→url map since `onRemoved` carries no url) emits `tab.closed`; both land in the activity log, and incognito tabs never trigger either event.
 5. Saving a task with Chrome connected records a `chrome` capsule row (tab URLs); the task summary shows `chrome: N tabs`.
 6. Activating that task opens the captured tabs (additive — never closes the user's current tabs); a `chrome`-kind capsule with no connected browser is reported skipped, editor/git restore proceed regardless.
 7. The whole orchestration (capture tabs → rows, restore → `tabs.open` per url) is proven by headless integration tests against a real authed hub with a scripted `chrome`-kind connector — no browser needed.
@@ -72,9 +72,9 @@ Builds on merged phases 1–10a. This is the last connector and completes the vi
 
 ## Key decision: MV3 lifetime via the hub's existing ping
 
-**What:** the WebSocket lives in the service worker. The hub already pings every 5 s (phase 4 liveness); Chrome ≥116 resets the service-worker idle timer on WebSocket activity, so the 5 s ping keeps the worker warm while connected — no offscreen document, no `chrome.alarms`.
+**What:** the WebSocket lives in the service worker. The hub already pings every 5 s (phase 4 liveness); Chrome ≥116 resets the service-worker idle timer on WebSocket activity, so the 5 s ping keeps the worker warm *while connected* — no offscreen document.
 
-**Why:** it reuses machinery we already have and keeps the extension minimal. **Trade-off / fallback:** if a Chrome build lets the worker die despite WS traffic, the connection drops and OmniBus shows Chrome disconnected until the worker wakes (any extension event revives it, then `connection.ts` reconnects with its stored token). If this proves flaky in the walkthrough, the documented hardening is an offscreen document holding the socket — noted, not built.
+**Why:** it reuses machinery we already have and keeps the extension minimal. **Gap this doesn't cover:** the ping only helps once a socket is open — while the hub is down (no socket to keep alive), the worker can still be suspended, and nothing wakes it back up to retry. A `chrome.alarms` periodic alarm (`omnibus-reconnect`, every minute, registered at top level for MV3 restart safety) closes that gap: it wakes the worker and re-invokes `connect()` whenever the tracked connection status isn't `"connected"`. **Trade-off / fallback:** if a Chrome build lets the worker die despite WS traffic while connected, OmniBus shows Chrome disconnected until either the alarm fires or an unrelated extension event revives the worker, then `connection.ts` reconnects with its stored token. If this proves flaky in the walkthrough, the documented further hardening is an offscreen document holding the socket — noted, not built.
 
 ## Command and event surface
 
@@ -105,7 +105,7 @@ This is the connector the vision's Privacy Principles were written for. Concrete
 - **Only http/https**, non-incognito tabs. `chrome://`, extension pages, `file://`, `view-source:`, and every incognito tab are filtered out in the pure module (test-enforced). This realizes the vision's "✖ browser tabs in Incognito, off by default" exactly — here it's not even a default, it's excluded.
 - **Nothing leaves the machine**; the token in `chrome.storage.local` is a random uuid, no user data.
 
-The extension's minimal manifest (`permissions: ["tabs", "storage"]`, no `host_permissions`, no `content_scripts`) is itself the privacy guarantee — a reviewer can verify the ceiling of what it can access by reading one file.
+The extension's minimal manifest (`permissions: ["tabs", "storage", "alarms"]` — `alarms` only wakes the service worker to retry the connection, it grants no page access — no `host_permissions`, no `content_scripts`) is itself the privacy guarantee — a reviewer can verify the ceiling of what it can access by reading one file.
 
 ## Error handling
 

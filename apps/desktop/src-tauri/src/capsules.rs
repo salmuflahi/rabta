@@ -255,8 +255,11 @@ impl Capsules {
                     }
                 }
                 "chrome" => {
-                    self.restore_chrome(conn, &r.payload, &mut errors).await;
-                    applied.push("chrome".to_string());
+                    if self.restore_chrome(conn, &r.payload, &mut errors).await {
+                        applied.push("chrome".to_string());
+                    } else {
+                        skipped.push("chrome".to_string());
+                    }
                 }
                 _ => skipped.push(r.connector_kind.clone()),
             }
@@ -357,18 +360,28 @@ impl Capsules {
     /// destructive (never closes the user's current tabs), so — unlike
     /// vscode's workspace.open — there is no window reload and no pending
     /// continuation. Individual failures are collected, never fatal.
-    async fn restore_chrome(&self, conn: &ConnectorInfo, payload: &Value, errors: &mut Vec<String>) {
+    ///
+    /// Returns whether the caller should count this as applied: true if
+    /// there were no urls to restore (nothing to fail), or at least one
+    /// `tabs.open` succeeded. False only when there were urls and every
+    /// single one of them failed — the caller reports `skipped` in that
+    /// case instead of claiming a restore that didn't actually happen.
+    async fn restore_chrome(&self, conn: &ConnectorInfo, payload: &Value, errors: &mut Vec<String>) -> bool {
         let urls: Vec<String> = payload["tabs"]
             .as_array()
             .map(|a| a.iter().filter_map(|t| t["url"].as_str().map(String::from)).collect())
             .unwrap_or_default();
+        if urls.is_empty() {
+            return true;
+        }
+        let mut any_succeeded = false;
         for url in urls {
-            if let Err(e) =
-                self.hub.send_command(&conn.id, "tabs.open", json!({ "url": url })).await
-            {
-                errors.push(format!("tabs.open {url}: {e}"));
+            match self.hub.send_command(&conn.id, "tabs.open", json!({ "url": url })).await {
+                Ok(_) => any_succeeded = true,
+                Err(e) => errors.push(format!("tabs.open {url}: {e}")),
             }
         }
+        any_succeeded
     }
 
     /// Starts the reconnect continuation on Tauri's runtime (app path).
