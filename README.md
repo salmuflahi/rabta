@@ -22,6 +22,8 @@ cargo test    # protocol fixtures, hub handshake/commands/events integration tes
 
 Connections are authenticated: native connectors read a per-run secret from `hub.json` (mode 0600) automatically, so nothing changes for them; a browser extension (which can't read files) sends a pairing request that surfaces an approve/deny banner in the app, and on approval gets a persistent token. Random web pages are rejected at the WebSocket handshake.
 
+To connect your browser: `pnpm --filter omnibus-chrome build`, then load `connectors/chrome` as an unpacked extension in Chrome (chrome://extensions → Developer mode → Load unpacked, or launch Chrome with `--load-extension`). It sends a pairing request → approve the banner in OmniBus → it reconnects as a `chrome` connector. Saving a task then captures your open tab URLs (http/https only, never incognito or page content) and activating reopens them.
+
 To connect a real editor: `pnpm --filter omnibus-vscode build`, then `cursor --extensionDevelopmentPath="$PWD/connectors/vscode" /path/to/a/repo` (works in VS Code too) — the editor appears as a `vscode` connector and answers `workspace.state`, `editor.openFile`, and `terminal.create`.
 
 The hub also runs without Tauri: `cargo run -p omnibus-hub --example headless` (`OMNIBUS_DATA_DIR` overrides the discovery-file location; `--record` persists activity like the app does).

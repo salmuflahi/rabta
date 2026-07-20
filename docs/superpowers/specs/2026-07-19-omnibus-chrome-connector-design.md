@@ -1,7 +1,7 @@
 # OmniBus — Chrome Connector (Phase 10b)
 
 **Date:** 2026-07-19
-**Status:** Draft for review
+**Status:** Implemented
 **Scope:** A Chrome (MV3) extension that pairs with the hub, stores its token, and reads/opens browser tabs; tabs join capsules; a stable browser-facing hub port.
 **Out of scope:** Firefox packaging (the code is WebExtension-portable but only Chrome is tested), tab groups / pinned / muted state, scroll or form state, history, cookies, per-window layout, incognito (deliberately excluded — see privacy).
 
