@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
+import { useStore } from "../store";
 
 interface GitStatus {
   branch: string | null;
@@ -10,6 +11,7 @@ interface GitStatus {
 }
 
 export function GitLine({ projectId }: { projectId: string }) {
+  const activationNonce = useStore((s) => s.activationNonce);
   const [status, setStatus] = useState<GitStatus | null>(null);
   const [branches, setBranches] = useState<string[]>([]);
   const [target, setTarget] = useState("");
@@ -29,6 +31,14 @@ export function GitLine({ projectId }: { projectId: string }) {
   useEffect(() => {
     refresh();
   }, [projectId]);
+
+  // A task activation elsewhere may have git-first restored a capsule,
+  // switching this project's branch out from under it — refetch (without
+  // remounting, so any in-flight note/local state here survives) whenever
+  // the global activation nonce bumps.
+  useEffect(() => {
+    refresh();
+  }, [activationNonce]);
 
   async function run(command: string, args: Record<string, unknown>, okNote: string) {
     setBusy(true);

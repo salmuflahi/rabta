@@ -28,6 +28,7 @@ export function TasksSection({ projectId }: { projectId: string }) {
   const activeTaskId = useStore((s) => s.activeTaskId);
   const setActiveTaskId = useStore((s) => s.setActiveTaskId);
   const bumpActivation = useStore((s) => s.bumpActivation);
+  const activationNonce = useStore((s) => s.activationNonce);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [resources, setResources] = useState<Record<string, TaskResource[]>>({});
   const [title, setTitle] = useState("");
@@ -54,6 +55,14 @@ export function TasksSection({ projectId }: { projectId: string }) {
   useEffect(() => {
     refresh();
   }, [projectId]);
+
+  // Refetch (not remount) when any project's task activation bumps the
+  // global nonce, so cross-project capsule summaries stay fresh without
+  // discarding this section's local state (title draft, delete confirm,
+  // or — if this is the acting section — the activation `note` it just set).
+  useEffect(() => {
+    refresh();
+  }, [activationNonce]);
 
   async function addTask() {
     setBusy(true);
