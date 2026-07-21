@@ -128,21 +128,32 @@ impl Hub {
         let port = listener.local_addr()?.port();
         std::fs::create_dir_all(&cfg.data_dir)?;
         let secret = Uuid::new_v4().to_string();
+        let path = cfg.data_dir.join("hub.json");
+        let contents = json!({ "port": port, "secret": secret }).to_string();
         // The secret in hub.json is the local trust boundary: any process
         // that can read this file can authenticate as a trusted connector.
         // Create it atomically at 0600 (create_new + mode, no separate
         // chmod) so there is never a window where another local user could
         // read the freshly-written secret before permissions land.
-        use std::io::Write;
-        use std::os::unix::fs::OpenOptionsExt;
-        let path = cfg.data_dir.join("hub.json");
-        let _ = std::fs::remove_file(&path); // fresh perms even if an old file exists
-        let mut f = std::fs::OpenOptions::new()
-            .create_new(true)
-            .write(true)
-            .mode(0o600)
-            .open(&path)?;
-        f.write_all(json!({ "port": port, "secret": secret }).to_string().as_bytes())?;
+        #[cfg(unix)]
+        {
+            use std::io::Write;
+            use std::os::unix::fs::OpenOptionsExt;
+            let _ = std::fs::remove_file(&path); // fresh perms even if an old file exists
+            let mut f = std::fs::OpenOptions::new()
+                .create_new(true)
+                .write(true)
+                .mode(0o600)
+                .open(&path)?;
+            f.write_all(contents.as_bytes())?;
+        }
+        // Non-unix targets have no POSIX mode bits to set; write plainly so
+        // a future non-unix build still compiles and starts. macOS/Linux are
+        // unaffected — they take the `#[cfg(unix)]` branch above.
+        #[cfg(not(unix))]
+        {
+            std::fs::write(&path, contents.as_bytes())?;
+        }
         let secret = Arc::new(secret);
         let (events, _) = broadcast::channel(256);
         let state: Shared = Default::default();
@@ -284,11 +295,17 @@ async fn accept_loop(
 }
 
 /// Absent origin (native processes) and browser-extension origins may
-/// proceed to authentication; web origins are rejected outright.
+/// proceed to authentication; web origins are rejected outright. A present
+/// but unparseable `Origin` header (e.g. non-ASCII bytes) must NOT be
+/// treated the same as an absent one — that would fail open — so it is
+/// distinguished from "no header at all" and rejected.
 fn origin_allowed(req: &Request) -> bool {
-    match req.headers().get("origin").and_then(|v| v.to_str().ok()) {
+    match req.headers().get("origin") {
         None => true,
-        Some(o) => o.starts_with("chrome-extension://") || o.starts_with("moz-extension://"),
+        Some(v) => match v.to_str() {
+            Ok(o) => o.starts_with("chrome-extension://") || o.starts_with("moz-extension://"),
+            Err(_) => false,
+        },
     }
 }
 
@@ -323,6 +340,20 @@ fn envelope(msg: Message) -> Envelope {
     Envelope { v: PROTOCOL_VERSION, id: Uuid::new_v4().to_string(), msg }
 }
 
+/// Constant-time equality (length-difference short-circuit is fine — our
+/// secrets/tokens are fixed-length UUIDs). Avoids leaking match position via timing.
+fn ct_eq(a: &str, b: &str) -> bool {
+    let (a, b) = (a.as_bytes(), b.as_bytes());
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (x, y) in a.iter().zip(b) {
+        diff |= x ^ y;
+    }
+    diff == 0
+}
+
 async fn handle_connection(
     stream: TcpStream,
     state: Shared,
@@ -337,6 +368,23 @@ async fn handle_connection(
     let hello = match tokio::time::timeout(Duration::from_secs(5), source.next()).await {
         Ok(Some(Ok(WsMessage::Text(txt)))) => {
             match serde_json::from_str::<Envelope>(txt.as_ref()) {
+                // Envelope-level version check applies to the very first
+                // frame regardless of which message it carries — hello
+                // additionally checks its payload's protocolVersion below,
+                // but pair frames have no such payload field, so without
+                // this check a stale-protocol pair frame would sail through
+                // to `handle_pairing` unchecked.
+                Ok(env) if env.v != PROTOCOL_VERSION => {
+                    let _ = send_env(
+                        &mut sink,
+                        &envelope(Message::Error(ErrorMsg {
+                            code: "version_mismatch".into(),
+                            message: "unsupported envelope version".into(),
+                        })),
+                    )
+                    .await;
+                    return;
+                }
                 Ok(Envelope { msg: Message::Hello(h), .. }) => h,
                 Ok(Envelope { msg: Message::Pair(p), .. }) => {
                     handle_pairing(p, &mut sink, &state, &events, &cfg).await;
@@ -374,9 +422,13 @@ async fn handle_connection(
     }
 
     let token_key = format!("{}/{}", hello.name, kind_tag(hello.kind));
-    let authed = hello.secret.as_deref() == Some(secret.as_str())
+    let authed = hello.secret.as_deref().is_some_and(|s| ct_eq(s, secret.as_str()))
         || hello.token.as_deref().is_some_and(|t| {
-            cfg.tokens.read().unwrap().get(&token_key).map(String::as_str) == Some(t)
+            cfg.tokens
+                .read()
+                .unwrap()
+                .get(&token_key)
+                .is_some_and(|expected| ct_eq(expected, t))
         });
     if !authed {
         let _ = send_env(
@@ -516,25 +568,29 @@ async fn handle_pairing(
     // Unauthenticated clients can send `pair` frames freely; without this
     // check, spamming the same (name, kind) would park a fresh pairing (and
     // broadcast a fresh `PairingRequested`, stacking banners in the UI) for
-    // every connection. Reject the duplicate outright instead.
-    let already_pending = {
-        let st = state.lock().await;
-        st.pairings.values().any(|(n, k, _)| n == &name && k == &kind)
-    };
-    if already_pending {
-        let _ = send_env(
-            sink,
-            &envelope(Message::Error(ErrorMsg {
-                code: "bad_message".into(),
-                message: "pairing already pending".into(),
-            })),
-        )
-        .await;
-        return;
-    }
-
+    // every connection. Reject the duplicate outright instead. The check and
+    // the insert MUST happen under a single lock acquisition — two
+    // simultaneous `pair` frames for the same (name, kind) that each took
+    // the lock separately for the check and the insert could both observe
+    // "not pending" and both park (TOCTOU).
     let (tx, rx) = oneshot::channel::<Option<String>>();
-    state.lock().await.pairings.insert(pairing_id.clone(), (name.clone(), kind.clone(), tx));
+    {
+        let mut st = state.lock().await;
+        let already_pending = st.pairings.values().any(|(n, k, _)| n == &name && k == &kind);
+        if already_pending {
+            drop(st);
+            let _ = send_env(
+                sink,
+                &envelope(Message::Error(ErrorMsg {
+                    code: "bad_message".into(),
+                    message: "pairing already pending".into(),
+                })),
+            )
+            .await;
+            return;
+        }
+        st.pairings.insert(pairing_id.clone(), (name.clone(), kind.clone(), tx));
+    }
     let _ = events.send(HubEvent::PairingRequested {
         pairing_id: pairing_id.clone(),
         name,

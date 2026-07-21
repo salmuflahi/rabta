@@ -325,6 +325,59 @@ async fn origin_policy_matrix() {
     }
 }
 
+/// A `pair` frame is subject to the same envelope-level protocol-version
+/// check as `hello` — previously only `hello` checked its payload's
+/// `protocolVersion`, letting a stale-protocol `pair` frame sail straight
+/// into `handle_pairing` and park a request.
+#[tokio::test]
+async fn pair_frame_with_mismatched_envelope_version_is_version_mismatch() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cfg = HubConfig::new(dir.path().to_path_buf());
+    cfg.pairing_timeout = Duration::from_secs(5);
+    let hub = Hub::start(cfg).await.unwrap();
+    let mut events = hub.subscribe();
+
+    let (mut ws, _) =
+        tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
+    ws.send(
+        json!({"v":99,"id":"p","kind":"pair","payload":{"name":"stale","kind":"chrome"}})
+            .to_string()
+            .into(),
+    )
+    .await
+    .unwrap();
+
+    let reply: Value =
+        serde_json::from_str(ws.next().await.unwrap().unwrap().to_text().unwrap()).unwrap();
+    assert_eq!(reply["kind"], "error");
+    assert_eq!(reply["payload"]["code"], "version_mismatch");
+
+    // No PairingRequested should have been emitted for it.
+    let mut saw_it = false;
+    while let Ok(Ok(ev)) = tokio::time::timeout(Duration::from_millis(200), events.recv()).await {
+        if let HubEvent::PairingRequested { name, .. } = ev {
+            if name == "stale" {
+                saw_it = true;
+            }
+        }
+    }
+    assert!(!saw_it, "PairingRequested was emitted despite envelope version mismatch");
+    assert!(hub.pending_pairings().await.is_empty());
+}
+
+/// A present-but-unparseable `Origin` header (invalid bytes, so `to_str()`
+/// fails) must be rejected outright — not silently treated the same as an
+/// absent header (which is allowed, for native/non-browser clients).
+#[tokio::test]
+async fn invalid_bytes_origin_header_is_rejected() {
+    use tokio_tungstenite::tungstenite::{client::IntoClientRequest, http::HeaderValue};
+    let (hub, _d) = start().await;
+    let mut req = format!("ws://127.0.0.1:{}", hub.port()).into_client_request().unwrap();
+    req.headers_mut().insert("Origin", HeaderValue::from_bytes(&[0xff, 0xfe]).unwrap());
+    let attempt = tokio_tungstenite::connect_async(req).await;
+    assert!(attempt.is_err(), "origin header with invalid bytes must be rejected, not fail open");
+}
+
 #[tokio::test]
 async fn preferred_port_is_used_when_free() {
     // Grab a free port, release it, then ask the hub to prefer it.
