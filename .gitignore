@@ -3,3 +3,5 @@ dist/
 target/
 *.tsbuildinfo
 apps/desktop/src-tauri/gen/schemas/
+dist-artifacts/
+.claude/

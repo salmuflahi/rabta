@@ -76,6 +76,14 @@ omnibus/
 
 **The protocol is defined twice on purpose** — Zod in `packages/protocol`, serde in `crates/omnibus-hub` — and kept in lockstep by shared JSON fixtures tested from both languages, so drift fails CI instead of failing at runtime. The Chrome extension can't use the Node SDK (no `fs`, no Node `ws`), so it has its own browser-native transport; it still speaks the exact same protocol.
 
+## Install (packaged)
+
+```sh
+./scripts/package.sh     # → dist-artifacts/: the .dmg app + .vsix + chrome .zip
+```
+
+Then follow [`docs/INSTALL.md`](./docs/INSTALL.md): drag the app to Applications (first launch is right-click → **Open**, since the build is unsigned), `--install-extension` the `.vsix`, and **Load unpacked** the Chrome zip. macOS/arm64.
+
 ## Build & run from source
 
 Prerequisites: **Node + pnpm**, **Rust + cargo**, and (for the git/GitHub features) **`git`** and the **`gh` CLI** (`gh auth login`). macOS.
