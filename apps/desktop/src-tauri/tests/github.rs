@@ -1,6 +1,9 @@
 mod common;
 
-use omnibus_desktop_lib::github::{branch_name_for_issue, owner_repo_from_remote, parse_issues};
+use omnibus_desktop_lib::github::{
+    branch_name_for_issue, no_github_remote_message, owner_repo_from_remote, parse_issues,
+    remote_display_host, remote_lookup_error_message,
+};
 
 #[test]
 fn parses_owner_repo_from_remote_variants() {
@@ -25,6 +28,66 @@ fn parses_owner_repo_from_remote_variants() {
             "remote {url:?}"
         );
     }
+}
+
+#[test]
+fn remote_lookup_error_distinguishes_missing_remote_from_real_errors() {
+    // git's wording for a missing remote (git emits "error: No such remote…";
+    // "fatal:" tested too), case-insensitively substring-matched.
+    assert_eq!(
+        remote_lookup_error_message("error: No such remote 'origin'"),
+        "this project has no `origin` remote"
+    );
+    assert_eq!(
+        remote_lookup_error_message("fatal: No such remote 'origin'"),
+        "this project has no `origin` remote"
+    );
+    assert_eq!(
+        remote_lookup_error_message("fatal: no such remote 'origin'"),
+        "this project has no `origin` remote"
+    );
+    // Any other failure (deleted repo path, git missing, permissions, ...)
+    // must surface the underlying stderr, not be papered over.
+    let err = remote_lookup_error_message("fatal: not a git repository (or any of the parent directories): .git");
+    assert!(err.starts_with("could not read git remote: "), "got: {err}");
+    assert!(err.contains("not a git repository"), "got: {err}");
+}
+
+#[test]
+fn remote_display_host_extracts_host_from_common_shapes() {
+    let cases = [
+        ("git@github.com:sammy/omnibus.git", Some("github.com")),
+        ("https://github.com/sammy/omnibus.git", Some("github.com")),
+        ("ssh://git@github.com/sammy/omnibus.git", Some("github.com")),
+        ("https://ghe.example.com/sammy/omnibus.git", Some("ghe.example.com")),
+        ("git@ghe.example.com:sammy/omnibus.git", Some("ghe.example.com")),
+        ("https://gitlab.com/sammy/omnibus.git", Some("gitlab.com")),
+        ("/local/path/only", None),
+        ("", None),
+    ];
+    for (url, want) in cases {
+        assert_eq!(remote_display_host(url).as_deref(), want, "remote {url:?}");
+    }
+}
+
+#[test]
+fn no_github_remote_message_names_the_host_when_there_is_one() {
+    // Real, non-github.com remote: name the host, don't just say "no remote".
+    let msg = no_github_remote_message("https://ghe.example.com/sammy/omnibus.git");
+    assert!(msg.contains("only github.com remotes are supported"), "got: {msg}");
+    assert!(msg.contains("ghe.example.com"), "got: {msg}");
+
+    let msg = no_github_remote_message("https://gitlab.com/sammy/omnibus.git");
+    assert!(msg.contains("gitlab.com"), "got: {msg}");
+
+    // No usable host at all (local path): the plain message.
+    assert_eq!(no_github_remote_message("/local/path/only"), "this project has no GitHub remote");
+
+    // A genuine github.com remote that nonetheless failed owner/repo parsing
+    // (e.g. malformed slug) must NOT be reported as an unsupported host — it
+    // falls back to the plain message. Pins the negative branch.
+    let msg = no_github_remote_message("https://github.com/only-owner-no-repo");
+    assert!(!msg.contains("only github.com remotes are supported"), "got: {msg}");
 }
 
 #[test]

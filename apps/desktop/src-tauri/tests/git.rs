@@ -127,3 +127,22 @@ async fn fetch_failure_surfaces_error() {
     let err = fetch(repo.path()).await.unwrap_err();
     assert!(!err.is_empty());
 }
+
+#[tokio::test]
+async fn status_on_missing_repo_errors_cleanly() {
+    let dir = tempfile::tempdir().unwrap();
+    let missing = dir.path().join("does-not-exist");
+    let err = status(&missing).await.unwrap_err();
+    assert!(!err.is_empty());
+}
+
+#[tokio::test]
+async fn checkout_on_missing_repo_errors_cleanly() {
+    let dir = tempfile::tempdir().unwrap();
+    let missing = dir.path().join("does-not-exist");
+    // Name validation passes for a valid name; git itself must fail cleanly
+    // (Err, not a panic) when the repo path doesn't exist.
+    validate_branch_name("main").await.unwrap();
+    let err = checkout(&missing, "main").await.unwrap_err();
+    assert!(!err.is_empty());
+}

@@ -90,6 +90,8 @@ pub async fn branches(repo: &Path) -> Result<Vec<String>, String> {
 }
 
 /// `git fetch --all`: updates remote-tracking refs only; never merges.
+/// On success, returns a fixed confirmation string (`"fetched"`) — not a
+/// summary of what was fetched.
 pub async fn fetch(repo: &Path) -> Result<String, String> {
     run_git(repo, &["fetch", "--all"]).await.map(|_| "fetched".to_string())
 }

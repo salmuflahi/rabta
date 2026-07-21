@@ -91,8 +91,14 @@ pub fn branch_name_for_issue(number: u64, title: &str) -> String {
     }
 }
 
-async fn run(cmd: &str, args: &[&str]) -> Result<String, String> {
-    let out = Command::new(cmd)
+/// Runs `cmd` (git or gh) with a fixed argv, optionally with its working
+/// directory set to `cwd` (for invocations that read a specific local repo).
+async fn run_git_or_gh(cmd: &str, args: &[&str], cwd: Option<&Path>) -> Result<String, String> {
+    let mut command = Command::new(cmd);
+    if let Some(dir) = cwd {
+        command.current_dir(dir);
+    }
+    let out = command
         .args(args)
         .stdin(Stdio::null())
         .output()
@@ -118,6 +124,53 @@ pub async fn gh_available() -> bool {
         .unwrap_or(false)
 }
 
+/// Turns a failed `git remote get-url origin` stderr into a user-facing
+/// message: the friendly "no origin" message when that's specifically what
+/// went wrong, otherwise the underlying git error so real failures (deleted
+/// repo path, git missing, permissions) aren't hidden.
+pub fn remote_lookup_error_message(stderr: &str) -> String {
+    if stderr.to_lowercase().contains("no such remote") {
+        "this project has no `origin` remote".to_string()
+    } else {
+        format!("could not read git remote: {stderr}")
+    }
+}
+
+/// Extracts a display host from a git remote URL, for error messages only
+/// (not a strict parser): `scheme://host/...`, `user@host:path` (scp-like),
+/// and `ssh://[user@]host/path` shapes. `None` when no host-like segment is
+/// found (e.g. a local filesystem path).
+pub fn remote_display_host(url: &str) -> Option<String> {
+    let url = url.trim();
+    let host = if let Some(rest) = url
+        .strip_prefix("ssh://")
+        .or_else(|| url.strip_prefix("git://"))
+        .or_else(|| url.strip_prefix("https://"))
+        .or_else(|| url.strip_prefix("http://"))
+    {
+        let after_at = rest.rsplit('@').next().unwrap_or(rest);
+        after_at.split(['/', ':']).next()?
+    } else if let Some(idx) = url.find('@') {
+        // scp-like: git@host:owner/repo
+        url[idx + 1..].split(':').next()?
+    } else {
+        return None;
+    };
+    if host.is_empty() { None } else { Some(host.to_string()) }
+}
+
+/// Chooses the "no usable GitHub remote" message: a genuinely missing/local
+/// remote gets the plain message, while a remote that resolves to a real,
+/// non-github.com host gets a message naming the limitation and the host.
+pub fn no_github_remote_message(remote: &str) -> String {
+    match remote_display_host(remote) {
+        Some(host) if !host.eq_ignore_ascii_case("github.com") => {
+            format!("only github.com remotes are supported (found: {host})")
+        }
+        _ => "this project has no GitHub remote".to_string(),
+    }
+}
+
 /// Open issues for the project at `repo_path`, via the user's authenticated
 /// `gh`. Errors are user-facing messages (gh missing, not authed, no GitHub
 /// remote, rate limited).
@@ -125,35 +178,19 @@ pub async fn issues(repo_path: &Path) -> Result<Vec<Issue>, String> {
     if !gh_available().await {
         return Err("install the GitHub CLI (gh) and run `gh auth login` to use GitHub features".into());
     }
-    let remote = run_in(repo_path, "git", &["remote", "get-url", "origin"])
+    let remote = run_git_or_gh("git", &["remote", "get-url", "origin"], Some(repo_path))
         .await
-        .map_err(|_| "this project has no `origin` remote".to_string())?;
+        .map_err(|e| remote_lookup_error_message(&e))?;
     let (owner, repo) = owner_repo_from_remote(remote.trim())
-        .ok_or_else(|| "this project has no GitHub remote".to_string())?;
+        .ok_or_else(|| no_github_remote_message(remote.trim()))?;
     let slug = format!("{owner}/{repo}");
-    let json = run(
+    let json = run_git_or_gh(
         "gh",
         &["issue", "list", "--repo", &slug, "--state", "open", "--json", "number,title,url,labels", "--limit", "50"],
+        None,
     )
     .await?;
     parse_issues(&json)
-}
-
-/// Runs a command with its working directory set to `repo` (for `git`/`gh`
-/// invocations that read the local repo).
-async fn run_in(repo: &Path, cmd: &str, args: &[&str]) -> Result<String, String> {
-    let out = Command::new(cmd)
-        .current_dir(repo)
-        .args(args)
-        .stdin(Stdio::null())
-        .output()
-        .await
-        .map_err(|e| format!("failed to run {cmd}: {e}"))?;
-    if out.status.success() {
-        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
-    } else {
-        Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
-    }
 }
 
 /// Outcome of starting work on an issue: the created task, the branch name,
