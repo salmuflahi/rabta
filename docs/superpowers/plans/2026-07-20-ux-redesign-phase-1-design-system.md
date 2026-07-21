@@ -866,3 +866,6 @@ git commit -m "feat(ui): dev-only component gallery for design-system review"
 - `#gallery` renders every component in both themes; focus rings, overlays (Escape), and toasts work; no console errors.
 - Existing Projects/Debug UI visually and behaviorally unchanged (no hash).
 - Reviewed (a UI/a11y-focused review of tokens + Button + overlays) and shown to the user before Phase 2.
+
+## Carried to Phase 8 (accessibility audit)
+- **Semantic-color contrast (must-fix):** re-tune `success`/`warning` (and audit `primary`/`destructive`) so BOTH solid (`x-foreground` on `bg-x`) AND tint (`text-x` on `bg-x/15`) usages meet WCAG AA in light and dark; introduce separate fill vs text tokens if a single value can't satisfy both. Ensure `--input` (interactive control boundary) reaches 3:1 vs background (decorative `--border` may stay subtler per WCAG 1.4.11). Token-only edit; no component changes. Origin: Task 2 opus review.
