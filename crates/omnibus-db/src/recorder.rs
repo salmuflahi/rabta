@@ -49,10 +49,13 @@ impl Recorder {
             "connectorConnected" => {
                 let name = ev.pointer("/connector/name").and_then(Value::as_str);
                 let kind = ev.pointer("/connector/kind").and_then(Value::as_str);
-                let caps: Vec<String> = ev
-                    .pointer("/connector/capabilities")
-                    .and_then(|v| serde_json::from_value(v.clone()).ok())
-                    .unwrap_or_default();
+                let caps: Vec<String> = match ev.pointer("/connector/capabilities") {
+                    Some(v) => serde_json::from_value(v.clone()).unwrap_or_else(|e| {
+                        log::warn!("recorder: corrupt connector capabilities: {e}");
+                        Vec::new()
+                    }),
+                    None => Vec::new(),
+                };
                 if let (Some(name), Some(kind), Some(id)) = (name, kind, session_id.as_deref()) {
                     if let Err(e) = self.db.upsert_connector(name, kind, &caps) {
                         log::warn!("recorder: connector upsert failed: {e}");

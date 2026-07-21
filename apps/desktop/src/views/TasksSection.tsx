@@ -27,11 +27,16 @@ function summarize(r: TaskResource): string {
 export function TasksSection({ projectId }: { projectId: string }) {
   const activeTaskId = useStore((s) => s.activeTaskId);
   const setActiveTaskId = useStore((s) => s.setActiveTaskId);
+  const bumpActivation = useStore((s) => s.bumpActivation);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [resources, setResources] = useState<Record<string, TaskResource[]>>({});
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
   const [confirming, setConfirming] = useState<string | null>(null);
+  // Guards against double-click re-entrancy: the backend now serializes
+  // activation/save, but the UI should still reflect an op in flight rather
+  // than let the user queue up duplicate clicks.
+  const [busy, setBusy] = useState(false);
 
   const refresh = async () => {
     try {
@@ -51,16 +56,20 @@ export function TasksSection({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   async function addTask() {
+    setBusy(true);
     try {
       await invoke("create_task", { projectId, title });
       setTitle("");
       refresh();
     } catch (e) {
       setNote(String(e));
+    } finally {
+      setBusy(false);
     }
   }
 
   async function activate(id: string) {
+    setBusy(true);
     setNote("activating…");
     try {
       const s = await invoke<ActivateSummary>("activate_task", { taskId: id });
@@ -73,13 +82,20 @@ export function TasksSection({ projectId }: { projectId: string }) {
         ...s.errors,
       ].filter(Boolean);
       setNote(parts.join(" · ") || "activated (no capsule yet)");
+      // Activation may have auto-saved the previously-active task, which
+      // can live in a different project — bump the global nonce so every
+      // TasksSection refetches and none show a stale capsule summary.
+      bumpActivation();
       refresh();
     } catch (e) {
       setNote(String(e));
+    } finally {
+      setBusy(false);
     }
   }
 
   async function save(id: string) {
+    setBusy(true);
     setNote("saving…");
     try {
       const s = await invoke<SaveSummary>("save_capsule", { taskId: id });
@@ -87,25 +103,33 @@ export function TasksSection({ projectId }: { projectId: string }) {
       refresh();
     } catch (e) {
       setNote(String(e));
+    } finally {
+      setBusy(false);
     }
   }
 
   async function toggleStatus(t: Task) {
+    setBusy(true);
     try {
       await invoke("set_task_status", { id: t.id, status: t.status === "open" ? "done" : "open" });
       refresh();
     } catch (e) {
       setNote(String(e));
+    } finally {
+      setBusy(false);
     }
   }
 
   async function remove(id: string) {
+    setBusy(true);
     try {
       await invoke("delete_task", { id });
       setConfirming(null);
       refresh();
     } catch (e) {
       setNote(String(e));
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -122,18 +146,34 @@ export function TasksSection({ projectId }: { projectId: string }) {
           <span className="text-neutral-500">
             {(resources[t.id] ?? []).map(summarize).join(" | ") || "no capsule"}
           </span>
-          <button onClick={() => activate(t.id)} className="bg-neutral-700 px-2">
+          <button
+            onClick={() => activate(t.id)}
+            disabled={busy}
+            className="bg-neutral-700 px-2 disabled:opacity-40"
+          >
             activate
           </button>
-          <button onClick={() => save(t.id)} className="bg-neutral-800 px-2">
+          <button
+            onClick={() => save(t.id)}
+            disabled={busy}
+            className="bg-neutral-800 px-2 disabled:opacity-40"
+          >
             save state
           </button>
-          <button onClick={() => toggleStatus(t)} className="bg-neutral-800 px-2">
+          <button
+            onClick={() => toggleStatus(t)}
+            disabled={busy}
+            className="bg-neutral-800 px-2 disabled:opacity-40"
+          >
             {t.status === "open" ? "done" : "reopen"}
           </button>
           {confirming === t.id ? (
             <>
-              <button onClick={() => remove(t.id)} className="bg-red-900 px-2">
+              <button
+                onClick={() => remove(t.id)}
+                disabled={busy}
+                className="bg-red-900 px-2 disabled:opacity-40"
+              >
                 confirm
               </button>
               <button onClick={() => setConfirming(null)} className="bg-neutral-800 px-2">
@@ -141,7 +181,11 @@ export function TasksSection({ projectId }: { projectId: string }) {
               </button>
             </>
           ) : (
-            <button onClick={() => setConfirming(t.id)} className="bg-neutral-800 px-2">
+            <button
+              onClick={() => setConfirming(t.id)}
+              disabled={busy}
+              className="bg-neutral-800 px-2 disabled:opacity-40"
+            >
               delete
             </button>
           )}
@@ -154,7 +198,11 @@ export function TasksSection({ projectId }: { projectId: string }) {
           placeholder="new task title"
           className="bg-neutral-800 p-1 flex-1 text-xs"
         />
-        <button onClick={addTask} disabled={!title} className="bg-neutral-700 px-2 text-xs disabled:opacity-40">
+        <button
+          onClick={addTask}
+          disabled={!title || busy}
+          className="bg-neutral-700 px-2 text-xs disabled:opacity-40"
+        >
           add task
         </button>
       </div>

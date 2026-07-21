@@ -77,7 +77,7 @@ impl Capsules {
 
     /// The task currently considered active (in-memory, this phase).
     pub fn active_task(&self) -> Option<String> {
-        self.active_task.lock().unwrap().clone()
+        self.active_task.lock().unwrap_or_else(std::sync::PoisonError::into_inner).clone()
     }
 
     /// The repo path of the project owning `task_id`, if both still exist.
@@ -158,7 +158,7 @@ impl Capsules {
             self.generation.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
         // Spec: one pending restore slot, replaced by the newer activation —
         // every activation must reset it, not just cross-folder vscode ones.
-        *self.pending.lock().unwrap() = None;
+        *self.pending.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
 
         let mut errors = vec![];
         let previous = self.active_task();
@@ -265,7 +265,8 @@ impl Capsules {
             }
         }
 
-        *self.active_task.lock().unwrap() = Some(task_id.to_string());
+        *self.active_task.lock().unwrap_or_else(std::sync::PoisonError::into_inner) =
+            Some(task_id.to_string());
         Ok(ActivateSummary { applied, pending, skipped, saved_previous, errors })
     }
 
@@ -307,7 +308,7 @@ impl Capsules {
 
         match target_folder {
             Some(target) if current_folder.as_deref() != Some(target) => {
-                *self.pending.lock().unwrap() = Some(PendingRestore {
+                *self.pending.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(PendingRestore {
                     kind: "vscode".into(),
                     generation,
                     open_files,
@@ -351,6 +352,51 @@ impl Capsules {
             if let Err(e) =
                 self.hub.send_command(connector_id, "terminal.create", args).await
             {
+                errors.push(format!("terminal.create {cwd}: {e}"));
+            }
+        }
+    }
+
+    /// Same as `apply_editor_state`, but for the reconnect continuation,
+    /// which runs *outside* the activation lock — a newer activation can
+    /// land while these sends are still going out. Rechecks
+    /// `expected_generation` immediately before every `send_command` and
+    /// stops applying (without erroring) the moment it no longer matches,
+    /// since a newer activation has already taken over the workspace.
+    async fn apply_editor_state_checked(
+        &self,
+        connector_id: &str,
+        open_files: &[String],
+        terminals: &[(String, Option<String>)],
+        expected_generation: u64,
+        errors: &mut Vec<String>,
+    ) {
+        use std::sync::atomic::Ordering::SeqCst;
+        for path in open_files {
+            if self.generation.load(SeqCst) != expected_generation {
+                log::debug!(
+                    "capsule continuation: superseded mid-apply before openFile {path}; stopped"
+                );
+                return;
+            }
+            if let Err(e) =
+                self.hub.send_command(connector_id, "editor.openFile", json!({ "path": path })).await
+            {
+                errors.push(format!("openFile {path}: {e}"));
+            }
+        }
+        for (cwd, name) in terminals {
+            if self.generation.load(SeqCst) != expected_generation {
+                log::debug!(
+                    "capsule continuation: superseded mid-apply before terminal.create {cwd}; stopped"
+                );
+                return;
+            }
+            let mut args = json!({ "cwd": cwd });
+            if let Some(n) = name {
+                args["name"] = json!(n);
+            }
+            if let Err(e) = self.hub.send_command(connector_id, "terminal.create", args).await {
                 errors.push(format!("terminal.create {cwd}: {e}"));
             }
         }
@@ -404,41 +450,71 @@ impl Capsules {
         loop {
             match events.recv().await {
                 Ok(HubEvent::ConnectorConnected { connector }) => {
-                    let taken = {
-                        let mut slot = self.pending.lock().unwrap();
-                        if slot.as_ref().map(|p| p.kind == kind_str(connector.kind)).unwrap_or(false)
-                        {
-                            slot.take()
-                        } else {
-                            None
-                        }
-                    };
+                    let taken = self.take_pending_for(kind_str(connector.kind));
                     if let Some(p) = taken {
-                        tokio::time::sleep(self.settle).await;
-                        if self.generation.load(std::sync::atomic::Ordering::SeqCst) != p.generation
-                        {
-                            log::warn!(
-                                "capsule continuation: superseded by newer activation; skipped"
-                            );
-                        } else {
-                            let mut errors = vec![];
-                            self.apply_editor_state(
-                                &connector.id,
-                                &p.open_files,
-                                &p.terminals,
-                                &mut errors,
-                            )
-                            .await;
-                            for e in errors {
-                                log::warn!("capsule continuation: {e}");
-                            }
-                        }
+                        self.run_pending_restore(&connector.id, p).await;
                     }
                 }
                 Ok(_) => {}
-                Err(RecvError::Lagged(_)) => continue,
+                Err(RecvError::Lagged(_)) => {
+                    // A `ConnectorConnected` may have been dropped while we
+                    // were lagging behind the broadcast channel, stranding a
+                    // pending restore whose connector already reconnected.
+                    // Re-query the current connectors and, if one of the
+                    // pending kind is present now, run the continuation for
+                    // it directly. `take_pending_for`'s `.take()` under the
+                    // lock guarantees single consumption, so this can never
+                    // double-apply alongside the normal event path.
+                    let kind = self
+                        .pending
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner)
+                        .as_ref()
+                        .map(|p| p.kind.clone());
+                    if let Some(kind) = kind {
+                        if let Some(conn) =
+                            self.hub.connectors().await.into_iter().find(|c| kind_str(c.kind) == kind)
+                        {
+                            if let Some(p) = self.take_pending_for(&kind) {
+                                log::debug!(
+                                    "capsule continuation: recovered pending restore after lag"
+                                );
+                                self.run_pending_restore(&conn.id, p).await;
+                            }
+                        }
+                    }
+                    continue;
+                }
                 Err(RecvError::Closed) => break,
             }
+        }
+    }
+
+    /// Takes the pending restore slot iff it matches `kind`, under the lock.
+    fn take_pending_for(&self, kind: &str) -> Option<PendingRestore> {
+        let mut slot = self.pending.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        if slot.as_ref().map(|p| p.kind == kind).unwrap_or(false) {
+            slot.take()
+        } else {
+            None
+        }
+    }
+
+    /// Waits out the settle window, then applies a taken pending restore to
+    /// `connector_id` if no newer activation has superseded it in the
+    /// meantime. Shared by the normal reconnect path and the post-lag
+    /// recovery path.
+    async fn run_pending_restore(&self, connector_id: &str, p: PendingRestore) {
+        tokio::time::sleep(self.settle).await;
+        if self.generation.load(std::sync::atomic::Ordering::SeqCst) != p.generation {
+            log::warn!("capsule continuation: superseded by newer activation; skipped");
+            return;
+        }
+        let mut errors = vec![];
+        self.apply_editor_state_checked(connector_id, &p.open_files, &p.terminals, p.generation, &mut errors)
+            .await;
+        for e in errors {
+            log::warn!("capsule continuation: {e}");
         }
     }
 }

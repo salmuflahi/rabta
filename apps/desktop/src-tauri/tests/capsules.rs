@@ -479,3 +479,128 @@ async fn activate_chrome_without_browser_is_skipped() {
     let summary = capsules.activate_task(&task_id).await.unwrap();
     assert!(summary.skipped.contains(&"chrome".to_string()), "got {summary:?}");
 }
+
+/// Proves the continuation's per-command generation recheck: a newer
+/// activation landing WHILE the continuation is mid-way through sending
+/// several commands to the same connector must stop the remaining sends,
+/// not just be caught by the single check before the loop starts (that
+/// narrower case is `mid_settle_activation_supersedes_pending` above).
+///
+/// The reconnected connector's mock blocks synchronously (via a std
+/// channel) while handling the first `editor.openFile`, which lets the
+/// test deterministically land a second, generation-bumping `activate_task`
+/// call in the gap between command #1 completing and command #2 being
+/// sent — without racing on wall-clock timing. Requires a multi-thread
+/// runtime so the one blocked mock doesn't stall the whole test.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn continuation_recheck_stops_mid_apply_on_newer_activation() {
+    let dir = tempfile::tempdir().unwrap();
+    let hub = Arc::new(Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap());
+    let db = Db::open_in_memory(DbConfig::default()).unwrap();
+    let p = db
+        .create_project(NewProject {
+            name: "proj".into(),
+            repo_path: "/tmp/proj".into(),
+            dev_url: None,
+            default_branch: "main".into(),
+        })
+        .unwrap();
+    let task_a = db.create_task(NewTask { project_id: p.id.clone(), title: "a".into() }).unwrap().id;
+    let task_b = db.create_task(NewTask { project_id: p.id, title: "b".into() }).unwrap().id;
+    let capsules = Capsules::new(hub.clone(), db.clone(), Duration::from_millis(50));
+    capsules.spawn_continuation_on(tokio::runtime::Handle::current());
+
+    // A's capsule points at a different folder (defers to pending) and has
+    // two files + a terminal to restore, giving the continuation multiple
+    // commands to send. No `activeFile` set, so `restore_vscode` won't
+    // reorder `openFiles` — they're sent in the given order, a.ts then b.ts.
+    db.replace_task_resources(
+        &task_a,
+        "vscode",
+        "workspace",
+        &json!({
+            "workspaceFolder": "/repo/other",
+            "openFiles": ["/repo/other/a.ts", "/repo/other/b.ts"],
+            "terminals": [{"name": "zsh", "cwd": "/repo/other"}]
+        }),
+    )
+    .unwrap();
+
+    let (tx, _rx) = mpsc::unbounded_channel();
+    let conn = scripted_connector(&hub, tx, |name, _| match name {
+        "workspace.state" => state("/repo/a", &[]), // WRONG folder vs. "/repo/other"
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let a = capsules.activate_task(&task_a).await.unwrap();
+    assert_eq!(a.pending, vec!["vscode"], "A defers cross-folder");
+
+    // Simulate the window reload: drop the connection, reconnect with a
+    // mock that blocks (synchronously, off the async executor) the instant
+    // it sees the first openFile, and reports every command back on rx2.
+    conn.abort();
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let (signal_tx, mut signal_rx) = mpsc::unbounded_channel::<()>();
+    let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+    let release_rx = std::sync::Mutex::new(Some(release_rx));
+    let (tx2, mut rx2) = mpsc::unbounded_channel();
+    let _conn2 = scripted_connector(&hub, tx2, move |name, args| {
+        if name == "editor.openFile" && args["path"].as_str() == Some("/repo/other/a.ts") {
+            let _ = signal_tx.send(());
+            // Block this connection's handling thread until the test says
+            // go. Safe under the multi-thread runtime: only one worker is
+            // tied up, and nothing else needed to make progress depends on
+            // this specific thread.
+            if let Some(rx) = release_rx.lock().unwrap().take() {
+                let _ = rx.recv();
+            }
+        }
+        json!({})
+    })
+    .await;
+
+    // Wait for the continuation to be mid-way through sending a.ts before
+    // doing anything else — no sleeps/guessing involved.
+    signal_rx.recv().await.expect("a.ts command should have been sent");
+
+    // Bump the generation via a second activation while a.ts's response is
+    // still withheld. `activate_task` increments the generation counter
+    // synchronously right after acquiring the activation lock, before it
+    // ever touches the hub (the hub round-trip — auto-saving the previous
+    // task's capsule — only happens afterwards, and will itself then block
+    // on the same withheld connector until we release it below). A short
+    // sleep gives the spawned task ample time to reach and clear that
+    // point — the preceding work is a handful of uncontended lock
+    // acquisitions and an atomic increment, not I/O.
+    let capsules2 = capsules.clone();
+    let task_b2 = task_b.clone();
+    let second_activation = tokio::spawn(async move {
+        let _ = capsules2.activate_task(&task_b2).await;
+    });
+    tokio::time::sleep(Duration::from_millis(150)).await;
+
+    // Now let a.ts's response (and everything queued behind it) through.
+    release_tx.send(()).unwrap();
+    let _ = tokio::time::timeout(Duration::from_secs(5), second_activation).await;
+    tokio::time::sleep(Duration::from_millis(200)).await;
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx2.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        names.iter().any(|(n, a)| n == "editor.openFile" && a["path"].as_str() == Some("/repo/other/a.ts")),
+        "a.ts (already in flight when the newer activation landed) must still have applied: {names:?}"
+    );
+    assert!(
+        !names.iter().any(|(n, a)| n == "editor.openFile" && a["path"].as_str() == Some("/repo/other/b.ts")),
+        "b.ts must not have been sent once superseded: {names:?}"
+    );
+    assert!(
+        !names.iter().any(|(n, _)| n == "terminal.create"),
+        "terminal.create must not have been sent once superseded: {names:?}"
+    );
+}

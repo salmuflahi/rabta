@@ -9,6 +9,7 @@ export function ProjectsView() {
   const projects = useStore((s) => s.projects);
   const setProjects = useStore((s) => s.setProjects);
   const setActiveTaskId = useStore((s) => s.setActiveTaskId);
+  const activationNonce = useStore((s) => s.activationNonce);
   const [name, setName] = useState("");
   const [repoPath, setRepoPath] = useState("");
   const [devUrl, setDevUrl] = useState("");
@@ -113,7 +114,10 @@ export function ProjectsView() {
               projectId={p.id}
               onStarted={() => setStartedNonce((n) => ({ ...n, [p.id]: (n[p.id] ?? 0) + 1 }))}
             />
-            <TasksSection key={`${p.id}-${startedNonce[p.id] ?? 0}`} projectId={p.id} />
+            <TasksSection
+              key={`${p.id}-${startedNonce[p.id] ?? 0}-${activationNonce}`}
+              projectId={p.id}
+            />
           </div>
         ))}
       </div>

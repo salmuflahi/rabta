@@ -96,6 +96,12 @@ interface Store {
   setProjects: (projects: Project[]) => void;
   activeTaskId: string | null;
   setActiveTaskId: (id: string | null) => void;
+  /** Bumped after every successful task activation. Activating a task
+   * auto-saves the previously-active task, which may live in a different
+   * project — including this in a TasksSection's React `key` forces every
+   * project's task list to refetch so none show a stale capsule summary. */
+  activationNonce: number;
+  bumpActivation: () => void;
   pairings: PendingPairing[];
   /** Merge an initial-load snapshot into the current pairings, keyed by
    * pairingId. Existing entries (e.g. from a `pairingRequested` event that
@@ -118,6 +124,8 @@ export const useStore = create<Store>((set) => ({
   setProjects: (projects) => set({ projects }),
   activeTaskId: null,
   setActiveTaskId: (activeTaskId) => set({ activeTaskId }),
+  activationNonce: 0,
+  bumpActivation: () => set((s) => ({ activationNonce: s.activationNonce + 1 })),
   pairings: [],
   hubPort: null,
   setHubPort: (hubPort) => set({ hubPort }),
