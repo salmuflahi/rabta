@@ -117,28 +117,53 @@ export class Connection {
 
   private async dial(): Promise<void> {
     if (this.closed) return;
+    if (!Number.isInteger(this.opts.port) || this.opts.port <= 0) {
+      // A corrupted/invalid stored port would otherwise be handed straight
+      // to makeSocket (e.g. `ws://127.0.0.1:NaN`), which can throw
+      // synchronously before onclose is ever wired up — stranding the
+      // "connecting" guard in background.ts forever (it's only cleared on
+      // "disconnected"). Treat it exactly like a failed dial: log, signal
+      // disconnected, and redial rather than constructing a socket.
+      console.warn(`invalid port: ${JSON.stringify(this.opts.port)}`);
+      this.opts.onStatus?.("disconnected");
+      this.scheduleRedial();
+      return;
+    }
     // Socket creation and handler wiring must be fully synchronous (a
     // reconnect swaps in a fresh socket instance that callers may observe
     // immediately); the token lookup is async (chrome.storage.local) and is
     // resolved inside the onopen handler instead of gating socket creation.
-    const ws = this.opts.makeSocket(`ws://127.0.0.1:${this.opts.port}`);
-    this.ws = ws;
-    ws.onopen = () => void this.handleOpen();
-    ws.onmessage = (data) => void this.onFrame(data);
-    ws.onclose = () => {
-      this.connected = false;
-      // Only signal "disconnected" for a socket drop that will actually be
-      // retried (an internal redial or a hub-forced reconnect cycle). A
-      // permanent close() already set `closed`; don't report a disconnect
-      // for that path — it can race a caller that's already establishing a
-      // fresh connection (e.g. background.ts swapping connections) and
-      // stomp its state right after it reports "connected".
-      if (!this.closed) this.opts.onStatus?.("disconnected");
+    let ws: SocketLike;
+    try {
+      ws = this.opts.makeSocket(`ws://127.0.0.1:${this.opts.port}`);
+      this.ws = ws;
+      ws.onopen = () => void this.handleOpen();
+      ws.onmessage = (data) => void this.onFrame(data);
+      ws.onclose = () => {
+        this.connected = false;
+        // Only signal "disconnected" for a socket drop that will actually be
+        // retried (an internal redial or a hub-forced reconnect cycle). A
+        // permanent close() already set `closed`; don't report a disconnect
+        // for that path — it can race a caller that's already establishing a
+        // fresh connection (e.g. background.ts swapping connections) and
+        // stomp its state right after it reports "connected".
+        if (!this.closed) this.opts.onStatus?.("disconnected");
+        this.scheduleRedial();
+      };
+      ws.onerror = () => {
+        /* a close follows; redial happens there */
+      };
+    } catch (e) {
+      // Any synchronous throw from makeSocket/handler wiring (malformed
+      // input, environment quirks, etc.) is the same failure class as the
+      // invalid-port case above: no onclose ever gets wired, so we must
+      // signal disconnected and redial ourselves rather than stranding the
+      // caller's "connecting" guard.
+      console.warn(`makeSocket threw during dial: ${String(e)}`);
+      this.opts.onStatus?.("disconnected");
       this.scheduleRedial();
-    };
-    ws.onerror = () => {
-      /* a close follows; redial happens there */
-    };
+      return;
+    }
   }
 
   private async handleOpen(): Promise<void> {

@@ -181,6 +181,70 @@ describe("Connection token lifecycle", () => {
 
     expect(statuses).toEqual([]);
   });
+
+  it("invalid port does not throw and schedules a retry while firing disconnected", async () => {
+    vi.useFakeTimers();
+    try {
+      const statuses: string[] = [];
+      const makeSocket = vi.fn(() => new FakeSocket());
+      const conn = new Connection({
+        name: "chrome",
+        kind: "chrome",
+        capabilities: ["tabs"],
+        port: NaN,
+        makeSocket,
+        store: new MemStore("t"),
+        onStatus: (s) => statuses.push(s),
+        onCommand: () => undefined,
+      });
+
+      expect(() => conn.start()).not.toThrow();
+      await vi.waitFor(() => expect(statuses).toEqual(["disconnected"]));
+      expect(makeSocket).not.toHaveBeenCalled();
+
+      // Advance past the backoff: the redial loop should still be alive
+      // (dial() re-runs, hits the same invalid-port guard, and fires
+      // "disconnected" again) rather than having died silently.
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(statuses).toEqual(["disconnected", "disconnected"]);
+      expect(makeSocket).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("makeSocket throwing synchronously is treated as a failed dial", async () => {
+    vi.useFakeTimers();
+    try {
+      const statuses: string[] = [];
+      let calls = 0;
+      const makeSocket = vi.fn(() => {
+        calls++;
+        if (calls === 1) throw new Error("boom");
+        return new FakeSocket();
+      });
+      const conn = new Connection({
+        name: "chrome",
+        kind: "chrome",
+        capabilities: ["tabs"],
+        port: 17872,
+        makeSocket,
+        store: new MemStore("t"),
+        onStatus: (s) => statuses.push(s),
+        onCommand: () => undefined,
+      });
+
+      expect(() => conn.start()).not.toThrow();
+      await vi.waitFor(() => expect(statuses).toEqual(["disconnected"]));
+      expect(makeSocket).toHaveBeenCalledTimes(1);
+
+      // The scheduled redial should retry and succeed the second time.
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(makeSocket).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 /** A fake *native* WebSocket constructor — fires onmessage with a
