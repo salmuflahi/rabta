@@ -64,7 +64,7 @@ export interface ConnectionOptions {
   makeSocket: (url: string) => SocketLike;
   store: TokenStore;
   onCommand: (name: string, args: unknown) => unknown | Promise<unknown>;
-  onStatus?: (s: "connecting" | "pairing" | "connected" | "denied") => void;
+  onStatus?: (s: "connecting" | "pairing" | "connected" | "denied" | "disconnected") => void;
 }
 
 const INITIAL_BACKOFF = 1_000;
@@ -127,6 +127,13 @@ export class Connection {
     ws.onmessage = (data) => void this.onFrame(data);
     ws.onclose = () => {
       this.connected = false;
+      // Only signal "disconnected" for a socket drop that will actually be
+      // retried (an internal redial or a hub-forced reconnect cycle). A
+      // permanent close() already set `closed`; don't report a disconnect
+      // for that path — it can race a caller that's already establishing a
+      // fresh connection (e.g. background.ts swapping connections) and
+      // stomp its state right after it reports "connected".
+      if (!this.closed) this.opts.onStatus?.("disconnected");
       this.scheduleRedial();
     };
     ws.onerror = () => {

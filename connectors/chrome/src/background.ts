@@ -29,9 +29,17 @@ async function readTabs(): Promise<RawTab[]> {
 
 let connection: Connection | undefined;
 let connected = false;
+// In-flight guard: true from the moment connect() starts until the
+// connection either succeeds or actually drops. Prevents the keepalive
+// alarm from racing the storage-port read on service-worker wake and
+// standing up two Connections. Cleared on "disconnected" (not "denied" or
+// any transient status) so a real socket drop can still be reconnected.
+let connecting = false;
 let currentPort = DEFAULT_PORT;
 
 async function connect(port: number) {
+  if (connecting) return;
+  connecting = true;
   currentPort = port;
   connection?.close();
   connected = false;
@@ -44,6 +52,7 @@ async function connect(port: number) {
     store,
     onStatus: (s) => {
       connected = s === "connected";
+      if (s === "disconnected") connecting = false;
     },
     onCommand: async (name, args) => {
       if (name === "workspace.state") return snapshotTabs(await readTabs());

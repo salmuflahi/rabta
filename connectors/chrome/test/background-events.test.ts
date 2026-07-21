@@ -101,4 +101,17 @@ describe("installTabListeners", () => {
 
     expect(emits).toEqual([]);
   });
+
+  it("clears the tracked url when a tracked tab navigates to a non-restorable url, so closing it later emits nothing", () => {
+    const chromeTabs = fakeChromeTabs();
+    const { emit, emits } = fakeEmit();
+    installTabListeners(chromeTabs.api, emit);
+
+    chromeTabs.fireUpdated(7, { url: "https://a.test" }, { incognito: false });
+    chromeTabs.fireUpdated(7, { url: "chrome://settings" }, { incognito: false });
+    emits.length = 0; // only care about what fireRemoved emits below
+    chromeTabs.fireRemoved(7);
+
+    expect(emits).toEqual([]);
+  });
 });

@@ -42,7 +42,10 @@ class MemStore implements TokenStore {
   }
 }
 
-function connectionWith(store: TokenStore) {
+function connectionWith(
+  store: TokenStore,
+  onStatus?: (s: "connecting" | "pairing" | "connected" | "denied" | "disconnected") => void,
+) {
   const sockets: FakeSocket[] = [];
   const conn = new Connection({
     name: "chrome",
@@ -55,6 +58,7 @@ function connectionWith(store: TokenStore) {
       return s;
     },
     store,
+    onStatus,
     onCommand: (name, args) => ({ echoed: { name, args } }),
   });
   return { conn, sockets };
@@ -150,6 +154,32 @@ describe("Connection token lifecycle", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('emits onStatus("disconnected") when the socket drops', async () => {
+    const statuses: string[] = [];
+    const { conn, sockets } = connectionWith(new MemStore("t"), (s) => statuses.push(s));
+    conn.start();
+    sockets[0].open();
+    sockets[0].deliver({ v: 1, id: "w", kind: "welcome", payload: { connectorId: "c1" } });
+    expect(statuses).toEqual(["connected"]);
+
+    sockets[0].close(); // simulate the socket dropping (not an explicit conn.close())
+
+    expect(statuses).toEqual(["connected", "disconnected"]);
+  });
+
+  it('does not emit "disconnected" for an explicit close() (permanent, no reconnect)', async () => {
+    const statuses: string[] = [];
+    const { conn, sockets } = connectionWith(new MemStore("t"), (s) => statuses.push(s));
+    conn.start();
+    sockets[0].open();
+    sockets[0].deliver({ v: 1, id: "w", kind: "welcome", payload: { connectorId: "c1" } });
+    statuses.length = 0;
+
+    conn.close(); // internally closes the socket too, but this is permanent
+
+    expect(statuses).toEqual([]);
   });
 });
 

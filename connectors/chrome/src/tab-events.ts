@@ -40,9 +40,15 @@ export function installTabListeners(chromeApi: ChromeTabsApi, emit: Emit): Map<n
   chromeApi.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (!changeInfo.url) return;
     const decision = openedEventFor({ url: changeInfo.url, incognito: tab.incognito ?? false });
-    if (!decision) return;
-    tabUrls.set(tabId, decision.url);
-    emit("tab.opened", decision);
+    if (decision) {
+      tabUrls.set(tabId, decision.url);
+      emit("tab.opened", decision);
+    } else {
+      // Navigated to a non-restorable (or incognito) url: forget the last
+      // http/https url we had for this tab, so a later close doesn't emit a
+      // stale `tab.closed` for a url the tab no longer shows.
+      tabUrls.delete(tabId);
+    }
   });
 
   chromeApi.onRemoved.addListener((tabId) => {

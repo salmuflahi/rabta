@@ -83,6 +83,16 @@ export class Connector {
       this.scheduleRedial(onWelcome, onFatal);
       return;
     }
+    if (!Number.isInteger(port) || port <= 0) {
+      // A malformed discovery file (missing/non-numeric/zero port) is
+      // treated exactly like a failed read: log and redial rather than
+      // handing `WebSocket` a value that makes it throw synchronously
+      // (e.g. `ws://127.0.0.1:undefined`), which would otherwise kill the
+      // reconnect loop outright.
+      console.error(`invalid hub discovery port: ${JSON.stringify(port)}`);
+      this.scheduleRedial(onWelcome, onFatal);
+      return;
+    }
     const ws = new WebSocket(`ws://127.0.0.1:${port}`);
     this.ws = ws;
     ws.on("open", () => {
