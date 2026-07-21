@@ -99,7 +99,7 @@ impl Db {
             created_at: ts.clone(),
             updated_at: ts,
         };
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "INSERT INTO projects (id, name, repo_path, dev_url, default_branch, created_at, updated_at) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
@@ -110,7 +110,7 @@ impl Db {
 
     /// All projects, alphabetical by name.
     pub fn list_projects(&self) -> Result<Vec<Project>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT id, name, repo_path, dev_url, default_branch, created_at, updated_at \
              FROM projects ORDER BY name",
@@ -131,7 +131,7 @@ impl Db {
 
     /// One project by id.
     pub fn get_project(&self, id: &str) -> Result<Option<Project>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         Ok(conn
             .query_row(
                 "SELECT id, name, repo_path, dev_url, default_branch, created_at, updated_at \
@@ -154,7 +154,7 @@ impl Db {
 
     /// Deletes a project; tasks and resources cascade.
     pub fn delete_project(&self, id: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute("DELETE FROM projects WHERE id = ?1", params![id])?;
         Ok(())
     }
@@ -170,7 +170,7 @@ impl Db {
             created_at: ts.clone(),
             updated_at: ts,
         };
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "INSERT INTO tasks (id, project_id, title, status, created_at, updated_at) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
@@ -181,7 +181,7 @@ impl Db {
 
     /// Tasks for one project, newest first.
     pub fn list_tasks(&self, project_id: &str) -> Result<Vec<Task>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT id, project_id, title, status, created_at, updated_at \
              FROM tasks WHERE project_id = ?1 ORDER BY created_at DESC",
@@ -201,7 +201,7 @@ impl Db {
 
     /// One task by id.
     pub fn get_task(&self, id: &str) -> Result<Option<Task>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         Ok(conn
             .query_row(
                 "SELECT id, project_id, title, status, created_at, updated_at \
@@ -223,7 +223,7 @@ impl Db {
 
     /// Updates a task's status and `updated_at`.
     pub fn set_task_status(&self, id: &str, status: TaskStatus) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "UPDATE tasks SET status = ?2, updated_at = ?3 WHERE id = ?1",
             params![id, status.as_str(), now()],
@@ -233,7 +233,7 @@ impl Db {
 
     /// Deletes a task; its resources cascade.
     pub fn delete_task(&self, id: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute("DELETE FROM tasks WHERE id = ?1", params![id])?;
         Ok(())
     }
@@ -248,7 +248,7 @@ impl Db {
             payload: new.payload,
             created_at: now(),
         };
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "INSERT INTO task_resources (id, task_id, connector_kind, resource_type, payload, created_at) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
@@ -259,7 +259,7 @@ impl Db {
 
     /// Resources for one task, in attachment order.
     pub fn task_resources(&self, task_id: &str) -> Result<Vec<TaskResource>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT id, task_id, connector_kind, resource_type, payload, created_at \
              FROM task_resources WHERE task_id = ?1 ORDER BY created_at",
@@ -270,7 +270,10 @@ impl Db {
                 task_id: r.get(1)?,
                 connector_kind: r.get(2)?,
                 resource_type: r.get(3)?,
-                payload: serde_json::from_str(&r.get::<_, String>(4)?).unwrap_or(Value::Null),
+                payload: serde_json::from_str(&r.get::<_, String>(4)?).unwrap_or_else(|e| {
+                    log::warn!("task_resources: corrupt task_resources.payload: {e}");
+                    Value::Null
+                }),
                 created_at: r.get(5)?,
             })
         })?;
@@ -279,7 +282,7 @@ impl Db {
 
     /// Detaches one resource.
     pub fn remove_task_resource(&self, id: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute("DELETE FROM task_resources WHERE id = ?1", params![id])?;
         Ok(())
     }
@@ -302,7 +305,7 @@ impl Db {
             payload: payload.clone(),
             created_at: now(),
         };
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let tx = conn.unchecked_transaction()?;
         tx.execute(
             "DELETE FROM task_resources WHERE task_id = ?1 AND connector_kind = ?2",

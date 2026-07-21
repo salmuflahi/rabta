@@ -2,7 +2,7 @@
 //! shared state (registry + pending requests) lives behind a single Mutex.
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, PoisonError, RwLock};
 use std::time::Duration;
 
 use futures_util::stream::SplitSink;
@@ -426,7 +426,7 @@ async fn handle_connection(
         || hello.token.as_deref().is_some_and(|t| {
             cfg.tokens
                 .read()
-                .unwrap()
+                .unwrap_or_else(PoisonError::into_inner)
                 .get(&token_key)
                 .is_some_and(|expected| ct_eq(expected, t))
         });
@@ -500,7 +500,7 @@ async fn handle_connection(
                                     });
                                 }
                                 // Late reply after timeout: spec says drop and log.
-                                None => eprintln!("dropped late response {} from {}", r.request_id, id),
+                                None => log::debug!("dropped late response {} from {}", r.request_id, id),
                             }
                         }
                         Message::Event(e) => {

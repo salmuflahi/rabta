@@ -82,13 +82,13 @@ impl Db {
 
     /// Number of applied migrations (SQLite `user_version`).
     pub fn schema_version(&self) -> Result<i64> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         Ok(conn.query_row("PRAGMA user_version", [], |r| r.get(0))?)
     }
 
     /// Whether a table exists — used by tests and sanity checks.
     pub fn table_exists(&self, name: &str) -> Result<bool> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1",
             [name],

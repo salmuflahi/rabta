@@ -89,7 +89,7 @@ fn friendly_db_error(e: DbError) -> String {
     if msg.contains("UNIQUE constraint failed: projects.name") {
         "a project with this name already exists".to_string()
     } else {
-        eprintln!("project save failed: {msg}");
+        log::error!("project save failed: {msg}");
         "failed to save project — see the app log for details".to_string()
     }
 }

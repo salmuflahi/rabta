@@ -280,7 +280,7 @@ async fn approve_pairing(
             .map_err(|e| e.to_string())?
             .map_err(|e| e.to_string())?;
     }
-    hub.0.tokens_handle().write().unwrap().insert(format!("{name}/{kind}"), token.clone());
+    hub.0.tokens_handle().write().unwrap_or_else(std::sync::PoisonError::into_inner).insert(format!("{name}/{kind}"), token.clone());
     if hub.0.resolve_pairing(&pairing_id, Some(token)).await {
         Ok(())
     } else {
@@ -309,6 +309,7 @@ fn hub_port(hub: State<'_, HubHandle>) -> u16 {
 /// on failure), starts the hub, records hub activity, and forwards the event
 /// stream to the frontend as `hub-event`.
 pub fn run() {
+    let _ = env_logger::try_init();
     tauri::Builder::default()
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
@@ -320,7 +321,7 @@ pub fn run() {
             let mut hub_cfg = HubConfig::new(data_dir);
             hub_cfg.preferred_port = 17872;
             for (name, kind, token) in db.connector_tokens().map_err(|e| e.to_string())? {
-                hub_cfg.tokens.write().unwrap().insert(format!("{name}/{kind}"), token);
+                hub_cfg.tokens.write().unwrap_or_else(std::sync::PoisonError::into_inner).insert(format!("{name}/{kind}"), token);
             }
             let hub = tauri::async_runtime::block_on(Hub::start(hub_cfg))?;
 

@@ -36,7 +36,7 @@ impl Db {
         session_connector_id: Option<&str>,
         payload: &Value,
     ) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "INSERT INTO events (at, type, session_connector_id, payload) VALUES (?1, ?2, ?3, ?4)",
             params![now(), event_type, session_connector_id, payload.to_string()],
@@ -50,7 +50,7 @@ impl Db {
 
     /// The newest `limit` events, oldest first (ready for a log display).
     pub fn recent_events(&self, limit: u32) -> Result<Vec<EventRow>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT seq, at, type, session_connector_id, payload FROM \
              (SELECT * FROM events ORDER BY seq DESC LIMIT ?1) ORDER BY seq ASC",
@@ -61,7 +61,10 @@ impl Db {
                 at: r.get(1)?,
                 event_type: r.get(2)?,
                 session_connector_id: r.get(3)?,
-                payload: serde_json::from_str(&r.get::<_, String>(4)?).unwrap_or(Value::Null),
+                payload: serde_json::from_str(&r.get::<_, String>(4)?).unwrap_or_else(|e| {
+                    log::warn!("recent_events: corrupt events.payload: {e}");
+                    Value::Null
+                }),
             })
         })?;
         Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
@@ -69,7 +72,7 @@ impl Db {
 
     /// Registers a connector identity or refreshes its capabilities/last_seen.
     pub fn upsert_connector(&self, name: &str, kind: &str, capabilities: &[String]) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let caps = serde_json::to_string(capabilities).unwrap_or_else(|_| "[]".into());
         let ts = now();
         conn.execute(
@@ -83,7 +86,7 @@ impl Db {
 
     /// Stamps `last_seen` for a known connector; silently no-ops for unknown.
     pub fn touch_connector_seen(&self, name: &str, kind: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "UPDATE connectors SET last_seen = ?3 WHERE name = ?1 AND kind = ?2",
             params![name, kind, now()],
@@ -94,7 +97,7 @@ impl Db {
     /// Stores/replaces the persistent pairing token for a connector identity,
     /// creating the row if the connector has never connected.
     pub fn set_connector_token(&self, name: &str, kind: &str, token: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let ts = now();
         conn.execute(
             "INSERT INTO connectors (id, name, kind, capabilities, token, first_seen, last_seen) \
@@ -107,7 +110,7 @@ impl Db {
 
     /// All persisted pairing tokens as (name, kind, token).
     pub fn connector_tokens(&self) -> Result<Vec<(String, String, String)>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt =
             conn.prepare("SELECT name, kind, token FROM connectors WHERE token IS NOT NULL")?;
         let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
@@ -116,7 +119,7 @@ impl Db {
 
     /// Every connector this machine has seen, most recently seen first.
     pub fn known_connectors(&self) -> Result<Vec<KnownConnector>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT name, kind, capabilities, first_seen, last_seen \
              FROM connectors ORDER BY last_seen DESC",
@@ -125,7 +128,10 @@ impl Db {
             Ok(KnownConnector {
                 name: r.get(0)?,
                 kind: r.get(1)?,
-                capabilities: serde_json::from_str(&r.get::<_, String>(2)?).unwrap_or_default(),
+                capabilities: serde_json::from_str(&r.get::<_, String>(2)?).unwrap_or_else(|e| {
+                    log::warn!("known_connectors: corrupt connectors.capabilities: {e}");
+                    Vec::new()
+                }),
                 first_seen: r.get(3)?,
                 last_seen: r.get(4)?,
             })

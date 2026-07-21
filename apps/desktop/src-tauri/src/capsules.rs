@@ -417,7 +417,7 @@ impl Capsules {
                         tokio::time::sleep(self.settle).await;
                         if self.generation.load(std::sync::atomic::Ordering::SeqCst) != p.generation
                         {
-                            eprintln!(
+                            log::warn!(
                                 "capsule continuation: superseded by newer activation; skipped"
                             );
                         } else {
@@ -430,7 +430,7 @@ impl Capsules {
                             )
                             .await;
                             for e in errors {
-                                eprintln!("capsule continuation: {e}");
+                                log::warn!("capsule continuation: {e}");
                             }
                         }
                     }

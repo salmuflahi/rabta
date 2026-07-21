@@ -42,7 +42,7 @@ impl Recorder {
             .map(String::from);
 
         if let Err(e) = self.db.record_event(&event_type, session_id.as_deref(), ev) {
-            eprintln!("recorder: failed to persist event: {e}");
+            log::warn!("recorder: failed to persist event: {e}");
         }
 
         match event_type.as_str() {
@@ -55,7 +55,7 @@ impl Recorder {
                     .unwrap_or_default();
                 if let (Some(name), Some(kind), Some(id)) = (name, kind, session_id.as_deref()) {
                     if let Err(e) = self.db.upsert_connector(name, kind, &caps) {
-                        eprintln!("recorder: connector upsert failed: {e}");
+                        log::warn!("recorder: connector upsert failed: {e}");
                     }
                     self.sessions.insert(id.to_string(), (name.to_string(), kind.to_string()));
                 }
@@ -64,11 +64,11 @@ impl Recorder {
                 match session_id.and_then(|id| self.sessions.remove(&id)) {
                     Some((name, kind)) => {
                         if let Err(e) = self.db.touch_connector_seen(&name, &kind) {
-                            eprintln!("recorder: last_seen update failed: {e}");
+                            log::warn!("recorder: last_seen update failed: {e}");
                         }
                     }
                     // Recorder started mid-session: spec says log and skip.
-                    None => eprintln!("recorder: disconnect for unknown session; skipped"),
+                    None => log::debug!("recorder: disconnect for unknown session; skipped"),
                 }
             }
             _ => {}
