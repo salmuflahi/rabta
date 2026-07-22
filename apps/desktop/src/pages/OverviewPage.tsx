@@ -62,9 +62,9 @@ function StatCard({
         <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
           <Icon className="size-4" />
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-2xl font-semibold tracking-tight text-foreground">{value}</p>
-          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="truncate text-xs text-muted-foreground">{label}</p>
         </div>
       </div>
     </Card>
@@ -138,7 +138,7 @@ export function OverviewPage() {
             </div>
           </Card>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
             <NextStepCard
               icon={FolderGit2}
               title="Register a Project"
@@ -164,7 +164,7 @@ export function OverviewPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
             <StatCard icon={FolderGit2} label={projects.length === 1 ? "Project" : "Projects"} value={projects.length} />
             <StatCard icon={Plug} label="Connectors Connected" value={connectedCount} />
             <StatCard icon={ListChecks} label={openCount === 1 ? "Open Task" : "Open Tasks"} value={openCount} />

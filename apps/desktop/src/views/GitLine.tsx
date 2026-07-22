@@ -105,17 +105,23 @@ export function GitLine({ projectId }: { projectId: string }) {
   const s = status;
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+    <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-xs">
       {s ? (
         <>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="inline-flex cursor-default items-center gap-1.5">
-                <GitBranch className="size-3.5 text-muted-foreground" />
-                <span className={s.dirty ? "font-mono text-warning" : "font-mono text-foreground"}>
+              <span className="inline-flex min-w-0 max-w-full cursor-default items-center gap-1.5">
+                <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+                <span
+                  className={
+                    s.dirty
+                      ? "min-w-0 truncate font-mono text-warning"
+                      : "min-w-0 truncate font-mono text-foreground"
+                  }
+                >
                   {s.branch ?? "detached"}
                 </span>
-                <ShieldCheck className="size-3.5 text-muted-foreground" />
+                <ShieldCheck className="size-3.5 shrink-0 text-muted-foreground" />
               </span>
             </TooltipTrigger>
             <TooltipContent>

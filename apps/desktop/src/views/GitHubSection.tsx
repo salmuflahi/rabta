@@ -76,14 +76,14 @@ export function GitHubSection({ projectId, onStarted }: { projectId: string; onS
       {issues?.length === 0 && <div className="mt-1 text-muted-foreground">No open issues</div>}
       {issues?.map((i) => (
         <div key={i.number} className="mt-1 flex items-center gap-2">
-          <span className="flex-1 text-foreground">
+          <span className="min-w-0 flex-1 truncate text-foreground">
             #{i.number} {i.title}
             {i.labels.length > 0 && <span className="text-muted-foreground"> · {i.labels.join(", ")}</span>}
           </span>
           <button
             onClick={() => start(i)}
             disabled={busy}
-            className="rounded border border-input px-2 py-0.5 text-foreground hover:bg-accent disabled:opacity-40"
+            className="shrink-0 rounded border border-input px-2 py-0.5 text-foreground hover:bg-accent disabled:opacity-40"
           >
             Start Task
           </button>

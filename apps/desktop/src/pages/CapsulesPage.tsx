@@ -220,9 +220,9 @@ export function CapsulesPage() {
             const tasks = tasksByProject[p.id] ?? [];
             return (
               <div key={p.id}>
-                <div className="mb-3 flex items-baseline gap-2">
-                  <h2 className="text-sm font-medium text-foreground">{p.name}</h2>
-                  <span className="text-xs text-muted-foreground">{p.defaultBranch}</span>
+                <div className="mb-3 flex min-w-0 items-baseline gap-2">
+                  <h2 className="min-w-0 truncate text-sm font-medium text-foreground">{p.name}</h2>
+                  <span className="shrink-0 text-xs text-muted-foreground">{p.defaultBranch}</span>
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -245,17 +245,17 @@ export function CapsulesPage() {
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex min-w-0 items-center gap-2">
                               <p
                                 className={
                                   t.status === "done"
-                                    ? "font-medium text-muted-foreground line-through"
-                                    : "font-medium text-foreground"
+                                    ? "min-w-0 truncate font-medium text-muted-foreground line-through"
+                                    : "min-w-0 truncate font-medium text-foreground"
                                 }
                               >
                                 {t.title}
                               </p>
-                              {isActive && <Badge>Active</Badge>}
+                              {isActive && <Badge className="shrink-0">Active</Badge>}
                             </div>
                             <CapsuleSummary resources={resources[t.id] ?? []} />
                           </div>

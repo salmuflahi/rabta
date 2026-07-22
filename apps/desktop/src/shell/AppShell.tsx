@@ -4,11 +4,11 @@ import { Titlebar } from "./Titlebar";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col overflow-x-hidden">
       <Titlebar />
-      <div className="grid min-h-0 flex-1 grid-cols-[220px_1fr]">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-[220px_1fr]">
         <Sidebar />
-        <main className="overflow-y-auto bg-background p-9">{children}</main>
+        <main className="min-w-0 overflow-y-auto overflow-x-hidden bg-background p-9">{children}</main>
       </div>
     </div>
   );

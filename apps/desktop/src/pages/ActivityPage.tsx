@@ -64,18 +64,22 @@ function LogRow({
   const Icon = iconFor(entry, icon);
 
   return (
-    <div className={`rounded-md border border-border/60 p-2 ${entry.historical ? "opacity-60" : ""}`}>
-      <div className="flex items-center gap-2">
+    <div className={`min-w-0 rounded-md border border-border/60 p-2 ${entry.historical ? "opacity-60" : ""}`}>
+      <div className="flex min-w-0 items-center gap-2">
         <Icon className="size-4 shrink-0 text-muted-foreground" />
-        <span className="flex-1 text-sm text-foreground">{sentence}</span>
-        {entry.historical && <Badge variant="secondary">Historical</Badge>}
+        <span className="min-w-0 flex-1 truncate text-sm text-foreground">{sentence}</span>
+        {entry.historical && (
+          <Badge variant="secondary" className="shrink-0">
+            Historical
+          </Badge>
+        )}
         <span className="shrink-0 text-xs text-muted-foreground">{relativeTime(entry.at)}</span>
       </div>
-      <details className="mt-1 group">
+      <details className="mt-1 group min-w-0">
         <summary className="cursor-pointer select-none text-xs text-muted-foreground hover:text-foreground">
           Details
         </summary>
-        <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded bg-muted/40 p-2 font-mono text-xs text-muted-foreground">
+        <pre className="mt-1 max-h-40 min-w-0 overflow-x-auto overflow-y-auto whitespace-pre-wrap break-all rounded bg-muted/40 p-2 font-mono text-xs text-muted-foreground">
           {JSON.stringify(entry, null, 2)}
         </pre>
       </details>

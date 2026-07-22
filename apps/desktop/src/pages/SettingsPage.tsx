@@ -72,8 +72,8 @@ function CommandSenderCard() {
   const connected = connectors.filter((c) => c.connected);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="cmd-target">Target Connector</Label>
           <Select value={target} onValueChange={setTarget}>
@@ -100,19 +100,19 @@ function CommandSenderCard() {
           />
         </div>
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex min-w-0 flex-col gap-1.5">
         <Label htmlFor="cmd-args">Args (JSON)</Label>
         <Textarea
           id="cmd-args"
           value={args}
           onChange={(e) => setArgs(e.target.value)}
-          className="min-h-[100px] font-mono text-xs"
+          className="min-h-[100px] w-full min-w-0 font-mono text-xs"
         />
       </div>
       <Button onClick={send} disabled={!target} className="self-start">
         Send Command
       </Button>
-      <pre className="min-h-[80px] max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-md border border-border bg-muted p-3 font-mono text-xs text-muted-foreground">
+      <pre className="min-h-[80px] max-h-48 min-w-0 overflow-x-auto overflow-y-auto whitespace-pre-wrap break-all rounded-md border border-border bg-muted p-3 font-mono text-xs text-muted-foreground">
         {result}
       </pre>
     </div>

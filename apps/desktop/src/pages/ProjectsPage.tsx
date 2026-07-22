@@ -144,12 +144,12 @@ export function ProjectsPage() {
             <Card key={p.id} className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-foreground font-medium">
+                  <p className="truncate text-foreground font-medium">
                     {p.name} <span className="font-normal text-muted-foreground">({p.defaultBranch})</span>
                   </p>
                   <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{p.repoPath}</p>
-                  {p.devUrl && <p className="text-xs text-muted-foreground">{p.devUrl}</p>}
-                  <p className="text-xs text-muted-foreground/70">Created {p.createdAt}</p>
+                  {p.devUrl && <p className="truncate text-xs text-muted-foreground">{p.devUrl}</p>}
+                  <p className="truncate text-xs text-muted-foreground/70">Created {p.createdAt}</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => setDeleteTarget(p)}>
                   Delete
