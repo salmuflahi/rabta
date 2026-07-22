@@ -34,6 +34,13 @@ describe("activateSummaryToResult", () => {
     expect(result.error).toBeUndefined();
   });
 
+  it("empty summary + no tools -> success, nothing to restore is not a partial failure", () => {
+    const result = activateSummaryToResult(summary({}), []);
+    expect(result.overall).toBe("success");
+    expect(result.tools).toEqual([]);
+    expect(result.error).toBeUndefined();
+  });
+
   it("some skipped -> partial, skipped tool carries no failure semantics", () => {
     const result = activateSummaryToResult(
       summary({ applied: ["vscode"], skipped: ["chrome"] }),

@@ -234,10 +234,10 @@ describe("CapsulesPage", () => {
       await waitFor(() =>
         expect(mockInvoke).toHaveBeenCalledWith("activate_task", { taskId: FAKE_TASK.id })
       );
-      // No tools applied and no issues reported still resolves (to
-      // "partial", per normalize.ts, since nothing was truthfully applied)
+      // No capsule resources and no issues reported resolves to "success"
+      // (per normalize.ts: nothing to restore is not a partial failure)
       // rather than throwing or hanging.
-      await waitFor(() => expect(screen.getByText("Workspace partially restored")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText("Workspace restored")).toBeInTheDocument());
     } finally {
       restoreMatchMedia();
     }

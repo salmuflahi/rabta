@@ -40,8 +40,12 @@ function attributedTool(error: string, tools: RestoreTool[]): RestoreTool | unde
  * - unattributed errors are joined into `RestoreResult.error` for the
  *   sheet's general/technical-details surface.
  * - overall: `failure` when nothing applied and errors are present;
- *   `success` when something applied and nothing else is off (no
- *   pending/skipped/errors/failed); `partial` otherwise.
+ *   `success` when nothing is off (no pending/skipped/errors/failed) —
+ *   this covers both "everything that could restore did" and "there was
+ *   nothing to restore at all" (zero tools / an empty summary); `partial`
+ *   when there's no hard failure but a mix (some applied plus some
+ *   skipped/pending/failed, or unattributed errors alongside applied
+ *   tools).
  */
 export function activateSummaryToResult(summary: ActivateSummary, tools: RestoreTool[]): RestoreResult {
   const appliedSet = new Set(summary.applied.map((k) => k.toLowerCase()));
@@ -86,7 +90,10 @@ export function activateSummaryToResult(summary: ActivateSummary, tools: Restore
   let overall: RestoreResult["overall"];
   if (!anyApplied && summary.errors.length > 0) {
     overall = "failure";
-  } else if (anyApplied && !anyIssue) {
+  } else if (!anyIssue) {
+    // Either everything that could restore did (anyApplied, no issues), or
+    // there was nothing to restore at all (zero tools / empty summary) —
+    // both read as "success", not "partial".
     overall = "success";
   } else {
     overall = "partial";

@@ -413,19 +413,23 @@ function RestoreOverlay({
           <RestoreHeader title={title} subtitle={subtitle} stage={stage} titleId={titleId} />
 
           <div role="status" aria-live="polite" className="mt-4">
-            {tools.map((tool, index) => {
-              const entry = statuses[tool.id] ?? { status: "waiting" as ToolRestoreStatus };
-              return (
-                <ToolRestoreRow
-                  key={tool.id}
-                  tool={tool}
-                  status={entry.status}
-                  message={entry.message}
-                  index={index}
-                  reducedMotion={reducedMotion}
-                />
-              );
-            })}
+            {tools.length === 0 ? (
+              <p className="py-2 text-sm text-muted-foreground">Nothing to restore for this task.</p>
+            ) : (
+              tools.map((tool, index) => {
+                const entry = statuses[tool.id] ?? { status: "waiting" as ToolRestoreStatus };
+                return (
+                  <ToolRestoreRow
+                    key={tool.id}
+                    tool={tool}
+                    status={entry.status}
+                    message={entry.message}
+                    index={index}
+                    reducedMotion={reducedMotion}
+                  />
+                );
+              })
+            )}
           </div>
 
           <RestoreProgress stage={stage} reducedMotion={reducedMotion} />
