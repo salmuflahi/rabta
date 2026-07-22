@@ -1,5 +1,5 @@
 use futures_util::{SinkExt, StreamExt};
-use omnibus_hub::{Hub, HubConfig};
+use rabta_hub::{Hub, HubConfig};
 use serde_json::{json, Value};
 
 async fn start_hub() -> (Hub, tempfile::TempDir) {

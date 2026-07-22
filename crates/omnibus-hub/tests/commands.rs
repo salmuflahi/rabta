@@ -1,5 +1,5 @@
 use futures_util::{SinkExt, StreamExt};
-use omnibus_hub::{CommandError, Hub, HubConfig};
+use rabta_hub::{CommandError, Hub, HubConfig};
 use serde_json::{json, Value};
 use std::time::Duration;
 

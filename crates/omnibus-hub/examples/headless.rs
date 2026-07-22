@@ -3,8 +3,8 @@
 //! print the outcome — used by the connector-sdk integration test.
 //! `--record`: persist events and connector identities to `omnibus.db` in the
 //! data dir, exactly as the desktop app does.
-use omnibus_db::{Db, DbConfig, Recorder};
-use omnibus_hub::{Hub, HubConfig, HubEvent};
+use rabta_db::{Db, DbConfig, Recorder};
+use rabta_hub::{Hub, HubConfig, HubEvent};
 use serde_json::json;
 use tokio::sync::broadcast::error::RecvError;
 

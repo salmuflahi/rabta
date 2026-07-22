@@ -121,7 +121,7 @@ importers:
 
   connectors/chrome:
     dependencies:
-      '@omnibus/protocol':
+      '@rabta/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
     devDependencies:
@@ -143,7 +143,7 @@ importers:
 
   connectors/fake:
     dependencies:
-      '@omnibus/connector-sdk':
+      '@rabta/connector-sdk':
         specifier: workspace:*
         version: link:../../packages/connector-sdk
       tsx:
@@ -159,7 +159,7 @@ importers:
 
   connectors/vscode:
     dependencies:
-      '@omnibus/connector-sdk':
+      '@rabta/connector-sdk':
         specifier: workspace:*
         version: link:../../packages/connector-sdk
     devDependencies:
@@ -181,7 +181,7 @@ importers:
 
   packages/connector-sdk:
     dependencies:
-      '@omnibus/protocol':
+      '@rabta/protocol':
         specifier: workspace:*
         version: link:../protocol
       ws:

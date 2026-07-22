@@ -4,9 +4,9 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use omnibus_db::Db;
-use omnibus_hub::protocol::ConnectorKind;
-use omnibus_hub::{ConnectorInfo, Hub, HubEvent};
+use rabta_db::Db;
+use rabta_hub::protocol::ConnectorKind;
+use rabta_hub::{ConnectorInfo, Hub, HubEvent};
 use serde::Serialize;
 use serde_json::{json, Value};
 

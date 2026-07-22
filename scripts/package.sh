@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Build all distributable artifacts into dist-artifacts/:
 #   Rabta_<ver>_<arch>.dmg    — macOS desktop app (unsigned / ad-hoc; see docs/INSTALL.md)
-#   omnibus-vscode-<ver>.vsix   — VS Code / Cursor extension
-#   omnibus-chrome-<ver>.zip    — Chrome extension (unzip → Load unpacked)
+#   rabta-vscode-<ver>.vsix   — VS Code / Cursor extension
+#   rabta-chrome-<ver>.zip    — Chrome extension (unzip → Load unpacked)
 #
 # Requires: pnpm, Rust/cargo. The .vsix step needs a Node >= 20 available
 # (vsce's deps require it); this script finds one automatically if the default
@@ -22,14 +22,14 @@ pnpm --filter desktop tauri build
 cp target/release/bundle/dmg/Rabta_*_*.dmg "$OUT"/
 
 echo "==> chrome extension zip"
-pnpm --filter omnibus-chrome build >/dev/null
-STAGE="$(mktemp -d)/omnibus-chrome"; mkdir -p "$STAGE/dist"
+pnpm --filter rabta-chrome build >/dev/null
+STAGE="$(mktemp -d)/rabta-chrome"; mkdir -p "$STAGE/dist"
 cp connectors/chrome/manifest.json connectors/chrome/popup.html "$STAGE"/
 cp connectors/chrome/dist/background.js connectors/chrome/dist/popup.js "$STAGE/dist"/
-( cd "$(dirname "$STAGE")" && zip -qr "$OUT/omnibus-chrome-$VER.zip" omnibus-chrome )
+( cd "$(dirname "$STAGE")" && zip -qr "$OUT/rabta-chrome-$VER.zip" rabta-chrome )
 
 echo "==> vscode .vsix"
-pnpm --filter omnibus-vscode build >/dev/null
+pnpm --filter rabta-vscode build >/dev/null
 node_major() { "$1" -e 'process.stdout.write(process.versions.node.split(".")[0])'; }
 NODE_BIN="$(command -v node)"
 if [ "$(node_major "$NODE_BIN")" -lt 20 ]; then
@@ -45,7 +45,7 @@ else
   TOOL="$(mktemp -d)"
   ( cd "$TOOL" && "$NODE_BIN" "$NPMCLI" install @vscode/vsce@latest >/dev/null 2>&1 )
   ( cd connectors/vscode && "$NODE_BIN" "$TOOL/node_modules/@vscode/vsce/vsce" \
-      package --no-dependencies --allow-missing-repository -o "$OUT/omnibus-vscode-$VER.vsix" )
+      package --no-dependencies --allow-missing-repository -o "$OUT/rabta-vscode-$VER.vsix" )
 fi
 
 echo "==> done. artifacts:"

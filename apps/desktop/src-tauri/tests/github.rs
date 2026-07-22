@@ -1,6 +1,6 @@
 mod common;
 
-use omnibus_desktop_lib::github::{
+use rabta_desktop_lib::github::{
     branch_name_for_issue, no_github_remote_message, owner_repo_from_remote, parse_issues,
     remote_display_host, remote_lookup_error_message,
 };
@@ -146,8 +146,8 @@ async fn generated_branch_names_pass_git_ref_format() {
 }
 
 use common::repo_with_commit;
-use omnibus_db::{Db, DbConfig, NewProject};
-use omnibus_desktop_lib::github::start_issue_task;
+use rabta_db::{Db, DbConfig, NewProject};
+use rabta_desktop_lib::github::start_issue_task;
 
 async fn project_at(db: &Db, repo: &std::path::Path) -> String {
     db.create_project(NewProject {
@@ -174,7 +174,7 @@ async fn start_issue_task_creates_task_and_branch() {
     assert_eq!(tasks.len(), 1);
     // branch switched
     assert_eq!(
-        omnibus_desktop_lib::git::status(repo.path()).await.unwrap().branch.as_deref(),
+        rabta_desktop_lib::git::status(repo.path()).await.unwrap().branch.as_deref(),
         Some("issue-42-fix-login-bug")
     );
 }

@@ -2,9 +2,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::{SinkExt, StreamExt};
-use omnibus_db::{Db, DbConfig, NewProject, NewTask};
-use omnibus_desktop_lib::capsules::Capsules;
-use omnibus_hub::{Hub, HubConfig};
+use rabta_db::{Db, DbConfig, NewProject, NewTask};
+use rabta_desktop_lib::capsules::Capsules;
+use rabta_hub::{Hub, HubConfig};
 use serde_json::{json, Value};
 use tokio::sync::mpsc;
 
@@ -351,14 +351,14 @@ async fn mid_settle_activation_supersedes_pending() {
 
 async fn project_with_repo(db: &Db, repo: &std::path::Path) -> String {
     let p = db
-        .create_project(omnibus_db::NewProject {
+        .create_project(rabta_db::NewProject {
             name: format!("git-proj-{}", repo.display()),
             repo_path: repo.to_str().unwrap().to_string(),
             dev_url: None,
             default_branch: "main".into(),
         })
         .unwrap();
-    db.create_task(omnibus_db::NewTask { project_id: p.id, title: "git task".into() }).unwrap().id
+    db.create_task(rabta_db::NewTask { project_id: p.id, title: "git task".into() }).unwrap().id
 }
 
 #[tokio::test]
@@ -390,7 +390,7 @@ async fn activate_restores_branch_on_clean_tree() {
     let summary = capsules.activate_task(&task).await.unwrap();
     assert!(summary.applied.contains(&"git".to_string()), "got {summary:?}");
     assert_eq!(
-        omnibus_desktop_lib::git::status(repo.path()).await.unwrap().branch.as_deref(),
+        rabta_desktop_lib::git::status(repo.path()).await.unwrap().branch.as_deref(),
         Some("main")
     );
 }
@@ -422,7 +422,7 @@ async fn activate_refuses_branch_switch_on_dirty_tree() {
         "editor restore must proceed despite git refusal: got {summary:?}"
     );
     assert_eq!(
-        omnibus_desktop_lib::git::status(repo.path()).await.unwrap().branch.as_deref(),
+        rabta_desktop_lib::git::status(repo.path()).await.unwrap().branch.as_deref(),
         Some("elsewhere"),
         "branch unchanged"
     );

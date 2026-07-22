@@ -1,11 +1,11 @@
-use omnibus_db::{Db, DbConfig, NewProject, NewTask, NewTaskResource, TaskStatus};
+use rabta_db::{Db, DbConfig, NewProject, NewTask, NewTaskResource, TaskStatus};
 use serde_json::json;
 
 fn db() -> Db {
     Db::open_in_memory(DbConfig::default()).unwrap()
 }
 
-fn a_project(db: &Db, name: &str) -> omnibus_db::Project {
+fn a_project(db: &Db, name: &str) -> rabta_db::Project {
     db.create_project(NewProject {
         name: name.into(),
         repo_path: "/tmp/repo".into(),

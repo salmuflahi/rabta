@@ -1,4 +1,4 @@
-use omnibus_db::{Db, DbConfig};
+use rabta_db::{Db, DbConfig};
 use serde_json::json;
 
 fn db() -> Db {

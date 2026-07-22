@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import WebSocket from "ws";
-import { Envelope, PROTOCOL_VERSION } from "@omnibus/protocol";
+import { Envelope, PROTOCOL_VERSION } from "@rabta/protocol";
 
 export interface ConnectOptions {
   name: string;

@@ -1,5 +1,5 @@
 [package]
-name = "omnibus-db"
+name = "rabta-db"
 version = "0.1.0"
 edition = "2021"
 
@@ -14,7 +14,7 @@ log = "0.4"
 
 [dev-dependencies]
 tempfile = "3"
-omnibus-hub = { path = "../omnibus-hub" }
+rabta-hub = { path = "../omnibus-hub" }
 tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = "0.24"
 futures-util = "0.3"

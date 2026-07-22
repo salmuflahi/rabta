@@ -11,8 +11,8 @@ This produces (for this machine's architecture):
 | Artifact | What it is |
 |---|---|
 | `Rabta_0.1.0_aarch64.dmg` | the desktop app |
-| `omnibus-vscode-0.1.0.vsix` | the VS Code / Cursor connector |
-| `omnibus-chrome-0.1.0.zip` | the Chrome connector |
+| `rabta-vscode-0.1.0.vsix` | the VS Code / Cursor connector |
+| `rabta-chrome-0.1.0.zip` | the Chrome connector |
 
 > **These builds are unsigned.** Rabta is not (yet) code-signed with an Apple Developer certificate, published to the Chrome Web Store, or listed on the VS Code Marketplace. Everything below is a local/sideload install, so each step has a "first-run trust" gesture. See **Signed distribution** at the end for what that would take.
 
@@ -30,8 +30,8 @@ This produces (for this machine's architecture):
 Install into your editor:
 
 ```sh
-code   --install-extension dist-artifacts/omnibus-vscode-0.1.0.vsix   # VS Code
-cursor --install-extension dist-artifacts/omnibus-vscode-0.1.0.vsix   # Cursor
+code   --install-extension dist-artifacts/rabta-vscode-0.1.0.vsix   # VS Code
+cursor --install-extension dist-artifacts/rabta-vscode-0.1.0.vsix   # Cursor
 ```
 
 Or in the editor UI: Extensions panel → `⋯` → **Install from VSIX…**. Reload the window. On the next start it activates automatically, reads the hub's per-run secret from the discovery file, and appears as a `vscode` connector in Rabta's **Debug** tab. It never blocks editor startup, even when Rabta isn't running.
@@ -40,8 +40,8 @@ Or in the editor UI: Extensions panel → `⋯` → **Install from VSIX…**. Re
 
 Chrome can't read the hub's discovery file, so it pairs interactively — you approve it once.
 
-1. Unzip `omnibus-chrome-0.1.0.zip` somewhere stable (the extension loads from this folder, so don't delete it).
-2. `chrome://extensions` → enable **Developer mode** (top-right) → **Load unpacked** → select the unzipped `omnibus-chrome` folder.
+1. Unzip `rabta-chrome-0.1.0.zip` somewhere stable (the extension loads from this folder, so don't delete it).
+2. `chrome://extensions` → enable **Developer mode** (top-right) → **Load unpacked** → select the unzipped `rabta-chrome` folder.
 3. With Rabta running, the extension sends a pairing request → an **approve/deny banner** appears in the Rabta window → **approve**. It reconnects as a `chrome` connector and remembers its token across restarts.
    - If Rabta bound a port other than the default `17872` (rare — only if 17872 was taken), the app header shows the real port; enter it in the extension's popup.
 

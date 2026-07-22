@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { connect, type Connector } from "@omnibus/connector-sdk";
+import { connect, type Connector } from "@rabta/connector-sdk";
 import {
   filePathOf,
   snapshotWorkspace,

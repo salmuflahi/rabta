@@ -1,7 +1,7 @@
 mod common;
 
 use common::{git, repo_with_commit};
-use omnibus_desktop_lib::git::{branches, checkout, create_branch, fetch, status, validate_branch_name};
+use rabta_desktop_lib::git::{branches, checkout, create_branch, fetch, status, validate_branch_name};
 
 #[tokio::test]
 async fn status_reports_clean_branch() {

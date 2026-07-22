@@ -1,5 +1,5 @@
-use omnibus_db::{Db, DbConfig};
-use omnibus_desktop_lib::projects::{inspect_repo_path, validate_and_create};
+use rabta_db::{Db, DbConfig};
+use rabta_desktop_lib::projects::{inspect_repo_path, validate_and_create};
 use std::fs;
 
 /// Creates a directory that looks like a git clone: `.git/` with a HEAD file.

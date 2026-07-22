@@ -1,4 +1,4 @@
-import { connect } from "@omnibus/connector-sdk";
+import { connect } from "@rabta/connector-sdk";
 import { createWorkspace } from "./state";
 
 const chatty = process.argv.includes("--chatty");

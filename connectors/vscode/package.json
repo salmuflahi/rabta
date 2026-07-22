@@ -1,5 +1,5 @@
 {
-  "name": "omnibus-vscode",
+  "name": "rabta-vscode",
   "displayName": "OmniBus Connector",
   "description": "Connects this editor to the local OmniBus hub.",
   "version": "0.1.0",
@@ -15,7 +15,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@omnibus/connector-sdk": "workspace:*"
+    "@rabta/connector-sdk": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

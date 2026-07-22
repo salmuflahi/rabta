@@ -2,8 +2,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use omnibus_db::{Db, DbConfig, EventRow, KnownConnector, NewTask, Project, Recorder, Task, TaskResource, TaskStatus};
-use omnibus_hub::{ConnectorInfo, Hub, HubConfig};
+use rabta_db::{Db, DbConfig, EventRow, KnownConnector, NewTask, Project, Recorder, Task, TaskResource, TaskStatus};
+use rabta_hub::{ConnectorInfo, Hub, HubConfig};
 use serde::Serialize;
 use serde_json::Value;
 use tauri::{Emitter, Manager, State};

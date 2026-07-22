@@ -3,7 +3,7 @@
 //! (safe git ops) absorbs this helper when real git operations arrive.
 use std::path::Path;
 
-use omnibus_db::{Db, DbError, NewProject, Project};
+use rabta_db::{Db, DbError, NewProject, Project};
 use serde::Serialize;
 
 /// What a candidate repository path looks like on disk.

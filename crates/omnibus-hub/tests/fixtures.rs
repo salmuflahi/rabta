@@ -1,4 +1,4 @@
-use omnibus_hub::protocol::Envelope;
+use rabta_hub::protocol::Envelope;
 use serde_json::Value;
 
 /// Every shared fixture must deserialize into our types and serialize back

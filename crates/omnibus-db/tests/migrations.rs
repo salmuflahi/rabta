@@ -1,4 +1,4 @@
-use omnibus_db::{Db, DbConfig};
+use rabta_db::{Db, DbConfig};
 
 #[test]
 fn migrates_fresh_database_and_is_idempotent() {

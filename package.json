@@ -1,5 +1,5 @@
 {
-  "name": "omnibus",
+  "name": "rabta",
   "private": true,
   "scripts": {
     "test": "pnpm -r --if-present test",

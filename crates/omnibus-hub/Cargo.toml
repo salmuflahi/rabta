@@ -1,5 +1,5 @@
 [package]
-name = "omnibus-hub"
+name = "rabta-hub"
 version = "0.1.0"
 edition = "2021"
 
@@ -16,4 +16,4 @@ log = "0.4"
 [dev-dependencies]
 tempfile = "3"
 dirs = "5"
-omnibus-db = { path = "../omnibus-db" }
+rabta-db = { path = "../omnibus-db" }

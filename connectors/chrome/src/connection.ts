@@ -1,4 +1,4 @@
-import { Envelope, PROTOCOL_VERSION } from "@omnibus/protocol";
+import { Envelope, PROTOCOL_VERSION } from "@rabta/protocol";
 
 /** The subset of WebSocket the connection uses; injectable for tests. */
 export interface SocketLike {

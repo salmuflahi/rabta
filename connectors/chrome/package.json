@@ -1,5 +1,5 @@
 {
-  "name": "omnibus-chrome",
+  "name": "rabta-chrome",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@omnibus/protocol": "workspace:*"
+    "@rabta/protocol": "workspace:*"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.270",

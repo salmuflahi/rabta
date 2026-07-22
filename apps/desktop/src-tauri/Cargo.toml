@@ -1,18 +1,18 @@
 [package]
-name = "omnibus-desktop"
+name = "rabta-desktop"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "omnibus_desktop_lib"
+name = "rabta_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-omnibus-hub = { path = "../../../crates/omnibus-hub" }
-omnibus-db = { path = "../../../crates/omnibus-db" }
+rabta-hub = { path = "../../../crates/omnibus-hub" }
+rabta-db = { path = "../../../crates/omnibus-db" }
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

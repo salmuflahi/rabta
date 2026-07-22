@@ -7,7 +7,7 @@ use std::process::Stdio;
 use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 
-use omnibus_db::{Db, NewTask};
+use rabta_db::{Db, NewTask};
 
 /// An open issue as shown in the UI.
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -198,7 +198,7 @@ pub async fn issues(repo_path: &Path) -> Result<Vec<Issue>, String> {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StartedTask {
-    pub task: omnibus_db::Task,
+    pub task: rabta_db::Task,
     pub branch: String,
     pub branch_note: String,
 }

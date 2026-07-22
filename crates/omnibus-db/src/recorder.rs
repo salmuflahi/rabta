@@ -1,5 +1,5 @@
 //! Bridges serialized `HubEvent`s into the database. Deliberately consumes
-//! JSON (the UI's wire shape) rather than `omnibus_hub` types, so this crate
+//! JSON (the UI's wire shape) rather than `rabta_hub` types, so this crate
 //! never depends on the hub.
 use std::collections::HashMap;
 

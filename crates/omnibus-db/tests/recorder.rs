@@ -1,6 +1,6 @@
 use futures_util::{SinkExt, StreamExt};
-use omnibus_db::{Db, DbConfig, Recorder};
-use omnibus_hub::{Hub, HubConfig};
+use rabta_db::{Db, DbConfig, Recorder};
+use rabta_hub::{Hub, HubConfig};
 use serde_json::{json, Value};
 use std::time::Duration;
 
