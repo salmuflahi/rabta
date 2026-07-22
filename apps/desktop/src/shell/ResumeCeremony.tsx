@@ -213,7 +213,13 @@ export function useResumeCeremony(opts: {
 
   const scheduledWait = useCallback((ms: number) => {
     return new Promise<void>((resolve) => {
-      const id = setTimeout(resolve, ms);
+      const id = setTimeout(() => {
+        // Prune self from the teardown list once fired — nothing left to
+        // clear, and it keeps timersRef from accumulating stale ids across
+        // a ceremony's several waits.
+        timersRef.current = timersRef.current.filter((t) => t !== id);
+        resolve();
+      }, ms);
       timersRef.current.push(id);
     });
   }, []);
@@ -273,10 +279,19 @@ export function useResumeCeremony(opts: {
         // overlay proceeds to unfold/done and the real result (whenever it
         // eventually arrives) is awaited again just before firing
         // onComplete/onError below.
-        const raceResult = await Promise.race<Settled | "pending">([
-          settleP,
-          scheduledWait(MAX_RESTORE_MS).then((): "pending" => "pending"),
-        ]);
+        let capTimerId: ReturnType<typeof setTimeout> | undefined;
+        const capPromise = new Promise<"pending">((resolve) => {
+          capTimerId = setTimeout(() => resolve("pending"), MAX_RESTORE_MS);
+          timersRef.current.push(capTimerId);
+        });
+        const raceResult = await Promise.race<Settled | "pending">([settleP, capPromise]);
+        // The cap timer is no longer needed once the race settles, whichever
+        // side won — clear it so it doesn't linger (harmless if it already
+        // fired, since clearTimeout on a fired id is a no-op).
+        if (capTimerId !== undefined) {
+          clearTimeout(capTimerId);
+          timersRef.current = timersRef.current.filter((t) => t !== capTimerId);
+        }
         if (isCancelled()) return;
 
         const elapsed = Date.now() - restoringStart;
@@ -311,15 +326,14 @@ export function useResumeCeremony(opts: {
 
         const final: Settled = raceResult !== "pending" ? raceResult : await settleP;
         if (final.ok) {
-          if (final.summary.errors.length > 0) {
-            // Errors present in an otherwise-resolved summary are treated as
-            // the error branch too (per the ceremony spec): still surface
-            // via onError, passing the summary through (not stringified) so
-            // the caller retains applied/pending/skipped context.
-            onErrorRef.current(final.summary);
-          } else {
-            onCompleteRef.current(final.summary);
-          }
+          // A resolved `activate_task` always completes — even when
+          // `summary.errors` is non-empty. That matches today's behavior
+          // (the page's `toastActivation` already surfaces errors as a
+          // "Resumed with notes" toast with full applied/pending/skipped
+          // detail) and this hook's own reduced-motion branch, which never
+          // treated a resolved-with-errors summary as an error. `onError`
+          // is reserved for when the invoke promise itself rejects/throws.
+          onCompleteRef.current(final.summary);
         } else {
           onErrorRef.current(final.error);
         }

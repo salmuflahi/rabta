@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
@@ -104,5 +104,64 @@ describe("useResumeCeremony", () => {
     await waitFor(() => expect(onError).toHaveBeenCalledWith(boom), { timeout: 3000 });
     expect(onComplete).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByText("Resuming Fix login")).not.toBeInTheDocument());
+  });
+
+  it("resolved-with-errors: onComplete fires (not onError) with the full summary", async () => {
+    stubMatchMedia(false);
+    // A resolved `activate_task` whose summary carries non-empty `errors`
+    // (e.g. a connector wobble) still resolved successfully — that always
+    // routes to onComplete so the page's toastActivation can surface the
+    // "Resumed with notes" toast with full applied/pending/skipped/errors
+    // detail. onError is reserved for a rejected/thrown invoke promise.
+    const summary: ActivateSummary = {
+      applied: ["git"],
+      pending: [],
+      skipped: ["vscode"],
+      savedPrevious: null,
+      errors: ["chrome: connector timed out"],
+    };
+    mockInvoke.mockResolvedValueOnce(summary);
+
+    const onComplete = vi.fn();
+    const onError = vi.fn();
+    renderWithProviders(<Harness onComplete={onComplete} onError={onError} />);
+
+    expect(await screen.findByText("Resuming Fix login")).toBeInTheDocument();
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledWith(summary), { timeout: 3000 });
+    expect(onError).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByText("Resuming Fix login")).not.toBeInTheDocument());
+  });
+
+  it("hang/cap: a never-resolving invoke still tears the overlay down after MAX_RESTORE_MS", async () => {
+    vi.useFakeTimers();
+    try {
+      stubMatchMedia(false);
+      // Never resolves/rejects — simulates a hung `activate_task`.
+      mockInvoke.mockReturnValueOnce(new Promise<ActivateSummary>(() => {}));
+
+      const onComplete = vi.fn();
+      const onError = vi.fn();
+      renderWithProviders(<Harness onComplete={onComplete} onError={onError} />);
+
+      // Drain the ceremony's full sequence of internal timers (fold, the
+      // MAX_RESTORE_MS cap race, the restore-min top-up, unfold, fade) in
+      // small steps, flushing microtasks between each so chained promises
+      // (the `Promise.race`, `.then`s) actually settle.
+      for (let i = 0; i < 20; i++) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(1000);
+        });
+      }
+
+      // The overlay tears itself down (phase -> idle) even though the
+      // underlying invoke never settled — it never freezes the UI. Neither
+      // callback fires because the real result never arrives.
+      expect(screen.queryByText(/Resuming/)).not.toBeInTheDocument();
+      expect(onComplete).not.toHaveBeenCalled();
+      expect(onError).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

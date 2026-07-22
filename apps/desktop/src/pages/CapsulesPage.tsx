@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Box, Code2, GitBranch, Globe, Layers, Terminal } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,15 +17,8 @@ import { Input } from "@/components/ui/input";
 import { humanizeCapsule } from "@/lib/humanize";
 import { toastActivation, toastErr, toastOk } from "@/lib/toast";
 import { PageHeader } from "@/shell/PageHeader";
+import { useResumeCeremony, type ActivateSummary } from "@/shell/ResumeCeremony";
 import { useStore, type Project, type Task, type TaskResource } from "@/store";
-
-interface ActivateSummary {
-  applied: string[];
-  pending: string[];
-  skipped: string[];
-  savedPrevious: string | null;
-  errors: string[];
-}
 
 interface SaveSummary {
   captured: string[];
@@ -77,13 +70,18 @@ export function CapsulesPage() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   // In-flight affordance only (the result of an action is a toast, not
-  // inline text): which task is mid-activate or mid-save, so its button can
-  // read "Resuming…" / "Saving…" while busy.
-  const [pendingAction, setPendingAction] = useState<{ taskId: string; kind: "activate" | "save" } | null>(null);
+  // inline text): which task is mid-save, so its button can read "Saving…"
+  // while busy. Resume's in-flight state now lives entirely in the ceremony
+  // overlay (see `useResumeCeremony` below), not here.
+  const [pendingAction, setPendingAction] = useState<{ taskId: string; kind: "save" } | null>(null);
   // Guards against double-click re-entrancy: the backend serializes
   // activation/save, but the UI should still reflect an op in flight rather
   // than let the user queue up duplicate clicks.
   const [busy, setBusy] = useState(false);
+  // The id of the task passed to the ceremony's `start`, captured so
+  // `onComplete` (which only receives the ActivateSummary, not the task id)
+  // can still call `setActiveTaskId` for the right task.
+  const lastResumedIdRef = useRef<string | null>(null);
 
   const refresh = async () => {
     try {
@@ -133,24 +131,28 @@ export function CapsulesPage() {
     }
   }
 
-  async function activate(id: string) {
-    setBusy(true);
-    setPendingAction({ taskId: id, kind: "activate" });
-    try {
-      const s = await invoke<ActivateSummary>("activate_task", { taskId: id });
-      setActiveTaskId(id);
-      toastActivation(s);
+  // The signature Resume ceremony owns the `activate_task` invoke itself
+  // (fold -> restore -> unfold, gated on the real result); this page only
+  // supplies the post-activate side effects, unchanged from before.
+  const { start: startResume, overlay: resumeOverlay, active: resumeActive } = useResumeCeremony({
+    onComplete: (summary) => {
+      const id = lastResumedIdRef.current;
+      if (id) setActiveTaskId(id);
+      toastActivation(summary);
       // Activation may have auto-saved the previously-active task, which can
       // live in a different project — bump the global nonce so this page
       // refetches and no card shows a stale capsule summary.
       bumpActivation();
-      await refresh();
-    } catch (e) {
+      refresh();
+    },
+    onError: (e) => {
       toastErr(e);
-    } finally {
-      setBusy(false);
-      setPendingAction(null);
-    }
+    },
+  });
+
+  function resume(t: Task) {
+    lastResumedIdRef.current = t.id;
+    startResume({ id: t.id, title: t.title });
   }
 
   async function save(id: string) {
@@ -205,6 +207,7 @@ export function CapsulesPage() {
 
   return (
     <div>
+      {resumeOverlay}
       <PageHeader eyebrow="TASKS" title="Capsules" subtitle={subtitle} />
 
       {projects.length === 0 ? (
@@ -263,12 +266,10 @@ export function CapsulesPage() {
                             <Button
                               size="sm"
                               className="transition-transform hover:-translate-y-px"
-                              onClick={() => activate(t.id)}
-                              disabled={busy}
+                              onClick={() => resume(t)}
+                              disabled={busy || resumeActive}
                             >
-                              {pendingAction?.taskId === t.id && pendingAction.kind === "activate"
-                                ? "Resuming…"
-                                : "Resume"}
+                              Resume
                             </Button>
                             <Button size="sm" variant="outline" onClick={() => save(t.id)} disabled={busy}>
                               {pendingAction?.taskId === t.id && pendingAction.kind === "save"
