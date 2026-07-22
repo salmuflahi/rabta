@@ -207,7 +207,12 @@ function RestoreProgress({ stage, reducedMotion }: { stage: RestoreStage; reduce
           style={{ width: "100%", transition: `background-color ${reducedMotion ? REDUCED_MS : 160}ms ${RESTORE_SHEET_EASE}` }}
         />
       ) : reducedMotion ? (
-        <div className="h-full w-2/5 rounded-full bg-primary/70" />
+        // Reduced-motion indeterminate: a neutral full-width track with a
+        // gentle opacity-only pulse — never a fixed partial fill, which
+        // could be misread as measured (and stalled) progress. No
+        // width/transform movement, no percentage. Completes to the
+        // resolved (tangerine) branch above exactly as full-motion does.
+        <div className="h-full w-full rounded-full bg-muted-foreground/50 animate-restore-pulse" />
       ) : (
         <div className="absolute inset-y-0 w-1/3 animate-restore-shimmer rounded-full bg-primary/80" />
       )}

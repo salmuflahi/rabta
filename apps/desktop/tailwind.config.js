@@ -44,11 +44,17 @@ export default {
         // (no fabricated percentages). See RestoreProgress in
         // src/restore/RestoreExperience.tsx.
         "restore-shimmer": { "0%": { transform: "translateX(-100%)" }, "100%": { transform: "translateX(220%)" } },
+        // Restore Experience's reduced-motion PATH-B indeterminate progress —
+        // a neutral full-width track with a gentle opacity-only pulse (no
+        // width/transform movement, no fabricated percentage). See
+        // RestoreProgress in src/restore/RestoreExperience.tsx.
+        "restore-pulse": { "0%, 100%": { opacity: "0.35" }, "50%": { opacity: "0.6" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "restore-shimmer": "restore-shimmer 1.1s ease-in-out infinite",
+        "restore-pulse": "restore-pulse 1.8s ease-in-out infinite",
       },
       transitionTimingFunction: { brand: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
     },

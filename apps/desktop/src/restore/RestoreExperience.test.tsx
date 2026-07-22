@@ -128,4 +128,50 @@ describe("useRestore / RestoreExperience", () => {
     expect(screen.getByText("On next reload")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "View details" })).toBeInTheDocument();
   });
+
+  it("PATH-B (no emit): rows stay Waiting through the restoring stage, finals reveal only on resolve", async () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+
+    let resolveRun!: (result: RestoreResult) => void;
+    const run = vi.fn(
+      () =>
+        new Promise<RestoreResult>((resolve) => {
+          resolveRun = resolve;
+        })
+    );
+
+    renderWithProviders(<Harness run={run} />);
+    expect(run).toHaveBeenCalledTimes(1);
+
+    // Advance well past the sheet-open delay (SHEET_DELAY_MS + SHEET_MS =
+    // 250ms) so the stage is definitely "restoring" — the `run` promise
+    // above never resolves on its own, so nothing else can advance it.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    // No `emit` has ever been called: every row must still read "Waiting" —
+    // never a per-tool "Restoring…", never a premature "Restored".
+    expect(screen.getAllByText("Waiting")).toHaveLength(TOOLS.length);
+    expect(screen.queryByText("Restoring…")).not.toBeInTheDocument();
+    expect(screen.queryByText("Restored")).not.toBeInTheDocument();
+
+    // Now resolve — truthful finals should reveal via the staggered
+    // (35-50ms) reveal path, since nothing was emitted during the run.
+    const result: RestoreResult = {
+      overall: "success",
+      tools: [
+        { id: "vscode-1", status: "applied" },
+        { id: "chrome-1", status: "applied" },
+      ],
+    };
+    await act(async () => {
+      resolveRun(result);
+    });
+
+    await advanceUntil(() => screen.queryAllByText("Restored").length === TOOLS.length);
+    expect(screen.getAllByText("Restored")).toHaveLength(TOOLS.length);
+    expect(screen.queryByText("Waiting")).not.toBeInTheDocument();
+  });
 });
