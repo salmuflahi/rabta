@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "OmniBus",
+  "productName": "Rabta",
   "version": "0.1.0",
   "identifier": "com.omnibus.dev",
   "build": {
@@ -10,7 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [{ "title": "OmniBus", "width": 1100, "height": 700 }],
+    "windows": [{ "title": "Rabta", "width": 1100, "height": 700 }],
     "security": { "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'" }
   },
   "bundle": {
@@ -25,6 +25,6 @@
     ],
     "category": "DeveloperTool",
     "shortDescription": "Local-first shared brain for dev tools",
-    "longDescription": "OmniBus captures the state of a task across your editor, browser, terminal, and git, and restores it on demand. Local-first; no cloud, no telemetry."
+    "longDescription": "Rabta captures the state of a task across your editor, browser, terminal, and git, and restores it on demand. Local-first; no cloud, no telemetry."
   }
 }

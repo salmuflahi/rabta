@@ -1,10 +1,10 @@
-# OmniBus
+# Rabta (formerly OmniBus)
 
 **A local-first desktop platform that acts as a shared "brain" for your dev tools.**
 
-You work in tasks, not apps. Editors, browsers, terminals, and git connect once to a local hub; OmniBus captures the state of a task across all of them and restores it on demand. Switch tasks and your workspace — files, folder, terminals, git branch, browser tabs — comes back exactly as you left it. No cloud, no telemetry, no account. "USB-C for dev tools": every app connects once, then talks to every other app through OmniBus.
+You work in tasks, not apps. Editors, browsers, terminals, and git connect once to a local hub; Rabta captures the state of a task across all of them and restores it on demand. Switch tasks and your workspace — files, folder, terminals, git branch, browser tabs — comes back exactly as you left it. No cloud, no telemetry, no account. "USB-C for dev tools": every app connects once, then talks to every other app through Rabta.
 
-> **Status:** all eleven roadmap phases are built and merged; the full task-switching loop works end to end. macOS is the only tested platform. Runs from source (not yet packaged/signed for distribution). "OmniBus" is a working name. See [`docs/vision.md`](./docs/vision.md) for the original project vision.
+> **Status:** all eleven roadmap phases are built and merged; the full task-switching loop works end to end. macOS is the only tested platform. Runs from source (not yet packaged/signed for distribution). See [`docs/vision.md`](./docs/vision.md) for the original project vision.
 
 ---
 
@@ -19,7 +19,7 @@ You work in tasks, not apps. Editors, browsers, terminals, and git connect once 
         └──────────┬─────────┴───────────────┴──────┬───────┴───────────┘
                    │                                 │
           ┌────────┴─────────────────────────────────┴────────┐
-          │                OmniBus Desktop (Tauri)             │
+          │                Rabta Desktop (Tauri)               │
           │  ┌───────┐   authenticated    ┌────────────────┐   │
           │  │  Hub  │◄── local WS ───────│ connectors     │   │
           │  └───┬───┘   127.0.0.1 only   └────────────────┘   │
@@ -36,14 +36,14 @@ You work in tasks, not apps. Editors, browsers, terminals, and git connect once 
 ```
 
 - **Tasks & capsules.** A task remembers the state of the tools you've connected to it — open files, workspace folder, terminal cwds, git branch, browser tab URLs. Save it, switch away, come back: it all restores. Switching tasks auto-saves the outgoing one.
-- **One hub, one protocol.** Every connector speaks the same JSON-over-WebSocket protocol to a local hub bound to `127.0.0.1` only. Apps never talk to each other directly — everything flows through OmniBus and is visible in the Debug activity log.
+- **One hub, one protocol.** Every connector speaks the same JSON-over-WebSocket protocol to a local hub bound to `127.0.0.1` only. Apps never talk to each other directly — everything flows through Rabta and is visible in the Debug activity log.
 - **Authenticated.** Native connectors read a per-run secret from a `0600` discovery file automatically; a browser (which can't read files) pairs through an in-app approve/deny banner and gets a persistent token. Random web pages are rejected at the WebSocket handshake.
-- **Safe git.** Status, fetch, checkout, and branch creation — but OmniBus *never* force-checkouts, resets, stashes, or discards. A checkout onto a dirty tree is refused with a message, never forced.
-- **GitHub, no credential stored.** Reads issues and starts a task+branch from one — through your own authenticated `gh` CLI. OmniBus never sees or stores a GitHub token.
+- **Safe git.** Status, fetch, checkout, and branch creation — but Rabta *never* force-checkouts, resets, stashes, or discards. A checkout onto a dirty tree is refused with a message, never forced.
+- **GitHub, no credential stored.** Reads issues and starts a task+branch from one — through your own authenticated `gh` CLI. Rabta never sees or stores a GitHub token.
 
 ## Privacy & security posture
 
-This is load-bearing, not a footnote — the whole value proposition depends on trust. OmniBus stores **only the metadata needed to restore a task**:
+This is load-bearing, not a footnote — the whole value proposition depends on trust. Rabta stores **only the metadata needed to restore a task**:
 
 - **Stored:** workspace folder + open-file *paths*, terminal cwds, git *branch name*, browser tab *URLs* (http/https, non-incognito only), and per-connector pairing tokens (random UUIDs).
 - **Never touched:** file *contents*, terminal *output*, keystrokes, clipboard, page contents, cookies, browser history, passwords, or any GitHub credential. The Chrome extension requests only `tabs` + `storage` — it is *structurally incapable* of reading page content (no host permissions, no content scripts).
@@ -92,7 +92,7 @@ Prerequisites: **Node + pnpm**, **Rust + cargo**, and (for the git/GitHub featur
 pnpm install                       # workspace deps
 cargo build                        # hub + desktop shell (compiles bundled SQLite once — slow first time)
 
-# run the desktop app (opens the OmniBus window; the hub starts with it):
+# run the desktop app (opens the Rabta window; the hub starts with it):
 pnpm --filter desktop tauri dev
 
 # build the connectors you want to use:
@@ -124,7 +124,7 @@ cargo run -p omnibus-hub --example headless          # prints HubEvents as JSON 
 
 1. **Register a project** (Projects tab): paste a repo path — the default branch prefills from `.git/HEAD` — name it, **register**.
 2. **Connect an editor** (`cursor --extensionDevelopmentPath=…`) → it appears green in the **Debug** tab. Open a couple files.
-3. **Connect Chrome** (`--load-extension`) → an **approve/deny pairing banner** appears in OmniBus → approve → it reconnects green. Open a couple tabs.
+3. **Connect Chrome** (`--load-extension`) → an **approve/deny pairing banner** appears in Rabta → approve → it reconnects green. Open a couple tabs.
 4. **Save state** on a task → the summary shows `vscode: N files · chrome: M tabs · git: <branch>`.
 5. **Switch:** close the files/tabs, activate another task, then activate the first again → files reopen, tabs return, branch restored. That restore is the product.
 6. **Safe git** on the project row: `fetch`, switch branches (refused on a dirty tree), create a branch — and capsules restore the branch too.

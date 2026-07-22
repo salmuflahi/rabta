@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build all distributable artifacts into dist-artifacts/:
-#   OmniBus_<ver>_<arch>.dmg    — macOS desktop app (unsigned / ad-hoc; see docs/INSTALL.md)
+#   Rabta_<ver>_<arch>.dmg    — macOS desktop app (unsigned / ad-hoc; see docs/INSTALL.md)
 #   omnibus-vscode-<ver>.vsix   — VS Code / Cursor extension
 #   omnibus-chrome-<ver>.zip    — Chrome extension (unzip → Load unpacked)
 #
@@ -19,7 +19,7 @@ pnpm install --frozen-lockfile >/dev/null
 
 echo "==> desktop .app / .dmg (release build — slow first time)"
 pnpm --filter desktop tauri build
-cp target/release/bundle/dmg/OmniBus_*_*.dmg "$OUT"/
+cp target/release/bundle/dmg/Rabta_*_*.dmg "$OUT"/
 
 echo "==> chrome extension zip"
 pnpm --filter omnibus-chrome build >/dev/null

@@ -1,6 +1,6 @@
-# Installing OmniBus
+# Installing Rabta
 
-OmniBus ships as three artifacts: the desktop app, and one extension per browser/editor you want to connect. Build them all with one command, then install each.
+Rabta ships as three artifacts: the desktop app, and one extension per browser/editor you want to connect. Build them all with one command, then install each.
 
 ```sh
 ./scripts/package.sh        # → dist-artifacts/
@@ -10,20 +10,20 @@ This produces (for this machine's architecture):
 
 | Artifact | What it is |
 |---|---|
-| `OmniBus_0.1.0_aarch64.dmg` | the desktop app |
+| `Rabta_0.1.0_aarch64.dmg` | the desktop app |
 | `omnibus-vscode-0.1.0.vsix` | the VS Code / Cursor connector |
 | `omnibus-chrome-0.1.0.zip` | the Chrome connector |
 
-> **These builds are unsigned.** OmniBus is not (yet) code-signed with an Apple Developer certificate, published to the Chrome Web Store, or listed on the VS Code Marketplace. Everything below is a local/sideload install, so each step has a "first-run trust" gesture. See **Signed distribution** at the end for what that would take.
+> **These builds are unsigned.** Rabta is not (yet) code-signed with an Apple Developer certificate, published to the Chrome Web Store, or listed on the VS Code Marketplace. Everything below is a local/sideload install, so each step has a "first-run trust" gesture. See **Signed distribution** at the end for what that would take.
 
 ---
 
 ## 1. Desktop app (`.dmg`)
 
-1. Open `OmniBus_0.1.0_aarch64.dmg` and drag **OmniBus** to Applications.
+1. Open `Rabta_0.1.0_aarch64.dmg` and drag **Rabta** to Applications.
 2. First launch: macOS Gatekeeper blocks unsigned apps. **Right-click the app → Open → Open** (a normal double-click just shows "can't be opened"). You only do this once.
-   - If it still refuses: `xattr -dr com.apple.quarantine /Applications/OmniBus.app`
-3. OmniBus opens on the **Projects** view and starts its local hub on `127.0.0.1` — nothing is exposed to the network.
+   - If it still refuses: `xattr -dr com.apple.quarantine /Applications/Rabta.app`
+3. Rabta opens on the **Projects** view and starts its local hub on `127.0.0.1` — nothing is exposed to the network.
 
 ## 2. VS Code / Cursor connector (`.vsix`)
 
@@ -34,7 +34,7 @@ code   --install-extension dist-artifacts/omnibus-vscode-0.1.0.vsix   # VS Code
 cursor --install-extension dist-artifacts/omnibus-vscode-0.1.0.vsix   # Cursor
 ```
 
-Or in the editor UI: Extensions panel → `⋯` → **Install from VSIX…**. Reload the window. On the next start it activates automatically, reads the hub's per-run secret from the discovery file, and appears as a `vscode` connector in OmniBus's **Debug** tab. It never blocks editor startup, even when OmniBus isn't running.
+Or in the editor UI: Extensions panel → `⋯` → **Install from VSIX…**. Reload the window. On the next start it activates automatically, reads the hub's per-run secret from the discovery file, and appears as a `vscode` connector in Rabta's **Debug** tab. It never blocks editor startup, even when Rabta isn't running.
 
 ## 3. Chrome connector (`.zip`)
 
@@ -42,8 +42,8 @@ Chrome can't read the hub's discovery file, so it pairs interactively — you ap
 
 1. Unzip `omnibus-chrome-0.1.0.zip` somewhere stable (the extension loads from this folder, so don't delete it).
 2. `chrome://extensions` → enable **Developer mode** (top-right) → **Load unpacked** → select the unzipped `omnibus-chrome` folder.
-3. With OmniBus running, the extension sends a pairing request → an **approve/deny banner** appears in the OmniBus window → **approve**. It reconnects as a `chrome` connector and remembers its token across restarts.
-   - If OmniBus bound a port other than the default `17872` (rare — only if 17872 was taken), the app header shows the real port; enter it in the extension's popup.
+3. With Rabta running, the extension sends a pairing request → an **approve/deny banner** appears in the Rabta window → **approve**. It reconnects as a `chrome` connector and remembers its token across restarts.
+   - If Rabta bound a port other than the default `17872` (rare — only if 17872 was taken), the app header shows the real port; enter it in the extension's popup.
 
 The extension can read only tab **URLs and titles** (http/https, non-incognito) — it requests no host permissions and runs no content scripts, so it is structurally unable to read page contents.
 
