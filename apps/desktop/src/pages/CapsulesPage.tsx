@@ -271,19 +271,19 @@ export function CapsulesPage() {
                             >
                               Resume
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => save(t.id)} disabled={busy}>
+                            <Button size="sm" variant="outline" onClick={() => save(t.id)} disabled={busy || resumeActive}>
                               {pendingAction?.taskId === t.id && pendingAction.kind === "save"
                                 ? "Saving…"
                                 : "Save State"}
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={() => toggleStatus(t)} disabled={busy}>
+                            <Button size="sm" variant="ghost" onClick={() => toggleStatus(t)} disabled={busy || resumeActive}>
                               {t.status === "open" ? "Done" : "Reopen"}
                             </Button>
                             <Button
                               size="sm"
                               variant="destructive"
                               onClick={() => setDeleteTarget(t)}
-                              disabled={busy}
+                              disabled={busy || resumeActive}
                             >
                               Delete
                             </Button>
@@ -300,7 +300,7 @@ export function CapsulesPage() {
                       placeholder="New task title"
                       className="max-w-sm"
                     />
-                    <Button onClick={() => addTask(p.id)} disabled={!(drafts[p.id] ?? "").trim() || busy}>
+                    <Button onClick={() => addTask(p.id)} disabled={!(drafts[p.id] ?? "").trim() || busy || resumeActive}>
                       Add Task
                     </Button>
                   </div>
@@ -324,7 +324,7 @@ export function CapsulesPage() {
             <Button
               variant="destructive"
               onClick={() => deleteTarget && remove(deleteTarget.id)}
-              disabled={busy}
+              disabled={busy || resumeActive}
             >
               Delete
             </Button>
