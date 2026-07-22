@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { PackageOpen } from "lucide-react";
+import { Box, Code2, GitBranch, Globe, Layers, Terminal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { humanizeCapsule } from "@/lib/humanize";
 import { toastActivation, toastErr, toastOk } from "@/lib/toast";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type Project, type Task, type TaskResource } from "@/store";
@@ -31,19 +32,36 @@ interface SaveSummary {
   skipped: string[];
 }
 
-// Ported verbatim from views/TasksSection.tsx — humanizes a single capsule
-// resource (e.g. "git: main" or "vscode: 3 files, 1 terminals · 3:04:12 PM").
-function summarize(r: TaskResource): string {
-  if (r.connectorKind === "git") {
-    return `git: ${typeof r.payload.branch === "string" ? r.payload.branch : "?"}`;
-  }
-  const files = Array.isArray(r.payload.openFiles) ? r.payload.openFiles.length : 0;
-  const terms = Array.isArray(r.payload.terminals) ? r.payload.terminals.length : 0;
-  return `${r.connectorKind}: ${files} files, ${terms} terminals · ${new Date(r.createdAt).toLocaleTimeString()}`;
-}
+// Maps humanizeCapsule's abstract icon kind to a concrete lucide icon.
+const CAPSULE_ICONS: Record<ReturnType<typeof humanizeCapsule>["icon"], typeof Box> = {
+  editor: Code2,
+  browser: Globe,
+  git: GitBranch,
+  terminal: Terminal,
+  generic: Box,
+};
 
-function summarizeAll(resources: TaskResource[]): string {
-  return resources.map(summarize).join(" · ") || "No capsule yet";
+/** A tidy inline group of humanized capsule resources for one task, or a
+ * muted "No capsule yet" when the task has never had one saved. */
+function CapsuleSummary({ resources }: { resources: TaskResource[] }) {
+  if (resources.length === 0) {
+    return <p className="mt-0.5 text-xs text-muted-foreground">No capsule yet</p>;
+  }
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+      {resources.map((r) => {
+        const h = humanizeCapsule(r);
+        const Icon = CAPSULE_ICONS[h.icon];
+        return (
+          <span key={r.id} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Icon className="size-3.5 shrink-0" />
+            <span>{h.summary}</span>
+            <span className="text-muted-foreground/70">· {h.savedAgo}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
 }
 
 export function CapsulesPage() {
@@ -51,6 +69,7 @@ export function CapsulesPage() {
   const setActiveTaskId = useStore((s) => s.setActiveTaskId);
   const activationNonce = useStore((s) => s.activationNonce);
   const bumpActivation = useStore((s) => s.bumpActivation);
+  const setView = useStore((s) => s.setView);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasksByProject, setTasksByProject] = useState<Record<string, Task[]>>({});
@@ -190,9 +209,10 @@ export function CapsulesPage() {
 
       {projects.length === 0 ? (
         <EmptyState
-          icon={<PackageOpen />}
-          title="No projects yet"
-          description="Register a project in Projects to start tracking tasks and capsules."
+          icon={<Layers />}
+          title="No capsules yet"
+          description="Capsules save and restore your editor, browser, and git state for a task."
+          action={<Button onClick={() => setView("projects")}>Register a Project</Button>}
         />
       ) : (
         <div className="flex flex-col gap-8">
@@ -207,7 +227,9 @@ export function CapsulesPage() {
 
                 <div className="flex flex-col gap-2">
                   {tasks.length === 0 && (
-                    <p className="text-xs text-muted-foreground">No tasks yet</p>
+                    <p className="text-xs text-muted-foreground">
+                      No tasks in {p.name} yet — add one below
+                    </p>
                   )}
 
                   {tasks.map((t) => {
@@ -215,7 +237,11 @@ export function CapsulesPage() {
                     return (
                       <Card
                         key={t.id}
-                        className={isActive ? "border-l-2 border-l-primary p-4" : "p-4"}
+                        className={
+                          isActive
+                            ? "border-l-2 border-l-primary p-4 transition-colors hover:bg-accent/40"
+                            : "p-4 transition-colors hover:bg-accent/40"
+                        }
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="min-w-0">
@@ -231,12 +257,15 @@ export function CapsulesPage() {
                               </p>
                               {isActive && <Badge>Active</Badge>}
                             </div>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
-                              {summarizeAll(resources[t.id] ?? [])}
-                            </p>
+                            <CapsuleSummary resources={resources[t.id] ?? []} />
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
-                            <Button size="sm" onClick={() => activate(t.id)} disabled={busy}>
+                            <Button
+                              size="sm"
+                              className="transition-transform hover:-translate-y-px"
+                              onClick={() => activate(t.id)}
+                              disabled={busy}
+                            >
                               {pendingAction?.taskId === t.id && pendingAction.kind === "activate"
                                 ? "Resuming…"
                                 : "Resume"}
