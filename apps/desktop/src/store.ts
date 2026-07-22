@@ -81,6 +81,8 @@ export interface PendingPairing {
   kind: string;
 }
 
+export type NavKey = "overview" | "capsules" | "projects" | "connectors" | "activity" | "settings";
+
 interface Store {
   connectors: ConnectorRow[];
   log: LogEntry[];
@@ -90,8 +92,8 @@ interface Store {
   /** Pre-seed the log with persisted events and the panel with known connectors. */
   preload: (events: PersistedEvent[], known: KnownConnector[]) => void;
   togglePause: () => void;
-  view: "projects" | "debug";
-  setView: (view: "projects" | "debug") => void;
+  view: NavKey;
+  setView: (view: NavKey) => void;
   projects: Project[];
   setProjects: (projects: Project[]) => void;
   activeTaskId: string | null;
@@ -118,7 +120,7 @@ export const useStore = create<Store>((set) => ({
   connectors: [],
   log: [],
   paused: false,
-  view: "projects",
+  view: "capsules",
   setView: (view) => set({ view }),
   projects: [],
   setProjects: (projects) => set({ projects }),

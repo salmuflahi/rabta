@@ -1,29 +1,69 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
-import { CommandSender } from "./panels/CommandSender";
-import { ConnectorsPanel } from "./panels/ConnectorsPanel";
-import { LogPanel } from "./panels/LogPanel";
+import { AppShell } from "./shell/AppShell";
+import { PageHeader } from "./shell/PageHeader";
 import {
   useStore,
   type ConnectorInfo,
   type KnownConnector,
+  type NavKey,
   type PendingPairing,
   type PersistedEvent,
 } from "./store";
-import { ProjectsView } from "./views/ProjectsView";
+
+const PLACEHOLDER_COPY: Record<NavKey, { eyebrow: string; title: string; subtitle: string }> = {
+  overview: {
+    eyebrow: "Home",
+    title: "Overview",
+    subtitle: "A dashboard summary of your workspace is coming in a later task.",
+  },
+  capsules: {
+    eyebrow: "Workspace",
+    title: "Capsules",
+    subtitle: "Capsule browsing and detail views are coming in a later task.",
+  },
+  projects: {
+    eyebrow: "Workspace",
+    title: "Projects",
+    subtitle: "The projects list and task board are coming in a later task.",
+  },
+  connectors: {
+    eyebrow: "Workspace",
+    title: "Connectors",
+    subtitle: "Connector management is coming in a later task.",
+  },
+  activity: {
+    eyebrow: "Workspace",
+    title: "Activity",
+    subtitle: "The live activity log is coming in a later task.",
+  },
+  settings: {
+    eyebrow: "Workspace",
+    title: "Settings",
+    subtitle: "Settings are coming in a later task.",
+  },
+};
+
+function PlaceholderPage({ view }: { view: NavKey }) {
+  const { eyebrow, title, subtitle } = PLACEHOLDER_COPY[view];
+  return (
+    <div>
+      <PageHeader eyebrow={eyebrow} title={title} subtitle={subtitle} />
+      <p className="text-sm text-muted-foreground">Coming soon.</p>
+    </div>
+  );
+}
 
 export default function App() {
   const append = useStore((s) => s.append);
   const setConnectors = useStore((s) => s.setConnectors);
   const preload = useStore((s) => s.preload);
   const view = useStore((s) => s.view);
-  const setView = useStore((s) => s.setView);
   const pairings = useStore((s) => s.pairings);
   const setPairings = useStore((s) => s.setPairings);
   const addPairing = useStore((s) => s.addPairing);
   const removePairing = useStore((s) => s.removePairing);
-  const hubPort = useStore((s) => s.hubPort);
   const setHubPort = useStore((s) => s.setHubPort);
 
   useEffect(() => {
@@ -84,19 +124,10 @@ export default function App() {
     removePairing(pairingId);
   }
 
-  const tab = (v: "projects" | "debug", label: string) => (
-    <button
-      onClick={() => setView(v)}
-      className={`px-3 py-1 ${view === v ? "bg-neutral-700" : "bg-neutral-800"}`}
-    >
-      {label}
-    </button>
-  );
-
   return (
-    <div className="h-screen bg-neutral-900 text-neutral-200 font-mono text-sm flex flex-col">
+    <div className="flex h-screen flex-col">
       {pairings.map((p) => (
-        <div key={p.pairingId} className="flex items-center gap-3 p-2 bg-amber-950 border-b border-amber-800 text-sm">
+        <div key={p.pairingId} className="flex items-center gap-3 border-b border-amber-800 bg-amber-950 p-2 text-sm text-neutral-200">
           <span className="flex-1">
             <b>{p.name}</b> ({p.kind}) wants to connect to OmniBus
           </span>
@@ -108,20 +139,11 @@ export default function App() {
           </button>
         </div>
       ))}
-      <header className="flex gap-2 p-2 border-b border-neutral-700 items-center">
-        {tab("projects", "Projects")}
-        {tab("debug", "Debug")}
-        <span className="text-neutral-600 text-xs ml-auto">hub 127.0.0.1:{hubPort ?? "…"}</span>
-      </header>
-      {view === "projects" ? (
-        <ProjectsView />
-      ) : (
-        <div className="flex-1 min-h-0 grid grid-cols-[300px_1fr] grid-rows-[1fr_200px]">
-          <ConnectorsPanel />
-          <LogPanel />
-          <CommandSender />
-        </div>
-      )}
+      <div className="min-h-0 flex-1">
+        <AppShell>
+          <PlaceholderPage view={view} />
+        </AppShell>
+      </div>
     </div>
   );
 }
