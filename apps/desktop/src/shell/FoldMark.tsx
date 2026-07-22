@@ -3,46 +3,40 @@ import { BRAND_EASE, FOLD_MS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export type FoldMarkState = "open" | "folding" | "closed";
+export type FoldMarkVariant = "corner" | "squash";
 
 /**
  * Inline, animatable rendering of the Rabta "Context Fold" mark.
  *
  * Renders the same three shapes as the static
  * `@/assets/brand/rabta-mark.svg` (petrol rounded square, ivory forward-arrow,
- * tangerine corner-fold triangle) as real SVG elements — inline, rather than
- * an `<img src>` — so the tangerine fold triangle can be transitioned via
- * CSS `transform`.
+ * tangerine corner-fold triangle) as real, but internally STATIC, SVG
+ * elements.
  *
- * Animation: `open` is at rest (unchanged brand mark). `folding`/`closed`
- * turn the tangerine corner like a dog-eared page corner, pivoting exactly
- * on its diagonal crease — the hypotenuse from (41.5, 8) to (56, 22.5) —
- * rather than scaling or translating the triangle as a whole (that reads as
- * the flap detaching, which was the bug this replaces).
+ * **Why the SVG is static and a wrapper animates instead:** an earlier
+ * version of this component applied CSS `transform` (with `transform-box:
+ * fill-box`) directly to SVG sub-elements (`<g>`, a `<path>`) to animate the
+ * fold. That doesn't render reliably in WebKit — this app ships inside a
+ * WKWebView, and WebKit does not consistently apply CSS transforms/
+ * transitions to SVG child elements, so the fold showed nothing at all, even
+ * a trivial whole-`<g>` `scale()`. CSS transforms on plain HTML elements
+ * (including 3D `perspective`/`rotate3d`) do not have this problem — they're
+ * a core, heavily-used part of the web platform and render reliably in every
+ * WebKit build. So the SVG here never changes; a wrapping `<span>` around the
+ * whole `<svg>` carries the animated `transform`, and the fold is achieved by
+ * turning/squashing that wrapper as one rigid unit.
  *
- * Technique: 2D crease-collapse (the 3D `rotate3d`/`perspective` route was
- * skipped — CSS 3D transforms are not reliably applied to SVG shapes across
- * engines, including the WebKit-based webview this app ships in). The fold
- * triangle's `transform-origin` is `50% 50%` under `transform-box:
- * fill-box`, which lands exactly on the crease midpoint (~48.75, 15.25) —
- * this triangle's bounding-box center coincides with the hypotenuse midpoint
- * because the two legs are axis-aligned and equal length. The transform
- * composes `rotate(45deg) scaleY(k) rotate(-45deg)`: the inner `rotate(-45deg)`
- * aligns the crease direction (1,1) with the local x-axis (so points on the
- * crease have zero local-y and are untouched by the scale) and the
- * perpendicular direction (1,-1) with the local y-axis; `scaleY(k)` then
- * squashes only that perpendicular component; the outer `rotate(45deg)`
- * rotates back. Net effect (worked out algebraically): both crease endpoints
- * are fixed points of the transform for every k, while the free corner
- * (56, 8) moves along the line to the pivot, landing at
- * `pivot + k · (7.25, -7.25)` — i.e. it swings toward the crease as k → 0
- * and back out to the real corner at k = 1. It never leaves that line, so
- * it can't detach. At k = 1 the whole composition reduces to the identity
- * matrix, so `open` renders pixel-identical to the static brand mark.
+ * Two motions are offered via `variant` (see the Settings preview, which
+ * renders both side by side so the signature motion can be chosen):
  *
- * A static, slightly darker triangle (`#E05A1F`) sits underneath the
- * animated one at the same coordinates — at rest it's fully covered, but as
- * the front triangle collapses toward the crease this shows through around
- * the edges, reading as the shaded underside of the turning page corner.
+ * - `"corner"` (page-corner turn): the wrapper's `transformOrigin` sits at
+ *   the top-right corner of the mark and it rotates in 3D
+ *   (`rotate3d(1, -1, 0, 55deg)`) around the diagonal axis through that
+ *   corner — like turning a page from its corner. The outer wrapper carries
+ *   `perspective` so the 3D rotation reads as a fold rather than a 2D skew.
+ * - `"squash"` (fold shut): the wrapper's `transformOrigin` is its center and
+ *   it scales flat along x (`scaleX(0.12)`) to a thin vertical sliver and
+ *   back — a book-style fold shut.
  *
  * Only `transform` is animated (no filter/blur/box-shadow), via a plain CSS
  * `transition` using the brand ease — so the global `prefers-reduced-motion`
@@ -52,53 +46,58 @@ export type FoldMarkState = "open" | "folding" | "closed";
 export function FoldMark({
   state = "open",
   size = 64,
+  variant = "corner",
   className,
 }: {
   state?: FoldMarkState;
   size?: number;
+  variant?: FoldMarkVariant;
   className?: string;
 }) {
   const folded = state !== "open";
 
-  const wholeMarkStyle: CSSProperties = {
-    transform: folded ? "scale(0.94)" : "scale(1)",
-    transformOrigin: "center",
-    transformBox: "fill-box",
-    transition: `transform ${FOLD_MS}ms ${BRAND_EASE}`,
+  const perspectiveWrapperStyle: CSSProperties = {
+    display: "inline-block",
+    perspective: variant === "corner" ? "420px" : undefined,
   };
 
-  // Pivot at the crease midpoint (bbox center, which coincides with the
-  // hypotenuse midpoint for this triangle) and squash only the component
-  // perpendicular to the 45° crease — see the fold-mechanics note above.
-  const foldTriangleStyle: CSSProperties = {
-    transform: `rotate(45deg) scaleY(${folded ? 0.05 : 1}) rotate(-45deg)`,
-    transformOrigin: "50% 50%",
-    transformBox: "fill-box",
-    transition: `transform ${FOLD_MS}ms ${BRAND_EASE}`,
-  };
+  const animatedStyle: CSSProperties =
+    variant === "corner"
+      ? {
+          display: "inline-block",
+          transform: folded ? "rotate3d(1, -1, 0, 55deg)" : "none",
+          transformOrigin: "100% 0%",
+          transition: `transform ${FOLD_MS}ms ${BRAND_EASE}`,
+        }
+      : {
+          display: "inline-block",
+          transform: folded ? "scaleX(0.12)" : "none",
+          transformOrigin: "center",
+          transition: `transform ${FOLD_MS}ms ${BRAND_EASE}`,
+        };
 
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 64 64"
-      width={size}
-      height={size}
-      role="img"
-      aria-label="Rabta"
-      data-fold-state={state}
-      className={cn("shrink-0", className)}
-    >
-      <g style={wholeMarkStyle}>
-        <rect width="64" height="64" rx="14" fill="#102526" />
-        <path
-          fill="#F3F0E8"
-          fillRule="evenodd"
-          d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"
-        />
-        {/* Shaded underside — hidden at rest, revealed at the crease edges as the front triangle collapses. */}
-        <path fill="#E05A1F" d="M41.5 8v14.5H56Z" />
-        <path fill="#FF6B2C" d="M41.5 8v14.5H56Z" style={foldTriangleStyle} />
-      </g>
-    </svg>
+    <span style={perspectiveWrapperStyle} className={cn("shrink-0", className)}>
+      <span style={animatedStyle}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 64 64"
+          width={size}
+          height={size}
+          role="img"
+          aria-label="Rabta"
+          data-fold-state={state}
+          data-fold-variant={variant}
+        >
+          <rect width="64" height="64" rx="14" fill="#102526" />
+          <path
+            fill="#F3F0E8"
+            fillRule="evenodd"
+            d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"
+          />
+          <path fill="#FF6B2C" d="M41.5 8v14.5H56Z" />
+        </svg>
+      </span>
+    </span>
   );
 }

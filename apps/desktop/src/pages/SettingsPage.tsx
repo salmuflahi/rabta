@@ -43,11 +43,13 @@ function AppearanceSection() {
   );
 }
 
-// A real, always-running preview of the Resume fold — toggles the FoldMark
-// between "open" and "closed" on a fixed interval so the crease-pivot fold
-// (see FoldMark.tsx) can be watched on repeat. Users evaluate this in the
-// native window and can't reach the dev component gallery, so this card is
-// the only place to see the motion outside of an actual Resume ceremony.
+// A real, always-running preview of the Resume fold — toggles two FoldMarks
+// between "open" and "closed" on a shared interval, one per `variant`, so
+// both candidate motions (see FoldMark.tsx) can be watched side by side on
+// repeat. Users evaluate this in the native window and can't reach the dev
+// component gallery, so this card is the only place to see the motion
+// outside of an actual Resume ceremony — and the only place to pick which
+// variant becomes the signature motion.
 function ResumeAnimationPreview() {
   const [foldState, setFoldState] = useState<FoldMarkState>("open");
 
@@ -60,7 +62,16 @@ function ResumeAnimationPreview() {
 
   return (
     <div className="flex flex-col items-center gap-3 py-2">
-      <FoldMark state={foldState} size={96} />
+      <div className="flex items-center justify-center gap-8">
+        <div className="flex flex-col items-center gap-3">
+          <FoldMark state={foldState} size={96} variant="corner" />
+          <p className="text-xs text-muted-foreground">Corner turn</p>
+        </div>
+        <div className="flex flex-col items-center gap-3">
+          <FoldMark state={foldState} size={96} variant="squash" />
+          <p className="text-xs text-muted-foreground">Fold shut</p>
+        </div>
+      </div>
       <p className="text-xs text-muted-foreground">Preview of the fold used in Resume.</p>
     </div>
   );
