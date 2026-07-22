@@ -33,6 +33,54 @@ const FAKE_RESOURCE: TaskResource = {
   createdAt: "2026-01-01T00:00:00.000Z",
 };
 
+/** Stubs `window.matchMedia` to report reduced motion, so the Restore
+ * Experience sheet resolves through its timers on the next real-timer tick
+ * instead of the full ~1s+ animation timeline — these tests are about the
+ * CapsulesPage <-> useRestore wiring, not the animation (already covered by
+ * `restore/RestoreExperience.test.tsx`). Returns a restore function. */
+function stubReducedMotion(): () => void {
+  const originalMatchMedia = window.matchMedia;
+  window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia;
+  return () => {
+    if (originalMatchMedia) {
+      window.matchMedia = originalMatchMedia;
+    } else {
+      // @ts-expect-error - test cleanup restoring an absent global
+      delete window.matchMedia;
+    }
+  };
+}
+
+/** Standard list_projects/list_tasks/task_resources wiring for the single
+ * FAKE_PROJECT/FAKE_TASK fixture, with a caller-supplied `activate_task`
+ * handler and an overridable set of task resources (capsule contents). */
+function mockCapsulesInvoke(opts: {
+  activateTask: (args: Record<string, unknown> | undefined) => unknown;
+  resources?: TaskResource[];
+}) {
+  // Clear call history (not just the implementation) so a test that asserts
+  // on `mockInvoke.mock.calls` — e.g. "exactly one activate_task call" —
+  // isn't polluted by invokes from an earlier test in this file. `invoke` is
+  // a single shared mock across the whole suite (see smoke-utils), and
+  // nothing resets it between tests otherwise.
+  mockInvoke.mockClear();
+  mockInvoke.mockImplementation(async (cmd: string, args?: InvokeArgs) => {
+    const a = args as Record<string, unknown> | undefined;
+    switch (cmd) {
+      case "list_projects":
+        return [FAKE_PROJECT] as unknown;
+      case "list_tasks":
+        return (a?.projectId === FAKE_PROJECT.id ? [FAKE_TASK] : []) as unknown;
+      case "task_resources":
+        return (a?.taskId === FAKE_TASK.id ? (opts.resources ?? [FAKE_RESOURCE]) : []) as unknown;
+      case "activate_task":
+        return opts.activateTask(a);
+      default:
+        return [] as unknown;
+    }
+  });
+}
+
 describe("CapsulesPage", () => {
   it("renders the no-projects empty state without throwing", async () => {
     // Default mockInvoke resolves [] for every command (see smoke-utils),
@@ -72,52 +120,126 @@ describe("CapsulesPage", () => {
     expect(screen.getByText("on main")).toBeInTheDocument();
   });
 
-  it("clicking Resume drives the ceremony's activate_task invoke exactly once (no duplicate activate path)", async () => {
-    // Reduced motion so the ceremony resolves instantly (no overlay timers
-    // to wait out) — this test is about the wiring, not the animation.
-    const originalMatchMedia = window.matchMedia;
-    window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia;
-
-    mockInvoke.mockImplementation(async (cmd: string, args?: InvokeArgs) => {
-      const a = args as Record<string, unknown> | undefined;
-      switch (cmd) {
-        case "list_projects":
-          return [FAKE_PROJECT] as unknown;
-        case "list_tasks":
-          return (a?.projectId === FAKE_PROJECT.id ? [FAKE_TASK] : []) as unknown;
-        case "task_resources":
-          return (a?.taskId === FAKE_TASK.id ? [FAKE_RESOURCE] : []) as TaskResource[] as unknown;
-        case "activate_task":
-          return {
-            applied: ["git"],
-            pending: [],
-            skipped: [],
-            savedPrevious: null,
-            errors: [],
-          } as unknown;
-        default:
-          return [] as unknown;
-      }
+  it("Resume click opens the Restore Experience sheet and shows the Restoring… disabled state while active", async () => {
+    const restoreMatchMedia = stubReducedMotion();
+    let resolveActivate!: (summary: unknown) => void;
+    mockCapsulesInvoke({
+      activateTask: () =>
+        new Promise((resolve) => {
+          resolveActivate = resolve;
+        }),
     });
 
     try {
       renderWithProviders(<CapsulesPage />);
 
-      const resumeButton = await screen.findByText("Resume");
+      const resumeButton = await screen.findByRole("button", { name: "Resume" });
       fireEvent.click(resumeButton);
 
-      await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("activate_task", { taskId: FAKE_TASK.id }));
-      // The ceremony owns the only activate path — assert there's no
-      // duplicate inline invoke alongside it.
+      // The sheet opens and the button flips to its in-flight state
+      // immediately (same frame as the click) — it doesn't wait on the
+      // invoke or any animation.
+      expect(await screen.findByRole("dialog")).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: "Restoring…" })).toBeDisabled();
+
+      resolveActivate({ applied: ["git"], pending: [], skipped: [], savedPrevious: null, errors: [] });
+      await waitFor(() => expect(screen.getByText("Workspace restored")).toBeInTheDocument());
+    } finally {
+      restoreMatchMedia();
+    }
+  });
+
+  it("success path: setActiveTaskId fires and the sheet reaches Workspace restored, invoked with {taskId}", async () => {
+    const restoreMatchMedia = stubReducedMotion();
+    mockCapsulesInvoke({
+      activateTask: async () => ({
+        applied: ["git"],
+        pending: [],
+        skipped: [],
+        savedPrevious: null,
+        errors: [],
+      }),
+    });
+
+    try {
+      renderWithProviders(<CapsulesPage />);
+
+      const resumeButton = await screen.findByRole("button", { name: "Resume" });
+      fireEvent.click(resumeButton);
+
+      await waitFor(() =>
+        expect(mockInvoke).toHaveBeenCalledWith("activate_task", { taskId: FAKE_TASK.id })
+      );
+      await waitFor(() => expect(screen.getByText("Workspace restored")).toBeInTheDocument());
+
+      // setActiveTaskId's effect: the task's card now shows the "Active"
+      // badge (the store update from `resume`'s `run`, not a toast).
+      expect(await screen.findByText("Active")).toBeInTheDocument();
+    } finally {
+      restoreMatchMedia();
+    }
+  });
+
+  it("duplicate click while active does not fire a second activate_task", async () => {
+    const restoreMatchMedia = stubReducedMotion();
+    let resolveActivate!: (summary: unknown) => void;
+    mockCapsulesInvoke({
+      activateTask: () =>
+        new Promise((resolve) => {
+          resolveActivate = resolve;
+        }),
+    });
+
+    try {
+      renderWithProviders(<CapsulesPage />);
+
+      const resumeButton = await screen.findByRole("button", { name: "Resume" });
+      fireEvent.click(resumeButton);
+      await screen.findByRole("button", { name: "Restoring…" });
+
+      // The button is disabled, but click it again anyway (re-entrancy
+      // guard lives in useRestore's `start`, not just the `disabled` attr).
+      fireEvent.click(screen.getByRole("button", { name: "Restoring…" }));
+
       const activateCalls = mockInvoke.mock.calls.filter(([cmd]) => cmd === "activate_task");
       expect(activateCalls).toHaveLength(1);
+
+      resolveActivate({ applied: ["git"], pending: [], skipped: [], savedPrevious: null, errors: [] });
+      await waitFor(() => expect(screen.getByText("Workspace restored")).toBeInTheDocument());
     } finally {
-      if (originalMatchMedia) {
-        window.matchMedia = originalMatchMedia;
-      } else {
-        // @ts-expect-error - test cleanup restoring an absent global
-        delete window.matchMedia;
-      }
+      restoreMatchMedia();
+    }
+  });
+
+  it("a task with no capsule resources still opens the sheet and completes without throwing", async () => {
+    const restoreMatchMedia = stubReducedMotion();
+    mockCapsulesInvoke({
+      resources: [],
+      activateTask: async () => ({
+        applied: [],
+        pending: [],
+        skipped: [],
+        savedPrevious: null,
+        errors: [],
+      }),
+    });
+
+    try {
+      renderWithProviders(<CapsulesPage />);
+
+      const resumeButton = await screen.findByRole("button", { name: "Resume" });
+      fireEvent.click(resumeButton);
+
+      expect(await screen.findByRole("dialog")).toBeInTheDocument();
+      await waitFor(() =>
+        expect(mockInvoke).toHaveBeenCalledWith("activate_task", { taskId: FAKE_TASK.id })
+      );
+      // No tools applied and no issues reported still resolves (to
+      // "partial", per normalize.ts, since nothing was truthfully applied)
+      // rather than throwing or hanging.
+      await waitFor(() => expect(screen.getByText("Workspace partially restored")).toBeInTheDocument());
+    } finally {
+      restoreMatchMedia();
     }
   });
 });

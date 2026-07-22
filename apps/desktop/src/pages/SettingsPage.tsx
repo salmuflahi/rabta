@@ -69,10 +69,11 @@ const PLAYGROUND_EIGHT_TOOLS: RestoreTool[] = [
  * DEV-only preview of the Restore Experience (see
  * docs/superpowers/specs/2026-07-22-restore-experience-spec.md). Presentation
  * only — every scenario below drives `useRestore()` with a SCRIPTED `run`
- * (no `invoke`), so this never touches the real Resume path. Gated on
- * `import.meta.env.DEV` so it's stripped from production builds; this is
- * the successor preview to the old fold-logo `ResumeAnimationPreview` (the
- * real `ResumeCeremony` ceremony is untouched and keeps working meanwhile).
+ * (no `invoke`), so this never touches the real Resume path (that path,
+ * wired in `CapsulesPage`, uses the same `useRestore()` with a real `run`
+ * that calls `activate_task`). Gated on `import.meta.env.DEV` so it's
+ * stripped from production builds; this is the successor preview to the
+ * old fold-logo `ResumeAnimationPreview`/`ResumeCeremony` (removed).
  */
 function RestoreExperiencePlayground() {
   const { start, node } = useRestore();

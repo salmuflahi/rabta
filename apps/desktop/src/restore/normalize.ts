@@ -5,10 +5,9 @@
 import type { RestoreResult, RestoreTool, RestoreToolResult } from "./types";
 
 /**
- * Mirrors `ActivateSummary` from `@/shell/ResumeCeremony` (kept as a local
- * type here — same reasoning as that module's own comment: this must not
- * import page-level concerns, and normalize.ts must not import the
- * ceremony it is meant to eventually replace).
+ * Result of `activate_task`, mirrored from the backend's ActivateSummary
+ * shape. This is the canonical `ActivateSummary` type — callers (e.g.
+ * `CapsulesPage`) import it from here rather than declaring their own copy.
  */
 export interface ActivateSummary {
   applied: string[];

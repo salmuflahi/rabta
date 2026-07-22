@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Box, Code2, GitBranch, Globe, Layers, Terminal } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Box, Code2, GitBranch, Globe, Layers, Loader2, Terminal } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,9 +15,11 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { humanizeCapsule } from "@/lib/humanize";
-import { toastActivation, toastErr, toastOk } from "@/lib/toast";
+import { toastErr, toastOk } from "@/lib/toast";
+import { activateSummaryToResult, type ActivateSummary } from "@/restore/normalize";
+import { useRestore } from "@/restore/RestoreExperience";
+import type { RestoreTool } from "@/restore/types";
 import { PageHeader } from "@/shell/PageHeader";
-import { useResumeCeremony, type ActivateSummary } from "@/shell/ResumeCeremony";
 import { useStore, type Project, type Task, type TaskResource } from "@/store";
 
 interface SaveSummary {
@@ -33,6 +35,38 @@ const CAPSULE_ICONS: Record<ReturnType<typeof humanizeCapsule>["icon"], typeof B
   terminal: Terminal,
   generic: Box,
 };
+
+// connector kind -> friendly Restore Experience tool name. (Row icons are
+// derived by RestoreExperience itself from `tool.kind`, via its own
+// vscode/cursor/chrome/git/terminal -> icon map — falls back to a generic
+// box there too, so this file doesn't duplicate that mapping.)
+const RESTORE_TOOL_NAME: Record<string, string> = {
+  vscode: "VS Code",
+  cursor: "Cursor",
+  chrome: "Chrome",
+  git: "Git",
+  terminal: "Terminal",
+};
+
+/** Builds the Restore Experience's tool list from a task's capsule
+ * resources (never hard-coded). One row per distinct connector kind — a
+ * task with no resources yields an empty array, which the sheet handles
+ * fine (heading + progress, then completes with no rows). */
+function restoreToolsFor(resources: TaskResource[]): RestoreTool[] {
+  const seen = new Set<string>();
+  const tools: RestoreTool[] = [];
+  for (const r of resources) {
+    const kind = r.connectorKind;
+    if (seen.has(kind)) continue;
+    seen.add(kind);
+    tools.push({
+      id: kind,
+      name: RESTORE_TOOL_NAME[kind.toLowerCase()] ?? kind.charAt(0).toUpperCase() + kind.slice(1),
+      kind,
+    });
+  }
+  return tools;
+}
 
 /** A tidy inline group of humanized capsule resources for one task, or a
  * muted "No capsule yet" when the task has never had one saved. */
@@ -71,17 +105,13 @@ export function CapsulesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   // In-flight affordance only (the result of an action is a toast, not
   // inline text): which task is mid-save, so its button can read "Saving…"
-  // while busy. Resume's in-flight state now lives entirely in the ceremony
-  // overlay (see `useResumeCeremony` below), not here.
+  // while busy. Resume's in-flight state now lives entirely in the Restore
+  // Experience sheet (see `useRestore` below), not here.
   const [pendingAction, setPendingAction] = useState<{ taskId: string; kind: "save" } | null>(null);
   // Guards against double-click re-entrancy: the backend serializes
   // activation/save, but the UI should still reflect an op in flight rather
   // than let the user queue up duplicate clicks.
   const [busy, setBusy] = useState(false);
-  // The id of the task passed to the ceremony's `start`, captured so
-  // `onComplete` (which only receives the ActivateSummary, not the task id)
-  // can still call `setActiveTaskId` for the right task.
-  const lastResumedIdRef = useRef<string | null>(null);
 
   const refresh = async () => {
     try {
@@ -131,28 +161,30 @@ export function CapsulesPage() {
     }
   }
 
-  // The signature Resume ceremony owns the `activate_task` invoke itself
-  // (fold -> restore -> unfold, gated on the real result); this page only
-  // supplies the post-activate side effects, unchanged from before.
-  const { start: startResume, overlay: resumeOverlay, active: resumeActive } = useResumeCeremony({
-    onComplete: (summary) => {
-      const id = lastResumedIdRef.current;
-      if (id) setActiveTaskId(id);
-      toastActivation(summary);
-      // Activation may have auto-saved the previously-active task, which can
-      // live in a different project — bump the global nonce so this page
-      // refetches and no card shows a stale capsule summary.
-      bumpActivation();
-      refresh();
-    },
-    onError: (e) => {
-      toastErr(e);
-    },
-  });
+  // The Restore Experience sheet owns the `activate_task` invoke itself
+  // (opening -> restoring -> success/partial/failure, gated on the real
+  // result); this page's `run` supplies the post-activate side effects,
+  // unchanged from before, then hands back the normalized result for the
+  // sheet to reveal.
+  const { start: startRestore, node: restoreNode, active: restoreActive } = useRestore();
 
   function resume(t: Task) {
-    lastResumedIdRef.current = t.id;
-    startResume({ id: t.id, title: t.title });
+    const tools = restoreToolsFor(resources[t.id] ?? []);
+    startRestore({
+      title: "Restoring workspace",
+      subtitle: t.title,
+      tools,
+      run: async () => {
+        const summary = await invoke<ActivateSummary>("activate_task", { taskId: t.id });
+        setActiveTaskId(t.id);
+        // Activation may have auto-saved the previously-active task, which
+        // can live in a different project — bump the global nonce so this
+        // page refetches and no card shows a stale capsule summary.
+        bumpActivation();
+        refresh();
+        return activateSummaryToResult(summary, tools);
+      },
+    });
   }
 
   async function save(id: string) {
@@ -207,7 +239,7 @@ export function CapsulesPage() {
 
   return (
     <div>
-      {resumeOverlay}
+      {restoreNode}
       <PageHeader eyebrow="TASKS" title="Capsules" subtitle={subtitle} />
 
       {projects.length === 0 ? (
@@ -265,25 +297,32 @@ export function CapsulesPage() {
                           <div className="flex shrink-0 items-center gap-2">
                             <Button
                               size="sm"
-                              className="transition-transform hover:-translate-y-px"
+                              className="transition-transform hover:-translate-y-px active:scale-[0.98]"
                               onClick={() => resume(t)}
-                              disabled={busy || resumeActive}
+                              disabled={busy || restoreActive}
                             >
-                              Resume
+                              {restoreActive ? (
+                                <>
+                                  <Loader2 className="size-3.5 animate-spin" />
+                                  Restoring…
+                                </>
+                              ) : (
+                                "Resume"
+                              )}
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => save(t.id)} disabled={busy || resumeActive}>
+                            <Button size="sm" variant="outline" onClick={() => save(t.id)} disabled={busy || restoreActive}>
                               {pendingAction?.taskId === t.id && pendingAction.kind === "save"
                                 ? "Saving…"
                                 : "Save State"}
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={() => toggleStatus(t)} disabled={busy || resumeActive}>
+                            <Button size="sm" variant="ghost" onClick={() => toggleStatus(t)} disabled={busy || restoreActive}>
                               {t.status === "open" ? "Done" : "Reopen"}
                             </Button>
                             <Button
                               size="sm"
                               variant="destructive"
                               onClick={() => setDeleteTarget(t)}
-                              disabled={busy || resumeActive}
+                              disabled={busy || restoreActive}
                             >
                               Delete
                             </Button>
@@ -300,7 +339,7 @@ export function CapsulesPage() {
                       placeholder="New task title"
                       className="max-w-sm"
                     />
-                    <Button onClick={() => addTask(p.id)} disabled={!(drafts[p.id] ?? "").trim() || busy || resumeActive}>
+                    <Button onClick={() => addTask(p.id)} disabled={!(drafts[p.id] ?? "").trim() || busy || restoreActive}>
                       Add Task
                     </Button>
                   </div>
@@ -324,7 +363,7 @@ export function CapsulesPage() {
             <Button
               variant="destructive"
               onClick={() => deleteTarget && remove(deleteTarget.id)}
-              disabled={busy || resumeActive}
+              disabled={busy || restoreActive}
             >
               Delete
             </Button>
