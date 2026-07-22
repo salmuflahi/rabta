@@ -1,7 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
+import { Button } from "./components/ui/button";
+import { ActivityPage } from "./pages/ActivityPage";
 import { CapsulesPage } from "./pages/CapsulesPage";
+import { ConnectorsPage } from "./pages/ConnectorsPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { AppShell } from "./shell/AppShell";
 import { PageHeader } from "./shell/PageHeader";
@@ -63,6 +66,10 @@ function CurrentPage({ view }: { view: NavKey }) {
       return <CapsulesPage />;
     case "projects":
       return <ProjectsPage />;
+    case "connectors":
+      return <ConnectorsPage />;
+    case "activity":
+      return <ActivityPage />;
     default:
       return <PlaceholderPage view={view} />;
   }
@@ -140,16 +147,16 @@ export default function App() {
   return (
     <div className="flex h-screen flex-col">
       {pairings.map((p) => (
-        <div key={p.pairingId} className="flex items-center gap-3 border-b border-amber-800 bg-amber-950 p-2 text-sm text-neutral-200">
+        <div key={p.pairingId} className="flex items-center gap-3 border-b border-warning/30 bg-warning/10 p-2 text-sm text-foreground">
           <span className="flex-1">
             <b>{p.name}</b> ({p.kind}) wants to connect to OmniBus
           </span>
-          <button onClick={() => decide(p.pairingId, true)} className="bg-green-900 px-3 py-1">
-            approve
-          </button>
-          <button onClick={() => decide(p.pairingId, false)} className="bg-neutral-800 px-3 py-1">
-            deny
-          </button>
+          <Button size="sm" onClick={() => decide(p.pairingId, true)}>
+            Approve
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => decide(p.pairingId, false)}>
+            Deny
+          </Button>
         </div>
       ))}
       <div className="min-h-0 flex-1">
