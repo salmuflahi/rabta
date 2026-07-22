@@ -32,3 +32,8 @@ export const MAX_RESTORE_MS = 4000;
 
 /** Brand ease — matches Tailwind's `ease-brand` utility. */
 export const BRAND_EASE = "cubic-bezier(0.2, 0.8, 0.2, 1)";
+
+/** Ease used by the Restore Experience sheet/backdrop/fold (a gentler,
+ * more "settling" curve than `BRAND_EASE` — no bounce/overshoot). See
+ * docs/superpowers/specs/2026-07-22-restore-experience-spec.md. */
+export const RESTORE_SHEET_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";

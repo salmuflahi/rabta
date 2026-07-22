@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { FoldMark, type FoldMarkState } from "@/shell/FoldMark";
+import { useRestore } from "@/restore/RestoreExperience";
+import type { RestoreTool } from "@/restore/types";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore } from "@/store";
 
@@ -43,36 +44,225 @@ function AppearanceSection() {
   );
 }
 
-// A real, always-running preview of the Resume fold — toggles two FoldMarks
-// between "open" and "closed" on a shared interval, one per `variant`, so
-// both candidate motions (see FoldMark.tsx) can be watched side by side on
-// repeat. Users evaluate this in the native window and can't reach the dev
-// component gallery, so this card is the only place to see the motion
-// outside of an actual Resume ceremony — and the only place to pick which
-// variant becomes the signature motion.
-function ResumeAnimationPreview() {
-  const [foldState, setFoldState] = useState<FoldMarkState>("open");
+function delay(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      setFoldState((s) => (s === "open" ? "closed" : "open"));
-    }, 1400);
-    return () => clearInterval(id);
-  }, []);
+const PLAYGROUND_THREE_TOOLS: RestoreTool[] = [
+  { id: "vscode", name: "VS Code", kind: "vscode" },
+  { id: "chrome", name: "Chrome", kind: "chrome" },
+  { id: "terminal", name: "Terminal", kind: "terminal" },
+];
+
+const PLAYGROUND_EIGHT_TOOLS: RestoreTool[] = [
+  { id: "vscode", name: "VS Code", kind: "vscode" },
+  { id: "chrome", name: "Chrome", kind: "chrome" },
+  { id: "terminal", name: "Terminal", kind: "terminal" },
+  { id: "git", name: "Git", kind: "git" },
+  { id: "cursor", name: "Cursor", kind: "cursor" },
+  { id: "figma", name: "Figma", kind: "figma" },
+  { id: "slack", name: "Slack", kind: "slack" },
+  { id: "notion", name: "Notion", kind: "notion" },
+];
+
+/**
+ * DEV-only preview of the Restore Experience (see
+ * docs/superpowers/specs/2026-07-22-restore-experience-spec.md). Presentation
+ * only — every scenario below drives `useRestore()` with a SCRIPTED `run`
+ * (no `invoke`), so this never touches the real Resume path. Gated on
+ * `import.meta.env.DEV` so it's stripped from production builds; this is
+ * the successor preview to the old fold-logo `ResumeAnimationPreview` (the
+ * real `ResumeCeremony` ceremony is untouched and keeps working meanwhile).
+ */
+function RestoreExperiencePlayground() {
+  const { start, node } = useRestore();
+
+  if (!import.meta.env.DEV) return null;
+
+  const scenarios: { label: string; run: () => void }[] = [
+    {
+      label: "Idle",
+      run: () => {
+        // No-op: the idle baseline is simply "no sheet rendered" — nothing
+        // to trigger.
+      },
+    },
+    {
+      label: "Slow successful restore",
+      run: () =>
+        start({
+          subtitle: "rabta-desktop",
+          tools: PLAYGROUND_THREE_TOOLS,
+          run: async (emit) => {
+            // The spec's exact slow-success timeline (design testing only —
+            // real integration uses actual data/timing, no scripted delays).
+            await delay(250);
+            emit("vscode", "restoring");
+            await delay(400);
+            emit("vscode", "applied");
+            await delay(50);
+            emit("chrome", "restoring");
+            await delay(400);
+            emit("chrome", "applied");
+            await delay(50);
+            emit("terminal", "restoring");
+            await delay(400);
+            emit("terminal", "applied");
+            return {
+              overall: "success",
+              tools: [
+                { id: "vscode", status: "applied" },
+                { id: "chrome", status: "applied" },
+                { id: "terminal", status: "applied" },
+              ],
+            };
+          },
+        }),
+    },
+    {
+      label: "Instant successful restore",
+      run: () =>
+        start({
+          subtitle: "rabta-desktop",
+          tools: PLAYGROUND_THREE_TOOLS,
+          run: async () => ({
+            overall: "success",
+            tools: PLAYGROUND_THREE_TOOLS.map((t) => ({ id: t.id, status: "applied" as const })),
+          }),
+        }),
+    },
+    {
+      label: "Partial restore",
+      run: () =>
+        start({
+          subtitle: "rabta-desktop",
+          tools: PLAYGROUND_THREE_TOOLS,
+          run: async () => {
+            await delay(300);
+            return {
+              overall: "partial",
+              tools: [
+                { id: "vscode", status: "applied" },
+                { id: "chrome", status: "skipped", message: "On next reload" },
+                { id: "terminal", status: "failed", message: "Couldn't restore" },
+              ],
+            };
+          },
+        }),
+    },
+    {
+      label: "Complete failure",
+      run: () =>
+        start({
+          subtitle: "rabta-desktop",
+          tools: PLAYGROUND_THREE_TOOLS,
+          run: async () => {
+            await delay(300);
+            throw new Error("Couldn't reach the connector service.");
+          },
+        }),
+    },
+    {
+      label: "Three tools",
+      run: () =>
+        start({
+          subtitle: "rabta-desktop",
+          tools: PLAYGROUND_THREE_TOOLS,
+          run: async () => {
+            await delay(400);
+            return {
+              overall: "success",
+              tools: PLAYGROUND_THREE_TOOLS.map((t) => ({ id: t.id, status: "applied" as const })),
+            };
+          },
+        }),
+    },
+    {
+      label: "Eight tools",
+      run: () =>
+        start({
+          subtitle: "rabta-desktop",
+          tools: PLAYGROUND_EIGHT_TOOLS,
+          run: async () => {
+            await delay(500);
+            return {
+              overall: "partial",
+              tools: PLAYGROUND_EIGHT_TOOLS.map((t, i) => ({
+                id: t.id,
+                status: i % 4 === 3 ? ("skipped" as const) : ("applied" as const),
+              })),
+            };
+          },
+        }),
+    },
+    {
+      label: "Reduced motion",
+      run: () =>
+        start({
+          subtitle: "rabta-desktop",
+          tools: PLAYGROUND_THREE_TOOLS,
+          forceReducedMotion: true,
+          run: async () => {
+            await delay(200);
+            return {
+              overall: "partial",
+              tools: [
+                { id: "vscode", status: "applied" },
+                { id: "chrome", status: "skipped", message: "On next reload" },
+                { id: "terminal", status: "failed", message: "Couldn't restore" },
+              ],
+            };
+          },
+        }),
+    },
+    {
+      label: "Long project name",
+      run: () =>
+        start({
+          subtitle: "the-really-quite-extraordinarily-long-monorepo-name-for-a-client-project-that-keeps-going",
+          tools: PLAYGROUND_THREE_TOOLS,
+          run: async () => {
+            await delay(300);
+            return {
+              overall: "success",
+              tools: PLAYGROUND_THREE_TOOLS.map((t) => ({ id: t.id, status: "applied" as const })),
+            };
+          },
+        }),
+    },
+    {
+      label: "Missing tool icon",
+      run: () =>
+        start({
+          subtitle: "rabta-desktop",
+          tools: [...PLAYGROUND_THREE_TOOLS, { id: "mystery", name: "Quantum Debugger", kind: "quantum-debugger" }],
+          run: async () => {
+            await delay(300);
+            return {
+              overall: "partial",
+              tools: [
+                ...PLAYGROUND_THREE_TOOLS.map((t) => ({ id: t.id, status: "applied" as const })),
+                { id: "mystery", status: "skipped" as const },
+              ],
+            };
+          },
+        }),
+    },
+  ];
 
   return (
-    <div className="flex flex-col items-center gap-3 py-2">
-      <div className="flex items-center justify-center gap-8">
-        <div className="flex flex-col items-center gap-3">
-          <FoldMark state={foldState} size={96} variant="corner" />
-          <p className="text-xs text-muted-foreground">Corner turn</p>
-        </div>
-        <div className="flex flex-col items-center gap-3">
-          <FoldMark state={foldState} size={96} variant="squash" />
-          <p className="text-xs text-muted-foreground">Fold shut</p>
-        </div>
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2">
+        {scenarios.map((s) => (
+          <Button key={s.label} variant="secondary" size="sm" onClick={s.run}>
+            {s.label}
+          </Button>
+        ))}
       </div>
-      <p className="text-xs text-muted-foreground">Preview of the fold used in Resume.</p>
+      <p className="text-xs text-muted-foreground">
+        Dev-only preview of the Restore Experience sheet — scripted runs, not wired to the real Resume flow.
+      </p>
+      {node}
     </div>
   );
 }
@@ -170,15 +360,19 @@ export function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Resume animation</CardTitle>
-            <CardDescription>How the Rabta mark folds when a session resumes.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResumeAnimationPreview />
-          </CardContent>
-        </Card>
+        {import.meta.env.DEV && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Restore Experience (dev preview)</CardTitle>
+              <CardDescription>
+                Isolated preview of the signature restore sheet. Dev-only — stripped from production builds.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RestoreExperiencePlayground />
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
