@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
+import { CapsulesPage } from "./pages/CapsulesPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { AppShell } from "./shell/AppShell";
 import { PageHeader } from "./shell/PageHeader";
@@ -58,6 +59,8 @@ function PlaceholderPage({ view }: { view: NavKey }) {
 
 function CurrentPage({ view }: { view: NavKey }) {
   switch (view) {
+    case "capsules":
+      return <CapsulesPage />;
     case "projects":
       return <ProjectsPage />;
     default:
