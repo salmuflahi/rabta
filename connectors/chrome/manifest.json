@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "OmniBus Connector",
+  "name": "Rabta Connector",
   "version": "0.1.0",
-  "description": "Connects this browser's tabs to the local OmniBus hub.",
+  "description": "Connects this browser's tabs to the local Rabta hub.",
   "permissions": ["tabs", "storage", "alarms"],
   "background": { "service_worker": "dist/background.js", "type": "module" },
   "action": { "default_popup": "popup.html" }

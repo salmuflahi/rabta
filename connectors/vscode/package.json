@@ -1,10 +1,10 @@
 {
   "name": "rabta-vscode",
-  "displayName": "OmniBus Connector",
-  "description": "Connects this editor to the local OmniBus hub.",
+  "displayName": "Rabta Connector",
+  "description": "Connects this editor to the local Rabta hub.",
   "version": "0.1.0",
   "private": true,
-  "publisher": "omnibus-dev",
+  "publisher": "rabta-dev",
   "engines": { "vscode": "^1.85.0" },
   "main": "./dist/extension.js",
   "activationEvents": ["onStartupFinished"],

@@ -166,7 +166,7 @@ export default function App() {
       {pairings.map((p) => (
         <div key={p.pairingId} className="flex items-center gap-3 border-b border-warning/30 bg-warning/10 p-2 text-sm text-foreground">
           <span className="flex-1">
-            <b>{p.name}</b> ({p.kind}) wants to connect to OmniBus
+            <b>{p.name}</b> ({p.kind}) wants to connect to Rabta
           </span>
           <Button size="sm" onClick={() => decide(p, true)}>
             Approve

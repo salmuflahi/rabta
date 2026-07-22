@@ -40,7 +40,7 @@ function terminalInfo(terminal: vscode.Terminal): TerminalInfo {
  * events emitted before the connection lands are deliberately dropped.
  */
 export function activate(context: vscode.ExtensionContext): void {
-  const out = vscode.window.createOutputChannel("OmniBus");
+  const out = vscode.window.createOutputChannel("Rabta");
 
   connect(
     { name: "vscode", kind: "vscode", capabilities: ["workspace", "editor", "terminal"] },
@@ -80,9 +80,9 @@ export function activate(context: vscode.ExtensionContext): void {
   )
     .then((c) => {
       connector = c;
-      out.appendLine(`connected to OmniBus as ${c.connectorId}`);
+      out.appendLine(`connected to Rabta as ${c.connectorId}`);
     })
-    .catch((e) => out.appendLine(`OmniBus connection failed: ${e}`));
+    .catch((e) => out.appendLine(`Rabta connection failed: ${e}`));
 
   context.subscriptions.push(
     vscode.workspace.onDidOpenTextDocument((doc) => {

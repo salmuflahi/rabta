@@ -1,4 +1,4 @@
-// Bundles the extension's two entry points; @omnibus/protocol is inlined.
+// Bundles the extension's two entry points; @rabta/protocol is inlined.
 import { build } from "esbuild";
 
 for (const entry of ["background", "popup"]) {

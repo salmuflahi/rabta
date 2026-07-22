@@ -72,7 +72,7 @@ const MAX_BACKOFF = 30_000;
 let uid = 0;
 
 /**
- * Browser-side transport for the OmniBus protocol. Discovers the hub at a
+ * Browser-side transport for the Rabta protocol. Discovers the hub at a
  * fixed port, pairs on first run (token persisted), and thereafter
  * authenticates with the stored token. Diverges from the Node SDK on one
  * point: `auth_failed` clears the stored token and re-pairs (a browser can't

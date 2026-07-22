@@ -1,11 +1,11 @@
-# OmniBus Chrome Connector
+# Rabta Chrome Connector
 
-The browser connector that pairs this browser with the local OmniBus hub. Connects via task 10a's handshake protocol and stores its hub token in `chrome.storage.local`.
+The browser connector that pairs this browser with the local Rabta hub. Connects via task 10a's handshake protocol and stores its hub token in `chrome.storage.local`.
 
 ## Build
 
 ```bash
-pnpm --filter omnibus-chrome build
+pnpm --filter rabta-chrome build
 ```
 
 ## Load into Chrome
@@ -21,5 +21,5 @@ The connector captures only HTTP/HTTPS tab URLs and titles—never page content,
 ## Test
 
 ```bash
-pnpm --filter omnibus-chrome test
+pnpm --filter rabta-chrome test
 ```
