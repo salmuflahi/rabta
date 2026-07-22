@@ -12,7 +12,7 @@ const Gallery = isGallery
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ThemeProvider defaultTheme="dark">
+    <ThemeProvider defaultTheme="light">
       {Gallery ? (
         <Suspense fallback={null}>
           <Gallery />

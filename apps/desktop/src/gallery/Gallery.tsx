@@ -10,6 +10,7 @@ import {
 
 import { useTheme } from "@/components/theme-provider";
 import { toast } from "@/components/ui/sonner";
+import markUrl from "@/assets/brand/rabta-mark.svg";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -120,11 +121,20 @@ export function Gallery() {
     <div className="min-h-screen bg-background text-foreground p-8">
       {/* Header */}
       <header className="flex items-center justify-between mb-16">
-        <div>
-          <h1 className="text-2xl font-semibold">OmniBus Component Gallery</h1>
-          <p className="text-sm text-muted-foreground">
-            Dev-only review surface — every component, both themes.
-          </p>
+        <div className="flex items-center gap-3">
+          <img
+            src={markUrl}
+            alt="Rabta"
+            className="h-7 w-7 rounded-[8px]"
+          />
+          <div>
+            <h1 className="text-2xl font-semibold">
+              Rabta — Component Gallery
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Dev-only review surface — every component, both themes.
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -143,6 +153,42 @@ export function Gallery() {
           </Button>
         </div>
       </header>
+
+      {/* Brand palette */}
+      <Section title="Brand palette">
+        <div className="flex flex-wrap gap-6">
+          {[
+            { label: "Primary", swatch: "bg-primary" },
+            { label: "Foreground", swatch: "bg-foreground" },
+            { label: "Success", swatch: "bg-success" },
+            { label: "Info", swatch: "bg-info" },
+            { label: "Warning", swatch: "bg-warning" },
+            { label: "Destructive", swatch: "bg-destructive" },
+          ].map(({ label, swatch }) => (
+            <div key={label} className="flex flex-col items-center gap-2">
+              <div className={`h-14 w-14 rounded-lg border border-border ${swatch}`} />
+              <span className="text-xs text-muted-foreground">{label}</span>
+            </div>
+          ))}
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-14 w-14 rounded-lg border border-border bg-sidebar flex items-center justify-center">
+              <span className="text-[10px] text-sidebar-foreground">Aa</span>
+            </div>
+            <span className="text-xs text-muted-foreground">Sidebar</span>
+          </div>
+        </div>
+
+        <div className="mt-8 max-w-xs">
+          <p className="text-xs text-muted-foreground mb-2">Sidebar preview</p>
+          <div className="bg-sidebar text-sidebar-foreground rounded-lg p-3 flex flex-col gap-1">
+            <div className="rounded-md px-3 py-2 text-sm bg-sidebar-accent text-sidebar-accent-foreground">
+              Connections
+            </div>
+            <div className="rounded-md px-3 py-2 text-sm">Activity</div>
+            <div className="rounded-md px-3 py-2 text-sm">Advanced</div>
+          </div>
+        </div>
+      </Section>
 
       {/* Buttons */}
       <Section title="Buttons">
