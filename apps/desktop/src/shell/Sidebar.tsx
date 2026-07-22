@@ -60,7 +60,7 @@ export function Sidebar() {
             </div>
           </TooltipTrigger>
           <TooltipContent side="right">
-            Runs entirely on 127.0.0.1 — no cloud, no account.
+            Runs entirely on 127.0.0.1 — no cloud account, no telemetry.
           </TooltipContent>
         </Tooltip>
       </div>

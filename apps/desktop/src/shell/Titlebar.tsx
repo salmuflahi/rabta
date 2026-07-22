@@ -7,6 +7,7 @@ import { useStore } from "@/store";
 export function Titlebar() {
   const connectors = useStore((s) => s.connectors);
   const hubPort = useStore((s) => s.hubPort);
+  const setCommandOpen = useStore((s) => s.setCommandOpen);
   const connectedCount = connectors.filter((c) => c.connected).length;
 
   return (
@@ -19,7 +20,7 @@ export function Titlebar() {
       <Button
         variant="outline"
         className="h-8 justify-between gap-6 px-3 text-muted-foreground"
-        onClick={() => console.log("command palette: not wired until Task 5")}
+        onClick={() => setCommandOpen(true)}
       >
         <span className="text-sm">Search or jump to…</span>
         <Kbd>⌘K</Kbd>

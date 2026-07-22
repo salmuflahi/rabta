@@ -5,8 +5,11 @@ import { Button } from "./components/ui/button";
 import { ActivityPage } from "./pages/ActivityPage";
 import { CapsulesPage } from "./pages/CapsulesPage";
 import { ConnectorsPage } from "./pages/ConnectorsPage";
+import { OverviewPage } from "./pages/OverviewPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { AppShell } from "./shell/AppShell";
+import { CommandPalette } from "./shell/CommandPalette";
 import { PageHeader } from "./shell/PageHeader";
 import {
   useStore,
@@ -62,6 +65,8 @@ function PlaceholderPage({ view }: { view: NavKey }) {
 
 function CurrentPage({ view }: { view: NavKey }) {
   switch (view) {
+    case "overview":
+      return <OverviewPage />;
     case "capsules":
       return <CapsulesPage />;
     case "projects":
@@ -70,6 +75,8 @@ function CurrentPage({ view }: { view: NavKey }) {
       return <ConnectorsPage />;
     case "activity":
       return <ActivityPage />;
+    case "settings":
+      return <SettingsPage />;
     default:
       return <PlaceholderPage view={view} />;
   }
@@ -85,6 +92,7 @@ export default function App() {
   const addPairing = useStore((s) => s.addPairing);
   const removePairing = useStore((s) => s.removePairing);
   const setHubPort = useStore((s) => s.setHubPort);
+  const toggleCommandOpen = useStore((s) => s.toggleCommandOpen);
 
   useEffect(() => {
     const refresh = () =>
@@ -135,6 +143,19 @@ export default function App() {
       .catch(() => {});
   }, [setHubPort]);
 
+  // Global ⌘K / Ctrl-K toggle for the command palette (Escape-to-close is
+  // handled by Radix Dialog inside CommandPalette itself).
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        toggleCommandOpen();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [toggleCommandOpen]);
+
   async function decide(pairingId: string, ok: boolean) {
     try {
       await invoke(ok ? "approve_pairing" : "deny_pairing", { pairingId });
@@ -164,6 +185,7 @@ export default function App() {
           <CurrentPage view={view} />
         </AppShell>
       </div>
+      <CommandPalette />
     </div>
   );
 }

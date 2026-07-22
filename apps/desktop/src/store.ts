@@ -114,6 +114,10 @@ interface Store {
   removePairing: (pairingId: string) => void;
   hubPort: number | null;
   setHubPort: (port: number | null) => void;
+  /** ⌘K / Ctrl-K command palette visibility. */
+  commandOpen: boolean;
+  setCommandOpen: (open: boolean) => void;
+  toggleCommandOpen: () => void;
 }
 
 export const useStore = create<Store>((set) => ({
@@ -131,6 +135,9 @@ export const useStore = create<Store>((set) => ({
   pairings: [],
   hubPort: null,
   setHubPort: (hubPort) => set({ hubPort }),
+  commandOpen: false,
+  setCommandOpen: (commandOpen) => set({ commandOpen }),
+  toggleCommandOpen: () => set((s) => ({ commandOpen: !s.commandOpen })),
   setPairings: (incoming) =>
     set((s) => {
       const merged = [...s.pairings];
