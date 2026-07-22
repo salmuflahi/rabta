@@ -1,5 +1,9 @@
-# OmniBus UX Redesign — Design Spec
+# Rabta (formerly OmniBus) — UX Redesign — Design Spec
 
+> **Name:** the product is being renamed **Rabta** (from Arabic *rabt* — "linking /
+> binding"), which is exactly what it does: it binds your tools and their state
+> together. "OmniBus" persists only where a rename is still pending.
+>
 > **Status:** design, awaiting review. No implementation until this is approved.
 > **Scope:** presentation only. No backend, protocol, DB, connector, or command
 > API changes. Every Tauri `invoke` name, event name, and payload shape stays
@@ -26,7 +30,8 @@ not apps."**
 
 - **Tauri CSP:** `default-src 'self'; img-src 'self' data:; style-src 'self'
   'unsafe-inline'`. Everything ships from `'self'` — no CDN scripts, no remote
-  fonts, no remote images. All fonts are system fonts; all icons are inline SVG.
+  fonts, no remote images. Fonts are **bundled locally** (Inter, self-hosted via
+  woff2) so they still load from `'self'`; all icons are inline SVG.
 - **Local-first:** the hub is bound to `127.0.0.1`. The UI must never imply
   network/cloud activity, because there is none.
 - **Preserve behavior:** the same actions with the same results. We change how
@@ -40,6 +45,30 @@ not apps."**
 | Scope | **Full redesign, phased (A–J)** | Sequential reviewed sub-phases; each reviewed + shown before the next. |
 | Design system | **shadcn/ui** (Radix + Tailwind, vendored) | Accessible primitives by construction, copied into the repo → CSP-safe, no runtime CDN. |
 | Typography | **macOS system stack** (`-apple-system`/SF) | Reads as native Mac instantly; zero bundled font assets; monospace reserved for code/paths/logs. |
+
+### Brand update (2026-07-21) — supersedes rows above where noted
+
+The user delivered a finished brand system (`omnibus-brand-system-v2`) including a
+logo, palette, and a **macOS app mockup**. The brand's own app design answers our
+open questions, so these decisions are updated:
+
+| Decision | Updated choice | Source |
+|---|---|---|
+| **Name** | **Rabta** (mark: the "Context Fold" — a forward arrow in negative space with a tangerine corner-fold) | brand system |
+| **Navigation** | **Sidebar shell** — a petrol left sidebar + a titlebar carrying a centered ⌘K command trigger + a paper main. **Supersedes** "task-first workspace." Tasks remain the spine *inside* the shell. | brand app mockup (`.app-sidebar`/`.app-titlebar`/`.app-layout`) |
+| **Typography** | **Inter**, bundled locally (self-hosted woff2). Heavy weights (semibold/bold), tight tracking on headings (`~ -0.045em`). Mono reserved for kbd + eyebrow labels. **Supersedes** the SF system stack. | brand system |
+| **Primary theme** | **Light "paper"** app (`#f5f2eb`/`#f7f5ef` surfaces, petrol text) with a **petrol sidebar** (`#102526`, ivory text). A petrol-based **dark** theme is still provided from the same tokens. | brand app mockup |
+| **Palette** | **Petrol** (`#102526` + scale to `#061112`), **warm ivory** (`#f3f0e8`/paper `#faf8f2`), **tangerine** primary (`#ff6b2c` on near-black text). Semantics: **sea** `#66d6c2` = success, **mist** `#8fb8c9` = info, **gold** `#d9a441` = warning, **coral** `#e76b5d` = danger. | brand system tokens |
+| **Accent discipline** | Tangerine is the *single* hot action color — primary buttons, active state, the mark, focus ring, and little else. The other hues stay muted/rare in the calm app; the animated marketing site carries the loud energy. | derived |
+
+This also resolves the deferred **Phase-8 semantic-color contrast** item: the new
+token values are chosen for WCAG AA in both light and dark, using the brand's
+own pairings (e.g. tangerine on near-black `#1d120d`, petrol text on paper).
+
+Component treatments locked by the brand mockup: buttons radius **10**, min-height
+**44**, hover `translateY(-2px)`; panels/cards radius **14** (`#fbf9f4`); window
+radius **22**; toasts **dark petrol** (`#0a1a1b`) even in the light app; secondary
+button = white + petrol border; sidebar nav active = `rgba(ivory,.1)`.
 
 ---
 
