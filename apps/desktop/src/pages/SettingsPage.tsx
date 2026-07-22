@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { FoldMark, type FoldMarkState } from "@/shell/FoldMark";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore } from "@/store";
 
@@ -38,6 +39,29 @@ function AppearanceSection() {
           Dark
         </span>
       </div>
+    </div>
+  );
+}
+
+// A real, always-running preview of the Resume fold — toggles the FoldMark
+// between "open" and "closed" on a fixed interval so the crease-pivot fold
+// (see FoldMark.tsx) can be watched on repeat. Users evaluate this in the
+// native window and can't reach the dev component gallery, so this card is
+// the only place to see the motion outside of an actual Resume ceremony.
+function ResumeAnimationPreview() {
+  const [foldState, setFoldState] = useState<FoldMarkState>("open");
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setFoldState((s) => (s === "open" ? "closed" : "open"));
+    }, 1400);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center gap-3 py-2">
+      <FoldMark state={foldState} size={96} />
+      <p className="text-xs text-muted-foreground">Preview of the fold used in Resume.</p>
     </div>
   );
 }
@@ -132,6 +156,16 @@ export function SettingsPage() {
           </CardHeader>
           <CardContent>
             <AppearanceSection />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Resume animation</CardTitle>
+            <CardDescription>How the Rabta mark folds when a session resumes.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResumeAnimationPreview />
           </CardContent>
         </Card>
 
