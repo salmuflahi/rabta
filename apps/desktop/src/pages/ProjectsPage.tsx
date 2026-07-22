@@ -18,7 +18,6 @@ import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type Project, type RepoInspection } from "@/store";
 import { GitHubSection } from "@/views/GitHubSection";
 import { GitLine } from "@/views/GitLine";
-import { TasksSection } from "@/views/TasksSection";
 
 export function ProjectsPage() {
   const projects = useStore((s) => s.projects);
@@ -163,7 +162,6 @@ export function ProjectsPage() {
                 projectId={p.id}
                 onStarted={() => setStartedNonce((n) => ({ ...n, [p.id]: (n[p.id] ?? 0) + 1 }))}
               />
-              <TasksSection key={`${p.id}-${startedNonce[p.id] ?? 0}`} projectId={p.id} />
             </Card>
           ))}
         </div>
