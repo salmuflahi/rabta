@@ -94,7 +94,7 @@ export function ConnectorsPage() {
         <EmptyState
           icon={<Cable />}
           title="No connectors yet"
-          description="Editors and browsers connect here once paired — open an OmniBus-aware editor or browser extension to get started."
+          description="Install the VS Code (or Cursor) extension and the Chrome extension, then open them once — each one pairs with Rabta automatically and shows up here."
         />
       ) : (
         <div className="flex flex-col gap-3">

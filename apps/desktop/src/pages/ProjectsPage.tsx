@@ -189,7 +189,7 @@ export function ProjectsPage() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="project-path">Repository path</Label>
+              <Label htmlFor="project-path">Repository Path</Label>
               <Input
                 id="project-path"
                 value={repoPath}
@@ -201,7 +201,7 @@ export function ProjectsPage() {
               {pathNote && <p className="text-xs text-destructive">{pathNote}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="project-branch">Default branch</Label>
+              <Label htmlFor="project-branch">Default Branch</Label>
               <Input
                 id="project-branch"
                 value={branch}

@@ -1,5 +1,39 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  GitBranch,
+  GitCommitVertical,
+  MoreHorizontal,
+  Plus,
+  RefreshCw,
+  ShieldCheck,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toastErr, toastOk } from "@/lib/toast";
 import { useStore } from "../store";
 
@@ -15,8 +49,8 @@ export function GitLine({ projectId }: { projectId: string }) {
   const activationNonce = useStore((s) => s.activationNonce);
   const [status, setStatus] = useState<GitStatus | null>(null);
   const [branches, setBranches] = useState<string[]>([]);
-  const [target, setTarget] = useState("");
   const [newBranch, setNewBranch] = useState("");
+  const [newBranchOpen, setNewBranchOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const refresh = async () => {
@@ -53,56 +87,129 @@ export function GitLine({ projectId }: { projectId: string }) {
     }
   }
 
+  async function createBranch() {
+    if (!newBranch) return;
+    await run("git_create_branch", { name: newBranch }, `Created ${newBranch}`);
+    setNewBranch("");
+    setNewBranchOpen(false);
+  }
+
   const s = status;
+
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
       {s ? (
-        <span className={s.dirty ? "text-warning" : "text-muted-foreground"}>
-          ⎇ {s.branch ?? "detached"}
-          {s.changedCount > 0 && ` · ${s.changedCount} changed`}
-          {s.ahead > 0 && ` ↑${s.ahead}`}
-          {s.behind > 0 && ` ↓${s.behind}`}
-        </span>
+        <>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex cursor-default items-center gap-1.5">
+                <GitBranch className="size-3.5 text-muted-foreground" />
+                <span className={s.dirty ? "font-mono text-warning" : "font-mono text-foreground"}>
+                  {s.branch ?? "detached"}
+                </span>
+                <ShieldCheck className="size-3.5 text-muted-foreground" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              Rabta never force-pushes, resets, or discards your work.
+            </TooltipContent>
+          </Tooltip>
+
+          {s.changedCount > 0 && (
+            <Badge variant={s.dirty ? "warning" : "secondary"}>
+              <GitCommitVertical className="size-3" />
+              {s.changedCount} changed
+            </Badge>
+          )}
+          {s.ahead > 0 && (
+            <Badge variant="secondary">
+              <ArrowUp className="size-3" />
+              {s.ahead}
+            </Badge>
+          )}
+          {s.behind > 0 && (
+            <Badge variant="secondary">
+              <ArrowDown className="size-3" />
+              {s.behind}
+            </Badge>
+          )}
+        </>
       ) : (
-        <span className="text-muted-foreground/70">git…</span>
+        <span className="text-muted-foreground/70">Loading git status…</span>
       )}
-      <button
-        onClick={() => run("git_fetch", {}, "Fetched")}
-        disabled={busy}
-        className="rounded border border-input px-2 py-0.5 text-foreground hover:bg-accent disabled:opacity-40"
-      >
-        Fetch
-      </button>
-      <select
-        value={target}
-        onChange={(e) => setTarget(e.target.value)}
-        className="rounded border border-input bg-transparent px-1 py-0.5 text-foreground"
-      >
-        <option value="">branch…</option>
-        {branches.map((b) => (
-          <option key={b} value={b}>{b}</option>
-        ))}
-      </select>
-      <button
-        onClick={() => run("git_checkout", { branch: target }, `Switched to ${target}`)}
-        disabled={busy || !target || target === s?.branch}
-        className="rounded border border-input px-2 py-0.5 text-foreground hover:bg-accent disabled:opacity-40"
-      >
-        Switch
-      </button>
-      <input
-        value={newBranch}
-        onChange={(e) => setNewBranch(e.target.value)}
-        placeholder="new branch"
-        className="w-28 rounded border border-input bg-transparent px-1 py-0.5 text-foreground placeholder:text-muted-foreground"
-      />
-      <button
-        onClick={() => run("git_create_branch", { name: newBranch }, `Created ${newBranch}`).then(() => setNewBranch(""))}
-        disabled={busy || !newBranch}
-        className="rounded border border-input px-2 py-0.5 text-foreground hover:bg-accent disabled:opacity-40"
-      >
-        Create
-      </button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" disabled={busy || !s} className="h-6 gap-1 px-2 text-xs">
+            <MoreHorizontal className="size-3.5" />
+            Git
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem disabled={busy} onSelect={() => run("git_fetch", {}, "Fetched")}>
+            <RefreshCw className="mr-2 size-3.5" />
+            Fetch
+          </DropdownMenuItem>
+
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger disabled={busy || branches.length === 0}>
+              <GitBranch className="mr-2 size-3.5" />
+              Switch Branch
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {branches.map((b) => (
+                <DropdownMenuItem
+                  key={b}
+                  disabled={busy || b === s?.branch}
+                  onSelect={() => run("git_checkout", { branch: b }, `Switched to ${b}`)}
+                >
+                  {b === s?.branch ? (
+                    <Check className="mr-2 size-3.5" />
+                  ) : (
+                    <span className="mr-2 size-3.5" />
+                  )}
+                  <span className="font-mono">{b}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem disabled={busy} onSelect={() => setNewBranchOpen(true)}>
+            <Plus className="mr-2 size-3.5" />
+            New Branch…
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={newBranchOpen} onOpenChange={setNewBranchOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>New Branch</DialogTitle>
+            <DialogDescription>Create a new branch from the current one.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="new-branch-name">Branch Name</Label>
+            <Input
+              id="new-branch-name"
+              value={newBranch}
+              onChange={(e) => setNewBranch(e.target.value)}
+              placeholder="feature/my-change"
+              className="font-mono"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewBranchOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={createBranch} disabled={busy || !newBranch}>
+              Create
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

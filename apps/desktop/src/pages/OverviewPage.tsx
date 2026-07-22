@@ -1,13 +1,51 @@
 import { invoke } from "@tauri-apps/api/core";
-import { FolderGit2, LayoutGrid, ListChecks, Plug, type LucideIcon } from "lucide-react";
+import {
+  Code2,
+  FolderGit2,
+  Globe,
+  ListChecks,
+  Plug,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/shell/PageHeader";
 import { relativeTime } from "@/lib/humanize";
 import { useStore, type Project, type Task } from "@/store";
+
+function NextStepCard({
+  icon: Icon,
+  title,
+  description,
+  actionLabel,
+  onAction,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  actionLabel: string;
+  onAction: () => void;
+}) {
+  return (
+    <Card className="flex flex-col p-4">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+        <Icon className="size-4" />
+      </div>
+      <CardHeader className="p-0 pt-3">
+        <CardTitle className="text-sm">{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="mt-auto p-0 pt-3">
+        <Button variant="outline" size="sm" onClick={onAction}>
+          {actionLabel}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 function StatCard({
   icon: Icon,
@@ -86,12 +124,44 @@ export function OverviewPage() {
       />
 
       {projects.length === 0 ? (
-        <EmptyState
-          icon={<LayoutGrid />}
-          title="Welcome to Rabta"
-          description="Register a project to start tracking tasks, capsules, and connectors."
-          action={<Button onClick={() => setView("projects")}>Register Project</Button>}
-        />
+        <div className="flex flex-col gap-6">
+          <Card className="flex flex-col items-center gap-3 border-dashed p-8 text-center">
+            <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Sparkles className="size-6" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-lg font-semibold text-foreground">Welcome to Rabta</p>
+              <p className="text-sm text-muted-foreground">
+                One command center for your projects, editors, and browser tabs — switch tasks
+                and Rabta restores the right branch, files, and tabs for you.
+              </p>
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <NextStepCard
+              icon={FolderGit2}
+              title="Register a Project"
+              description="Point Rabta at a git repository to start tracking tasks and branches."
+              actionLabel="Register Project"
+              onAction={() => setView("projects")}
+            />
+            <NextStepCard
+              icon={Code2}
+              title="Connect an Editor"
+              description="Install the VS Code (or Cursor) extension so Rabta can open workspaces and files."
+              actionLabel="Go to Connectors"
+              onAction={() => setView("connectors")}
+            />
+            <NextStepCard
+              icon={Globe}
+              title="Connect a Browser"
+              description="Install the Chrome extension so Rabta can manage tabs alongside each task."
+              actionLabel="Go to Connectors"
+              onAction={() => setView("connectors")}
+            />
+          </div>
+        </div>
       ) : (
         <div className="flex flex-col gap-6">
           <div className="grid grid-cols-3 gap-4">
