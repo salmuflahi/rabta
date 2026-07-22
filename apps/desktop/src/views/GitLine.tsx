@@ -74,14 +74,20 @@ export function GitLine({ projectId }: { projectId: string }) {
     refresh();
   }, [activationNonce]);
 
-  async function run(command: string, args: Record<string, unknown>, okMessage: string) {
+  async function run(
+    command: string,
+    args: Record<string, unknown>,
+    okMessage: string
+  ): Promise<boolean> {
     setBusy(true);
     try {
       await invoke(command, { projectId, ...args });
       toastOk(okMessage);
       await refresh();
+      return true;
     } catch (e) {
       toastErr(e);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -89,9 +95,11 @@ export function GitLine({ projectId }: { projectId: string }) {
 
   async function createBranch() {
     if (!newBranch) return;
-    await run("git_create_branch", { name: newBranch }, `Created ${newBranch}`);
-    setNewBranch("");
-    setNewBranchOpen(false);
+    const ok = await run("git_create_branch", { name: newBranch }, `Created ${newBranch}`);
+    if (ok) {
+      setNewBranch("");
+      setNewBranchOpen(false);
+    }
   }
 
   const s = status;
@@ -176,7 +184,13 @@ export function GitLine({ projectId }: { projectId: string }) {
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem disabled={busy} onSelect={() => setNewBranchOpen(true)}>
+          <DropdownMenuItem
+            disabled={busy}
+            onSelect={(e) => {
+              e.preventDefault();
+              setNewBranchOpen(true);
+            }}
+          >
             <Plus className="mr-2 size-3.5" />
             New Branch…
           </DropdownMenuItem>
