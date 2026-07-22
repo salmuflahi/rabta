@@ -56,21 +56,29 @@ export function GitLine({ projectId }: { projectId: string }) {
 
   const s = status;
   return (
-    <div className="mt-1 flex items-center gap-2 text-xs flex-wrap">
+    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
       {s ? (
-        <span className={s.dirty ? "text-amber-400" : "text-neutral-400"}>
+        <span className={s.dirty ? "text-warning" : "text-muted-foreground"}>
           ⎇ {s.branch ?? "detached"}
           {s.changedCount > 0 && ` · ${s.changedCount} changed`}
           {s.ahead > 0 && ` ↑${s.ahead}`}
           {s.behind > 0 && ` ↓${s.behind}`}
         </span>
       ) : (
-        <span className="text-neutral-600">git…</span>
+        <span className="text-muted-foreground/70">git…</span>
       )}
-      <button onClick={() => run("git_fetch", {}, "fetched")} disabled={busy} className="bg-neutral-800 px-2 disabled:opacity-40">
-        fetch
+      <button
+        onClick={() => run("git_fetch", {}, "fetched")}
+        disabled={busy}
+        className="rounded border border-input px-2 py-0.5 text-foreground hover:bg-accent disabled:opacity-40"
+      >
+        Fetch
       </button>
-      <select value={target} onChange={(e) => setTarget(e.target.value)} className="bg-neutral-800 p-0.5">
+      <select
+        value={target}
+        onChange={(e) => setTarget(e.target.value)}
+        className="rounded border border-input bg-transparent px-1 py-0.5 text-foreground"
+      >
         <option value="">branch…</option>
         {branches.map((b) => (
           <option key={b} value={b}>{b}</option>
@@ -79,24 +87,24 @@ export function GitLine({ projectId }: { projectId: string }) {
       <button
         onClick={() => run("git_checkout", { branch: target }, `switched to ${target}`)}
         disabled={busy || !target || target === s?.branch}
-        className="bg-neutral-700 px-2 disabled:opacity-40"
+        className="rounded border border-input px-2 py-0.5 text-foreground hover:bg-accent disabled:opacity-40"
       >
-        switch
+        Switch
       </button>
       <input
         value={newBranch}
         onChange={(e) => setNewBranch(e.target.value)}
         placeholder="new branch"
-        className="bg-neutral-800 p-0.5 w-28"
+        className="w-28 rounded border border-input bg-transparent px-1 py-0.5 text-foreground placeholder:text-muted-foreground"
       />
       <button
         onClick={() => run("git_create_branch", { name: newBranch }, `created ${newBranch}`).then(() => setNewBranch(""))}
         disabled={busy || !newBranch}
-        className="bg-neutral-800 px-2 disabled:opacity-40"
+        className="rounded border border-input px-2 py-0.5 text-foreground hover:bg-accent disabled:opacity-40"
       >
-        create
+        Create
       </button>
-      {note && <span className="text-neutral-400 break-all">{note}</span>}
+      {note && <span className="break-all text-muted-foreground">{note}</span>}
     </div>
   );
 }

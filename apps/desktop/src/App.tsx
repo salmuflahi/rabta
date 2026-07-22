@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
+import { ProjectsPage } from "./pages/ProjectsPage";
 import { AppShell } from "./shell/AppShell";
 import { PageHeader } from "./shell/PageHeader";
 import {
@@ -53,6 +54,15 @@ function PlaceholderPage({ view }: { view: NavKey }) {
       <p className="text-sm text-muted-foreground">Coming soon.</p>
     </div>
   );
+}
+
+function CurrentPage({ view }: { view: NavKey }) {
+  switch (view) {
+    case "projects":
+      return <ProjectsPage />;
+    default:
+      return <PlaceholderPage view={view} />;
+  }
 }
 
 export default function App() {
@@ -141,7 +151,7 @@ export default function App() {
       ))}
       <div className="min-h-0 flex-1">
         <AppShell>
-          <PlaceholderPage view={view} />
+          <CurrentPage view={view} />
         </AppShell>
       </div>
     </div>
