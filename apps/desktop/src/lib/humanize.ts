@@ -41,11 +41,11 @@ export function relativeTime(iso: string, now: number = Date.now()): string {
   const diffMs = now - then;
   if (diffMs < JUST_NOW_MS) return "just now";
 
-  const diffMin = diffMs / MINUTE_MS;
-  if (diffMin < 60) return `${Math.round(diffMin)}m ago`;
+  const mins = Math.round(diffMs / MINUTE_MS);
+  if (mins < 60) return mins <= 0 ? "just now" : `${mins}m ago`;
 
-  const diffHour = diffMs / HOUR_MS;
-  if (diffHour < 24) return `${Math.round(diffHour)}h ago`;
+  const hours = Math.round(diffMs / HOUR_MS);
+  if (hours < 24) return `${hours}h ago`;
 
   const dayDiff = Math.round((startOfDay(now) - startOfDay(then)) / DAY_MS);
   if (dayDiff === 1) return "yesterday";
@@ -131,16 +131,32 @@ function pickName(e: Record<string, unknown>): string {
   return "A connector";
 }
 
-/** The "who" — a connector's display name, falling back to its session id. */
-function pickConnector(e: Record<string, unknown>): string {
+/**
+ * The "who" — a connector's display name. The real hub wire shape only
+ * inlines a `connector: { name, ... }` object on `connectorConnected`; every
+ * other event (`connectorDisconnected`, `commandSent`, `responseReceived`,
+ * `eventReceived`) carries just a `connectorId` session id (see
+ * `HubEvent` in crates/omnibus-hub/src/hub.rs). Callers may pass a
+ * `resolveName` lookup (e.g. backed by the connectors list) to turn that id
+ * into a display name; without one, or if it can't resolve, this degrades to
+ * a readable generic instead of ever surfacing the raw session id.
+ */
+function pickConnector(
+  e: Record<string, unknown>,
+  resolveName?: (id: string) => string | undefined,
+): string {
   const connector = asRecord(e.connector);
   if (connector && typeof connector.name === "string" && connector.name) return connector.name;
-  if (typeof e.connectorId === "string" && e.connectorId) return e.connectorId;
-  return "unknown";
+  if (typeof e.connectorId === "string" && e.connectorId) {
+    const resolved = resolveName?.(e.connectorId);
+    if (resolved) return resolved;
+  }
+  return "a connector";
 }
 
-function humanizeType(type: string): string {
-  const spaced = type
+function humanizeType(type: unknown): string {
+  const raw = typeof type === "string" ? type : type == null ? "" : String(type);
+  const spaced = raw
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/[_-]+/g, " ")
     .toLowerCase()
@@ -158,21 +174,32 @@ export interface DescribedEvent {
  * Plain-English sentence for an activity-log event. Field names/shapes
  * come from the hub's `HubEvent` enum (camelCase over the wire) but are
  * pulled defensively — this never throws, even given a bare `{ type }`.
+ *
+ * `resolveName` is an optional pure lookup (id -> display name) the caller
+ * supplies for events that only carry a `connectorId` session id on the
+ * wire; see `pickConnector` for why. Omitting it still works — it just
+ * degrades those sentences to a generic "a connector" instead of a name.
  */
-export function describeEvent(e: { type: string; at?: string; [k: string]: unknown }): DescribedEvent {
+export function describeEvent(
+  e: { type: string; at?: string; [k: string]: unknown },
+  resolveName?: (id: string) => string | undefined,
+): DescribedEvent {
   const type = e?.type ?? "";
 
   switch (type) {
     case "connectorConnected":
       return { icon: "connector", sentence: `${pickName(e)} connected` };
     case "connectorDisconnected":
-      return { icon: "connector", sentence: `${pickName(e)} disconnected` };
+      return { icon: "connector", sentence: `${pickConnector(e, resolveName)} disconnected` };
     case "commandSent":
-      return { icon: "command", sentence: `Sent ${pickName(e)} to ${pickConnector(e)}` };
+      return {
+        icon: "command",
+        sentence: `Sent ${pickName(e)} to ${pickConnector(e, resolveName)}`,
+      };
     case "responseReceived":
-      return { icon: "response", sentence: `${pickConnector(e)} responded` };
+      return { icon: "response", sentence: `${pickConnector(e, resolveName)} responded` };
     case "eventReceived":
-      return { icon: "event", sentence: `${pickConnector(e)} sent ${pickName(e)}` };
+      return { icon: "event", sentence: `${pickConnector(e, resolveName)} sent ${pickName(e)}` };
     case "pairingRequested":
       return { icon: "pairing", sentence: `${pickName(e)} requested to connect` };
     default:

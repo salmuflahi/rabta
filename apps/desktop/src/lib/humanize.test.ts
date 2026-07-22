@@ -25,6 +25,26 @@ describe("relativeTime", () => {
     expect(relativeTime(iso(3 * 60 * 60_000), NOW)).toBe("3h ago");
   });
 
+  it("returns '59m ago' just below the hour boundary", () => {
+    expect(relativeTime(iso(59 * 60_000), NOW)).toBe("59m ago");
+  });
+
+  it("rounds 59.6 minutes up into the hour bucket, not '60m ago'", () => {
+    // diffMin = 59.6 rounds to 60, which must promote to the hour bucket
+    // (round-then-branch), not print the invalid "60m ago".
+    expect(relativeTime(iso(59.6 * 60_000), NOW)).toBe("1h ago");
+  });
+
+  it("returns '2h ago' for 90 minutes", () => {
+    expect(relativeTime(iso(90 * 60_000), NOW)).toBe("2h ago");
+  });
+
+  it("rounds 23.6 hours up past the day boundary into 'yesterday', not '24h ago'", () => {
+    // diffHour = 23.6 rounds to 24, which must promote out of the hour
+    // bucket entirely (round-then-branch), landing on the calendar-day rule.
+    expect(relativeTime(iso(23.6 * 60 * 60_000), NOW)).toBe("yesterday");
+  });
+
   it("returns 'yesterday' for the previous calendar day", () => {
     // Mar 9 2024, 10:00 — previous calendar day, even though it's >24h... no,
     // it's under 26h but crosses midnight so it's "yesterday" not "1h ago".
@@ -129,41 +149,109 @@ describe("humanizeCapsule", () => {
     expect(() => humanizeCapsule(r)).not.toThrow();
     expect(humanizeCapsule(r).icon).toBe("generic");
   });
+
+  it("summarizes a terminal capsule", () => {
+    const r = resource({ connectorKind: "terminal", payload: { terminals: ["t1", "t2"] } });
+    const out = humanizeCapsule(r);
+    expect(out.icon).toBe("terminal");
+    expect(out.summary).toBe("2 terminals");
+  });
+
+  it("falls back to 'on unknown branch' for a git capsule with a missing branch", () => {
+    const r = resource({ connectorKind: "git", payload: {} });
+    const out = humanizeCapsule(r);
+    expect(out.summary).toBe("on unknown branch");
+  });
+
+  it("falls back to 'on unknown branch' for a git capsule with an empty branch", () => {
+    const r = resource({ connectorKind: "git", payload: { branch: "" } });
+    const out = humanizeCapsule(r);
+    expect(out.summary).toBe("on unknown branch");
+  });
 });
 
+// Realistic wire payloads, matching `HubEvent` in crates/omnibus-hub/src/hub.rs
+// (`#[serde(tag = "type", rename_all = "camelCase", rename_all_fields =
+// "camelCase")]`): only `connectorConnected`/`pairingRequested` inline a name
+// (`connector: { name }` / `name`) — every other variant carries just a
+// `connectorId` session id, never a `connector.name` object.
 describe("describeEvent", () => {
   it("describes connectorConnected", () => {
-    const e = { type: "connectorConnected", connector: { name: "VS Code", kind: "vscode" } };
+    const e = {
+      type: "connectorConnected",
+      connector: { id: "sess-1", name: "VS Code", kind: "vscode", capabilities: [] },
+    };
     expect(describeEvent(e)).toEqual({ icon: "connector", sentence: "VS Code connected" });
   });
 
-  it("describes connectorDisconnected", () => {
+  it("describes connectorDisconnected without a resolver, falling back to a generic", () => {
     const e = { type: "connectorDisconnected", connectorId: "sess-1" };
-    // No name is ever sent on disconnect (only connectorId) — falls back.
-    expect(describeEvent(e)).toEqual({ icon: "connector", sentence: "A connector disconnected" });
+    // No name is ever sent on disconnect (only connectorId) — falls back
+    // instead of surfacing the raw session id.
+    expect(describeEvent(e)).toEqual({ icon: "connector", sentence: "a connector disconnected" });
   });
 
-  it("describes commandSent", () => {
-    const e = { type: "commandSent", connectorId: "sess-1", name: "git.status", args: {} };
-    expect(describeEvent(e)).toEqual({
-      icon: "command",
-      sentence: "Sent git.status to sess-1",
+  it("describes connectorDisconnected with a resolver that maps the id to a name", () => {
+    const e = { type: "connectorDisconnected", connectorId: "sess-1" };
+    const resolveName = (id: string) => (id === "sess-1" ? "VS Code" : undefined);
+    expect(describeEvent(e, resolveName)).toEqual({
+      icon: "connector",
+      sentence: "VS Code disconnected",
     });
   });
 
-  it("describes responseReceived", () => {
+  it("describes commandSent without a resolver, falling back to a generic", () => {
     const e = {
-      type: "responseReceived",
-      connector: { name: "Chrome" },
-      ok: true,
-      result: {},
+      type: "commandSent",
+      connectorId: "sess-1",
+      requestId: "req-1",
+      name: "git.status",
+      args: {},
     };
-    expect(describeEvent(e)).toEqual({ icon: "response", sentence: "Chrome responded" });
+    expect(describeEvent(e)).toEqual({
+      icon: "command",
+      sentence: "Sent git.status to a connector",
+    });
   });
 
-  it("describes eventReceived", () => {
+  it("describes commandSent with a resolver", () => {
+    const e = {
+      type: "commandSent",
+      connectorId: "sess-1",
+      requestId: "req-1",
+      name: "git.status",
+      args: {},
+    };
+    const resolveName = (id: string) => (id === "sess-1" ? "VS Code" : undefined);
+    expect(describeEvent(e, resolveName)).toEqual({
+      icon: "command",
+      sentence: "Sent git.status to VS Code",
+    });
+  });
+
+  it("describes responseReceived without a resolver, never leaking the raw session id", () => {
+    const e = { type: "responseReceived", connectorId: "sess-4f2a", requestId: "req-1", ok: true, result: {} };
+    expect(describeEvent(e)).toEqual({ icon: "response", sentence: "a connector responded" });
+  });
+
+  it("describes responseReceived with a resolver mapping the id to a name", () => {
+    const e = { type: "responseReceived", connectorId: "sess-4f2a", requestId: "req-1", ok: true, result: {} };
+    const resolveName = (id: string) => (id === "sess-4f2a" ? "Chrome" : undefined);
+    expect(describeEvent(e, resolveName)).toEqual({ icon: "response", sentence: "Chrome responded" });
+  });
+
+  it("describes eventReceived without a resolver, falling back to a generic", () => {
     const e = { type: "eventReceived", connectorId: "sess-2", name: "file.saved", data: {} };
-    expect(describeEvent(e)).toEqual({ icon: "event", sentence: "sess-2 sent file.saved" });
+    expect(describeEvent(e)).toEqual({ icon: "event", sentence: "a connector sent file.saved" });
+  });
+
+  it("describes eventReceived with a resolver", () => {
+    const e = { type: "eventReceived", connectorId: "sess-2", name: "file.saved", data: {} };
+    const resolveName = (id: string) => (id === "sess-2" ? "VS Code" : undefined);
+    expect(describeEvent(e, resolveName)).toEqual({
+      icon: "event",
+      sentence: "VS Code sent file.saved",
+    });
   });
 
   it("describes pairingRequested", () => {
@@ -188,5 +276,17 @@ describe("describeEvent", () => {
     const e = { type: "connectorConnected" };
     expect(() => describeEvent(e)).not.toThrow();
     expect(describeEvent(e)).toEqual({ icon: "connector", sentence: "A connector connected" });
+  });
+
+  it("a resolver that returns undefined for an unrecognized id still falls back to a generic", () => {
+    const e = { type: "responseReceived", connectorId: "sess-9", requestId: "req-1", ok: true, result: {} };
+    const resolveName = () => undefined;
+    expect(describeEvent(e, resolveName)).toEqual({ icon: "response", sentence: "a connector responded" });
+  });
+
+  it("never throws when e.type is not a string", () => {
+    const e = { type: 42 as unknown as string };
+    expect(() => describeEvent(e)).not.toThrow();
+    expect(describeEvent(e)).toEqual({ icon: "generic", sentence: "42" });
   });
 });
