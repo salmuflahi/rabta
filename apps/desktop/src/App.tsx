@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { Button } from "./components/ui/button";
+import { decidePairing } from "./lib/pairing";
 import { ActivityPage } from "./pages/ActivityPage";
 import { CapsulesPage } from "./pages/CapsulesPage";
 import { ConnectorsPage } from "./pages/ConnectorsPage";
@@ -156,13 +157,8 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [toggleCommandOpen]);
 
-  async function decide(pairingId: string, ok: boolean) {
-    try {
-      await invoke(ok ? "approve_pairing" : "deny_pairing", { pairingId });
-    } catch (e) {
-      console.error("pairing decision failed:", e);
-    }
-    removePairing(pairingId);
+  function decide(pairing: PendingPairing, ok: boolean) {
+    decidePairing(pairing, ok, removePairing);
   }
 
   return (
@@ -172,10 +168,10 @@ export default function App() {
           <span className="flex-1">
             <b>{p.name}</b> ({p.kind}) wants to connect to OmniBus
           </span>
-          <Button size="sm" onClick={() => decide(p.pairingId, true)}>
+          <Button size="sm" onClick={() => decide(p, true)}>
             Approve
           </Button>
-          <Button size="sm" variant="outline" onClick={() => decide(p.pairingId, false)}>
+          <Button size="sm" variant="outline" onClick={() => decide(p, false)}>
             Deny
           </Button>
         </div>

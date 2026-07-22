@@ -14,6 +14,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toastErr, toastOk } from "@/lib/toast";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type Project, type RepoInspection } from "@/store";
 import { GitHubSection } from "@/views/GitHubSection";
@@ -30,7 +31,6 @@ export function ProjectsPage() {
   const [devUrl, setDevUrl] = useState("");
   const [branch, setBranch] = useState("");
   const [pathNote, setPathNote] = useState("");
-  const [error, setError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [startedNonce, setStartedNonce] = useState<Record<string, number>>({});
 
@@ -70,11 +70,9 @@ export function ProjectsPage() {
     setDevUrl("");
     setBranch("");
     setPathNote("");
-    setError("");
   }
 
   async function save() {
-    setError("");
     try {
       await invoke("create_project", {
         name,
@@ -82,11 +80,13 @@ export function ProjectsPage() {
         devUrl: devUrl || null,
         defaultBranch: branch,
       });
+      const registeredName = name;
       resetForm();
       setRegisterOpen(false);
       refresh();
+      toastOk("Project registered", registeredName);
     } catch (e) {
-      setError(String(e));
+      toastErr(e);
     }
   }
 
@@ -95,8 +95,9 @@ export function ProjectsPage() {
       await invoke("delete_project", { id });
       setDeleteTarget(null);
       refresh();
+      toastOk("Project deleted");
     } catch (e) {
-      setError(String(e));
+      toastErr(e);
     }
   }
 
@@ -120,8 +121,6 @@ export function ProjectsPage() {
           </Button>
         }
       />
-
-      {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
 
       {count === 0 ? (
         <EmptyState
@@ -219,7 +218,6 @@ export function ProjectsPage() {
                 placeholder="http://localhost:3000"
               />
             </div>
-            {error && <p className="text-xs text-destructive">{error}</p>}
           </div>
           <DialogFooter>
             <Button

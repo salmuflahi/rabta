@@ -1,13 +1,19 @@
-import { invoke } from "@tauri-apps/api/core";
 import { Cable, Circle, CircleDot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { decidePairing } from "@/lib/pairing";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type ConnectorRow, type PendingPairing } from "@/store";
 
-function PairingCard({ pairing, onDecide }: { pairing: PendingPairing; onDecide: (id: string, ok: boolean) => void }) {
+function PairingCard({
+  pairing,
+  onDecide,
+}: {
+  pairing: PendingPairing;
+  onDecide: (pairing: PendingPairing, ok: boolean) => void;
+}) {
   return (
     <Card className="mb-3 border-warning/30 bg-warning/10 p-4">
       <div className="flex items-center justify-between gap-3">
@@ -16,10 +22,10 @@ function PairingCard({ pairing, onDecide }: { pairing: PendingPairing; onDecide:
           <span className="text-muted-foreground">({pairing.kind})</span> wants to connect
         </p>
         <div className="flex shrink-0 items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => onDecide(pairing.pairingId, false)}>
+          <Button size="sm" variant="outline" onClick={() => onDecide(pairing, false)}>
             Deny
           </Button>
-          <Button size="sm" onClick={() => onDecide(pairing.pairingId, true)}>
+          <Button size="sm" onClick={() => onDecide(pairing, true)}>
             Approve
           </Button>
         </div>
@@ -65,13 +71,8 @@ export function ConnectorsPage() {
   const pairings = useStore((s) => s.pairings);
   const removePairing = useStore((s) => s.removePairing);
 
-  async function decide(pairingId: string, ok: boolean) {
-    try {
-      await invoke(ok ? "approve_pairing" : "deny_pairing", { pairingId });
-    } catch (e) {
-      console.error("pairing decision failed:", e);
-    }
-    removePairing(pairingId);
+  function decide(pairing: PendingPairing, ok: boolean) {
+    decidePairing(pairing, ok, removePairing);
   }
 
   const connectedCount = connectors.filter((c) => c.connected).length;

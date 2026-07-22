@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
+import { toastErr, toastOk } from "@/lib/toast";
 import { useStore } from "../store";
 
 interface GitStatus {
@@ -16,7 +17,6 @@ export function GitLine({ projectId }: { projectId: string }) {
   const [branches, setBranches] = useState<string[]>([]);
   const [target, setTarget] = useState("");
   const [newBranch, setNewBranch] = useState("");
-  const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
   const refresh = async () => {
@@ -24,7 +24,7 @@ export function GitLine({ projectId }: { projectId: string }) {
       setStatus(await invoke<GitStatus>("git_status", { projectId }));
       setBranches(await invoke<string[]>("git_branches", { projectId }));
     } catch (e) {
-      setNote(String(e));
+      console.error("git status refresh failed:", e);
     }
   };
 
@@ -34,21 +34,20 @@ export function GitLine({ projectId }: { projectId: string }) {
 
   // A task activation elsewhere may have git-first restored a capsule,
   // switching this project's branch out from under it — refetch (without
-  // remounting, so any in-flight note/local state here survives) whenever
-  // the global activation nonce bumps.
+  // remounting, so any in-flight local state here survives) whenever the
+  // global activation nonce bumps.
   useEffect(() => {
     refresh();
   }, [activationNonce]);
 
-  async function run(command: string, args: Record<string, unknown>, okNote: string) {
+  async function run(command: string, args: Record<string, unknown>, okMessage: string) {
     setBusy(true);
-    setNote("");
     try {
       await invoke(command, { projectId, ...args });
-      setNote(okNote);
+      toastOk(okMessage);
       await refresh();
     } catch (e) {
-      setNote(String(e));
+      toastErr(e);
     } finally {
       setBusy(false);
     }
@@ -68,7 +67,7 @@ export function GitLine({ projectId }: { projectId: string }) {
         <span className="text-muted-foreground/70">git…</span>
       )}
       <button
-        onClick={() => run("git_fetch", {}, "fetched")}
+        onClick={() => run("git_fetch", {}, "Fetched")}
         disabled={busy}
         className="rounded border border-input px-2 py-0.5 text-foreground hover:bg-accent disabled:opacity-40"
       >
@@ -85,7 +84,7 @@ export function GitLine({ projectId }: { projectId: string }) {
         ))}
       </select>
       <button
-        onClick={() => run("git_checkout", { branch: target }, `switched to ${target}`)}
+        onClick={() => run("git_checkout", { branch: target }, `Switched to ${target}`)}
         disabled={busy || !target || target === s?.branch}
         className="rounded border border-input px-2 py-0.5 text-foreground hover:bg-accent disabled:opacity-40"
       >
@@ -98,13 +97,12 @@ export function GitLine({ projectId }: { projectId: string }) {
         className="w-28 rounded border border-input bg-transparent px-1 py-0.5 text-foreground placeholder:text-muted-foreground"
       />
       <button
-        onClick={() => run("git_create_branch", { name: newBranch }, `created ${newBranch}`).then(() => setNewBranch(""))}
+        onClick={() => run("git_create_branch", { name: newBranch }, `Created ${newBranch}`).then(() => setNewBranch(""))}
         disabled={busy || !newBranch}
         className="rounded border border-input px-2 py-0.5 text-foreground hover:bg-accent disabled:opacity-40"
       >
         Create
       </button>
-      {note && <span className="break-all text-muted-foreground">{note}</span>}
     </div>
   );
 }

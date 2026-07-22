@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { toastActivation, toastErr, toastOk } from "@/lib/toast";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type Project, type Task, type TaskResource } from "@/store";
 
@@ -55,9 +56,11 @@ export function CapsulesPage() {
   const [tasksByProject, setTasksByProject] = useState<Record<string, Task[]>>({});
   const [resources, setResources] = useState<Record<string, TaskResource[]>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [error, setError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
-  const [actionNote, setActionNote] = useState<{ taskId: string; text: string } | null>(null);
+  // In-flight affordance only (the result of an action is a toast, not
+  // inline text): which task is mid-activate or mid-save, so its button can
+  // read "Resuming…" / "Saving…" while busy.
+  const [pendingAction, setPendingAction] = useState<{ taskId: string; kind: "activate" | "save" } | null>(null);
   // Guards against double-click re-entrancy: the backend serializes
   // activation/save, but the UI should still reflect an op in flight rather
   // than let the user queue up duplicate clicks.
@@ -89,7 +92,7 @@ export function CapsulesPage() {
   // Refetch (not remount) when any project's task activation bumps the
   // global nonce, so cross-project capsule summaries stay fresh without
   // discarding this page's local state (drafts, delete-confirm dialog, or
-  // the activation note it just set).
+  // an in-flight pendingAction).
   useEffect(() => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,8 +106,9 @@ export function CapsulesPage() {
       await invoke("create_task", { projectId, title });
       setDrafts((d) => ({ ...d, [projectId]: "" }));
       await refresh();
+      toastOk("Task added");
     } catch (e) {
-      setError(String(e));
+      toastErr(e);
     } finally {
       setBusy(false);
     }
@@ -112,44 +116,40 @@ export function CapsulesPage() {
 
   async function activate(id: string) {
     setBusy(true);
-    setActionNote({ taskId: id, text: "Activating…" });
+    setPendingAction({ taskId: id, kind: "activate" });
     try {
       const s = await invoke<ActivateSummary>("activate_task", { taskId: id });
       setActiveTaskId(id);
-      const parts = [
-        s.applied.length ? `applied: ${s.applied.join(", ")}` : "",
-        s.pending.length ? `pending editor reload: ${s.pending.join(", ")}` : "",
-        s.skipped.length ? `not connected: ${s.skipped.join(", ")}` : "",
-        s.savedPrevious ? "previous task saved" : "",
-        ...s.errors,
-      ].filter(Boolean);
-      setActionNote({ taskId: id, text: parts.join(" · ") || "Activated (no capsule yet)" });
+      toastActivation(s);
       // Activation may have auto-saved the previously-active task, which can
       // live in a different project — bump the global nonce so this page
       // refetches and no card shows a stale capsule summary.
       bumpActivation();
       await refresh();
     } catch (e) {
-      setActionNote({ taskId: id, text: String(e) });
+      toastErr(e);
     } finally {
       setBusy(false);
+      setPendingAction(null);
     }
   }
 
   async function save(id: string) {
     setBusy(true);
-    setActionNote({ taskId: id, text: "Saving…" });
+    setPendingAction({ taskId: id, kind: "save" });
     try {
       const s = await invoke<SaveSummary>("save_capsule", { taskId: id });
-      setActionNote({
-        taskId: id,
-        text: s.captured.length ? `Saved: ${s.captured.join(", ")}` : "Nothing connected to save",
-      });
+      if (s.captured.length) {
+        toastOk("Saved state", s.captured.join(", "));
+      } else {
+        toastOk("Nothing connected to save");
+      }
       await refresh();
     } catch (e) {
-      setActionNote({ taskId: id, text: String(e) });
+      toastErr(e);
     } finally {
       setBusy(false);
+      setPendingAction(null);
     }
   }
 
@@ -158,8 +158,9 @@ export function CapsulesPage() {
     try {
       await invoke("set_task_status", { id: t.id, status: t.status === "open" ? "done" : "open" });
       await refresh();
+      toastOk(t.status === "open" ? "Task marked done" : "Task reopened");
     } catch (e) {
-      setActionNote({ taskId: t.id, text: String(e) });
+      toastErr(e);
     } finally {
       setBusy(false);
     }
@@ -171,8 +172,9 @@ export function CapsulesPage() {
       await invoke("delete_task", { id });
       setDeleteTarget(null);
       await refresh();
+      toastOk("Task deleted");
     } catch (e) {
-      setActionNote({ taskId: id, text: String(e) });
+      toastErr(e);
     } finally {
       setBusy(false);
     }
@@ -185,8 +187,6 @@ export function CapsulesPage() {
   return (
     <div>
       <PageHeader eyebrow="TASKS" title="Capsules" subtitle={subtitle} />
-
-      {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
 
       {projects.length === 0 ? (
         <EmptyState
@@ -234,16 +234,17 @@ export function CapsulesPage() {
                             <p className="mt-0.5 text-xs text-muted-foreground">
                               {summarizeAll(resources[t.id] ?? [])}
                             </p>
-                            {actionNote?.taskId === t.id && (
-                              <p className="mt-1 text-xs text-muted-foreground">{actionNote.text}</p>
-                            )}
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
                             <Button size="sm" onClick={() => activate(t.id)} disabled={busy}>
-                              Resume
+                              {pendingAction?.taskId === t.id && pendingAction.kind === "activate"
+                                ? "Resuming…"
+                                : "Resume"}
                             </Button>
                             <Button size="sm" variant="outline" onClick={() => save(t.id)} disabled={busy}>
-                              Save State
+                              {pendingAction?.taskId === t.id && pendingAction.kind === "save"
+                                ? "Saving…"
+                                : "Save State"}
                             </Button>
                             <Button size="sm" variant="ghost" onClick={() => toggleStatus(t)} disabled={busy}>
                               {t.status === "open" ? "Done" : "Reopen"}
