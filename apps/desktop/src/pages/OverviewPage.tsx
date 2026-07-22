@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/shell/PageHeader";
+import { relativeTime } from "@/lib/humanize";
 import { useStore, type Project, type Task } from "@/store";
 
 function StatCard({
@@ -114,7 +115,7 @@ export function OverviewPage() {
               <div className="flex flex-col gap-2">
                 {recentLog.map((e) => (
                   <div key={e.seq} className="flex items-center gap-2 text-xs">
-                    <span className="text-muted-foreground">{e.at}</span>
+                    <span className="text-muted-foreground">{relativeTime(e.at)}</span>
                     <Badge variant="outline">{e.type}</Badge>
                   </div>
                 ))}

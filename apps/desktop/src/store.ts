@@ -182,7 +182,7 @@ export const useStore = create<Store>((set) => ({
     set((s) => ({
       log: [
         ...s.log.slice(-(MAX_LOG - 1)),
-        { seq: seq++, at: new Date().toLocaleTimeString(), ...event },
+        { seq: seq++, at: new Date().toISOString(), ...event },
       ],
     })),
   preload: (events, known) =>
@@ -190,7 +190,7 @@ export const useStore = create<Store>((set) => ({
       const historical: LogEntry[] = events.map((e) => ({
         ...e.payload,
         seq: seq++,
-        at: new Date(e.at).toLocaleTimeString(),
+        at: new Date(e.at).toISOString(),
         type: e.type,
         historical: true,
       }));

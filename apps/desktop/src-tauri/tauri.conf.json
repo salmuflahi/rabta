@@ -10,7 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [{ "title": "Rabta", "width": 1100, "height": 700 }],
+    "windows": [{ "title": "Rabta", "width": 1100, "height": 700, "minWidth": 760, "minHeight": 540, "resizable": true }],
     "security": { "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'" }
   },
   "bundle": {
