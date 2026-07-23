@@ -305,6 +305,33 @@ fn hub_port(hub: State<'_, HubHandle>) -> u16 {
     hub.0.port()
 }
 
+/// Validates that `path` exists. Split out from `reveal_in_finder` so the
+/// check is unit-testable without spawning `open` (which would pop Finder).
+fn reveal_path(path: &str) -> Result<(), String> {
+    if !std::path::Path::new(path).exists() {
+        return Err(format!("path does not exist: {path}"));
+    }
+    Ok(())
+}
+
+/// Reveals (selects) `path` in macOS Finder via `open -R`.
+#[tauri::command]
+fn reveal_in_finder(path: String) -> Result<(), String> {
+    reveal_path(&path)?;
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .args(["-R", &path])
+            .status()
+            .map_err(|e| format!("failed to reveal in Finder: {e}"))?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Reveal in Finder is only supported on macOS".to_string())
+    }
+}
+
 /// Builds and runs the OmniBus Tauri application: opens the database (fatal
 /// on failure), starts the hub, records hub activity, and forwards the event
 /// stream to the frontend as `hub-event`.
@@ -407,8 +434,20 @@ pub fn run() {
             pending_pairings,
             approve_pairing,
             deny_pairing,
-            hub_port
+            hub_port,
+            reveal_in_finder
         ])
         .run(tauri::generate_context!())
         .expect("error while running OmniBus");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reveal_path_rejects_nonexistent_path() {
+        let err = reveal_path("/nonexistent/path/xyz").unwrap_err();
+        assert!(err.contains("does not exist"), "unexpected error: {err}");
+    }
 }
