@@ -12,7 +12,7 @@ function NavRow({ item, active, onClick }: { item: NavItem; active: boolean; onC
       type="button"
       onClick={onClick}
       className={cn(
-        "flex h-[38px] w-full items-center gap-2.5 rounded-[8px] px-2.5 text-sm transition-colors",
+        "flex h-[38px] w-full items-center gap-2.5 rounded-[8px] px-2.5 text-sm transition-[background-color,color] duration-150 ease-brand active:scale-[0.99]",
         active
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"

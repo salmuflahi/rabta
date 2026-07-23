@@ -57,6 +57,10 @@ export default {
         "restore-pulse": "restore-pulse 1.8s ease-in-out infinite",
       },
       transitionTimingFunction: { brand: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+      boxShadow: {
+        soft: "0 2px 8px rgba(16,37,38,0.06)",
+        "soft-md": "0 8px 24px rgba(16,37,38,0.10)",
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],
