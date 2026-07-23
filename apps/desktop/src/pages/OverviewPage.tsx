@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/shell/PageHeader";
 import { relativeTime } from "@/lib/humanize";
 import { useStore, type Project, type Task } from "@/store";
@@ -71,6 +72,37 @@ function StatCard({
   );
 }
 
+/** Skeleton placeholder for the pre-first-load window only — approximates
+ * the stat-card row plus the recent-activity card, matching real sizes so
+ * there's no layout shift once list_projects resolves. */
+function OverviewSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
+        {[0, 1, 2].map((i) => (
+          <Card key={i} className="p-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-9 shrink-0 rounded-md" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-6 w-10" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+      <Card className="p-4">
+        <Skeleton className="mb-3 h-4 w-32" />
+        <div className="flex flex-col gap-2">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-4 w-full max-w-xs" />
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export function OverviewPage() {
   const projects = useStore((s) => s.projects);
   const setProjects = useStore((s) => s.setProjects);
@@ -81,11 +113,15 @@ export function OverviewPage() {
   const setView = useStore((s) => s.setView);
 
   const [tasks, setTasks] = useState<Task[]>([]);
+  // Pre-first-load window only: true until the initial list_projects fetch
+  // settles (the fetch that decides welcome-vs-dashboard), then stays false.
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     invoke<Project[]>("list_projects")
       .then(setProjects)
-      .catch((e) => console.error("list_projects failed:", e));
+      .catch((e) => console.error("list_projects failed:", e))
+      .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -123,7 +159,9 @@ export function OverviewPage() {
         }
       />
 
-      {projects.length === 0 ? (
+      {loading ? (
+        <OverviewSkeleton />
+      ) : projects.length === 0 ? (
         <div className="flex flex-col gap-6">
           <Card className="flex flex-col items-center gap-3 border-dashed p-8 text-center">
             <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">

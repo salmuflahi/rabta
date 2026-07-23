@@ -14,11 +14,34 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toastErr, toastOk } from "@/lib/toast";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type Project, type RepoInspection } from "@/store";
 import { GitHubSection } from "@/views/GitHubSection";
 import { GitLine } from "@/views/GitLine";
+
+/** Skeleton placeholder for the pre-first-load window only — approximates
+ * three project cards (name/path/branch lines + a delete button) so there's
+ * no layout shift once list_projects resolves. */
+function ProjectsSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      {[0, 1, 2].map((i) => (
+        <Card key={i} className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-56" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <Skeleton className="h-8 w-16 shrink-0" />
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
 export function ProjectsPage() {
   const projects = useStore((s) => s.projects);
@@ -33,6 +56,9 @@ export function ProjectsPage() {
   const [pathNote, setPathNote] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [startedNonce, setStartedNonce] = useState<Record<string, number>>({});
+  // Pre-first-load window only: true until the initial list_projects fetch
+  // settles, then stays false for the life of the page.
+  const [loading, setLoading] = useState(true);
 
   const refresh = () =>
     invoke<Project[]>("list_projects")
@@ -40,7 +66,7 @@ export function ProjectsPage() {
       .catch((e) => console.error("list_projects failed:", e));
 
   useEffect(() => {
-    refresh();
+    refresh().finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -122,7 +148,9 @@ export function ProjectsPage() {
         }
       />
 
-      {count === 0 ? (
+      {loading ? (
+        <ProjectsSkeleton />
+      ) : count === 0 ? (
         <EmptyState
           icon={<FolderGit2 />}
           title="No projects yet"

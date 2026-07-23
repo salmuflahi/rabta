@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { humanizeCapsule } from "@/lib/humanize";
 import { toastErr, toastOk } from "@/lib/toast";
 import { activateSummaryToResult, type ActivateSummary } from "@/restore/normalize";
@@ -68,6 +69,37 @@ function restoreToolsFor(resources: TaskResource[]): RestoreTool[] {
   return tools;
 }
 
+/** Skeleton placeholder for the pre-first-load window only — approximates
+ * two project groups of two task cards each, matching the real layout's
+ * sizes so there's no layout shift once data lands. */
+function CapsulesSkeleton() {
+  return (
+    <div className="flex flex-col gap-8">
+      {[0, 1].map((g) => (
+        <div key={g}>
+          <Skeleton className="mb-3 h-4 w-40" />
+          <div className="flex flex-col gap-2">
+            {[0, 1].map((i) => (
+              <Card key={i} className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="h-8 w-20" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** A tidy inline group of humanized capsule resources for one task, or a
  * muted "No capsule yet" when the task has never had one saved. */
 function CapsuleSummary({ resources }: { resources: TaskResource[] }) {
@@ -112,6 +144,10 @@ export function CapsulesPage() {
   // activation/save, but the UI should still reflect an op in flight rather
   // than let the user queue up duplicate clicks.
   const [busy, setBusy] = useState(false);
+  // Pre-first-load window only: true until the initial mount fetch settles,
+  // then stays false (subsequent refreshes — activationNonce bumps, post-
+  // action reloads — don't re-show the skeleton).
+  const [loading, setLoading] = useState(true);
 
   const refresh = async () => {
     try {
@@ -132,7 +168,7 @@ export function CapsulesPage() {
   };
 
   useEffect(() => {
-    refresh();
+    refresh().finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -242,7 +278,9 @@ export function CapsulesPage() {
       {restoreNode}
       <PageHeader eyebrow="TASKS" title="Capsules" subtitle={subtitle} />
 
-      {projects.length === 0 ? (
+      {loading ? (
+        <CapsulesSkeleton />
+      ) : projects.length === 0 ? (
         <EmptyState
           icon={<Layers />}
           title="No capsules yet"
