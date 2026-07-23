@@ -12,8 +12,11 @@ export function Titlebar() {
   const connectedCount = connectors.filter((c) => c.connected).length;
 
   return (
-    <header className="grid h-[58px] shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-border bg-background px-4">
-      <div className="flex min-w-0 items-center gap-2">
+    <header
+      data-tauri-drag-region
+      className="grid h-[58px] shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-border bg-background px-4"
+    >
+      <div className="flex min-w-0 items-center gap-2 pl-[72px]">
         <img src={markUrl} alt="" className="size-5 shrink-0 rounded-[5px]" />
         <span className="truncate text-sm font-semibold tracking-tight text-foreground">Rabta</span>
       </div>

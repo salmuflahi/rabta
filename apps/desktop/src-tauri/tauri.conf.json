@@ -10,7 +10,18 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [{ "title": "Rabta", "width": 1100, "height": 700, "minWidth": 760, "minHeight": 540, "resizable": true }],
+    "windows": [
+      {
+        "title": "Rabta",
+        "width": 1100,
+        "height": 700,
+        "minWidth": 760,
+        "minHeight": 540,
+        "resizable": true,
+        "titleBarStyle": "Overlay",
+        "trafficLightPosition": { "x": 19.0, "y": 21.0 }
+      }
+    ],
     "security": { "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'" }
   },
   "bundle": {
