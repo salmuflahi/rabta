@@ -118,6 +118,14 @@ interface Store {
   commandOpen: boolean;
   setCommandOpen: (open: boolean) => void;
   toggleCommandOpen: () => void;
+  /** Cross-page resume signal, set by the command palette's "Resume {task}"
+   * item. CapsulesPage is the sole consumer: it watches this field and, once
+   * the task is loaded and no restore is already active, drives it through
+   * the SAME real Restore Experience its own Resume button uses — the
+   * palette never re-implements or duplicates that ceremony. */
+  pendingResumeTaskId: string | null;
+  requestResume: (taskId: string) => void;
+  clearPendingResume: () => void;
 }
 
 export const useStore = create<Store>((set) => ({
@@ -138,6 +146,9 @@ export const useStore = create<Store>((set) => ({
   commandOpen: false,
   setCommandOpen: (commandOpen) => set({ commandOpen }),
   toggleCommandOpen: () => set((s) => ({ commandOpen: !s.commandOpen })),
+  pendingResumeTaskId: null,
+  requestResume: (taskId) => set({ pendingResumeTaskId: taskId }),
+  clearPendingResume: () => set({ pendingResumeTaskId: null }),
   setPairings: (incoming) =>
     set((s) => {
       const merged = [...s.pairings];

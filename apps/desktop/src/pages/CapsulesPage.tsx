@@ -129,6 +129,8 @@ export function CapsulesPage() {
   const activationNonce = useStore((s) => s.activationNonce);
   const bumpActivation = useStore((s) => s.bumpActivation);
   const setView = useStore((s) => s.setView);
+  const pendingResumeTaskId = useStore((s) => s.pendingResumeTaskId);
+  const clearPendingResume = useStore((s) => s.clearPendingResume);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasksByProject, setTasksByProject] = useState<Record<string, Task[]>>({});
@@ -272,6 +274,24 @@ export function CapsulesPage() {
   const allTasks = Object.values(tasksByProject).flat();
   const openCount = allTasks.filter((t) => t.status === "open").length;
   const subtitle = openCount === 0 ? "No open tasks" : `${openCount} open ${openCount === 1 ? "task" : "tasks"}`;
+
+  // Palette-initiated resume: the command palette's "Resume {task}" item only
+  // sets `pendingResumeTaskId` + navigates here — it never runs activate_task
+  // itself. Wait for this page's own initial fetch to land (`loading`) before
+  // resolving the signal, so a resume requested while the palette's task list
+  // was fresher than this page's doesn't get cleared before this page's tasks
+  // arrive. Once loaded, if the task is present and no restore is already
+  // active, drive it through the exact same `resume()` the Resume button
+  // calls, then clear the signal. If the task never turns up (e.g. deleted
+  // between the palette search and here), just clear it rather than hang.
+  useEffect(() => {
+    if (!pendingResumeTaskId || loading) return;
+    if (restoreActive) return;
+    const task = allTasks.find((t) => t.id === pendingResumeTaskId);
+    if (task) resume(task);
+    clearPendingResume();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingResumeTaskId, allTasks, restoreActive, loading]);
 
   return (
     <div>

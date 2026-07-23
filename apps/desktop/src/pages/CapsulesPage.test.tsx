@@ -2,7 +2,7 @@ import type { InvokeArgs } from "@tauri-apps/api/core";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
-import type { Project, Task, TaskResource } from "@/store";
+import { useStore, type Project, type Task, type TaskResource } from "@/store";
 import { CapsulesPage } from "./CapsulesPage";
 
 const FAKE_PROJECT: Project = {
@@ -240,6 +240,39 @@ describe("CapsulesPage", () => {
       await waitFor(() => expect(screen.getByText("Workspace restored")).toBeInTheDocument());
     } finally {
       restoreMatchMedia();
+    }
+  });
+
+  it("a pendingResumeTaskId set by the command palette resumes the matching task through the real Restore Experience, then clears itself", async () => {
+    // Simulates the command palette's "Resume {task}" item having already
+    // set the store signal (and navigated here) before this page mounts —
+    // this page must route it through the SAME `resume()` its own Resume
+    // button uses, not a second/duplicated activate_task path.
+    const restoreMatchMedia = stubReducedMotion();
+    mockCapsulesInvoke({
+      activateTask: async () => ({
+        applied: ["git"],
+        pending: [],
+        skipped: [],
+        savedPrevious: null,
+        errors: [],
+      }),
+    });
+
+    try {
+      useStore.setState({ pendingResumeTaskId: FAKE_TASK.id });
+      renderWithProviders(<CapsulesPage />);
+
+      await waitFor(() =>
+        expect(mockInvoke).toHaveBeenCalledWith("activate_task", { taskId: FAKE_TASK.id })
+      );
+      const activateCalls = mockInvoke.mock.calls.filter(([cmd]) => cmd === "activate_task");
+      expect(activateCalls).toHaveLength(1);
+      await waitFor(() => expect(screen.getByText("Workspace restored")).toBeInTheDocument());
+      expect(useStore.getState().pendingResumeTaskId).toBeNull();
+    } finally {
+      restoreMatchMedia();
+      useStore.setState({ pendingResumeTaskId: null });
     }
   });
 });
