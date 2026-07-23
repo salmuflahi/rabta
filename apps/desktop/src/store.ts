@@ -126,6 +126,17 @@ interface Store {
   pendingResumeTaskId: string | null;
   requestResume: (taskId: string) => void;
   clearPendingResume: () => void;
+  /** ⌘N global shortcut signal (App.tsx). Bumped each time ⌘N fires;
+   * ProjectsPage watches this counter and opens its register dialog whenever
+   * it changes (a counter, not a boolean, so repeated ⌘N re-opens the dialog
+   * even if the user closed it in between). Guarded at 0 on initial mount. */
+  newProjectNonce: number;
+  requestNewProject: () => void;
+  /** ⌘⇧N global shortcut signal (App.tsx). Bumped each time ⌘⇧N fires;
+   * CapsulesPage watches this counter and focuses its new-task input. Same
+   * counter-not-boolean rationale as `newProjectNonce`. */
+  newTaskNonce: number;
+  requestNewTask: () => void;
 }
 
 export const useStore = create<Store>((set) => ({
@@ -149,6 +160,10 @@ export const useStore = create<Store>((set) => ({
   pendingResumeTaskId: null,
   requestResume: (taskId) => set({ pendingResumeTaskId: taskId }),
   clearPendingResume: () => set({ pendingResumeTaskId: null }),
+  newProjectNonce: 0,
+  requestNewProject: () => set((s) => ({ newProjectNonce: s.newProjectNonce + 1 })),
+  newTaskNonce: 0,
+  requestNewTask: () => set((s) => ({ newTaskNonce: s.newTaskNonce + 1 })),
   setPairings: (incoming) =>
     set((s) => {
       const merged = [...s.pairings];

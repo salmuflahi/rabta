@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Box, Code2, GitBranch, Globe, Layers, Loader2, Terminal } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -131,6 +131,7 @@ export function CapsulesPage() {
   const setView = useStore((s) => s.setView);
   const pendingResumeTaskId = useStore((s) => s.pendingResumeTaskId);
   const clearPendingResume = useStore((s) => s.clearPendingResume);
+  const newTaskNonce = useStore((s) => s.newTaskNonce);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasksByProject, setTasksByProject] = useState<Record<string, Task[]>>({});
@@ -150,6 +151,9 @@ export function CapsulesPage() {
   // then stays false (subsequent refreshes — activationNonce bumps, post-
   // action reloads — don't re-show the skeleton).
   const [loading, setLoading] = useState(true);
+  // Keyed by project id so the ⌘⇧N shortcut can focus a specific project's
+  // new-task input (there's one per project group on this page).
+  const newTaskInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const refresh = async () => {
     try {
@@ -293,6 +297,22 @@ export function CapsulesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingResumeTaskId, allTasks, restoreActive, loading]);
 
+  // ⌘⇧N global shortcut (App.tsx): bumps newTaskNonce, which this effect
+  // consumes to focus the new-task input for the first project group.
+  // Guarded at the initial 0 value so mounting the page doesn't steal focus
+  // unasked; a counter (not a boolean) means repeated ⌘⇧N re-focuses even if
+  // the user had since blurred away.
+  useEffect(() => {
+    if (newTaskNonce === 0) return;
+    const firstProjectId = projects[0]?.id;
+    if (!firstProjectId) return;
+    const el = newTaskInputRefs.current[firstProjectId];
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newTaskNonce]);
+
   return (
     <div>
       {restoreNode}
@@ -392,6 +412,9 @@ export function CapsulesPage() {
 
                   <div className="flex gap-2">
                     <Input
+                      ref={(el) => {
+                        newTaskInputRefs.current[p.id] = el;
+                      }}
                       value={drafts[p.id] ?? ""}
                       onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: e.target.value }))}
                       placeholder="New task title"

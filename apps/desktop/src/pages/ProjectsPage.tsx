@@ -47,6 +47,7 @@ export function ProjectsPage() {
   const projects = useStore((s) => s.projects);
   const setProjects = useStore((s) => s.setProjects);
   const setActiveTaskId = useStore((s) => s.setActiveTaskId);
+  const newProjectNonce = useStore((s) => s.newProjectNonce);
 
   const [registerOpen, setRegisterOpen] = useState(false);
   const [name, setName] = useState("");
@@ -74,6 +75,17 @@ export function ProjectsPage() {
     invoke<string | null>("active_task").then(setActiveTaskId).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ⌘N global shortcut (App.tsx): bumps newProjectNonce, which this effect
+  // consumes to open the register dialog. Guarded at the initial 0 value so
+  // mounting the page doesn't pop the dialog unasked; a counter (not a
+  // boolean) means repeated ⌘N re-opens it even after the user closes it.
+  useEffect(() => {
+    if (newProjectNonce === 0) return;
+    resetForm();
+    setRegisterOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newProjectNonce]);
 
   async function onPathBlur() {
     if (!repoPath) return;

@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { Button } from "./components/ui/button";
 import { decidePairing } from "./lib/pairing";
+import { toastOk } from "./lib/toast";
 import { ActivityPage } from "./pages/ActivityPage";
 import { CapsulesPage } from "./pages/CapsulesPage";
 import { ConnectorsPage } from "./pages/ConnectorsPage";
@@ -88,6 +89,11 @@ export default function App() {
   const setConnectors = useStore((s) => s.setConnectors);
   const preload = useStore((s) => s.preload);
   const view = useStore((s) => s.view);
+  const setView = useStore((s) => s.setView);
+  const activeTaskId = useStore((s) => s.activeTaskId);
+  const requestResume = useStore((s) => s.requestResume);
+  const requestNewProject = useStore((s) => s.requestNewProject);
+  const requestNewTask = useStore((s) => s.requestNewTask);
   const pairings = useStore((s) => s.pairings);
   const setPairings = useStore((s) => s.setPairings);
   const addPairing = useStore((s) => s.addPairing);
@@ -144,18 +150,62 @@ export default function App() {
       .catch(() => {});
   }, [setHubPort]);
 
-  // Global ⌘K / Ctrl-K toggle for the command palette (Escape-to-close is
-  // handled by Radix Dialog inside CommandPalette itself).
+  // Global shortcuts: ⌘K (palette, existing), ⌘N (new project), ⌘⇧N (new
+  // capsule/task), ⌘R (resume last). Escape-to-close for the palette is
+  // handled by Radix Dialog inside CommandPalette itself.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const key = e.key.toLowerCase();
+
+      // ⌘K is a search launcher — it fires everywhere, including while
+      // typing in a field, so it's handled before the input guard below.
+      if (key === "k") {
         e.preventDefault();
         toggleCommandOpen();
+        return;
+      }
+
+      // Input guard: don't let ⌘N/⌘⇧N/⌘R hijack typing "n"/"r" with a stray
+      // modifier while focus is in a text field.
+      const target = e.target as HTMLElement | null;
+      const isEditable =
+        !!target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+      if (isEditable) return;
+
+      // Check the shift variant (⌘⇧N) first — both it and plain ⌘N match
+      // key === "n".
+      if (key === "n" && e.shiftKey) {
+        e.preventDefault();
+        setView("capsules");
+        requestNewTask();
+        return;
+      }
+
+      if (key === "n") {
+        e.preventDefault();
+        setView("projects");
+        requestNewProject();
+        return;
+      }
+
+      if (key === "r") {
+        e.preventDefault();
+        if (activeTaskId) {
+          requestResume(activeTaskId);
+          setView("capsules");
+        } else {
+          toastOk("No recent capsule to resume");
+        }
+        return;
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [toggleCommandOpen]);
+  }, [toggleCommandOpen, setView, activeTaskId, requestResume, requestNewProject, requestNewTask]);
 
   function decide(pairing: PendingPairing, ok: boolean) {
     decidePairing(pairing, ok, removePairing);
