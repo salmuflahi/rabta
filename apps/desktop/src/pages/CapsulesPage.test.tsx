@@ -1,9 +1,24 @@
 import type { InvokeArgs } from "@tauri-apps/api/core";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { toast } from "@/components/ui/sonner";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { useStore, type Project, type Task, type TaskResource } from "@/store";
 import { CapsulesPage } from "./CapsulesPage";
+
+// The delete flow's Undo toast goes through the sonner `toast` function
+// directly (not toastOk/toastErr) — mocked so tests can inspect the
+// message/action without needing an actual <Toaster/> mounted (sonner's
+// toasts are a global queue; a real Toaster would add DOM-timing flakiness
+// this doesn't need).
+vi.mock("@/components/ui/sonner", () => {
+  const fn = vi.fn();
+  return { toast: Object.assign(fn, { success: vi.fn(), error: vi.fn() }) };
+});
+
+function mockedToast() {
+  return toast as unknown as ReturnType<typeof vi.fn>;
+}
 
 const FAKE_PROJECT: Project = {
   id: "proj-1",
@@ -318,6 +333,100 @@ describe("CapsulesPage", () => {
     } finally {
       restoreMatchMedia();
       useStore.setState({ pendingResumeTaskId: null });
+    }
+  });
+});
+
+/** list_projects/list_tasks/task_resources/delete_task wiring for the single
+ * FAKE_PROJECT/FAKE_TASK fixture. Tracks whether delete_task has actually
+ * landed so a post-commit `refresh()` (list_tasks) reflects the real backend
+ * state, same as production. */
+function mockCapsulesInvokeForDelete(opts?: { deleteTask?: () => unknown }) {
+  mockInvoke.mockClear();
+  let deleted = false;
+  mockInvoke.mockImplementation(async (cmd: string, args?: InvokeArgs) => {
+    const a = args as Record<string, unknown> | undefined;
+    switch (cmd) {
+      case "list_projects":
+        return [FAKE_PROJECT] as unknown;
+      case "list_tasks":
+        return (a?.projectId === FAKE_PROJECT.id && !deleted ? [FAKE_TASK] : []) as unknown;
+      case "task_resources":
+        return (a?.taskId === FAKE_TASK.id ? [FAKE_RESOURCE] : []) as unknown;
+      case "delete_task":
+        if (opts?.deleteTask) return opts.deleteTask();
+        deleted = true;
+        return undefined as unknown;
+      default:
+        return [] as unknown;
+    }
+  });
+}
+
+describe("CapsulesPage delete (deferred undo)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("requestDelete hides the task row immediately, shows an Undo toast, and does not call delete_task yet", async () => {
+    mockCapsulesInvokeForDelete();
+    mockedToast().mockClear();
+    renderWithProviders(<CapsulesPage />);
+
+    await screen.findByText(FAKE_TASK.title);
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(screen.queryByText(FAKE_TASK.title)).not.toBeInTheDocument();
+    expect(mockedToast()).toHaveBeenCalledTimes(1);
+    const [message, options] = mockedToast().mock.calls[0];
+    expect(message).toBe(`${FAKE_TASK.title} deleted`);
+    expect(options.action.label).toBe("Undo");
+    expect(mockInvoke).not.toHaveBeenCalledWith("delete_task", expect.anything());
+  });
+
+  it("clicking Undo restores the task row and never calls delete_task", async () => {
+    mockCapsulesInvokeForDelete();
+    mockedToast().mockClear();
+    renderWithProviders(<CapsulesPage />);
+
+    await screen.findByText(FAKE_TASK.title);
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(screen.queryByText(FAKE_TASK.title)).not.toBeInTheDocument();
+
+    const [, options] = mockedToast().mock.calls[0];
+    await act(async () => {
+      options.action.onClick();
+    });
+
+    expect(await screen.findByText(FAKE_TASK.title)).toBeInTheDocument();
+    expect(mockInvoke).not.toHaveBeenCalledWith("delete_task", expect.anything());
+  });
+
+  it("letting the undo window elapse calls delete_task exactly once with the right id, and the row stays gone", async () => {
+    mockCapsulesInvokeForDelete();
+    mockedToast().mockClear();
+    vi.useFakeTimers();
+    try {
+      renderWithProviders(<CapsulesPage />);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(screen.getByText(FAKE_TASK.title)).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+      expect(screen.queryByText(FAKE_TASK.title)).not.toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+
+      const deleteCalls = mockInvoke.mock.calls.filter(([cmd]) => cmd === "delete_task");
+      expect(deleteCalls).toHaveLength(1);
+      expect(deleteCalls[0][1]).toEqual({ id: FAKE_TASK.id });
+      expect(screen.queryByText(FAKE_TASK.title)).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
     }
   });
 });

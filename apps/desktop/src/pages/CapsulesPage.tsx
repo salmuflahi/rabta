@@ -4,19 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { humanizeCapsule } from "@/lib/humanize";
 import { toastErr, toastOk } from "@/lib/toast";
+import { useDeferredDelete } from "@/lib/useDeferredDelete";
 import { activateSummaryToResult, type ActivateSummary } from "@/restore/normalize";
 import { useRestore } from "@/restore/RestoreExperience";
 import type { RestoreTool } from "@/restore/types";
@@ -138,7 +131,6 @@ export function CapsulesPage() {
   const [tasksByProject, setTasksByProject] = useState<Record<string, Task[]>>({});
   const [resources, setResources] = useState<Record<string, TaskResource[]>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   // In-flight affordance only (the result of an action is a toast, not
   // inline text): which task is mid-save, so its button can read "Saving…"
   // while busy. Resume's in-flight state now lives entirely in the Restore
@@ -277,21 +269,18 @@ export function CapsulesPage() {
     }
   }
 
-  async function remove(id: string) {
-    setBusy(true);
-    try {
-      await invoke("delete_task", { id });
-      setDeleteTarget(null);
-      await refresh();
-      toastOk("Task deleted");
-    } catch (e) {
-      toastErr(e);
-    } finally {
-      setBusy(false);
-    }
-  }
+  // Deferred-commit delete: requestDelete hides the row immediately and
+  // shows an Undo toast; the real delete_task invoke only fires ~5s later
+  // if the user hasn't clicked Undo (see useDeferredDelete.ts).
+  const { pendingIds: pendingTaskIds, requestDelete } = useDeferredDelete<Task>({
+    commit: (t) => invoke("delete_task", { id: t.id }),
+    labelOf: (t) => t.title,
+    onCommitted: refresh,
+  });
 
-  const allTasks = Object.values(tasksByProject).flat();
+  const allTasks = Object.values(tasksByProject)
+    .flat()
+    .filter((t) => !pendingTaskIds.has(t.id));
   const openCount = allTasks.filter((t) => t.status === "open").length;
   const subtitle = openCount === 0 ? "No open tasks" : `${openCount} open ${openCount === 1 ? "task" : "tasks"}`;
 
@@ -351,7 +340,7 @@ export function CapsulesPage() {
       ) : (
         <div className="flex flex-col gap-8">
           {projects.map((p) => {
-            const tasks = tasksByProject[p.id] ?? [];
+            const tasks = (tasksByProject[p.id] ?? []).filter((t) => !pendingTaskIds.has(t.id));
             return (
               <div key={p.id}>
                 <div className="mb-3 flex min-w-0 items-baseline gap-2">
@@ -420,7 +409,7 @@ export function CapsulesPage() {
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => setDeleteTarget(t)}
+                              onClick={() => requestDelete(t)}
                               disabled={busy || restoreActive}
                             >
                               Delete
@@ -449,27 +438,6 @@ export function CapsulesPage() {
           })}
         </div>
       )}
-
-      <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete "{deleteTarget?.title}"?</DialogTitle>
-            <DialogDescription>Its saved capsule state goes with it. This cannot be undone.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => deleteTarget && remove(deleteTarget.id)}
-              disabled={busy || restoreActive}
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

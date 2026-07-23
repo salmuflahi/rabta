@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toastErr, toastOk } from "@/lib/toast";
+import { useDeferredDelete } from "@/lib/useDeferredDelete";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type Project, type RepoInspection } from "@/store";
 import { GitHubSection } from "@/views/GitHubSection";
@@ -56,7 +57,6 @@ export function ProjectsPage() {
   const [devUrl, setDevUrl] = useState("");
   const [branch, setBranch] = useState("");
   const [pathNote, setPathNote] = useState("");
-  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [startedNonce, setStartedNonce] = useState<Record<string, number>>({});
   // Pre-first-load window only: true until the initial list_projects fetch
   // settles, then stays false for the life of the page.
@@ -132,18 +132,17 @@ export function ProjectsPage() {
     }
   }
 
-  async function remove(id: string) {
-    try {
-      await invoke("delete_project", { id });
-      setDeleteTarget(null);
-      refresh();
-      toastOk("Project deleted");
-    } catch (e) {
-      toastErr(e);
-    }
-  }
+  // Deferred-commit delete: requestDelete hides the row immediately and
+  // shows an Undo toast; the real delete_project invoke only fires ~5s
+  // later if the user hasn't clicked Undo (see useDeferredDelete.ts).
+  const { pendingIds, requestDelete } = useDeferredDelete<Project>({
+    commit: (p) => invoke("delete_project", { id: p.id }),
+    labelOf: (p) => p.name,
+    onCommitted: refresh,
+  });
 
-  const count = projects.length;
+  const visibleProjects = projects.filter((p) => !pendingIds.has(p.id));
+  const count = visibleProjects.length;
   const subtitle = count === 0 ? "No projects registered yet" : `${count} ${count === 1 ? "project" : "projects"} registered`;
 
   return (
@@ -184,7 +183,7 @@ export function ProjectsPage() {
         />
       ) : (
         <div className="flex flex-col gap-3">
-          {projects.map((p) => (
+          {visibleProjects.map((p) => (
             <Card key={p.id} className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -195,7 +194,7 @@ export function ProjectsPage() {
                   {p.devUrl && <p className="truncate text-xs text-muted-foreground">{p.devUrl}</p>}
                   <p className="truncate text-xs text-muted-foreground/70">Created {p.createdAt}</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => setDeleteTarget(p)}>
+                <Button variant="outline" size="sm" onClick={() => requestDelete(p)}>
                   Delete
                 </Button>
               </div>
@@ -275,25 +274,6 @@ export function ProjectsPage() {
             </Button>
             <Button onClick={save} disabled={!name || !repoPath || !branch}>
               Register
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete {deleteTarget?.name}?</DialogTitle>
-            <DialogDescription>
-              Tasks and resources for this project go with it. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={() => deleteTarget && remove(deleteTarget.id)}>
-              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
