@@ -47,7 +47,8 @@ export function ProjectsPage() {
   const projects = useStore((s) => s.projects);
   const setProjects = useStore((s) => s.setProjects);
   const setActiveTaskId = useStore((s) => s.setActiveTaskId);
-  const newProjectNonce = useStore((s) => s.newProjectNonce);
+  const newProjectRequest = useStore((s) => s.newProjectRequest);
+  const clearNewProjectRequest = useStore((s) => s.clearNewProjectRequest);
 
   const [registerOpen, setRegisterOpen] = useState(false);
   const [name, setName] = useState("");
@@ -76,16 +77,19 @@ export function ProjectsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ⌘N global shortcut (App.tsx): bumps newProjectNonce, which this effect
-  // consumes to open the register dialog. Guarded at the initial 0 value so
-  // mounting the page doesn't pop the dialog unasked; a counter (not a
-  // boolean) means repeated ⌘N re-opens it even after the user closes it.
+  // ⌘N global shortcut (App.tsx): sets newProjectRequest, which this effect
+  // consumes to open the register dialog and then immediately clears —
+  // mirrors the pendingResumeTaskId pattern. Because the flag is cleared
+  // right after firing, remounting this page (e.g. navigating away and back
+  // via the sidebar) sees it already false and does nothing; a fresh ⌘N
+  // still re-opens the dialog by setting it true again.
   useEffect(() => {
-    if (newProjectNonce === 0) return;
+    if (!newProjectRequest) return;
     resetForm();
     setRegisterOpen(true);
+    clearNewProjectRequest();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newProjectNonce]);
+  }, [newProjectRequest]);
 
   async function onPathBlur() {
     if (!repoPath) return;

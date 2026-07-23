@@ -126,17 +126,23 @@ interface Store {
   pendingResumeTaskId: string | null;
   requestResume: (taskId: string) => void;
   clearPendingResume: () => void;
-  /** ⌘N global shortcut signal (App.tsx). Bumped each time ⌘N fires;
-   * ProjectsPage watches this counter and opens its register dialog whenever
-   * it changes (a counter, not a boolean, so repeated ⌘N re-opens the dialog
-   * even if the user closed it in between). Guarded at 0 on initial mount. */
-  newProjectNonce: number;
+  /** ⌘N global shortcut signal (App.tsx), same reset-after-consume shape as
+   * `pendingResumeTaskId`: `requestNewProject` sets this true, ProjectsPage's
+   * effect opens the register dialog and immediately calls
+   * `clearNewProjectRequest`. Because the flag is cleared on consumption
+   * (not left to persist like a counter would), remounting ProjectsPage
+   * — e.g. navigating away and back via the sidebar — sees `false` and does
+   * nothing; only a fresh ⌘N sets it true again. */
+  newProjectRequest: boolean;
   requestNewProject: () => void;
-  /** ⌘⇧N global shortcut signal (App.tsx). Bumped each time ⌘⇧N fires;
-   * CapsulesPage watches this counter and focuses its new-task input. Same
-   * counter-not-boolean rationale as `newProjectNonce`. */
-  newTaskNonce: number;
+  clearNewProjectRequest: () => void;
+  /** ⌘⇧N global shortcut signal (App.tsx). Same reset-after-consume shape as
+   * `newProjectRequest`: CapsulesPage's effect focuses the new-task input
+   * then calls `clearNewTaskRequest`, so remounting the page never
+   * re-triggers a stale request. */
+  newTaskRequest: boolean;
   requestNewTask: () => void;
+  clearNewTaskRequest: () => void;
 }
 
 export const useStore = create<Store>((set) => ({
@@ -160,10 +166,12 @@ export const useStore = create<Store>((set) => ({
   pendingResumeTaskId: null,
   requestResume: (taskId) => set({ pendingResumeTaskId: taskId }),
   clearPendingResume: () => set({ pendingResumeTaskId: null }),
-  newProjectNonce: 0,
-  requestNewProject: () => set((s) => ({ newProjectNonce: s.newProjectNonce + 1 })),
-  newTaskNonce: 0,
-  requestNewTask: () => set((s) => ({ newTaskNonce: s.newTaskNonce + 1 })),
+  newProjectRequest: false,
+  requestNewProject: () => set({ newProjectRequest: true }),
+  clearNewProjectRequest: () => set({ newProjectRequest: false }),
+  newTaskRequest: false,
+  requestNewTask: () => set({ newTaskRequest: true }),
+  clearNewTaskRequest: () => set({ newTaskRequest: false }),
   setPairings: (incoming) =>
     set((s) => {
       const merged = [...s.pairings];

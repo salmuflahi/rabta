@@ -8,8 +8,8 @@ const STORE_DEFAULTS = {
   view: "capsules" as const,
   activeTaskId: null,
   pendingResumeTaskId: null,
-  newProjectNonce: 0,
-  newTaskNonce: 0,
+  newProjectRequest: false,
+  newTaskRequest: false,
   commandOpen: false,
 };
 
@@ -20,26 +20,35 @@ describe("App global keyboard shortcuts", () => {
     useStore.setState(STORE_DEFAULTS);
   });
 
-  it("⌘⇧N navigates to Capsules and bumps newTaskNonce", async () => {
+  it("⌘⇧N navigates to Capsules and sets newTaskRequest", async () => {
     renderWithProviders(<App />);
     await screen.findByText("Rabta");
 
     fireEvent.keyDown(window, { key: "n", metaKey: true, shiftKey: true });
 
     expect(useStore.getState().view).toBe("capsules");
-    expect(useStore.getState().newTaskNonce).toBe(1);
-    expect(useStore.getState().newProjectNonce).toBe(0);
+    // View was already "capsules", so CapsulesPage doesn't remount here —
+    // its consuming effect also guards on a project's new-task input
+    // existing, which the default (empty) project list never provides, so
+    // the request is left pending rather than cleared. The consume+clear
+    // path itself is covered by CapsulesPage.test.tsx.
+    expect(useStore.getState().newTaskRequest).toBe(true);
+    expect(useStore.getState().newProjectRequest).toBe(false);
   });
 
-  it("⌘N (no shift) navigates to Projects and bumps newProjectNonce", async () => {
+  it("⌘N (no shift) navigates to Projects, opens the register dialog, and clears newProjectRequest", async () => {
     renderWithProviders(<App />);
     await screen.findByText("Rabta");
 
     fireEvent.keyDown(window, { key: "n", metaKey: true });
 
     expect(useStore.getState().view).toBe("projects");
-    expect(useStore.getState().newProjectNonce).toBe(1);
-    expect(useStore.getState().newTaskNonce).toBe(0);
+    // ProjectsPage mounts fresh (view flipped away from "capsules") and its
+    // consuming effect fires unconditionally, opening the dialog and
+    // clearing the flag right away — mirrors pendingResumeTaskId.
+    expect(await screen.findByPlaceholderText("my-project")).toBeInTheDocument();
+    expect(useStore.getState().newProjectRequest).toBe(false);
+    expect(useStore.getState().newTaskRequest).toBe(false);
   });
 
   it("⌘R with an active task sets pendingResumeTaskId and navigates to Capsules", async () => {
@@ -82,8 +91,8 @@ describe("App global keyboard shortcuts", () => {
     fireEvent.keyDown(input, { key: "n", metaKey: true });
     fireEvent.keyDown(input, { key: "r", metaKey: true });
 
-    expect(useStore.getState().newTaskNonce).toBe(0);
-    expect(useStore.getState().newProjectNonce).toBe(0);
+    expect(useStore.getState().newTaskRequest).toBe(false);
+    expect(useStore.getState().newProjectRequest).toBe(false);
     expect(useStore.getState().pendingResumeTaskId).toBeNull();
     expect(useStore.getState().view).toBe("capsules");
 
@@ -93,13 +102,21 @@ describe("App global keyboard shortcuts", () => {
     document.body.removeChild(input);
   });
 
-  it("repeated ⌘N re-bumps the nonce even after the initial trigger", async () => {
+  it("repeated ⌘N reopens the register dialog every time, even after it was closed in between", async () => {
     renderWithProviders(<App />);
     await screen.findByText("Rabta");
 
     fireEvent.keyDown(window, { key: "n", metaKey: true });
-    fireEvent.keyDown(window, { key: "n", metaKey: true });
+    expect(await screen.findByPlaceholderText("my-project")).toBeInTheDocument();
+    expect(useStore.getState().newProjectRequest).toBe(false);
 
-    expect(useStore.getState().newProjectNonce).toBe(2);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByPlaceholderText("my-project")).not.toBeInTheDocument();
+
+    // The request flag re-fires (false -> true -> consumed -> false) rather
+    // than staying stuck, so a second ⌘N still reopens the dialog.
+    fireEvent.keyDown(window, { key: "n", metaKey: true });
+    expect(await screen.findByPlaceholderText("my-project")).toBeInTheDocument();
+    expect(useStore.getState().newProjectRequest).toBe(false);
   });
 });

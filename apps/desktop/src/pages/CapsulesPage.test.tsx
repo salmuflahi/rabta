@@ -1,5 +1,5 @@
 import type { InvokeArgs } from "@tauri-apps/api/core";
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { useStore, type Project, type Task, type TaskResource } from "@/store";
@@ -240,6 +240,51 @@ describe("CapsulesPage", () => {
       await waitFor(() => expect(screen.getByText("Workspace restored")).toBeInTheDocument());
     } finally {
       restoreMatchMedia();
+    }
+  });
+
+  it("newTaskRequest focuses the first project's new-task input, then clears itself; a remount after consumption does not refocus", async () => {
+    // Simulates App.tsx's CurrentPage switch unmounting/remounting this page
+    // when the sidebar navigates away and back — the historical bug: with a
+    // never-reset counter, every remount after the first ⌘⇧N would
+    // spuriously refocus/rescroll to the new-task input.
+    mockInvoke.mockClear();
+    mockInvoke.mockImplementation(async (cmd: string, args?: InvokeArgs) => {
+      const a = args as Record<string, unknown> | undefined;
+      switch (cmd) {
+        case "list_projects":
+          return [FAKE_PROJECT] as unknown;
+        case "list_tasks":
+          return (a?.projectId === FAKE_PROJECT.id ? [] : []) as unknown;
+        default:
+          return [] as unknown;
+      }
+    });
+
+    try {
+      const first = renderWithProviders(<CapsulesPage />);
+      await screen.findByText(FAKE_PROJECT.name);
+      const input = screen.getByPlaceholderText("New task title") as HTMLInputElement;
+      expect(input).not.toHaveFocus();
+
+      act(() => useStore.getState().requestNewTask());
+      await waitFor(() => expect(input).toHaveFocus());
+      expect(useStore.getState().newTaskRequest).toBe(false);
+
+      first.unmount();
+      renderWithProviders(<CapsulesPage />);
+      await screen.findByText(FAKE_PROJECT.name);
+      const input2 = screen.getByPlaceholderText("New task title") as HTMLInputElement;
+
+      // Remount with the flag already false: no spurious refocus.
+      expect(input2).not.toHaveFocus();
+
+      // A fresh ⌘⇧N (requestNewTask) still focuses it post-remount.
+      act(() => useStore.getState().requestNewTask());
+      await waitFor(() => expect(input2).toHaveFocus());
+      expect(useStore.getState().newTaskRequest).toBe(false);
+    } finally {
+      useStore.setState({ newTaskRequest: false });
     }
   });
 
