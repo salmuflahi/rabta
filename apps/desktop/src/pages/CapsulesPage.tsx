@@ -1,9 +1,16 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Box, Code2, GitBranch, Globe, Layers, Loader2, Terminal } from "lucide-react";
+import { Box, Check, Code2, GitBranch, Globe, Layers, Loader2, Play, RotateCcw, Save, Terminal, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -357,66 +364,96 @@ export function CapsulesPage() {
 
                   {tasks.map((t) => {
                     const isActive = t.id === activeTaskId;
+                    const actionsDisabled = busy || restoreActive;
                     return (
-                      <Card
-                        key={t.id}
-                        className={
-                          isActive
-                            ? "border-l-2 border-l-primary p-4 transition-colors hover:bg-accent/40"
-                            : "p-4 transition-colors hover:bg-accent/40"
-                        }
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0">
-                            <div className="flex min-w-0 items-center gap-2">
-                              <p
-                                className={
-                                  t.status === "done"
-                                    ? "min-w-0 truncate font-medium text-muted-foreground line-through"
-                                    : "min-w-0 truncate font-medium text-foreground"
-                                }
-                              >
-                                {t.title}
-                              </p>
-                              {isActive && <Badge className="shrink-0">Active</Badge>}
+                      <ContextMenu key={t.id}>
+                        <ContextMenuTrigger asChild>
+                          <Card
+                            className={
+                              isActive
+                                ? "border-l-2 border-l-primary p-4 transition-colors hover:bg-accent/40"
+                                : "p-4 transition-colors hover:bg-accent/40"
+                            }
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <p
+                                    className={
+                                      t.status === "done"
+                                        ? "min-w-0 truncate font-medium text-muted-foreground line-through"
+                                        : "min-w-0 truncate font-medium text-foreground"
+                                    }
+                                  >
+                                    {t.title}
+                                  </p>
+                                  {isActive && <Badge className="shrink-0">Active</Badge>}
+                                </div>
+                                <CapsuleSummary resources={resources[t.id] ?? []} />
+                              </div>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  className="transition-transform hover:-translate-y-px active:scale-[0.98]"
+                                  onClick={() => resume(t)}
+                                  disabled={actionsDisabled}
+                                >
+                                  {restoreActive ? (
+                                    <>
+                                      <Loader2 className="size-3.5 animate-spin" />
+                                      Restoring…
+                                    </>
+                                  ) : (
+                                    "Resume"
+                                  )}
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => save(t.id)} disabled={actionsDisabled}>
+                                  {pendingAction?.taskId === t.id && pendingAction.kind === "save"
+                                    ? "Saving…"
+                                    : "Save State"}
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => toggleStatus(t)} disabled={actionsDisabled}>
+                                  {t.status === "open" ? "Done" : "Reopen"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => requestDelete(t)}
+                                  disabled={actionsDisabled}
+                                >
+                                  Delete
+                                </Button>
+                              </div>
                             </div>
-                            <CapsuleSummary resources={resources[t.id] ?? []} />
-                          </div>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <Button
-                              size="sm"
-                              className="transition-transform hover:-translate-y-px active:scale-[0.98]"
-                              onClick={() => resume(t)}
-                              disabled={busy || restoreActive}
-                            >
-                              {restoreActive ? (
-                                <>
-                                  <Loader2 className="size-3.5 animate-spin" />
-                                  Restoring…
-                                </>
-                              ) : (
-                                "Resume"
-                              )}
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => save(t.id)} disabled={busy || restoreActive}>
-                              {pendingAction?.taskId === t.id && pendingAction.kind === "save"
-                                ? "Saving…"
-                                : "Save State"}
-                            </Button>
-                            <Button size="sm" variant="ghost" onClick={() => toggleStatus(t)} disabled={busy || restoreActive}>
-                              {t.status === "open" ? "Done" : "Reopen"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => requestDelete(t)}
-                              disabled={busy || restoreActive}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
+                          </Card>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                          <ContextMenuItem onSelect={() => resume(t)} disabled={actionsDisabled}>
+                            <Play className="mr-2 size-4" />
+                            Resume
+                          </ContextMenuItem>
+                          <ContextMenuItem onSelect={() => save(t.id)} disabled={actionsDisabled}>
+                            <Save className="mr-2 size-4" />
+                            Save State
+                          </ContextMenuItem>
+                          <ContextMenuItem onSelect={() => toggleStatus(t)} disabled={actionsDisabled}>
+                            {t.status === "open" ? (
+                              <Check className="mr-2 size-4" />
+                            ) : (
+                              <RotateCcw className="mr-2 size-4" />
+                            )}
+                            {t.status === "open" ? "Done" : "Reopen"}
+                          </ContextMenuItem>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            onSelect={() => requestDelete(t)}
+                          >
+                            <Trash2 className="mr-2 size-4" />
+                            Delete
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
                     );
                   })}
 

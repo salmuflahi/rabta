@@ -1,8 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
-import { FolderGit2 } from "lucide-react";
+import { FolderGit2, FolderOpen, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import {
   Dialog,
   DialogContent,
@@ -184,27 +191,45 @@ export function ProjectsPage() {
       ) : (
         <div className="flex flex-col gap-3">
           {visibleProjects.map((p) => (
-            <Card key={p.id} className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-foreground font-medium">
-                    {p.name} <span className="font-normal text-muted-foreground">({p.defaultBranch})</span>
-                  </p>
-                  <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{p.repoPath}</p>
-                  {p.devUrl && <p className="truncate text-xs text-muted-foreground">{p.devUrl}</p>}
-                  <p className="truncate text-xs text-muted-foreground/70">Created {p.createdAt}</p>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => requestDelete(p)}>
-                  Delete
-                </Button>
-              </div>
+            <ContextMenu key={p.id}>
+              <ContextMenuTrigger asChild>
+                <Card className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-foreground font-medium">
+                        {p.name} <span className="font-normal text-muted-foreground">({p.defaultBranch})</span>
+                      </p>
+                      <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{p.repoPath}</p>
+                      {p.devUrl && <p className="truncate text-xs text-muted-foreground">{p.devUrl}</p>}
+                      <p className="truncate text-xs text-muted-foreground/70">Created {p.createdAt}</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => requestDelete(p)}>
+                      Delete
+                    </Button>
+                  </div>
 
-              <GitLine key={`${p.id}-${startedNonce[p.id] ?? 0}`} projectId={p.id} />
-              <GitHubSection
-                projectId={p.id}
-                onStarted={() => setStartedNonce((n) => ({ ...n, [p.id]: (n[p.id] ?? 0) + 1 }))}
-              />
-            </Card>
+                  <GitLine key={`${p.id}-${startedNonce[p.id] ?? 0}`} projectId={p.id} />
+                  <GitHubSection
+                    projectId={p.id}
+                    onStarted={() => setStartedNonce((n) => ({ ...n, [p.id]: (n[p.id] ?? 0) + 1 }))}
+                  />
+                </Card>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem onSelect={() => invoke("reveal_in_finder", { path: p.repoPath }).catch((e) => toastErr(e))}>
+                  <FolderOpen className="mr-2 size-4" />
+                  Reveal in Finder
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                  onSelect={() => requestDelete(p)}
+                >
+                  <Trash2 className="mr-2 size-4" />
+                  Delete
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           ))}
         </div>
       )}

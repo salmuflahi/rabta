@@ -430,3 +430,101 @@ describe("CapsulesPage delete (deferred undo)", () => {
     }
   });
 });
+
+describe("CapsulesPage context menu", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("right-clicking a task row opens the menu with Resume, Save State, Done, and Delete", async () => {
+    mockCapsulesInvokeForDelete();
+    renderWithProviders(<CapsulesPage />);
+
+    const row = await screen.findByText(FAKE_TASK.title);
+    fireEvent.contextMenu(row);
+
+    expect(await screen.findByRole("menuitem", { name: "Resume" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Save State" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Done" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Delete/ })).toBeInTheDocument();
+  });
+
+  it("selecting Resume from the menu drives the same activate_task path as the Resume button", async () => {
+    const restoreMatchMedia = stubReducedMotion();
+    mockCapsulesInvoke({
+      activateTask: async () => ({
+        applied: ["git"],
+        pending: [],
+        skipped: [],
+        savedPrevious: null,
+        errors: [],
+      }),
+    });
+
+    try {
+      renderWithProviders(<CapsulesPage />);
+
+      const row = await screen.findByText(FAKE_TASK.title);
+      fireEvent.contextMenu(row);
+
+      const resumeItem = await screen.findByRole("menuitem", { name: "Resume" });
+      fireEvent.click(resumeItem);
+
+      await waitFor(() =>
+        expect(mockInvoke).toHaveBeenCalledWith("activate_task", { taskId: FAKE_TASK.id })
+      );
+      await waitFor(() => expect(screen.getByText("Workspace restored")).toBeInTheDocument());
+    } finally {
+      restoreMatchMedia();
+    }
+  });
+
+  it("selecting Save State from the menu invokes save_capsule for that task", async () => {
+    mockCapsulesInvokeForDelete();
+    renderWithProviders(<CapsulesPage />);
+
+    const row = await screen.findByText(FAKE_TASK.title);
+    fireEvent.contextMenu(row);
+
+    const saveItem = await screen.findByRole("menuitem", { name: "Save State" });
+    fireEvent.click(saveItem);
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("save_capsule", { taskId: FAKE_TASK.id })
+    );
+  });
+
+  it("selecting Done from the menu invokes set_task_status", async () => {
+    mockCapsulesInvokeForDelete();
+    renderWithProviders(<CapsulesPage />);
+
+    const row = await screen.findByText(FAKE_TASK.title);
+    fireEvent.contextMenu(row);
+
+    const doneItem = await screen.findByRole("menuitem", { name: "Done" });
+    fireEvent.click(doneItem);
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("set_task_status", { id: FAKE_TASK.id, status: "done" })
+    );
+  });
+
+  it("selecting Delete from the menu triggers the undo flow (row hides, Undo toast, no immediate delete_task)", async () => {
+    mockCapsulesInvokeForDelete();
+    mockedToast().mockClear();
+    renderWithProviders(<CapsulesPage />);
+
+    const row = await screen.findByText(FAKE_TASK.title);
+    fireEvent.contextMenu(row);
+
+    const deleteItem = await screen.findByRole("menuitem", { name: /Delete/ });
+    fireEvent.click(deleteItem);
+
+    expect(screen.queryByText(FAKE_TASK.title)).not.toBeInTheDocument();
+    expect(mockedToast()).toHaveBeenCalledTimes(1);
+    const [message, options] = mockedToast().mock.calls[0];
+    expect(message).toBe(`${FAKE_TASK.title} deleted`);
+    expect(options.action.label).toBe("Undo");
+    expect(mockInvoke).not.toHaveBeenCalledWith("delete_task", expect.anything());
+  });
+});

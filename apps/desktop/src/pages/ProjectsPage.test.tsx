@@ -167,3 +167,56 @@ describe("ProjectsPage delete (deferred undo)", () => {
     }
   });
 });
+
+describe("ProjectsPage context menu", () => {
+  beforeEach(() => {
+    useStore.setState({ newProjectRequest: false });
+    mockedToast().mockClear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("right-clicking a project row opens the menu with Reveal in Finder + Delete", async () => {
+    mockProjectsInvoke();
+    renderWithProviders(<ProjectsPage />);
+
+    const row = await screen.findByText("Test Project");
+    fireEvent.contextMenu(row);
+
+    expect(await screen.findByText("Reveal in Finder")).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /Delete/ })).toBeInTheDocument();
+  });
+
+  it("selecting Reveal in Finder invokes reveal_in_finder with the project's repoPath", async () => {
+    mockProjectsInvoke();
+    renderWithProviders(<ProjectsPage />);
+
+    const row = await screen.findByText("Test Project");
+    fireEvent.contextMenu(row);
+
+    const revealItem = await screen.findByText("Reveal in Finder");
+    fireEvent.click(revealItem);
+
+    expect(mockInvoke).toHaveBeenCalledWith("reveal_in_finder", { path: FAKE_PROJECT.repoPath });
+  });
+
+  it("selecting Delete from the menu triggers the undo flow (row hides, Undo toast, no immediate delete_project)", async () => {
+    mockProjectsInvoke();
+    renderWithProviders(<ProjectsPage />);
+
+    const row = await screen.findByText("Test Project");
+    fireEvent.contextMenu(row);
+
+    const deleteItem = await screen.findByRole("menuitem", { name: /Delete/ });
+    fireEvent.click(deleteItem);
+
+    expect(screen.queryByText("Test Project")).not.toBeInTheDocument();
+    expect(mockedToast()).toHaveBeenCalledTimes(1);
+    const [message, options] = mockedToast().mock.calls[0];
+    expect(message).toBe("Test Project deleted");
+    expect(options.action.label).toBe("Undo");
+    expect(mockInvoke).not.toHaveBeenCalledWith("delete_project", expect.anything());
+  });
+});
