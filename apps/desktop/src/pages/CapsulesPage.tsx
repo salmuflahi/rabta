@@ -448,6 +448,7 @@ export function CapsulesPage() {
                           <ContextMenuItem
                             className="text-destructive focus:text-destructive focus:bg-destructive/10"
                             onSelect={() => requestDelete(t)}
+                            disabled={actionsDisabled}
                           >
                             <Trash2 className="mr-2 size-4" />
                             Delete
