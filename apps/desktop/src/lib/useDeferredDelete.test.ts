@@ -99,6 +99,51 @@ describe("useDeferredDelete", () => {
     expect(result.current.pendingIds.has("a")).toBe(false);
   });
 
+  it("unmounting while a fired delete's commit is still in flight does not commit a second time (duplicate-commit race)", async () => {
+    // Regression test for the race where the timer fires (dispatching the
+    // commit) but the entry lingered in pendingRef until the commit promise
+    // resolved. If the component unmounted in that window, the unmount-flush
+    // loop would find the still-present entry and call commit() again for
+    // the same id — a real double-invoke (backend not-found on the second
+    // call). Use a deferred promise so the commit is controllably "in
+    // flight" at unmount time.
+    let resolveCommit!: () => void;
+    const commit = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveCommit = resolve;
+        })
+    );
+    const { result, unmount } = renderHook(() =>
+      useDeferredDelete<Item>({ commit, labelOf: (i) => i.name, delayMs: 5000 })
+    );
+
+    act(() => {
+      result.current.requestDelete({ id: "a", name: "Alpha" });
+    });
+    expect(commit).not.toHaveBeenCalled();
+
+    // Advance past delayMs: the timer fires and dispatches the commit, but
+    // the returned promise is still pending (not resolved yet).
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(commit).toHaveBeenCalledTimes(1);
+
+    // Unmount while that commit is still in flight. Before the fix, the
+    // entry was still in pendingRef and the flush loop called commit() a
+    // second time here.
+    unmount();
+    expect(commit).toHaveBeenCalledTimes(1);
+
+    // Let the original commit resolve; still exactly one call total.
+    resolveCommit();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(commit).toHaveBeenCalledTimes(1);
+  });
+
   it("a failed commit restores the item (removes it from pendingIds) instead of leaving it hidden", async () => {
     const commit = vi.fn().mockRejectedValue(new Error("boom"));
     const { result } = renderHook(() =>

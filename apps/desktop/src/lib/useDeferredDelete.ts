@@ -88,6 +88,13 @@ export function useDeferredDelete<T extends { id: string }>(opts: DeferredDelete
       if (stale) clearTimeout(stale.timer);
 
       const timer = setTimeout(() => {
+        // Fired: remove from pendingRef now, before awaiting the commit, so
+        // an unmount that happens while this commit is in flight can't find
+        // this entry in the flush loop below and re-commit an already-fired
+        // delete (which would 404 server-side and toast a spurious error on
+        // whatever page is now current). runCommit's own post-await delete
+        // becomes a harmless no-op.
+        pendingRef.current.delete(id);
         void runCommit(id, item);
       }, delayMs);
       pendingRef.current.set(id, { item, timer });
@@ -115,15 +122,13 @@ export function useDeferredDelete<T extends { id: string }>(opts: DeferredDelete
   // the same as clicking Undo, so we honor the delete rather than lose it.
   // Fire-and-forget: the page is gone, so there's nothing left to update on
   // success/failure other than the toast (toastErr still fires on failure;
-  // there's no row left to restore on this unmounted page).
+  // there's no row left to restore, and no `onCommitted`/refresh to run, on
+  // this unmounted page).
   useEffect(() => {
     return () => {
       for (const [, entry] of pendingRef.current) {
         clearTimeout(entry.timer);
-        void commitRef.current(entry.item).then(
-          () => onCommittedRef.current?.(),
-          (e) => toastErr(e)
-        );
+        void commitRef.current(entry.item).catch((e) => toastErr(e));
       }
       pendingRef.current.clear();
     };
