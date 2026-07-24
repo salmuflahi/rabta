@@ -44,11 +44,13 @@ interface GitStatus {
 /** Subtle amber dot next to a project card's name when its git working tree
  * has uncommitted changes. Does its own small `git_status` fetch (separate
  * from GitLine's) so the dot doesn't depend on GitLine's render order or
- * internal state — re-fetches on mount and on `activationNonce` (a restore
- * elsewhere may have git-first-restored this project's branch), same
- * trigger GitLine uses for its own refresh. Renders nothing when clean or
- * while still loading — never an empty placeholder gap. */
-function UnsavedChangesDot({ projectId }: { projectId: string }) {
+ * internal state — re-fetches on mount, on `activationNonce` (a restore
+ * elsewhere may have git-first-restored this project's branch), and on
+ * `refreshKey` (bumped when a GitHub issue-task start switches/creates this
+ * project's branch) — the same triggers GitLine uses for its own refresh.
+ * Renders nothing when clean or while still loading — never an empty
+ * placeholder gap. */
+export function UnsavedChangesDot({ projectId, refreshKey }: { projectId: string; refreshKey?: number }) {
   const activationNonce = useStore((s) => s.activationNonce);
   const [status, setStatus] = useState<GitStatus | null>(null);
 
@@ -56,7 +58,7 @@ function UnsavedChangesDot({ projectId }: { projectId: string }) {
     invoke<GitStatus>("git_status", { projectId })
       .then(setStatus)
       .catch((e) => console.error("git status refresh (dot) failed:", e));
-  }, [projectId, activationNonce]);
+  }, [projectId, activationNonce, refreshKey]);
 
   if (!status?.dirty) return null;
 
@@ -248,7 +250,7 @@ export function ProjectsPage() {
                         <p className="truncate text-foreground font-medium">
                           {p.name} <span className="font-normal text-muted-foreground">({p.defaultBranch})</span>
                         </p>
-                        <UnsavedChangesDot projectId={p.id} />
+                        <UnsavedChangesDot projectId={p.id} refreshKey={startedNonce[p.id] ?? 0} />
                       </div>
                       <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{p.repoPath}</p>
                       {p.devUrl && <p className="truncate text-xs text-muted-foreground">{p.devUrl}</p>}

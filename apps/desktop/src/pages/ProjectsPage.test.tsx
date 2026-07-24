@@ -244,6 +244,50 @@ describe("ProjectsPage unsaved-changes dot", () => {
     );
     expect(screen.queryByLabelText(/uncommitted change/i)).not.toBeInTheDocument();
   });
+
+  it("re-fetches git_status for the dot when starting a GitHub issue task switches branches (same trigger as GitLine's remount)", async () => {
+    // Regression coverage: the dot used to refresh only on [projectId,
+    // activationNonce], while the sibling GitLine remounted on
+    // startedNonce[p.id] bumped by GitHubSection's onStarted (fired after
+    // start_issue_task switches/creates a branch). That left the dot stale
+    // relative to the freshly-refreshed GitLine until an unrelated
+    // activationNonce bump. The dot now also takes refreshKey=startedNonce
+    // so it refetches on the exact same trigger.
+    mockInvoke.mockClear();
+    const gitStatusCallsForProject: unknown[] = [];
+    mockInvoke.mockImplementation(async (cmd: string, args?: unknown) => {
+      switch (cmd) {
+        case "list_projects":
+          return [FAKE_PROJECT] as unknown;
+        case "git_status":
+          gitStatusCallsForProject.push(args);
+          return { branch: "main", dirty: true, changedCount: 2, ahead: 0, behind: 0 } as unknown;
+        case "github_available":
+          return true as unknown;
+        case "github_issues":
+          return [{ number: 7, title: "Fix thing", url: "https://x", labels: [] }] as unknown;
+        case "start_issue_task":
+          return { branch: "issue-7", branchNote: "Switched to issue-7" } as unknown;
+        default:
+          return [] as unknown;
+      }
+    });
+
+    renderWithProviders(<ProjectsPage />);
+
+    await screen.findByText("Test Project");
+    await waitFor(() => expect(gitStatusCallsForProject.length).toBeGreaterThan(0));
+    const callsBeforeStart = gitStatusCallsForProject.length;
+
+    fireEvent.click(await screen.findByText("Fetch Issues"));
+    fireEvent.click(await screen.findByText("Start Task"));
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("start_issue_task", expect.objectContaining({ projectId: FAKE_PROJECT.id }))
+    );
+    await waitFor(() => expect(gitStatusCallsForProject.length).toBeGreaterThan(callsBeforeStart));
+    expect(gitStatusCallsForProject.at(-1)).toEqual({ projectId: FAKE_PROJECT.id });
+  });
 });
 
 describe("ProjectsPage context menu", () => {
