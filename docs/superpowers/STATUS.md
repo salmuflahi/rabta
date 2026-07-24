@@ -2,7 +2,7 @@
 
 > **Read this first.** This is the single "where we are / what's next" file for picking up work.
 > Last updated: **2026-07-24**. Branch: **`codex/track-b-core`** (local-only repo, no git remote).
-> Track B Core implementation range: **`cc39522` through `52bbadf`**, based on main at `27a6c8b`.
+> Track B Core implementation range: **`cc39522` through `68259f5`**, based on main at `27a6c8b`.
 > Durable plans and specs live in `docs/superpowers/plans/` and `docs/superpowers/specs/`.
 
 ---
@@ -16,7 +16,7 @@
 - **All 11 original vision-roadmap phases: complete.**
 - **QoL and polish arc A1–A6: complete.**
 - **Track B Core B1–B3: complete on `codex/track-b-core`.**
-- Desktop suite: **164 Vitest tests passing across 20 files**.
+- Desktop suite: **166 Vitest tests passing across 20 files**.
 - Rust workspace suite: **all tests passing**.
 - `cargo fmt --all -- --check`: passing.
 - `cargo clippy --workspace --all-targets -- -D warnings`: passing.
@@ -29,7 +29,7 @@
 |---|---|
 | B1 — Durable operations | Schema v2 migration; project rename, archive/unarchive, icon, exact ordering, and permanent delete; capsule rename and duplicate; archive-safe task/GitHub operations; persisted session metadata and saturating duration accrual |
 | B2 — Product UI | Project and capsule actions wired into existing menus; curated project icons; accessible drag and keyboard ordering; Archived Projects restore/delete flow; truthful duplicate/rename feedback; persisted Continue Working and capsule session preview |
-| B3 — Active-session runtime | Focused, non-idle active-time accounting with fractional carry and 30-second sleep cap; durable activation/archive transitions; continuation/session concurrency isolation; 15-second heartbeat, 60-second idle bridge, and best-effort shutdown flush |
+| B3 — Active-session runtime | Focused, non-idle active-time accounting with fractional carry and 30-second sleep cap; durable activation/archive transitions; continuation/session concurrency isolation; ordered focus/idle dispatch with nested-scroll activity capture; 15-second heartbeat, 60-second idle bridge, and best-effort shutdown flush |
 
 The high-risk session path has deterministic tests for persistence failure, focus loss, activation/archive serialization, overflow saturation, subsecond carry, and blocked reconnect continuation behavior.
 
