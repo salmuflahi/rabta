@@ -237,19 +237,23 @@ export function CapsulesPage() {
     return cb;
   }, []);
 
+  const refreshOrThrow = async () => {
+    const list = await invoke<Project[]>("list_projects");
+    setProjects(list);
+    const perProject = await Promise.all(
+      list.map(async (p) => [p.id, await invoke<Task[]>("list_tasks", { projectId: p.id })] as const)
+    );
+    setTasksByProject(Object.fromEntries(perProject));
+    const allTasks = perProject.flatMap(([, tasks]) => tasks);
+    const entries = await Promise.all(
+      allTasks.map(async (t) => [t.id, await invoke<TaskResource[]>("task_resources", { taskId: t.id })] as const)
+    );
+    setResources(Object.fromEntries(entries));
+  };
+
   const refresh = async () => {
     try {
-      const list = await invoke<Project[]>("list_projects");
-      setProjects(list);
-      const perProject = await Promise.all(
-        list.map(async (p) => [p.id, await invoke<Task[]>("list_tasks", { projectId: p.id })] as const)
-      );
-      setTasksByProject(Object.fromEntries(perProject));
-      const allTasks = perProject.flatMap(([, tasks]) => tasks);
-      const entries = await Promise.all(
-        allTasks.map(async (t) => [t.id, await invoke<TaskResource[]>("task_resources", { taskId: t.id })] as const)
-      );
-      setResources(Object.fromEntries(entries));
+      await refreshOrThrow();
     } catch (e) {
       console.error("capsules refresh failed:", e);
     }
@@ -347,7 +351,7 @@ export function CapsulesPage() {
     setBusy(true);
     try {
       await invoke<Task>("rename_task", { id, title: title.trim() });
-      await refresh();
+      await refreshOrThrow();
       toastOk("Capsule renamed");
       setRenameTarget(null);
     } catch (error) {
@@ -361,7 +365,7 @@ export function CapsulesPage() {
     setBusy(true);
     try {
       const copy = await invoke<Task>("duplicate_task", { id: task.id });
-      await refresh();
+      await refreshOrThrow();
       toastOk("Capsule duplicated", copy.title);
     } catch (error) {
       toastErr(error);

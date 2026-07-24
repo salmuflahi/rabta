@@ -20,6 +20,24 @@ function mockedToast() {
   return toast as unknown as ReturnType<typeof vi.fn>;
 }
 
+function mockedSuccessToast() {
+  return toast.success as unknown as ReturnType<typeof vi.fn>;
+}
+
+function mockedErrorToast() {
+  return toast.error as unknown as ReturnType<typeof vi.fn>;
+}
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 const FAKE_PROJECT: Project = {
   id: "proj-1",
   name: "Test Project",
@@ -79,6 +97,9 @@ function mockCapsulesInvoke(opts: {
   activateTask: (args: Record<string, unknown> | undefined) => unknown;
   resources?: TaskResource[];
   project?: Project;
+  renameTask?: (args: Record<string, unknown> | undefined) => Task | Promise<Task>;
+  duplicateTask?: (args: Record<string, unknown> | undefined) => Task | Promise<Task>;
+  postMutationRefresh?: () => Project[] | Promise<Project[]>;
 }) {
   // Clear call history (not just the implementation) so a test that asserts
   // on `mockInvoke.mock.calls` — e.g. "exactly one activate_task call" —
@@ -86,10 +107,14 @@ function mockCapsulesInvoke(opts: {
   // a single shared mock across the whole suite (see smoke-utils), and
   // nothing resets it between tests otherwise.
   mockInvoke.mockClear();
+  let mutationCompleted = false;
   mockInvoke.mockImplementation(async (cmd: string, args?: InvokeArgs) => {
     const a = args as Record<string, unknown> | undefined;
     switch (cmd) {
       case "list_projects":
+        if (mutationCompleted && opts.postMutationRefresh) {
+          return (await opts.postMutationRefresh()) as unknown;
+        }
         return [opts.project ?? FAKE_PROJECT] as unknown;
       case "list_tasks":
         return (a?.projectId === FAKE_PROJECT.id ? [FAKE_TASK] : []) as unknown;
@@ -97,10 +122,20 @@ function mockCapsulesInvoke(opts: {
         return (a?.taskId === FAKE_TASK.id ? (opts.resources ?? [FAKE_RESOURCE]) : []) as unknown;
       case "activate_task":
         return opts.activateTask(a);
-      case "rename_task":
-        return { ...FAKE_TASK, title: a?.title } as unknown;
-      case "duplicate_task":
-        return { ...FAKE_TASK, id: "task-2", title: `${FAKE_TASK.title} copy` } as unknown;
+      case "rename_task": {
+        const renamed = opts.renameTask
+          ? await opts.renameTask(a)
+          : { ...FAKE_TASK, title: String(a?.title) };
+        mutationCompleted = true;
+        return renamed as unknown;
+      }
+      case "duplicate_task": {
+        const copy = opts.duplicateTask
+          ? await opts.duplicateTask(a)
+          : { ...FAKE_TASK, id: "task-2", title: `${FAKE_TASK.title} copy` };
+        mutationCompleted = true;
+        return copy as unknown;
+      }
       default:
         return [] as unknown;
     }
@@ -475,6 +510,8 @@ describe("CapsulesPage delete (deferred undo)", () => {
 describe("CapsulesPage context menu", () => {
   afterEach(() => {
     vi.useRealTimers();
+    mockedSuccessToast().mockClear();
+    mockedErrorToast().mockClear();
   });
 
   it("right-clicking a task row opens the menu with Resume, Save State, Done, and Delete", async () => {
@@ -509,6 +546,85 @@ describe("CapsulesPage context menu", () => {
     );
   });
 
+  it("trims surrounding whitespace from a renamed capsule title", async () => {
+    mockCapsulesInvoke({ activateTask: async () => ({}) });
+    renderWithProviders(<CapsulesPage />);
+
+    fireEvent.contextMenu(await screen.findByText(FAKE_TASK.title));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Rename" }));
+
+    fireEvent.change(await screen.findByLabelText("Capsule title"), {
+      target: { value: "  Enterprise launch  " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("rename_task", {
+        id: FAKE_TASK.id,
+        title: "Enterprise launch",
+      })
+    );
+  });
+
+  it("shows rename errors and does not show success when rename_task rejects", async () => {
+    mockCapsulesInvoke({
+      activateTask: async () => ({}),
+      renameTask: async () => {
+        throw new Error("rename failed");
+      },
+    });
+    renderWithProviders(<CapsulesPage />);
+
+    fireEvent.contextMenu(await screen.findByText(FAKE_TASK.title));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Rename" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Rename" }));
+
+    await waitFor(() => expect(mockedErrorToast()).toHaveBeenCalledWith("Error: rename failed"));
+    expect(mockedSuccessToast()).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Rename capsule" })).toBeInTheDocument();
+  });
+
+  it("shows a refresh error instead of rename success when the post-rename refresh fails", async () => {
+    mockCapsulesInvoke({
+      activateTask: async () => ({}),
+      postMutationRefresh: async () => {
+        throw new Error("rename refresh failed");
+      },
+    });
+    renderWithProviders(<CapsulesPage />);
+
+    fireEvent.contextMenu(await screen.findByText(FAKE_TASK.title));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Rename" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Rename" }));
+
+    await waitFor(() =>
+      expect(mockedErrorToast()).toHaveBeenCalledWith("Error: rename refresh failed")
+    );
+    expect(mockedSuccessToast()).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Rename capsule" })).toBeInTheDocument();
+  });
+
+  it("disables rename submission while rename_task is pending", async () => {
+    const pendingRename = deferred<Task>();
+    mockCapsulesInvoke({
+      activateTask: async () => ({}),
+      renameTask: () => pendingRename.promise,
+    });
+    renderWithProviders(<CapsulesPage />);
+
+    fireEvent.contextMenu(await screen.findByText(FAKE_TASK.title));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Rename" }));
+    const renameButton = await screen.findByRole("button", { name: "Rename" });
+    fireEvent.click(renameButton);
+
+    await waitFor(() => expect(renameButton).toBeDisabled());
+
+    pendingRename.resolve({ ...FAKE_TASK, title: FAKE_TASK.title });
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Rename capsule" })).not.toBeInTheDocument()
+    );
+  });
+
   it("duplicates a capsule without activating it", async () => {
     mockCapsulesInvoke({ activateTask: async () => ({}) });
     renderWithProviders(<CapsulesPage />);
@@ -518,6 +634,64 @@ describe("CapsulesPage context menu", () => {
 
     await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("duplicate_task", { id: FAKE_TASK.id }));
     expect(mockInvoke).not.toHaveBeenCalledWith("activate_task", expect.anything());
+  });
+
+  it("shows duplicate errors and does not show success when duplicate_task rejects", async () => {
+    mockCapsulesInvoke({
+      activateTask: async () => ({}),
+      duplicateTask: async () => {
+        throw new Error("duplicate failed");
+      },
+    });
+    renderWithProviders(<CapsulesPage />);
+
+    fireEvent.contextMenu(await screen.findByText(FAKE_TASK.title));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
+
+    await waitFor(() => expect(mockedErrorToast()).toHaveBeenCalledWith("Error: duplicate failed"));
+    expect(mockedSuccessToast()).not.toHaveBeenCalled();
+  });
+
+  it("shows a refresh error instead of duplicate success when the post-duplicate refresh fails", async () => {
+    mockCapsulesInvoke({
+      activateTask: async () => ({}),
+      postMutationRefresh: async () => {
+        throw new Error("duplicate refresh failed");
+      },
+    });
+    renderWithProviders(<CapsulesPage />);
+
+    fireEvent.contextMenu(await screen.findByText(FAKE_TASK.title));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
+
+    await waitFor(() =>
+      expect(mockedErrorToast()).toHaveBeenCalledWith("Error: duplicate refresh failed")
+    );
+    expect(mockedSuccessToast()).not.toHaveBeenCalled();
+  });
+
+  it("disables capsule actions while duplicate_task is pending", async () => {
+    const pendingDuplicate = deferred<Task>();
+    mockCapsulesInvoke({
+      activateTask: async () => ({}),
+      duplicateTask: () => pendingDuplicate.promise,
+    });
+    renderWithProviders(<CapsulesPage />);
+
+    fireEvent.contextMenu(await screen.findByText(FAKE_TASK.title));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Resume" })).toBeDisabled());
+    expect(screen.getByRole("button", { name: "Save State" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Done" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Delete" })).toBeDisabled();
+
+    pendingDuplicate.resolve({
+      ...FAKE_TASK,
+      id: "task-2",
+      title: `${FAKE_TASK.title} copy`,
+    });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Resume" })).toBeEnabled());
   });
 
   it("shows persisted last-session duration only when available", async () => {
