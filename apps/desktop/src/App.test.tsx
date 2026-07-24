@@ -11,12 +11,14 @@ const STORE_DEFAULTS = {
   newProjectRequest: false,
   newTaskRequest: false,
   commandOpen: false,
+  sidebarCollapsed: false,
 };
 
 describe("App global keyboard shortcuts", () => {
   beforeEach(() => {
     mockInvoke.mockClear();
     mockInvoke.mockImplementation(async () => [] as unknown[]);
+    localStorage.clear();
     useStore.setState(STORE_DEFAULTS);
   });
 
@@ -99,6 +101,25 @@ describe("App global keyboard shortcuts", () => {
     fireEvent.keyDown(input, { key: "k", metaKey: true });
     expect(useStore.getState().commandOpen).toBe(true);
 
+    document.body.removeChild(input);
+  });
+
+  it("⌘\\ toggles sidebarCollapsed and persists it, even while focus is in a text input", async () => {
+    renderWithProviders(<App />);
+    await screen.findByText("Rabta");
+
+    fireEvent.keyDown(window, { key: "\\", metaKey: true });
+    expect(useStore.getState().sidebarCollapsed).toBe(true);
+    expect(localStorage.getItem("rabta.sidebarCollapsed")).toBe("true");
+
+    // Like ⌘K, this is a global chrome action, so it fires even while a
+    // text field is focused rather than being swallowed by the input guard.
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+    fireEvent.keyDown(input, { key: "\\", metaKey: true });
+    expect(useStore.getState().sidebarCollapsed).toBe(false);
+    expect(localStorage.getItem("rabta.sidebarCollapsed")).toBe("false");
     document.body.removeChild(input);
   });
 

@@ -100,6 +100,7 @@ export default function App() {
   const removePairing = useStore((s) => s.removePairing);
   const setHubPort = useStore((s) => s.setHubPort);
   const toggleCommandOpen = useStore((s) => s.toggleCommandOpen);
+  const toggleSidebar = useStore((s) => s.toggleSidebar);
 
   useEffect(() => {
     const refresh = () =>
@@ -150,9 +151,9 @@ export default function App() {
       .catch(() => {});
   }, [setHubPort]);
 
-  // Global shortcuts: ⌘K (palette, existing), ⌘N (new project), ⌘⇧N (new
-  // capsule/task), ⌘R (resume last). Escape-to-close for the palette is
-  // handled by Radix Dialog inside CommandPalette itself.
+  // Global shortcuts: ⌘K (palette, existing), ⌘\ (toggle sidebar), ⌘N (new
+  // project), ⌘⇧N (new capsule/task), ⌘R (resume last). Escape-to-close for
+  // the palette is handled by Radix Dialog inside CommandPalette itself.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (!(e.metaKey || e.ctrlKey)) return;
@@ -163,6 +164,14 @@ export default function App() {
       if (key === "k") {
         e.preventDefault();
         toggleCommandOpen();
+        return;
+      }
+
+      // ⌘\ toggles the sidebar rail — also a global chrome action, so it
+      // fires before the input guard just like ⌘K.
+      if (key === "\\") {
+        e.preventDefault();
+        toggleSidebar();
         return;
       }
 
@@ -205,7 +214,15 @@ export default function App() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [toggleCommandOpen, setView, activeTaskId, requestResume, requestNewProject, requestNewTask]);
+  }, [
+    toggleCommandOpen,
+    toggleSidebar,
+    setView,
+    activeTaskId,
+    requestResume,
+    requestNewProject,
+    requestNewTask,
+  ]);
 
   function decide(pairing: PendingPairing, ok: boolean) {
     decidePairing(pairing, ok, removePairing);

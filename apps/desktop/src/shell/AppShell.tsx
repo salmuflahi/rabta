@@ -1,12 +1,21 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { useStore } from "@/store";
 import { Sidebar } from "./Sidebar";
 import { Titlebar } from "./Titlebar";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const collapsed = useStore((s) => s.sidebarCollapsed);
+
   return (
     <div className="flex h-full flex-col overflow-x-hidden">
       <Titlebar />
-      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-[220px_1fr]">
+      <div
+        className={cn(
+          "grid min-h-0 min-w-0 flex-1 transition-[grid-template-columns] duration-200 ease-brand",
+          collapsed ? "grid-cols-[56px_1fr]" : "grid-cols-[220px_1fr]"
+        )}
+      >
         <Sidebar />
         <main className="min-w-0 overflow-y-auto overflow-x-hidden bg-background p-9">{children}</main>
       </div>

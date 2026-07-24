@@ -39,6 +39,15 @@ export interface KnownConnector {
 const MAX_LOG = 500;
 let seq = 0;
 
+const SIDEBAR_KEY = "rabta.sidebarCollapsed";
+function readSidebarCollapsed(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
 const knownId = (c: { name: string; kind: string }) => `known:${c.name}:${c.kind}`;
 
 export interface Project {
@@ -143,6 +152,10 @@ interface Store {
   newTaskRequest: boolean;
   requestNewTask: () => void;
   clearNewTaskRequest: () => void;
+  /** Icons-only rail vs. full sidebar, persisted to localStorage so it
+   * survives reload. Toggled via the sidebar's collapse button or ⌘\. */
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
 }
 
 export const useStore = create<Store>((set) => ({
@@ -172,6 +185,17 @@ export const useStore = create<Store>((set) => ({
   newTaskRequest: false,
   requestNewTask: () => set({ newTaskRequest: true }),
   clearNewTaskRequest: () => set({ newTaskRequest: false }),
+  sidebarCollapsed: readSidebarCollapsed(),
+  toggleSidebar: () =>
+    set((s) => {
+      const next = !s.sidebarCollapsed;
+      try {
+        localStorage.setItem(SIDEBAR_KEY, String(next));
+      } catch {
+        /* ignore */
+      }
+      return { sidebarCollapsed: next };
+    }),
   setPairings: (incoming) =>
     set((s) => {
       const merged = [...s.pairings];
