@@ -288,6 +288,63 @@ describe("ProjectsPage unsaved-changes dot", () => {
     await waitFor(() => expect(gitStatusCallsForProject.length).toBeGreaterThan(callsBeforeStart));
     expect(gitStatusCallsForProject.at(-1)).toEqual({ projectId: FAKE_PROJECT.id });
   });
+
+  it("GitLine's own git op (Fetch) refreshes the dot too, via GitLine's onChanged (FIX 1)", async () => {
+    // Regression coverage for the review finding: GitLine performs its OWN
+    // git mutations (fetch/checkout/create-branch) via `run()` -> `refresh()`,
+    // and none of those used to bump any nonce the dot watches, so the dot
+    // could keep showing stale state after GitLine visibly updated. GitLine
+    // now calls `onChanged` on its success path, which bumps a `gitOpNonce`
+    // this dot's refreshKey also sums in — this drives that real path (open
+    // GitLine's "Git" menu, run Fetch) and asserts the dot's own git_status
+    // refetch reflects the new state, with no time-based assertions.
+    mockInvoke.mockClear();
+    let dirty = true;
+    mockInvoke.mockImplementation(async (cmd: string, args?: unknown) => {
+      const a = args as { projectId?: string } | undefined;
+      switch (cmd) {
+        case "list_projects":
+          return [FAKE_PROJECT] as unknown;
+        case "git_status":
+          return (a?.projectId === FAKE_PROJECT.id
+            ? { branch: "main", dirty, changedCount: dirty ? 2 : 0, ahead: 0, behind: 0 }
+            : { branch: "main", dirty: false, changedCount: 0, ahead: 0, behind: 0 }) as unknown;
+        case "git_branches":
+          return ["main"] as unknown;
+        case "git_fetch":
+          dirty = false;
+          return undefined as unknown;
+        default:
+          return [] as unknown;
+      }
+    });
+
+    renderWithProviders(<ProjectsPage />);
+
+    await screen.findByText("Test Project");
+    expect(await screen.findByLabelText("2 uncommitted changes")).toBeInTheDocument();
+
+    // Radix's DropdownMenuTrigger opens on pointerdown, which happy-dom
+    // doesn't drive reliably without user-event — same as GitLine.test.tsx,
+    // it also opens on Enter/Space/ArrowDown keydown, so drive it via
+    // keyboard for a deterministic test.
+    const gitTrigger = await screen.findByRole("button", { name: "Git" });
+    fireEvent.keyDown(gitTrigger, { key: "Enter" });
+
+    const fetchItem = await screen.findByText("Fetch");
+    fireEvent.keyDown(fetchItem, { key: "Enter" });
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("git_fetch", { projectId: FAKE_PROJECT.id })
+    );
+
+    // The dot refetches via GitLine's onChanged -> gitOpNonce bump (no
+    // GitHub issue-task start involved here, and no GitLine remount either
+    // — GitLine's key is keyed on startedNonce only, which never changed).
+    await waitFor(() =>
+      expect(screen.queryByLabelText(/uncommitted change/i)).not.toBeInTheDocument()
+    );
+  });
 });
 
 describe("ProjectsPage context menu", () => {

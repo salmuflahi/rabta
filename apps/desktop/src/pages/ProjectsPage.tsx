@@ -46,8 +46,11 @@ interface GitStatus {
  * from GitLine's) so the dot doesn't depend on GitLine's render order or
  * internal state — re-fetches on mount, on `activationNonce` (a restore
  * elsewhere may have git-first-restored this project's branch), and on
- * `refreshKey` (bumped when a GitHub issue-task start switches/creates this
- * project's branch) — the same triggers GitLine uses for its own refresh.
+ * `refreshKey` (the sum of two nonces: one bumped when a GitHub issue-task
+ * start switches/creates this project's branch, the other bumped by
+ * GitLine's own `onChanged` after its fetch/checkout/create-branch ops) —
+ * so the dot stays in sync with GitLine on every git mutation, not just
+ * the issue-task path, without forcing GitLine to remount.
  * Renders nothing when clean or while still loading — never an empty
  * placeholder gap. */
 export function UnsavedChangesDot({ projectId, refreshKey }: { projectId: string; refreshKey?: number }) {
@@ -115,6 +118,10 @@ export function ProjectsPage() {
   const [branch, setBranch] = useState("");
   const [pathNote, setPathNote] = useState("");
   const [startedNonce, setStartedNonce] = useState<Record<string, number>>({});
+  // Bumped by GitLine's own onChanged (fetch/checkout/create-branch success)
+  // so the dot refetches without GitLine remounting — see FIX 1 in the
+  // final-fixes brief: startedNonce alone missed GitLine's own git ops.
+  const [gitOpNonce, setGitOpNonce] = useState<Record<string, number>>({});
   // Pre-first-load window only: true until the initial list_projects fetch
   // settles, then stays false for the life of the page.
   const [loading, setLoading] = useState(true);
@@ -250,7 +257,10 @@ export function ProjectsPage() {
                         <p className="truncate text-foreground font-medium">
                           {p.name} <span className="font-normal text-muted-foreground">({p.defaultBranch})</span>
                         </p>
-                        <UnsavedChangesDot projectId={p.id} refreshKey={startedNonce[p.id] ?? 0} />
+                        <UnsavedChangesDot
+                          projectId={p.id}
+                          refreshKey={(startedNonce[p.id] ?? 0) + (gitOpNonce[p.id] ?? 0)}
+                        />
                       </div>
                       <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{p.repoPath}</p>
                       {p.devUrl && <p className="truncate text-xs text-muted-foreground">{p.devUrl}</p>}
@@ -261,7 +271,11 @@ export function ProjectsPage() {
                     </Button>
                   </div>
 
-                  <GitLine key={`${p.id}-${startedNonce[p.id] ?? 0}`} projectId={p.id} />
+                  <GitLine
+                    key={`${p.id}-${startedNonce[p.id] ?? 0}`}
+                    projectId={p.id}
+                    onChanged={() => setGitOpNonce((n) => ({ ...n, [p.id]: (n[p.id] ?? 0) + 1 }))}
+                  />
                   <GitHubSection
                     projectId={p.id}
                     onStarted={() => setStartedNonce((n) => ({ ...n, [p.id]: (n[p.id] ?? 0) + 1 }))}

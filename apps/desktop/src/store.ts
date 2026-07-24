@@ -39,6 +39,14 @@ export interface KnownConnector {
 const MAX_LOG = 500;
 let seq = 0;
 
+/** `.toISOString()` throws on an invalid Date (unlike the old
+ * `.toLocaleTimeString()`, which just returned "Invalid Date" harmlessly) —
+ * guard against an unparseable `lastSeen` by falling back to now. */
+function toIsoOrNow(input: string): string {
+  const d = new Date(input);
+  return Number.isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+}
+
 const SIDEBAR_KEY = "rabta.sidebarCollapsed";
 function readSidebarCollapsed(): boolean {
   try {
@@ -262,7 +270,7 @@ export const useStore = create<Store>((set) => ({
           kind: k.kind,
           capabilities: k.capabilities,
           connected: false,
-          connectedSince: new Date(k.lastSeen).toISOString(),
+          connectedSince: toIsoOrNow(k.lastSeen),
         }));
       return {
         // Drop any previously-seeded historical entries before re-seeding so

@@ -45,7 +45,17 @@ interface GitStatus {
   behind: number;
 }
 
-export function GitLine({ projectId }: { projectId: string }) {
+export function GitLine({
+  projectId,
+  onChanged,
+}: {
+  projectId: string;
+  /** Fired after any successful git mutation (fetch/checkout/create-branch)
+   * once this component's own status has been refreshed — lets a parent
+   * (e.g. ProjectsPage's UnsavedChangesDot) refetch its own independent
+   * git_status without remounting this component. Not called on failure. */
+  onChanged?: () => void;
+}) {
   const activationNonce = useStore((s) => s.activationNonce);
   const [status, setStatus] = useState<GitStatus | null>(null);
   const [branches, setBranches] = useState<string[]>([]);
@@ -84,6 +94,7 @@ export function GitLine({ projectId }: { projectId: string }) {
       await invoke(command, { projectId, ...args });
       toastOk(okMessage);
       await refresh();
+      onChanged?.();
       return true;
     } catch (e) {
       toastErr(e);

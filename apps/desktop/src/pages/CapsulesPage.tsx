@@ -116,7 +116,7 @@ function CapsuleSummary({ resources }: { resources: TaskResource[] }) {
     resources.length === 0 ? (
       <span className="mt-0.5 block text-xs text-muted-foreground">No capsule yet</span>
     ) : (
-      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+      <span className="mt-1 inline-flex flex-wrap items-center gap-x-3 gap-y-1">
         {resources.map((r) => {
           const h = humanizeCapsule(r);
           const Icon = CAPSULE_ICONS[h.icon];
@@ -128,7 +128,7 @@ function CapsuleSummary({ resources }: { resources: TaskResource[] }) {
             </span>
           );
         })}
-      </div>
+      </span>
     );
 
   return (
