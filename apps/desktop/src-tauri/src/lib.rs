@@ -2,7 +2,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use rabta_db::{Db, DbConfig, EventRow, KnownConnector, Project, Recorder, Task, TaskResource, TaskStatus};
+use rabta_db::{
+    Db, DbConfig, EventRow, KnownConnector, Project, Recorder, Task, TaskResource, TaskStatus,
+};
 use rabta_hub::{ConnectorInfo, Hub, HubConfig};
 use serde::Serialize;
 use serde_json::Value;
@@ -37,7 +39,11 @@ async fn send_command(
     name: String,
     args: Value,
 ) -> Result<Value, String> {
-    state.0.send_command(&target, &name, args).await.map_err(|e| e.to_string())
+    state
+        .0
+        .send_command(&target, &name, args)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// The newest persisted events (oldest first) for pre-seeding the activity log.
@@ -154,11 +160,9 @@ async fn reorder_projects(
     ordered_ids: Vec<String>,
 ) -> Result<Vec<Project>, String> {
     let db = db.0.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        projects::reorder_projects(&db, &ordered_ids)
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || projects::reorder_projects(&db, &ordered_ids))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 /// Deletes a project; its tasks and resources cascade (phase 5 schema).
@@ -172,13 +176,19 @@ async fn delete_project(db: State<'_, DbHandle>, id: String) -> Result<(), Strin
 
 /// Captures connected connectors' state into the task's capsule.
 #[tauri::command]
-async fn save_capsule(caps: State<'_, CapsulesHandle>, task_id: String) -> Result<SaveSummary, String> {
+async fn save_capsule(
+    caps: State<'_, CapsulesHandle>,
+    task_id: String,
+) -> Result<SaveSummary, String> {
     caps.0.save_capsule(&task_id).await
 }
 
 /// Auto-saves the outgoing task, restores this task's capsule, marks it active.
 #[tauri::command]
-async fn activate_task(caps: State<'_, CapsulesHandle>, task_id: String) -> Result<ActivateSummary, String> {
+async fn activate_task(
+    caps: State<'_, CapsulesHandle>,
+    task_id: String,
+) -> Result<ActivateSummary, String> {
     caps.0.activate_task(&task_id).await
 }
 
@@ -206,7 +216,11 @@ async fn session_heartbeat(caps: State<'_, CapsulesHandle>) -> Result<(), String
 
 /// Creates a task under a project (status `open`).
 #[tauri::command]
-async fn create_task(db: State<'_, DbHandle>, project_id: String, title: String) -> Result<Task, String> {
+async fn create_task(
+    db: State<'_, DbHandle>,
+    project_id: String,
+    title: String,
+) -> Result<Task, String> {
     let db = db.0.clone();
     tauri::async_runtime::spawn_blocking(move || projects::create_task(&db, &project_id, &title))
         .await
@@ -217,32 +231,36 @@ async fn create_task(db: State<'_, DbHandle>, project_id: String, title: String)
 #[tauri::command]
 async fn list_tasks(db: State<'_, DbHandle>, project_id: String) -> Result<Vec<Task>, String> {
     let db = db.0.clone();
-    tauri::async_runtime::spawn_blocking(move || db.list_tasks(&project_id).map_err(|e| e.to_string()))
-        .await
-        .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || {
+        db.list_tasks(&project_id).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Sets a task's status; accepts "open" or "done".
 #[tauri::command]
-async fn set_task_status(db: State<'_, DbHandle>, id: String, status: String) -> Result<(), String> {
+async fn set_task_status(
+    db: State<'_, DbHandle>,
+    id: String,
+    status: String,
+) -> Result<(), String> {
     let parsed = match status.as_str() {
         "open" => TaskStatus::Open,
         "done" => TaskStatus::Done,
         other => return Err(format!("unknown status: {other}")),
     };
     let db = db.0.clone();
-    tauri::async_runtime::spawn_blocking(move || db.set_task_status(&id, parsed).map_err(|e| e.to_string()))
-        .await
-        .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || {
+        db.set_task_status(&id, parsed).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Renames a task capsule.
 #[tauri::command]
-async fn rename_task(
-    db: State<'_, DbHandle>,
-    id: String,
-    title: String,
-) -> Result<Task, String> {
+async fn rename_task(db: State<'_, DbHandle>, id: String, title: String) -> Result<Task, String> {
     let db = db.0.clone();
     tauri::async_runtime::spawn_blocking(move || projects::rename_task(&db, &id, &title))
         .await
@@ -269,11 +287,16 @@ async fn delete_task(db: State<'_, DbHandle>, id: String) -> Result<(), String> 
 
 /// A task's capsule rows (for the UI summary).
 #[tauri::command]
-async fn task_resources(db: State<'_, DbHandle>, task_id: String) -> Result<Vec<TaskResource>, String> {
+async fn task_resources(
+    db: State<'_, DbHandle>,
+    task_id: String,
+) -> Result<Vec<TaskResource>, String> {
     let db = db.0.clone();
-    tauri::async_runtime::spawn_blocking(move || db.task_resources(&task_id).map_err(|e| e.to_string()))
-        .await
-        .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || {
+        db.task_resources(&task_id).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Resolves a registered project's repo path or a clear error.
@@ -284,7 +307,9 @@ async fn repo_of(db: &DbHandle, project_id: &str) -> Result<PathBuf, String> {
         .await
         .map_err(|e| e.to_string())?
         .map_err(|e| e.to_string())?;
-    project.map(|p| PathBuf::from(p.repo_path)).ok_or_else(|| "project not found".to_string())
+    project
+        .map(|p| PathBuf::from(p.repo_path))
+        .ok_or_else(|| "project not found".to_string())
 }
 
 /// Current git status of a registered project.
@@ -307,13 +332,21 @@ async fn git_fetch(db: State<'_, DbHandle>, project_id: String) -> Result<String
 
 /// Safe branch switch: refuses on a dirty tree, never forces.
 #[tauri::command]
-async fn git_checkout(db: State<'_, DbHandle>, project_id: String, branch: String) -> Result<(), String> {
+async fn git_checkout(
+    db: State<'_, DbHandle>,
+    project_id: String,
+    branch: String,
+) -> Result<(), String> {
     git::checkout(&repo_of(&db, &project_id).await?, &branch).await
 }
 
 /// Creates and switches to a new branch (safe with uncommitted changes).
 #[tauri::command]
-async fn git_create_branch(db: State<'_, DbHandle>, project_id: String, name: String) -> Result<(), String> {
+async fn git_create_branch(
+    db: State<'_, DbHandle>,
+    project_id: String,
+    name: String,
+) -> Result<(), String> {
     git::create_branch(&repo_of(&db, &project_id).await?, &name).await
 }
 
@@ -360,7 +393,11 @@ async fn pending_pairings(hub: State<'_, HubHandle>) -> Result<Vec<PendingPairin
         .pending_pairings()
         .await
         .into_iter()
-        .map(|(pairing_id, name, kind)| PendingPairing { pairing_id, name, kind })
+        .map(|(pairing_id, name, kind)| PendingPairing {
+            pairing_id,
+            name,
+            kind,
+        })
         .collect())
 }
 
@@ -385,7 +422,11 @@ async fn approve_pairing(
             .map_err(|e| e.to_string())?
             .map_err(|e| e.to_string())?;
     }
-    hub.0.tokens_handle().write().unwrap_or_else(std::sync::PoisonError::into_inner).insert(format!("{name}/{kind}"), token.clone());
+    hub.0
+        .tokens_handle()
+        .write()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(format!("{name}/{kind}"), token.clone());
     if hub.0.resolve_pairing(&pairing_id, Some(token)).await {
         Ok(())
     } else {
@@ -454,7 +495,11 @@ pub fn run() {
             let mut hub_cfg = HubConfig::new(data_dir);
             hub_cfg.preferred_port = 17872;
             for (name, kind, token) in db.connector_tokens().map_err(|e| e.to_string())? {
-                hub_cfg.tokens.write().unwrap_or_else(std::sync::PoisonError::into_inner).insert(format!("{name}/{kind}"), token);
+                hub_cfg
+                    .tokens
+                    .write()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .insert(format!("{name}/{kind}"), token);
             }
             let hub = tauri::async_runtime::block_on(Hub::start(hub_cfg))?;
 

@@ -26,16 +26,27 @@ pub fn inspect_repo_path(path: &str) -> RepoInspection {
     let exists = p.is_dir();
     let git = p.join(".git");
     let is_git_repo = exists && (git.is_dir() || git.is_file());
-    let default_branch =
-        if git.is_dir() { read_head_branch(&git.join("HEAD")) } else { None };
-    RepoInspection { exists, is_git_repo, default_branch }
+    let default_branch = if git.is_dir() {
+        read_head_branch(&git.join("HEAD"))
+    } else {
+        None
+    };
+    RepoInspection {
+        exists,
+        is_git_repo,
+        default_branch,
+    }
 }
 
 /// Parses `ref: refs/heads/<branch>` from a HEAD file.
 fn read_head_branch(head: &Path) -> Option<String> {
     let contents = std::fs::read_to_string(head).ok()?;
     let branch = contents.trim().strip_prefix("ref: refs/heads/")?;
-    if branch.is_empty() { None } else { Some(branch.to_string()) }
+    if branch.is_empty() {
+        None
+    } else {
+        Some(branch.to_string())
+    }
 }
 
 /// Validates registration input and creates the project.
@@ -60,7 +71,9 @@ pub fn validate_and_create(
     }
     let inspection = inspect_repo_path(repo_path);
     if !inspection.exists {
-        return Err(format!("path does not exist or is not a directory: {repo_path}"));
+        return Err(format!(
+            "path does not exist or is not a directory: {repo_path}"
+        ));
     }
     if !inspection.is_git_repo {
         return Err(format!("not a git repository (no .git): {repo_path}"));
@@ -99,11 +112,7 @@ pub fn unarchive_project(db: &Db, id: &str) -> Result<Project, String> {
 }
 
 /// Assigns or clears one curated project icon.
-pub fn set_project_icon(
-    db: &Db,
-    id: &str,
-    icon: Option<&str>,
-) -> Result<Project, String> {
+pub fn set_project_icon(db: &Db, id: &str, icon: Option<&str>) -> Result<Project, String> {
     db.set_project_icon(id, icon).map_err(friendly_db_error)
 }
 
@@ -119,9 +128,7 @@ pub fn create_task(db: &Db, project_id: &str, title: &str) -> Result<Task, Strin
         .map_err(friendly_db_error)?
         .ok_or_else(|| "project not found".to_string())?;
     if project.archived_at.is_some() {
-        return Err(
-            "project is archived — restore it before adding a capsule".to_string()
-        );
+        return Err("project is archived — restore it before adding a capsule".to_string());
     }
     db.create_task(NewTask {
         project_id: project_id.to_string(),
@@ -146,9 +153,7 @@ pub fn duplicate_task(db: &Db, id: &str) -> Result<Task, String> {
         .map_err(friendly_db_error)?
         .ok_or_else(|| "project not found".to_string())?;
     if project.archived_at.is_some() {
-        return Err(
-            "project is archived — restore it before adding a capsule".to_string()
-        );
+        return Err("project is archived — restore it before adding a capsule".to_string());
     }
     db.duplicate_task(id).map_err(friendly_db_error)
 }

@@ -12,12 +12,16 @@ use tokio::sync::broadcast::error::RecvError;
 async fn main() {
     let data_dir: std::path::PathBuf = match std::env::var("OMNIBUS_DATA_DIR") {
         Ok(dir) => dir.into(),
-        Err(_) => dirs::data_dir().expect("no platform data dir").join("com.omnibus.dev"),
+        Err(_) => dirs::data_dir()
+            .expect("no platform data dir")
+            .join("com.omnibus.dev"),
     };
     let probe = std::env::args().any(|a| a == "--probe");
     let record = std::env::args().any(|a| a == "--record");
 
-    let hub = Hub::start(HubConfig::new(data_dir.clone())).await.expect("hub failed to start");
+    let hub = Hub::start(HubConfig::new(data_dir.clone()))
+        .await
+        .expect("hub failed to start");
     eprintln!("hub listening on 127.0.0.1:{}", hub.port());
 
     let mut recorder = if record {
@@ -41,8 +45,13 @@ async fn main() {
         }
         if probe {
             if let HubEvent::ConnectorConnected { connector } = &ev {
-                let outcome = hub.send_command(&connector.id, "probe.echo", json!({"n": 1})).await;
-                println!("{}", json!({"probe": {"ok": outcome.is_ok(), "result": outcome.ok()}}));
+                let outcome = hub
+                    .send_command(&connector.id, "probe.echo", json!({"n": 1}))
+                    .await;
+                println!(
+                    "{}",
+                    json!({"probe": {"ok": outcome.is_ok(), "result": outcome.ok()}})
+                );
             }
         }
     }

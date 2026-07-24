@@ -325,9 +325,7 @@ fn reorder_requires_the_exact_active_project_set_and_rolls_back() {
         expected
     );
 
-    assert!(db
-        .reorder_projects(&[a.id.clone(), b.id.clone()])
-        .is_err());
+    assert!(db.reorder_projects(&[a.id.clone(), b.id.clone()]).is_err());
     assert!(matches!(
         db.reorder_projects(&[a.id.clone(), a.id.clone(), c.id.clone()]),
         Err(DbError::Validation {
@@ -365,7 +363,12 @@ fn reorder_requires_the_exact_active_project_set_and_rolls_back() {
 fn task_crud_and_status() {
     let db = db();
     let p = a_project(&db, "omnibus");
-    let t = db.create_task(NewTask { project_id: p.id.clone(), title: "fix login".into() }).unwrap();
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "fix login".into(),
+        })
+        .unwrap();
     assert_eq!(t.created_at, t.updated_at);
     assert_eq!(t.status, TaskStatus::Open);
     db.set_task_status(&t.id, TaskStatus::Done).unwrap();
@@ -385,11 +388,7 @@ fn duplicate_task_copies_all_resources_in_attachment_order_with_fresh_ids() {
         })
         .unwrap();
     let source_resources = [
-        (
-            "git",
-            "branch",
-            json!({"branch": "main", "ahead": 2}),
-        ),
+        ("git", "branch", json!({"branch": "main", "ahead": 2})),
         (
             "chrome",
             "tabs",
@@ -418,11 +417,19 @@ fn duplicate_task_copies_all_resources_in_attachment_order_with_fresh_ids() {
     assert_eq!(
         copied_resources
             .iter()
-            .map(|resource| (&resource.connector_kind, &resource.resource_type, &resource.payload))
+            .map(|resource| (
+                &resource.connector_kind,
+                &resource.resource_type,
+                &resource.payload
+            ))
             .collect::<Vec<_>>(),
         source_resources
             .iter()
-            .map(|resource| (&resource.connector_kind, &resource.resource_type, &resource.payload))
+            .map(|resource| (
+                &resource.connector_kind,
+                &resource.resource_type,
+                &resource.payload
+            ))
             .collect::<Vec<_>>()
     );
     for (copied, source) in copied_resources.iter().zip(source_resources.iter()) {
@@ -541,7 +548,12 @@ fn deleting_last_opened_task_clears_the_project_soft_reference() {
 fn deleting_project_cascades_to_tasks_and_resources() {
     let db = db();
     let p = a_project(&db, "omnibus");
-    let t = db.create_task(NewTask { project_id: p.id.clone(), title: "t".into() }).unwrap();
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
     db.add_task_resource(NewTaskResource {
         task_id: t.id.clone(),
         connector_kind: "fake".into(),
@@ -558,7 +570,12 @@ fn deleting_project_cascades_to_tasks_and_resources() {
 fn task_resources_round_trip() {
     let db = db();
     let p = a_project(&db, "omnibus");
-    let t = db.create_task(NewTask { project_id: p.id.clone(), title: "t".into() }).unwrap();
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
     let r = db
         .add_task_resource(NewTaskResource {
             task_id: t.id.clone(),
@@ -576,7 +593,12 @@ fn task_resources_round_trip() {
 fn replace_task_resources_replaces_only_that_kind() {
     let db = db();
     let p = a_project(&db, "omnibus");
-    let t = db.create_task(NewTask { project_id: p.id.clone(), title: "t".into() }).unwrap();
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
     db.add_task_resource(NewTaskResource {
         task_id: t.id.clone(),
         connector_kind: "chrome".into(),
@@ -584,9 +606,21 @@ fn replace_task_resources_replaces_only_that_kind() {
         payload: json!({"tabs": []}),
     })
     .unwrap();
-    db.replace_task_resources(&t.id, "vscode", "workspace", &json!({"openFiles": ["a.ts"]})).unwrap();
-    let replaced =
-        db.replace_task_resources(&t.id, "vscode", "workspace", &json!({"openFiles": ["b.ts"]})).unwrap();
+    db.replace_task_resources(
+        &t.id,
+        "vscode",
+        "workspace",
+        &json!({"openFiles": ["a.ts"]}),
+    )
+    .unwrap();
+    let replaced = db
+        .replace_task_resources(
+            &t.id,
+            "vscode",
+            "workspace",
+            &json!({"openFiles": ["b.ts"]}),
+        )
+        .unwrap();
     assert_eq!(replaced.connector_kind, "vscode");
     assert_eq!(replaced.payload, json!({"openFiles": ["b.ts"]}));
 
@@ -595,14 +629,23 @@ fn replace_task_resources_replaces_only_that_kind() {
     let kinds: Vec<&str> = all.iter().map(|r| r.connector_kind.as_str()).collect();
     assert!(kinds.contains(&"chrome") && kinds.contains(&"vscode"));
     let vs = all.iter().find(|r| r.connector_kind == "vscode").unwrap();
-    assert_eq!(vs.payload, json!({"openFiles": ["b.ts"]}), "old vscode row replaced");
+    assert_eq!(
+        vs.payload,
+        json!({"openFiles": ["b.ts"]}),
+        "old vscode row replaced"
+    );
 }
 
 #[test]
 fn get_task_and_project_by_id() {
     let db = db();
     let p = a_project(&db, "omnibus");
-    let t = db.create_task(NewTask { project_id: p.id.clone(), title: "t".into() }).unwrap();
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
     assert_eq!(db.get_project(&p.id).unwrap().unwrap().name, "omnibus");
     assert_eq!(db.get_task(&t.id).unwrap().unwrap().title, "t");
     assert!(db.get_project("nope").unwrap().is_none());

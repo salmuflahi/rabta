@@ -6,7 +6,10 @@ use serde_json::Value;
 /// definitions from drifting.
 #[test]
 fn fixtures_round_trip() {
-    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../packages/protocol/fixtures");
+    let dir = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../packages/protocol/fixtures"
+    );
     let mut checked = 0;
     for entry in std::fs::read_dir(dir).unwrap() {
         let path = entry.unwrap().path();

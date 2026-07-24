@@ -435,7 +435,7 @@ impl Capsules {
         let mut warnings = vec![];
         if active_belongs_to_project {
             if let Some(task_id) = active_task.as_deref() {
-                match self.save_capsule(&task_id).await {
+                match self.save_capsule(task_id).await {
                     Ok(summary) => warnings.extend(
                         summary
                             .skipped

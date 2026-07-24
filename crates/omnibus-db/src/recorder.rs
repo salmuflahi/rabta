@@ -18,14 +18,20 @@ pub struct Recorder {
 impl Recorder {
     /// A recorder writing into `db`. One per subscription.
     pub fn new(db: Db) -> Recorder {
-        Recorder { db, sessions: HashMap::new() }
+        Recorder {
+            db,
+            sessions: HashMap::new(),
+        }
     }
 
     /// Handles one serialized `HubEvent`. Never fails: write errors are
     /// logged and skipped — persistence trouble must not break live routing.
     pub fn handle(&mut self, ev: &Value) {
-        let event_type =
-            ev.get("type").and_then(Value::as_str).unwrap_or("unknown").to_string();
+        let event_type = ev
+            .get("type")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown")
+            .to_string();
 
         // Unauthenticated clients can spam `pair` frames freely (no secret
         // required to request pairing); persisting each one would let that
@@ -60,7 +66,8 @@ impl Recorder {
                     if let Err(e) = self.db.upsert_connector(name, kind, &caps) {
                         log::warn!("recorder: connector upsert failed: {e}");
                     }
-                    self.sessions.insert(id.to_string(), (name.to_string(), kind.to_string()));
+                    self.sessions
+                        .insert(id.to_string(), (name.to_string(), kind.to_string()));
                 }
             }
             "connectorDisconnected" => {

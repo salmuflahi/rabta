@@ -10,7 +10,11 @@ pub async fn git(repo: &Path, args: &[&str]) {
         .output()
         .await
         .expect("git runs");
-    assert!(out.status.success(), "git {args:?} failed: {}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "git {args:?} failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
 }
 
 /// A temp repo on branch `main` with one committed file `a.txt`.

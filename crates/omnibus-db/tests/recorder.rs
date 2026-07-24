@@ -10,14 +10,17 @@ use std::time::Duration;
 #[tokio::test]
 async fn recorder_persists_hub_activity() {
     let dir = tempfile::tempdir().unwrap();
-    let hub = Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap();
+    let hub = Hub::start(HubConfig::new(dir.path().to_path_buf()))
+        .await
+        .unwrap();
     let db = Db::open_in_memory(DbConfig::default()).unwrap();
     let mut recorder = Recorder::new(db.clone());
     let mut events = hub.subscribe();
 
     // Connector: register, emit one event, disconnect.
-    let (mut ws, _) =
-        tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
+    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port()))
+        .await
+        .unwrap();
     ws.send(
         json!({"v":1,"id":"h","kind":"hello","payload":{"name":"rec-test","kind":"fake","protocolVersion":1,"capabilities":["workspace"],"secret":hub.secret()}})
             .to_string()
@@ -38,7 +41,10 @@ async fn recorder_persists_hub_activity() {
     // Drive the recorder from the broadcast until the disconnect arrives.
     let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
     loop {
-        let ev = tokio::time::timeout_at(deadline, events.recv()).await.expect("timed out").unwrap();
+        let ev = tokio::time::timeout_at(deadline, events.recv())
+            .await
+            .expect("timed out")
+            .unwrap();
         let v: Value = serde_json::to_value(&ev).unwrap();
         let is_disconnect = v["type"] == "connectorDisconnected";
         recorder.handle(&v);
@@ -53,7 +59,10 @@ async fn recorder_persists_hub_activity() {
     assert!(types.contains(&"eventReceived"), "got {types:?}");
     assert!(types.contains(&"connectorDisconnected"), "got {types:?}");
 
-    let event_row = rows.iter().find(|r| r.event_type == "eventReceived").unwrap();
+    let event_row = rows
+        .iter()
+        .find(|r| r.event_type == "eventReceived")
+        .unwrap();
     assert_eq!(event_row.payload["name"], "editor.fileOpened");
     assert!(event_row.session_connector_id.is_some());
 
@@ -75,5 +84,8 @@ fn pairing_requested_is_not_persisted() {
     recorder.handle(&ev);
 
     let rows = db.recent_events(50).unwrap();
-    assert!(rows.is_empty(), "pairingRequested must not be persisted, got {rows:?}");
+    assert!(
+        rows.is_empty(),
+        "pairingRequested must not be persisted, got {rows:?}"
+    );
 }

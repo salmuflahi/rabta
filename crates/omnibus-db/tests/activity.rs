@@ -8,8 +8,10 @@ fn db() -> Db {
 #[test]
 fn records_and_reads_back_events_in_order() {
     let db = db();
-    db.record_event("eventReceived", Some("s-1"), &json!({"n": 1})).unwrap();
-    db.record_event("commandSent", None, &json!({"n": 2})).unwrap();
+    db.record_event("eventReceived", Some("s-1"), &json!({"n": 1}))
+        .unwrap();
+    db.record_event("commandSent", None, &json!({"n": 2}))
+        .unwrap();
     let events = db.recent_events(10).unwrap();
     assert_eq!(events.len(), 2);
     assert_eq!(events[0].event_type, "eventReceived");
@@ -39,18 +41,32 @@ fn event_cap_prunes_oldest_rows() {
     }
     let events = db.recent_events(100).unwrap();
     assert_eq!(events.len(), 5, "cap must bound the table");
-    assert_eq!(events[0].payload, json!({"i": 3}), "oldest rows pruned first");
+    assert_eq!(
+        events[0].payload,
+        json!({"i": 3}),
+        "oldest rows pruned first"
+    );
     assert_eq!(events[4].payload, json!({"i": 7}));
 }
 
 #[test]
 fn upsert_connector_is_identity_by_name_and_kind() {
     let db = db();
-    db.upsert_connector("fake-vscode", "fake", &["workspace".into()]).unwrap();
-    db.upsert_connector("fake-vscode", "fake", &["workspace".into(), "editor".into()]).unwrap();
+    db.upsert_connector("fake-vscode", "fake", &["workspace".into()])
+        .unwrap();
+    db.upsert_connector(
+        "fake-vscode",
+        "fake",
+        &["workspace".into(), "editor".into()],
+    )
+    .unwrap();
     let known = db.known_connectors().unwrap();
     assert_eq!(known.len(), 1, "same (name, kind) must not duplicate");
-    assert_eq!(known[0].capabilities, vec!["workspace", "editor"], "capabilities refresh on upsert");
+    assert_eq!(
+        known[0].capabilities,
+        vec!["workspace", "editor"],
+        "capabilities refresh on upsert"
+    );
     assert!(known[0].first_seen <= known[0].last_seen);
 }
 
@@ -72,9 +88,13 @@ fn touch_connector_seen_updates_last_seen_only_for_known() {
 fn connector_token_set_and_load() {
     let db = db();
     db.set_connector_token("chrome", "chrome", "tok-1").unwrap();
-    assert_eq!(db.connector_tokens().unwrap(), vec![("chrome".into(), "chrome".into(), "tok-1".into())]);
+    assert_eq!(
+        db.connector_tokens().unwrap(),
+        vec![("chrome".into(), "chrome".into(), "tok-1".into())]
+    );
     // Upsert on an existing row keeps identity, replaces token.
-    db.upsert_connector("chrome", "chrome", &["tabs".into()]).unwrap();
+    db.upsert_connector("chrome", "chrome", &["tabs".into()])
+        .unwrap();
     db.set_connector_token("chrome", "chrome", "tok-2").unwrap();
     let tokens = db.connector_tokens().unwrap();
     assert_eq!(tokens.len(), 1);

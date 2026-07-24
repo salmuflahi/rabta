@@ -1,7 +1,9 @@
 mod common;
 
 use common::{git, repo_with_commit};
-use rabta_desktop_lib::git::{branches, checkout, create_branch, fetch, status, validate_branch_name};
+use rabta_desktop_lib::git::{
+    branches, checkout, create_branch, fetch, status, validate_branch_name,
+};
 
 #[tokio::test]
 async fn status_reports_clean_branch() {
@@ -34,9 +36,15 @@ async fn status_detached_head_has_no_branch() {
 async fn checkout_switches_clean_tree_and_lists_branches() {
     let repo = repo_with_commit().await;
     create_branch(repo.path(), "feature").await.unwrap();
-    assert_eq!(status(repo.path()).await.unwrap().branch.as_deref(), Some("feature"));
+    assert_eq!(
+        status(repo.path()).await.unwrap().branch.as_deref(),
+        Some("feature")
+    );
     checkout(repo.path(), "main").await.unwrap();
-    assert_eq!(status(repo.path()).await.unwrap().branch.as_deref(), Some("main"));
+    assert_eq!(
+        status(repo.path()).await.unwrap().branch.as_deref(),
+        Some("main")
+    );
     let mut b = branches(repo.path()).await.unwrap();
     b.sort();
     assert_eq!(b, vec!["feature", "main"]);
@@ -50,7 +58,10 @@ async fn checkout_refuses_dirty_tree_untouched() {
     std::fs::write(repo.path().join("a.txt"), "precious uncommitted work\n").unwrap();
     let err = checkout(repo.path(), "feature").await.unwrap_err();
     assert!(err.contains("never discards"), "got: {err}");
-    assert_eq!(status(repo.path()).await.unwrap().branch.as_deref(), Some("main"));
+    assert_eq!(
+        status(repo.path()).await.unwrap().branch.as_deref(),
+        Some("main")
+    );
     assert_eq!(
         std::fs::read_to_string(repo.path().join("a.txt")).unwrap(),
         "precious uncommitted work\n",
@@ -73,18 +84,34 @@ async fn create_branch_while_dirty_carries_changes() {
     let st = status(repo.path()).await.unwrap();
     assert_eq!(st.branch.as_deref(), Some("wip-branch"));
     assert!(st.dirty, "changes carried, not lost");
-    assert_eq!(std::fs::read_to_string(repo.path().join("a.txt")).unwrap(), "wip\n");
+    assert_eq!(
+        std::fs::read_to_string(repo.path().join("a.txt")).unwrap(),
+        "wip\n"
+    );
 }
 
 #[tokio::test]
 async fn hostile_branch_names_rejected() {
     let repo = repo_with_commit().await;
-    for bad in ["-f", "--upload-pack=/bin/sh", "", "bad..name", "end.lock", "spa ce"] {
-        assert!(validate_branch_name(bad).await.is_err(), "{bad:?} must be rejected");
+    for bad in [
+        "-f",
+        "--upload-pack=/bin/sh",
+        "",
+        "bad..name",
+        "end.lock",
+        "spa ce",
+    ] {
+        assert!(
+            validate_branch_name(bad).await.is_err(),
+            "{bad:?} must be rejected"
+        );
         assert!(checkout(repo.path(), bad).await.is_err());
         assert!(create_branch(repo.path(), bad).await.is_err());
     }
-    assert_eq!(status(repo.path()).await.unwrap().branch.as_deref(), Some("main"));
+    assert_eq!(
+        status(repo.path()).await.unwrap().branch.as_deref(),
+        Some("main")
+    );
 }
 
 #[tokio::test]
@@ -123,7 +150,11 @@ async fn fetch_updates_ahead_behind_against_local_remote() {
 #[tokio::test]
 async fn fetch_failure_surfaces_error() {
     let repo = repo_with_commit().await;
-    git(repo.path(), &["remote", "add", "origin", "/nonexistent/omnibus-remote"]).await;
+    git(
+        repo.path(),
+        &["remote", "add", "origin", "/nonexistent/omnibus-remote"],
+    )
+    .await;
     let err = fetch(repo.path()).await.unwrap_err();
     assert!(!err.is_empty());
 }

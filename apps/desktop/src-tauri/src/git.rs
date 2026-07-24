@@ -80,20 +80,36 @@ pub async fn status(repo: &Path) -> Result<GitStatus, String> {
             changed_count += 1;
         }
     }
-    Ok(GitStatus { branch, dirty: changed_count > 0, changed_count, ahead, behind })
+    Ok(GitStatus {
+        branch,
+        dirty: changed_count > 0,
+        changed_count,
+        ahead,
+        behind,
+    })
 }
 
 /// Local branch names.
 pub async fn branches(repo: &Path) -> Result<Vec<String>, String> {
-    let raw = run_git(repo, &["for-each-ref", "--format=%(refname:short)", "refs/heads"]).await?;
-    Ok(raw.lines().filter(|l| !l.is_empty()).map(str::to_string).collect())
+    let raw = run_git(
+        repo,
+        &["for-each-ref", "--format=%(refname:short)", "refs/heads"],
+    )
+    .await?;
+    Ok(raw
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(str::to_string)
+        .collect())
 }
 
 /// `git fetch --all`: updates remote-tracking refs only; never merges.
 /// On success, returns a fixed confirmation string (`"fetched"`) — not a
 /// summary of what was fetched.
 pub async fn fetch(repo: &Path) -> Result<String, String> {
-    run_git(repo, &["fetch", "--all"]).await.map(|_| "fetched".to_string())
+    run_git(repo, &["fetch", "--all"])
+        .await
+        .map(|_| "fetched".to_string())
 }
 
 /// Switches to an existing local branch — refusing, never forcing.
@@ -123,7 +139,9 @@ pub async fn checkout(repo: &Path, branch: &str) -> Result<(), String> {
     }
     // --no-guess closes the show-ref→switch TOCTOU sliver where a deleted
     // local branch could DWIM-create from a remote.
-    run_git(repo, &["switch", "--no-guess", branch]).await.map(|_| ())
+    run_git(repo, &["switch", "--no-guess", branch])
+        .await
+        .map(|_| ())
 }
 
 /// Creates and switches to a new branch. Safe with a dirty tree: changes

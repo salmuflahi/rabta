@@ -4,7 +4,9 @@ use serde_json::{json, Value};
 
 async fn start_hub() -> (Hub, tempfile::TempDir) {
     let dir = tempfile::tempdir().unwrap();
-    let hub = Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap();
+    let hub = Hub::start(HubConfig::new(dir.path().to_path_buf()))
+        .await
+        .unwrap();
     (hub, dir)
 }
 
@@ -20,12 +22,16 @@ fn hello(name: &str, version: u8, secret: &str) -> String {
 async fn writes_discovery_file_and_registers_connector() {
     let (hub, dir) = start_hub().await;
     let disco: Value =
-        serde_json::from_str(&std::fs::read_to_string(dir.path().join("hub.json")).unwrap()).unwrap();
+        serde_json::from_str(&std::fs::read_to_string(dir.path().join("hub.json")).unwrap())
+            .unwrap();
     assert_eq!(disco, json!({ "port": hub.port(), "secret": hub.secret() }));
 
-    let (mut ws, _) =
-        tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
-    ws.send(hello("test-conn", 1, hub.secret()).into()).await.unwrap();
+    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port()))
+        .await
+        .unwrap();
+    ws.send(hello("test-conn", 1, hub.secret()).into())
+        .await
+        .unwrap();
     let reply: Value =
         serde_json::from_str(ws.next().await.unwrap().unwrap().to_text().unwrap()).unwrap();
     assert_eq!(reply["kind"], "welcome");
@@ -42,9 +48,12 @@ async fn rejects_protocol_version_mismatch() {
     // Version check happens before the auth gate (see hub.rs), so a valid
     // secret is supplied here to prove that's the reason this is rejected.
     let (hub, _dir) = start_hub().await;
-    let (mut ws, _) =
-        tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
-    ws.send(hello("old-conn", 99, hub.secret()).into()).await.unwrap();
+    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port()))
+        .await
+        .unwrap();
+    ws.send(hello("old-conn", 99, hub.secret()).into())
+        .await
+        .unwrap();
     let reply: Value =
         serde_json::from_str(ws.next().await.unwrap().unwrap().to_text().unwrap()).unwrap();
     assert_eq!(reply["kind"], "error");
@@ -56,7 +65,10 @@ async fn rejects_protocol_version_mismatch() {
 async fn rejects_browser_origin_header() {
     use tokio_tungstenite::tungstenite::{client::IntoClientRequest, http::HeaderValue};
     let (hub, _dir) = start_hub().await;
-    let mut req = format!("ws://127.0.0.1:{}", hub.port()).into_client_request().unwrap();
-    req.headers_mut().insert("Origin", HeaderValue::from_static("https://evil.example"));
+    let mut req = format!("ws://127.0.0.1:{}", hub.port())
+        .into_client_request()
+        .unwrap();
+    req.headers_mut()
+        .insert("Origin", HeaderValue::from_static("https://evil.example"));
     assert!(tokio_tungstenite::connect_async(req).await.is_err());
 }

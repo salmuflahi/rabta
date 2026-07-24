@@ -103,7 +103,10 @@ fn create_rejects_bad_inputs_without_storing() {
     assert!(validate_and_create(&db, "p", good, None, "  ").is_err());
     assert!(validate_and_create(&db, "p", good, Some("ftp://x"), "main").is_err());
     assert!(validate_and_create(&db, "p", good, Some("not a url"), "main").is_err());
-    assert!(db.list_projects().unwrap().is_empty(), "nothing may be stored on rejection");
+    assert!(
+        db.list_projects().unwrap().is_empty(),
+        "nothing may be stored on rejection"
+    );
 }
 
 #[test]
@@ -111,8 +114,14 @@ fn create_trims_repo_path_and_dev_url() {
     let db = db();
     let dir = git_fixture("ref: refs/heads/main\n");
     let padded = format!("  {}  ", dir.path().to_str().unwrap());
-    let p = validate_and_create(&db, "trimmed", &padded, Some("  http://localhost:3000  "), "main")
-        .unwrap();
+    let p = validate_and_create(
+        &db,
+        "trimmed",
+        &padded,
+        Some("  http://localhost:3000  "),
+        "main",
+    )
+    .unwrap();
     assert_eq!(p.repo_path, dir.path().to_str().unwrap());
     assert_eq!(p.dev_url.as_deref(), Some("http://localhost:3000"));
 }
@@ -169,10 +178,7 @@ fn project_services_validate_archive_icon_and_exact_order() {
 
     let archived = db.archive_project(&first.id).unwrap();
     assert_eq!(list_archived_projects(&db).unwrap(), vec![archived]);
-    assert_eq!(
-        unarchive_project(&db, &first.id).unwrap().archived_at,
-        None
-    );
+    assert_eq!(unarchive_project(&db, &first.id).unwrap().archived_at, None);
 }
 
 #[test]

@@ -3,11 +3,13 @@ use rabta_hub::{Hub, HubConfig, HubEvent};
 use serde_json::json;
 use std::time::Duration;
 
-async fn register(hub: &Hub, name: &str) -> tokio_tungstenite::WebSocketStream<
-    tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
-> {
-    let (mut ws, _) =
-        tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
+async fn register(
+    hub: &Hub,
+    name: &str,
+) -> tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>> {
+    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port()))
+        .await
+        .unwrap();
     ws.send(
         json!({"v":1,"id":"h","kind":"hello","payload":{"name":name,"kind":"fake","protocolVersion":1,"capabilities":[],"secret":hub.secret()}})
             .to_string()
@@ -20,16 +22,24 @@ async fn register(hub: &Hub, name: &str) -> tokio_tungstenite::WebSocketStream<
 }
 
 async fn next_event(rx: &mut tokio::sync::broadcast::Receiver<HubEvent>) -> HubEvent {
-    tokio::time::timeout(Duration::from_secs(2), rx.recv()).await.unwrap().unwrap()
+    tokio::time::timeout(Duration::from_secs(2), rx.recv())
+        .await
+        .unwrap()
+        .unwrap()
 }
 
 #[tokio::test]
 async fn fans_out_connector_events_to_subscribers() {
     let dir = tempfile::tempdir().unwrap();
-    let hub = Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap();
+    let hub = Hub::start(HubConfig::new(dir.path().to_path_buf()))
+        .await
+        .unwrap();
     let mut rx = hub.subscribe();
     let mut ws = register(&hub, "emitter").await;
-    assert!(matches!(next_event(&mut rx).await, HubEvent::ConnectorConnected { .. }));
+    assert!(matches!(
+        next_event(&mut rx).await,
+        HubEvent::ConnectorConnected { .. }
+    ));
 
     ws.send(
         json!({"v":1,"id":"e","kind":"event","payload":{"name":"editor.fileOpened","data":{"path":"a.ts"}}})
@@ -55,11 +65,19 @@ async fn detects_dead_connector_via_missed_pongs() {
     let hub = Hub::start(cfg).await.unwrap();
     let mut rx = hub.subscribe();
     let _ws = register(&hub, "silent").await; // never answers pings
-    assert!(matches!(next_event(&mut rx).await, HubEvent::ConnectorConnected { .. }));
+    assert!(matches!(
+        next_event(&mut rx).await,
+        HubEvent::ConnectorConnected { .. }
+    ));
     let deadline = std::time::Instant::now();
     loop {
-        if let HubEvent::ConnectorDisconnected { .. } = next_event(&mut rx).await { break }
-        assert!(deadline.elapsed() < Duration::from_secs(2), "no disconnect within 2s");
+        if let HubEvent::ConnectorDisconnected { .. } = next_event(&mut rx).await {
+            break;
+        }
+        assert!(
+            deadline.elapsed() < Duration::from_secs(2),
+            "no disconnect within 2s"
+        );
     }
     assert!(hub.connectors().await.is_empty());
 }
@@ -67,10 +85,15 @@ async fn detects_dead_connector_via_missed_pongs() {
 #[tokio::test]
 async fn rejects_envelope_with_wrong_protocol_version() {
     let dir = tempfile::tempdir().unwrap();
-    let hub = Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap();
+    let hub = Hub::start(HubConfig::new(dir.path().to_path_buf()))
+        .await
+        .unwrap();
     let mut rx = hub.subscribe();
     let mut ws = register(&hub, "wrong-version").await;
-    assert!(matches!(next_event(&mut rx).await, HubEvent::ConnectorConnected { .. }));
+    assert!(matches!(
+        next_event(&mut rx).await,
+        HubEvent::ConnectorConnected { .. }
+    ));
 
     // Otherwise-valid event envelope, but `v` doesn't match PROTOCOL_VERSION.
     ws.send(
@@ -101,7 +124,9 @@ async fn rejects_envelope_with_wrong_protocol_version() {
 #[tokio::test]
 async fn closes_connection_after_three_bad_frames() {
     let dir = tempfile::tempdir().unwrap();
-    let hub = Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap();
+    let hub = Hub::start(HubConfig::new(dir.path().to_path_buf()))
+        .await
+        .unwrap();
     let mut ws = register(&hub, "garbler").await;
     for _ in 0..3 {
         ws.send("not json".to_string().into()).await.unwrap();
@@ -111,9 +136,15 @@ async fn closes_connection_after_three_bad_frames() {
     let mut closed = false;
     for _ in 0..10 {
         match tokio::time::timeout(Duration::from_secs(2), ws.next()).await {
-            Ok(None) | Ok(Some(Err(_))) | Err(_) => { closed = true; break; }
+            Ok(None) | Ok(Some(Err(_))) | Err(_) => {
+                closed = true;
+                break;
+            }
             Ok(Some(Ok(frame))) => {
-                if frame.is_close() { closed = true; break; }
+                if frame.is_close() {
+                    closed = true;
+                    break;
+                }
             }
         }
     }

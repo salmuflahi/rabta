@@ -46,7 +46,10 @@ pub enum DbError {
     #[error("{entity} not found: {id}")]
     NotFound { entity: &'static str, id: String },
     #[error("{field}: {message}")]
-    Validation { field: &'static str, message: String },
+    Validation {
+        field: &'static str,
+        message: String,
+    },
 }
 
 pub type Result<T> = std::result::Result<T, DbError>;
@@ -86,18 +89,27 @@ impl Db {
     fn init(conn: Connection, cfg: DbConfig) -> Result<Db> {
         conn.pragma_update(None, "foreign_keys", "ON")?;
         migrate(&conn)?;
-        Ok(Db { conn: Arc::new(Mutex::new(conn)), cfg })
+        Ok(Db {
+            conn: Arc::new(Mutex::new(conn)),
+            cfg,
+        })
     }
 
     /// Number of applied migrations (SQLite `user_version`).
     pub fn schema_version(&self) -> Result<i64> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         Ok(conn.query_row("PRAGMA user_version", [], |r| r.get(0))?)
     }
 
     /// Whether a table exists — used by tests and sanity checks.
     pub fn table_exists(&self, name: &str) -> Result<bool> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1",
             [name],
@@ -148,8 +160,13 @@ mod tests {
         let result = apply_migrations(&conn, migrations);
         assert!(result.is_err(), "expected broken migration to error");
 
-        let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
-        assert_eq!(version, 1, "user_version must not advance past the last good migration");
+        let version: i64 = conn
+            .query_row("PRAGMA user_version", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(
+            version, 1,
+            "user_version must not advance past the last good migration"
+        );
 
         let also_good_exists: i64 = conn
             .query_row(
@@ -158,7 +175,10 @@ mod tests {
                 |r| r.get(0),
             )
             .unwrap();
-        assert_eq!(also_good_exists, 0, "also_good must not exist after a rolled-back migration");
+        assert_eq!(
+            also_good_exists, 0,
+            "also_good must not exist after a rolled-back migration"
+        );
     }
 
     #[test]

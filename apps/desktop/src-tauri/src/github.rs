@@ -150,13 +150,16 @@ pub fn remote_display_host(url: &str) -> Option<String> {
     {
         let after_at = rest.rsplit('@').next().unwrap_or(rest);
         after_at.split(['/', ':']).next()?
-    } else if let Some(idx) = url.find('@') {
+    } else {
+        let idx = url.find('@')?;
         // scp-like: git@host:owner/repo
         url[idx + 1..].split(':').next()?
-    } else {
-        return None;
     };
-    if host.is_empty() { None } else { Some(host.to_string()) }
+    if host.is_empty() {
+        None
+    } else {
+        Some(host.to_string())
+    }
 }
 
 /// Chooses the "no usable GitHub remote" message: a genuinely missing/local
@@ -176,7 +179,9 @@ pub fn no_github_remote_message(remote: &str) -> String {
 /// remote, rate limited).
 pub async fn issues(repo_path: &Path) -> Result<Vec<Issue>, String> {
     if !gh_available().await {
-        return Err("install the GitHub CLI (gh) and run `gh auth login` to use GitHub features".into());
+        return Err(
+            "install the GitHub CLI (gh) and run `gh auth login` to use GitHub features".into(),
+        );
     }
     let remote = run_git_or_gh("git", &["remote", "get-url", "origin"], Some(repo_path))
         .await
@@ -186,7 +191,18 @@ pub async fn issues(repo_path: &Path) -> Result<Vec<Issue>, String> {
     let slug = format!("{owner}/{repo}");
     let json = run_git_or_gh(
         "gh",
-        &["issue", "list", "--repo", &slug, "--state", "open", "--json", "number,title,url,labels", "--limit", "50"],
+        &[
+            "issue",
+            "list",
+            "--repo",
+            &slug,
+            "--state",
+            "open",
+            "--json",
+            "number,title,url,labels",
+            "--limit",
+            "50",
+        ],
         None,
     )
     .await?;
@@ -220,5 +236,9 @@ pub async fn start_issue_task(
         Ok(()) => format!("created and switched to {branch}"),
         Err(e) => format!("branch {branch} not created: {e}"),
     };
-    Ok(StartedTask { task, branch, branch_note })
+    Ok(StartedTask {
+        task,
+        branch,
+        branch_note,
+    })
 }

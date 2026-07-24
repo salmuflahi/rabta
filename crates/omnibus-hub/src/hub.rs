@@ -11,7 +11,9 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{broadcast, mpsc, oneshot, Mutex};
-use tokio_tungstenite::tungstenite::handshake::server::{ErrorResponse, Request, Response as HsResponse};
+use tokio_tungstenite::tungstenite::handshake::server::{
+    ErrorResponse, Request, Response as HsResponse,
+};
 use tokio_tungstenite::tungstenite::Message as WsMessage;
 use tokio_tungstenite::WebSocketStream;
 use uuid::Uuid;
@@ -62,14 +64,40 @@ pub struct ConnectorInfo {
 /// Everything observable about hub activity, broadcast to subscribers
 /// (the UI activity log, the headless example, tests).
 #[derive(Clone, Debug, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum HubEvent {
-    ConnectorConnected { connector: ConnectorInfo },
-    ConnectorDisconnected { connector_id: String },
-    CommandSent { connector_id: String, request_id: String, name: String, args: Value },
-    ResponseReceived { connector_id: String, request_id: String, ok: bool, result: Value },
-    EventReceived { connector_id: String, name: String, data: Value },
-    PairingRequested { pairing_id: String, name: String, kind: String },
+    ConnectorConnected {
+        connector: ConnectorInfo,
+    },
+    ConnectorDisconnected {
+        connector_id: String,
+    },
+    CommandSent {
+        connector_id: String,
+        request_id: String,
+        name: String,
+        args: Value,
+    },
+    ResponseReceived {
+        connector_id: String,
+        request_id: String,
+        ok: bool,
+        result: Value,
+    },
+    EventReceived {
+        connector_id: String,
+        name: String,
+        data: Value,
+    },
+    PairingRequested {
+        pairing_id: String,
+        name: String,
+        kind: String,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -164,7 +192,14 @@ impl Hub {
             cfg.clone(),
             secret.clone(),
         ));
-        Ok(Hub { port, secret, cfg, state, events, accept_task })
+        Ok(Hub {
+            port,
+            secret,
+            cfg,
+            state,
+            events,
+            accept_task,
+        })
     }
 
     /// The OS-assigned TCP port the hub is listening on.
@@ -190,7 +225,13 @@ impl Hub {
 
     /// Snapshot of currently connected connectors.
     pub async fn connectors(&self) -> Vec<ConnectorInfo> {
-        self.state.lock().await.connectors.values().map(|c| c.info.clone()).collect()
+        self.state
+            .lock()
+            .await
+            .connectors
+            .values()
+            .map(|c| c.info.clone())
+            .collect()
     }
 
     /// Snapshot of pairing requests currently parked awaiting resolution:
@@ -245,7 +286,8 @@ impl Hub {
             if conn.tx.send(env).is_err() {
                 return Err(CommandError::Disconnected);
             }
-            st.pending.insert(request_id.clone(), (target.to_string(), done_tx));
+            st.pending
+                .insert(request_id.clone(), (target.to_string(), done_tx));
         }
         let _ = self.events.send(HubEvent::CommandSent {
             connector_id: target.to_string(),
@@ -309,6 +351,7 @@ fn origin_allowed(req: &Request) -> bool {
     }
 }
 
+#[allow(clippy::result_large_err)] // Tungstenite fixes the callback's error response type.
 fn check_origin(req: &Request, resp: HsResponse) -> Result<HsResponse, ErrorResponse> {
     if origin_allowed(req) {
         Ok(resp)
@@ -333,11 +376,15 @@ type Sink = SplitSink<WebSocketStream<TcpStream>, WsMessage>;
 
 async fn send_env(sink: &mut Sink, env: &Envelope) -> Result<(), ()> {
     let txt = serde_json::to_string(env).map_err(|_| ())?;
-    sink.send(WsMessage::Text(txt.into())).await.map_err(|_| ())
+    sink.send(WsMessage::Text(txt)).await.map_err(|_| ())
 }
 
 fn envelope(msg: Message) -> Envelope {
-    Envelope { v: PROTOCOL_VERSION, id: Uuid::new_v4().to_string(), msg }
+    Envelope {
+        v: PROTOCOL_VERSION,
+        id: Uuid::new_v4().to_string(),
+        msg,
+    }
 }
 
 /// Constant-time equality (length-difference short-circuit is fine — our
@@ -361,7 +408,9 @@ async fn handle_connection(
     cfg: HubConfig,
     secret: Arc<String>,
 ) {
-    let Ok(ws) = tokio_tungstenite::accept_hdr_async(stream, check_origin).await else { return };
+    let Ok(ws) = tokio_tungstenite::accept_hdr_async(stream, check_origin).await else {
+        return;
+    };
     let (mut sink, mut source) = ws.split();
 
     // Handshake: first frame must be a valid hello or pair within 5 s.
@@ -385,8 +434,14 @@ async fn handle_connection(
                     .await;
                     return;
                 }
-                Ok(Envelope { msg: Message::Hello(h), .. }) => h,
-                Ok(Envelope { msg: Message::Pair(p), .. }) => {
+                Ok(Envelope {
+                    msg: Message::Hello(h),
+                    ..
+                }) => h,
+                Ok(Envelope {
+                    msg: Message::Pair(p),
+                    ..
+                }) => {
                     handle_pairing(p, &mut sink, &state, &events, &cfg).await;
                     return;
                 }
@@ -422,7 +477,10 @@ async fn handle_connection(
     }
 
     let token_key = format!("{}/{}", hello.name, kind_tag(hello.kind));
-    let authed = hello.secret.as_deref().is_some_and(|s| ct_eq(s, secret.as_str()))
+    let authed = hello
+        .secret
+        .as_deref()
+        .is_some_and(|s| ct_eq(s, secret.as_str()))
         || hello.token.as_deref().is_some_and(|t| {
             cfg.tokens
                 .read()
@@ -450,11 +508,22 @@ async fn handle_connection(
         capabilities: hello.capabilities,
     };
     let (out_tx, mut out_rx) = mpsc::unbounded_channel::<Envelope>();
-    state.lock().await.connectors.insert(id.clone(), Connected { info: info.clone(), tx: out_tx });
+    state.lock().await.connectors.insert(
+        id.clone(),
+        Connected {
+            info: info.clone(),
+            tx: out_tx,
+        },
+    );
     let _ = events.send(HubEvent::ConnectorConnected { connector: info });
-    if send_env(&mut sink, &envelope(Message::Welcome(Welcome { connector_id: id.clone() })))
-        .await
-        .is_err()
+    if send_env(
+        &mut sink,
+        &envelope(Message::Welcome(Welcome {
+            connector_id: id.clone(),
+        })),
+    )
+    .await
+    .is_err()
     {
         cleanup(&state, &events, &id).await;
         return;
@@ -576,7 +645,10 @@ async fn handle_pairing(
     let (tx, rx) = oneshot::channel::<Option<String>>();
     {
         let mut st = state.lock().await;
-        let already_pending = st.pairings.values().any(|(n, k, _)| n == &name && k == &kind);
+        let already_pending = st
+            .pairings
+            .values()
+            .any(|(n, k, _)| n == &name && k == &kind);
         if already_pending {
             drop(st);
             let _ = send_env(
@@ -589,7 +661,8 @@ async fn handle_pairing(
             .await;
             return;
         }
-        st.pairings.insert(pairing_id.clone(), (name.clone(), kind.clone(), tx));
+        st.pairings
+            .insert(pairing_id.clone(), (name.clone(), kind.clone(), tx));
     }
     let _ = events.send(HubEvent::PairingRequested {
         pairing_id: pairing_id.clone(),
@@ -644,5 +717,7 @@ async fn cleanup(state: &Shared, events: &broadcast::Sender<HubEvent>, id: &str)
         }
     }
     drop(st);
-    let _ = events.send(HubEvent::ConnectorDisconnected { connector_id: id.to_string() });
+    let _ = events.send(HubEvent::ConnectorDisconnected {
+        connector_id: id.to_string(),
+    });
 }

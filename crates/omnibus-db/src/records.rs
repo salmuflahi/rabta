@@ -1,8 +1,8 @@
 //! Projects, tasks, and task resources — the data model phases 6+ build on.
 use std::collections::HashSet;
 
-use rusqlite::{params, Connection};
 use rusqlite::OptionalExtension;
+use rusqlite::{params, Connection};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -63,7 +63,11 @@ impl TaskStatus {
     }
     // Parse status from string; schema's CHECK (status IN ('open','done')) makes Open fallback unreachable.
     fn parse(s: &str) -> TaskStatus {
-        if s == "done" { TaskStatus::Done } else { TaskStatus::Open }
+        if s == "done" {
+            TaskStatus::Done
+        } else {
+            TaskStatus::Open
+        }
     }
 }
 
@@ -169,7 +173,10 @@ impl Db {
     /// Creates a project; fails on duplicate name (UNIQUE constraint).
     pub fn create_project(&self, new: NewProject) -> Result<Project> {
         let ts = now();
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let sort_order = conn.query_row(
             "SELECT COALESCE(MAX(sort_order), -1) + 1
              FROM projects",
@@ -217,7 +224,10 @@ impl Db {
 
     /// All active projects in their persisted order.
     pub fn list_projects(&self) -> Result<Vec<Project>> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT id, name, repo_path, dev_url, default_branch, icon, archived_at,
                     last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at
@@ -231,7 +241,10 @@ impl Db {
 
     /// One project by id.
     pub fn get_project(&self, id: &str) -> Result<Option<Project>> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         project_by_id(&conn, id)
     }
 
@@ -244,7 +257,10 @@ impl Db {
                 message: "must not be empty".into(),
             });
         }
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let changed = conn.execute(
             "UPDATE projects SET name = ?2, updated_at = ?3 WHERE id = ?1",
             params![id, name, now()],
@@ -268,7 +284,10 @@ impl Db {
                 });
             }
         }
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let changed = conn.execute(
             "UPDATE projects SET icon = ?2, updated_at = ?3 WHERE id = ?1",
             params![id, icon, now()],
@@ -284,7 +303,10 @@ impl Db {
 
     /// Reversibly archives a project without deleting its tasks or resources.
     pub fn archive_project(&self, id: &str) -> Result<Project> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         require_project(&conn, id)?;
         let timestamp = now();
         let changed = conn.execute(
@@ -301,7 +323,10 @@ impl Db {
 
     /// Restores an archived project at the end of the active project order.
     pub fn unarchive_project(&self, id: &str) -> Result<Project> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let project = require_project(&conn, id)?;
         if project.archived_at.is_none() {
             return Ok(project);
@@ -330,7 +355,10 @@ impl Db {
 
     /// Archived projects, newest archive first.
     pub fn list_archived_projects(&self) -> Result<Vec<Project>> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT id, name, repo_path, dev_url, default_branch, icon, archived_at,
                     last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at
@@ -344,7 +372,10 @@ impl Db {
 
     /// Replaces active project order atomically with a dense exact ordering.
     pub fn reorder_projects(&self, ordered_ids: &[String]) -> Result<Vec<Project>> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let tx = conn.unchecked_transaction()?;
         let active_ids = {
             let mut stmt = tx.prepare(
@@ -382,7 +413,10 @@ impl Db {
 
     /// Deletes a project; tasks and resources cascade.
     pub fn delete_project(&self, id: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute("DELETE FROM projects WHERE id = ?1", params![id])?;
         Ok(())
     }
@@ -398,18 +432,31 @@ impl Db {
             created_at: ts.clone(),
             updated_at: ts,
         };
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "INSERT INTO tasks (id, project_id, title, status, created_at, updated_at) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![t.id, t.project_id, t.title, t.status.as_str(), t.created_at, t.updated_at],
+            params![
+                t.id,
+                t.project_id,
+                t.title,
+                t.status.as_str(),
+                t.created_at,
+                t.updated_at
+            ],
         )?;
         Ok(t)
     }
 
     /// Tasks for one project, newest first.
     pub fn list_tasks(&self, project_id: &str) -> Result<Vec<Task>> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT id, project_id, title, status, created_at, updated_at \
              FROM tasks WHERE project_id = ?1 ORDER BY created_at DESC",
@@ -420,13 +467,19 @@ impl Db {
 
     /// One task by id.
     pub fn get_task(&self, id: &str) -> Result<Option<Task>> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         task_by_id(&conn, id)
     }
 
     /// Starts a fresh session for the active project that owns `task_id`.
     pub fn begin_project_session_for_task(&self, task_id: &str, opened_at: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let changed = conn.execute(
             "UPDATE projects
              SET last_opened_at = ?2,
@@ -450,7 +503,10 @@ impl Db {
 
     /// Adds focused, non-idle whole seconds to the active project owning `task_id`.
     pub fn add_active_seconds_for_task(&self, task_id: &str, seconds: u64) -> Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         if seconds == 0 {
             let active: bool = conn.query_row(
                 "SELECT EXISTS(
@@ -503,7 +559,10 @@ impl Db {
                 message: "must not be empty".into(),
             });
         }
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let changed = conn.execute(
             "UPDATE tasks SET title = ?2, updated_at = ?3 WHERE id = ?1",
             params![id, title, now()],
@@ -519,7 +578,10 @@ impl Db {
 
     /// Creates an open copy of a task and all of its captured resources.
     pub fn duplicate_task(&self, id: &str) -> Result<Task> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let tx = conn.unchecked_transaction()?;
         let source = require_task(&tx, id)?;
 
@@ -597,7 +659,10 @@ impl Db {
 
     /// Updates a task's status and `updated_at`.
     pub fn set_task_status(&self, id: &str, status: TaskStatus) -> Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "UPDATE tasks SET status = ?2, updated_at = ?3 WHERE id = ?1",
             params![id, status.as_str(), now()],
@@ -607,7 +672,10 @@ impl Db {
 
     /// Deletes a task; its resources cascade.
     pub fn delete_task(&self, id: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let tx = conn.unchecked_transaction()?;
         tx.execute(
             "UPDATE projects SET last_task_id = NULL WHERE last_task_id = ?1",
@@ -628,7 +696,10 @@ impl Db {
             payload: new.payload,
             created_at: now(),
         };
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "INSERT INTO task_resources (id, task_id, connector_kind, resource_type, payload, created_at) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
@@ -639,7 +710,10 @@ impl Db {
 
     /// Resources for one task, in attachment order.
     pub fn task_resources(&self, task_id: &str) -> Result<Vec<TaskResource>> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT id, task_id, connector_kind, resource_type, payload, created_at \
              FROM task_resources WHERE task_id = ?1 ORDER BY created_at",
@@ -662,7 +736,10 @@ impl Db {
 
     /// Detaches one resource.
     pub fn remove_task_resource(&self, id: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute("DELETE FROM task_resources WHERE id = ?1", params![id])?;
         Ok(())
     }
@@ -685,7 +762,10 @@ impl Db {
             payload: payload.clone(),
             created_at: now(),
         };
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let tx = conn.unchecked_transaction()?;
         tx.execute(
             "DELETE FROM task_resources WHERE task_id = ?1 AND connector_kind = ?2",
