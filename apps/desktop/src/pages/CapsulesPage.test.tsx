@@ -258,6 +258,34 @@ describe("CapsulesPage", () => {
     }
   });
 
+  it("clicking a task's capsule summary opens a Popover peek with the humanized per-tool breakdown and saved-ago text", async () => {
+    mockCapsulesInvoke({ activateTask: async () => ({}) });
+    renderWithProviders(<CapsulesPage />);
+
+    await screen.findByText(FAKE_TASK.title);
+    // The capsule summary row is the preview's trigger — FAKE_RESOURCE is a
+    // git resource, humanized to "on main" by CapsuleSummary.
+    fireEvent.click(screen.getByText("on main"));
+
+    expect(await screen.findByText("Saved state")).toBeInTheDocument();
+    // Friendly tool name (from RESTORE_TOOL_NAME) + humanizeCapsule's summary.
+    expect(screen.getByText(/Git — on main/)).toBeInTheDocument();
+    // Muted "saved {savedAgo}" line — assert the stable "saved" prefix
+    // rather than the exact relative time (time-based flakiness).
+    expect(screen.getByText(/^saved /)).toBeInTheDocument();
+  });
+
+  it("a task with no saved capsule shows 'No saved state yet.' in the preview", async () => {
+    mockCapsulesInvoke({ resources: [], activateTask: async () => ({}) });
+    renderWithProviders(<CapsulesPage />);
+
+    await screen.findByText(FAKE_TASK.title);
+    fireEvent.click(screen.getByText("No capsule yet"));
+
+    expect(await screen.findByText("Saved state")).toBeInTheDocument();
+    expect(screen.getByText("No saved state yet.")).toBeInTheDocument();
+  });
+
   it("newTaskRequest focuses the first project's new-task input, then clears itself; a remount after consumption does not refocus", async () => {
     // Simulates App.tsx's CurrentPage switch unmounting/remounting this page
     // when the sidebar navigates away and back — the historical bug: with a

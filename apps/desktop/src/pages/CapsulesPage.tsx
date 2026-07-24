@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/context-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { humanizeCapsule } from "@/lib/humanize";
 import { toastErr, toastOk } from "@/lib/toast";
@@ -49,6 +50,14 @@ const RESTORE_TOOL_NAME: Record<string, string> = {
   terminal: "Terminal",
 };
 
+/** connector kind -> friendly display name, via RESTORE_TOOL_NAME with a
+ * title-case fallback for unrecognized kinds. Shared by the Restore
+ * Experience tool list (restoreToolsFor) and the Resume preview popover
+ * (CapsuleSummary) so both read the same names off the same table. */
+function friendlyToolName(kind: string): string {
+  return RESTORE_TOOL_NAME[kind.toLowerCase()] ?? kind.charAt(0).toUpperCase() + kind.slice(1);
+}
+
 /** Builds the Restore Experience's tool list from a task's capsule
  * resources (never hard-coded). One row per distinct connector kind — a
  * task with no resources yields an empty array, which the sheet handles
@@ -60,11 +69,7 @@ function restoreToolsFor(resources: TaskResource[]): RestoreTool[] {
     const kind = r.connectorKind;
     if (seen.has(kind)) continue;
     seen.add(kind);
-    tools.push({
-      id: kind,
-      name: RESTORE_TOOL_NAME[kind.toLowerCase()] ?? kind.charAt(0).toUpperCase() + kind.slice(1),
-      kind,
-    });
+    tools.push({ id: kind, name: friendlyToolName(kind), kind });
   }
   return tools;
 }
@@ -101,25 +106,66 @@ function CapsulesSkeleton() {
 }
 
 /** A tidy inline group of humanized capsule resources for one task, or a
- * muted "No capsule yet" when the task has never had one saved. */
+ * muted "No capsule yet" when the task has never had one saved. Doubles as
+ * the Resume preview's trigger: clicking it opens a Popover peek of the
+ * capsule's per-tool breakdown, so a user can check what's saved before
+ * committing to Resume — no modal, no new invoke, Resume itself is
+ * untouched and stays one click. */
 function CapsuleSummary({ resources }: { resources: TaskResource[] }) {
-  if (resources.length === 0) {
-    return <p className="mt-0.5 text-xs text-muted-foreground">No capsule yet</p>;
-  }
+  const summary =
+    resources.length === 0 ? (
+      <span className="mt-0.5 block text-xs text-muted-foreground">No capsule yet</span>
+    ) : (
+      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+        {resources.map((r) => {
+          const h = humanizeCapsule(r);
+          const Icon = CAPSULE_ICONS[h.icon];
+          return (
+            <span key={r.id} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Icon className="size-3.5 shrink-0" />
+              <span>{h.summary}</span>
+              <span className="text-muted-foreground/70">· {h.savedAgo}</span>
+            </span>
+          );
+        })}
+      </div>
+    );
+
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-      {resources.map((r) => {
-        const h = humanizeCapsule(r);
-        const Icon = CAPSULE_ICONS[h.icon];
-        return (
-          <span key={r.id} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Icon className="size-3.5 shrink-0" />
-            <span>{h.summary}</span>
-            <span className="text-muted-foreground/70">· {h.savedAgo}</span>
-          </span>
-        );
-      })}
-    </div>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="block w-fit max-w-full rounded-sm text-left transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          {summary}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-72">
+        <p className="text-sm font-medium text-popover-foreground">Saved state</p>
+        {resources.length === 0 ? (
+          <p className="mt-2 text-xs text-muted-foreground">No saved state yet.</p>
+        ) : (
+          <div className="mt-3 flex flex-col gap-3">
+            {resources.map((r) => {
+              const h = humanizeCapsule(r);
+              const Icon = CAPSULE_ICONS[h.icon];
+              return (
+                <div key={r.id} className="flex items-start gap-2">
+                  <Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs text-popover-foreground">
+                      {friendlyToolName(r.connectorKind)} — {h.summary}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">saved {h.savedAgo}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 
