@@ -7,7 +7,10 @@ use std::sync::{Arc, Mutex};
 use rusqlite::Connection;
 
 /// Embedded migrations, applied in order via SQLite's `user_version`.
-const MIGRATIONS: &[&str] = &[include_str!("../migrations/001_init.sql")];
+const MIGRATIONS: &[&str] = &[
+    include_str!("../migrations/001_init.sql"),
+    include_str!("../migrations/002_track_b_core.sql"),
+];
 
 mod activity;
 pub use activity::{EventRow, KnownConnector};
@@ -160,5 +163,68 @@ mod tests {
         let migrations: &[&str] = &["CREATE TABLE good (id TEXT);"];
         let result = apply_migrations(&conn, migrations);
         assert!(matches!(result, Err(DbError::SchemaTooNew(99))));
+    }
+
+    #[test]
+    fn migration_two_preserves_version_one_records() {
+        let file = tempfile::NamedTempFile::new().unwrap();
+        let path = file.path().to_path_buf();
+        let conn = Connection::open(&path).unwrap();
+        conn.pragma_update(None, "foreign_keys", "ON").unwrap();
+        apply_migrations(&conn, &MIGRATIONS[..1]).unwrap();
+        conn.execute(
+            "INSERT INTO projects
+             (id, name, repo_path, dev_url, default_branch, created_at, updated_at)
+             VALUES ('p1', 'Rabta', '/tmp/rabta', NULL, 'main', '2026-01-01', '2026-01-01')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO tasks (id, project_id, title, status, created_at, updated_at)
+             VALUES ('t1', 'p1', 'Ship', 'open', '2026-01-01', '2026-01-01')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO task_resources
+             (id, task_id, connector_kind, resource_type, payload, created_at)
+             VALUES ('r1', 't1', 'git', 'branch', '{\"branch\":\"main\"}', '2026-01-01')",
+            [],
+        )
+        .unwrap();
+
+        drop(conn);
+        let db = Db::open(&path, DbConfig::default()).unwrap();
+        assert_eq!(db.schema_version().unwrap(), 2);
+
+        let conn = db
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let project: (Option<String>, Option<String>, i64, i64) = conn
+            .query_row(
+                "SELECT icon, archived_at, active_seconds, sort_order
+                 FROM projects WHERE id = 'p1'",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+            )
+            .unwrap();
+        assert_eq!(project, (None, None, 0, 0));
+        assert_eq!(
+            conn.query_row("SELECT COUNT(*) FROM tasks WHERE id = 't1'", [], |r| {
+                r.get::<_, i64>(0)
+            })
+            .unwrap(),
+            1
+        );
+        assert_eq!(
+            conn.query_row(
+                "SELECT COUNT(*) FROM task_resources WHERE id = 'r1'",
+                [],
+                |r| { r.get::<_, i64>(0) }
+            )
+            .unwrap(),
+            1
+        );
     }
 }

@@ -20,10 +20,34 @@ fn project_crud_round_trip() {
     let db = db();
     let p = a_project(&db, "omnibus");
     assert_eq!(p.created_at, p.updated_at);
+    assert_eq!(p.icon, None);
+    assert_eq!(p.archived_at, None);
+    assert_eq!(p.last_opened_at, None);
+    assert_eq!(p.last_task_id, None);
+    assert_eq!(p.active_seconds, 0);
+    assert_eq!(p.sort_order, 0);
     let listed = db.list_projects().unwrap();
     assert_eq!(listed, vec![p.clone()]);
     db.delete_project(&p.id).unwrap();
     assert!(db.list_projects().unwrap().is_empty());
+}
+
+#[test]
+fn newly_created_projects_append_to_the_persisted_order() {
+    let db = db();
+    let first = a_project(&db, "Zulu");
+    let second = a_project(&db, "Alpha");
+
+    assert_eq!(first.sort_order, 0);
+    assert_eq!(second.sort_order, 1);
+    assert_eq!(
+        db.list_projects()
+            .unwrap()
+            .into_iter()
+            .map(|p| p.id)
+            .collect::<Vec<_>>(),
+        vec![first.id, second.id]
+    );
 }
 
 #[test]

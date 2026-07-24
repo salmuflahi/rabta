@@ -23,6 +23,12 @@ pub struct Project {
     pub repo_path: String,
     pub dev_url: Option<String>,
     pub default_branch: String,
+    pub icon: Option<String>,
+    pub archived_at: Option<String>,
+    pub last_opened_at: Option<String>,
+    pub last_task_id: Option<String>,
+    pub active_seconds: u64,
+    pub sort_order: i64,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -86,46 +92,86 @@ pub struct TaskResource {
     pub created_at: String,
 }
 
+fn project_from_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
+    Ok(Project {
+        id: r.get(0)?,
+        name: r.get(1)?,
+        repo_path: r.get(2)?,
+        dev_url: r.get(3)?,
+        default_branch: r.get(4)?,
+        icon: r.get(5)?,
+        archived_at: r.get(6)?,
+        last_opened_at: r.get(7)?,
+        last_task_id: r.get(8)?,
+        active_seconds: r.get(9)?,
+        sort_order: r.get(10)?,
+        created_at: r.get(11)?,
+        updated_at: r.get(12)?,
+    })
+}
+
 impl Db {
     /// Creates a project; fails on duplicate name (UNIQUE constraint).
     pub fn create_project(&self, new: NewProject) -> Result<Project> {
         let ts = now();
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let sort_order = conn.query_row(
+            "SELECT COALESCE(MAX(sort_order), -1) + 1
+             FROM projects
+             WHERE archived_at IS NULL",
+            [],
+            |r| r.get(0),
+        )?;
         let p = Project {
             id: new_id(),
             name: new.name,
             repo_path: new.repo_path,
             dev_url: new.dev_url,
             default_branch: new.default_branch,
+            icon: None,
+            archived_at: None,
+            last_opened_at: None,
+            last_task_id: None,
+            active_seconds: 0,
+            sort_order,
             created_at: ts.clone(),
             updated_at: ts,
         };
-        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
-            "INSERT INTO projects (id, name, repo_path, dev_url, default_branch, created_at, updated_at) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            params![p.id, p.name, p.repo_path, p.dev_url, p.default_branch, p.created_at, p.updated_at],
+            "INSERT INTO projects (
+                id, name, repo_path, dev_url, default_branch, icon, archived_at,
+                last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+            params![
+                p.id,
+                p.name,
+                p.repo_path,
+                p.dev_url,
+                p.default_branch,
+                p.icon,
+                p.archived_at,
+                p.last_opened_at,
+                p.last_task_id,
+                p.active_seconds,
+                p.sort_order,
+                p.created_at,
+                p.updated_at
+            ],
         )?;
         Ok(p)
     }
 
-    /// All projects, alphabetical by name.
+    /// All active projects in their persisted order.
     pub fn list_projects(&self) -> Result<Vec<Project>> {
         let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
-            "SELECT id, name, repo_path, dev_url, default_branch, created_at, updated_at \
-             FROM projects ORDER BY name",
+            "SELECT id, name, repo_path, dev_url, default_branch, icon, archived_at,
+                    last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at
+             FROM projects
+             WHERE archived_at IS NULL
+             ORDER BY sort_order, lower(name), id",
         )?;
-        let rows = stmt.query_map([], |r| {
-            Ok(Project {
-                id: r.get(0)?,
-                name: r.get(1)?,
-                repo_path: r.get(2)?,
-                dev_url: r.get(3)?,
-                default_branch: r.get(4)?,
-                created_at: r.get(5)?,
-                updated_at: r.get(6)?,
-            })
-        })?;
+        let rows = stmt.query_map([], project_from_row)?;
         Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
     }
 
@@ -134,20 +180,11 @@ impl Db {
         let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         Ok(conn
             .query_row(
-                "SELECT id, name, repo_path, dev_url, default_branch, created_at, updated_at \
+                "SELECT id, name, repo_path, dev_url, default_branch, icon, archived_at,
+                        last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at
                  FROM projects WHERE id = ?1",
                 params![id],
-                |r| {
-                    Ok(Project {
-                        id: r.get(0)?,
-                        name: r.get(1)?,
-                        repo_path: r.get(2)?,
-                        dev_url: r.get(3)?,
-                        default_branch: r.get(4)?,
-                        created_at: r.get(5)?,
-                        updated_at: r.get(6)?,
-                    })
-                },
+                project_from_row,
             )
             .optional()?)
     }
