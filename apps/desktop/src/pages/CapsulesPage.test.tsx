@@ -105,6 +105,8 @@ describe("CapsulesPage", () => {
 
     expect(await screen.findByText("No capsules yet")).toBeInTheDocument();
     expect(screen.getByText("Register a Project")).toBeInTheDocument();
+    // Teaching copy: explains what a capsule does for the user (A5-T2).
+    expect(screen.getByText(/save and restore/i)).toBeInTheDocument();
   });
 
   it("renders a populated task row with a humanized capsule summary without throwing (catches missing-provider crashes)", async () => {

@@ -39,7 +39,7 @@ describe("OverviewPage", () => {
           kind: "vscode",
           capabilities: [],
           connected: true,
-          connectedSince: "3:04:12 PM",
+          connectedSince: "2026-01-01T15:04:12.000Z",
         },
       ],
       log: [{ seq: 1, at: "3:05:00 PM", type: "connectorConnected" }],

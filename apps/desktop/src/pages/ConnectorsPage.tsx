@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { relativeTime } from "@/lib/humanize";
 import { decidePairing } from "@/lib/pairing";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type ConnectorRow, type PendingPairing } from "@/store";
@@ -49,12 +50,16 @@ function ConnectorCard({ connector }: { connector: ConnectorRow }) {
             {connector.connected ? (
               <>
                 <CircleDot className="size-3.5 text-success" />
-                <span className="text-success">Connected</span>
+                <span className="text-success">
+                  Connected · since {relativeTime(connector.connectedSince)}
+                </span>
               </>
             ) : (
               <>
                 <Circle className="size-3.5 text-muted-foreground" />
-                <span className="text-muted-foreground">Last seen {connector.connectedSince}</span>
+                <span className="text-muted-foreground">
+                  Last seen {relativeTime(connector.connectedSince)}
+                </span>
               </>
             )}
           </div>

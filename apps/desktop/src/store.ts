@@ -200,7 +200,7 @@ export const useStore = create<Store>((set) => ({
         return {
           ...c,
           connected: true,
-          connectedSince: prev?.connectedSince ?? new Date().toLocaleTimeString(),
+          connectedSince: prev?.connectedSince ?? new Date().toISOString(),
         };
       });
       const gone = s.connectors
@@ -238,7 +238,7 @@ export const useStore = create<Store>((set) => ({
           kind: k.kind,
           capabilities: k.capabilities,
           connected: false,
-          connectedSince: new Date(k.lastSeen).toLocaleTimeString(),
+          connectedSince: new Date(k.lastSeen).toISOString(),
         }));
       return {
         // Drop any previously-seeded historical entries before re-seeding so

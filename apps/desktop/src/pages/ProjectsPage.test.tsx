@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/sonner";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
@@ -37,6 +37,15 @@ describe("ProjectsPage", () => {
   it("renders without throwing (catches missing-provider crashes)", async () => {
     renderWithProviders(<ProjectsPage />);
     expect(await screen.findByText("Projects")).toBeInTheDocument();
+  });
+
+  it("renders the educational empty-state copy and the Register Project CTA", async () => {
+    renderWithProviders(<ProjectsPage />);
+    expect(await screen.findByText("No projects yet")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Rabta will remember your entire workflow/)
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Register Project" }).length).toBeGreaterThan(0);
   });
 
   it("newProjectRequest opens the register dialog once and clears itself", async () => {
@@ -165,6 +174,75 @@ describe("ProjectsPage delete (deferred undo)", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("ProjectsPage unsaved-changes dot", () => {
+  beforeEach(() => {
+    useStore.setState({ newProjectRequest: false });
+  });
+
+  it("shows an amber dot with an accessible 'N uncommitted changes' label when git_status reports dirty", async () => {
+    mockInvoke.mockClear();
+    mockInvoke.mockImplementation(async (cmd: string, args?: unknown) => {
+      const a = args as { projectId?: string } | undefined;
+      switch (cmd) {
+        case "list_projects":
+          return [FAKE_PROJECT] as unknown;
+        case "git_status":
+          return (a?.projectId === FAKE_PROJECT.id
+            ? { branch: "main", dirty: true, changedCount: 3, ahead: 0, behind: 0 }
+            : { branch: "main", dirty: false, changedCount: 0, ahead: 0, behind: 0 }) as unknown;
+        default:
+          return [] as unknown;
+      }
+    });
+
+    renderWithProviders(<ProjectsPage />);
+
+    await screen.findByText("Test Project");
+    expect(await screen.findByLabelText("3 uncommitted changes")).toBeInTheDocument();
+  });
+
+  it("pluralizes singular correctly: '1 uncommitted change'", async () => {
+    mockInvoke.mockClear();
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      switch (cmd) {
+        case "list_projects":
+          return [FAKE_PROJECT] as unknown;
+        case "git_status":
+          return { branch: "main", dirty: true, changedCount: 1, ahead: 0, behind: 0 } as unknown;
+        default:
+          return [] as unknown;
+      }
+    });
+
+    renderWithProviders(<ProjectsPage />);
+
+    await screen.findByText("Test Project");
+    expect(await screen.findByLabelText("1 uncommitted change")).toBeInTheDocument();
+  });
+
+  it("renders no dot when the project is clean", async () => {
+    mockInvoke.mockClear();
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      switch (cmd) {
+        case "list_projects":
+          return [FAKE_PROJECT] as unknown;
+        case "git_status":
+          return { branch: "main", dirty: false, changedCount: 0, ahead: 0, behind: 0 } as unknown;
+        default:
+          return [] as unknown;
+      }
+    });
+
+    renderWithProviders(<ProjectsPage />);
+
+    await screen.findByText("Test Project");
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("git_status", { projectId: FAKE_PROJECT.id })
+    );
+    expect(screen.queryByLabelText(/uncommitted change/i)).not.toBeInTheDocument();
   });
 });
 

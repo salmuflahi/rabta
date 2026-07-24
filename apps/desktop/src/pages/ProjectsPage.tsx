@@ -22,12 +22,60 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toastErr, toastOk } from "@/lib/toast";
 import { useDeferredDelete } from "@/lib/useDeferredDelete";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type Project, type RepoInspection } from "@/store";
 import { GitHubSection } from "@/views/GitHubSection";
 import { GitLine } from "@/views/GitLine";
+
+// Shape copied from GitLine.tsx's `git_status` invoke — kept independent (not
+// imported) since GitLine owns its own fetch/refresh lifecycle and this is a
+// small, plan-sanctioned duplicate fetch just for the card-level dot.
+interface GitStatus {
+  branch: string | null;
+  dirty: boolean;
+  changedCount: number;
+  ahead: number;
+  behind: number;
+}
+
+/** Subtle amber dot next to a project card's name when its git working tree
+ * has uncommitted changes. Does its own small `git_status` fetch (separate
+ * from GitLine's) so the dot doesn't depend on GitLine's render order or
+ * internal state — re-fetches on mount and on `activationNonce` (a restore
+ * elsewhere may have git-first-restored this project's branch), same
+ * trigger GitLine uses for its own refresh. Renders nothing when clean or
+ * while still loading — never an empty placeholder gap. */
+function UnsavedChangesDot({ projectId }: { projectId: string }) {
+  const activationNonce = useStore((s) => s.activationNonce);
+  const [status, setStatus] = useState<GitStatus | null>(null);
+
+  useEffect(() => {
+    invoke<GitStatus>("git_status", { projectId })
+      .then(setStatus)
+      .catch((e) => console.error("git status refresh (dot) failed:", e));
+  }, [projectId, activationNonce]);
+
+  if (!status?.dirty) return null;
+
+  const n = status.changedCount;
+  const label = `${n} uncommitted ${n === 1 ? "change" : "changes"}`;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          role="status"
+          aria-label={label}
+          className="inline-block size-2 shrink-0 rounded-full bg-warning"
+        />
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 /** Skeleton placeholder for the pre-first-load window only — approximates
  * three project cards (name/path/branch lines + a delete button) so there's
@@ -176,7 +224,7 @@ export function ProjectsPage() {
         <EmptyState
           icon={<FolderGit2 />}
           title="No projects yet"
-          description="Register a repository to start tracking tasks and git state."
+          description="Register your first project and Rabta will remember your entire workflow — files, branches, tabs, and terminals."
           action={
             <Button
               onClick={() => {
@@ -196,9 +244,12 @@ export function ProjectsPage() {
                 <Card className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-foreground font-medium">
-                        {p.name} <span className="font-normal text-muted-foreground">({p.defaultBranch})</span>
-                      </p>
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <p className="truncate text-foreground font-medium">
+                          {p.name} <span className="font-normal text-muted-foreground">({p.defaultBranch})</span>
+                        </p>
+                        <UnsavedChangesDot projectId={p.id} />
+                      </div>
                       <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{p.repoPath}</p>
                       {p.devUrl && <p className="truncate text-xs text-muted-foreground">{p.devUrl}</p>}
                       <p className="truncate text-xs text-muted-foreground/70">Created {p.createdAt}</p>

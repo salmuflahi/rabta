@@ -14,7 +14,7 @@ describe("ActivityPage", () => {
           kind: "vscode",
           capabilities: [],
           connected: true,
-          connectedSince: "3:00:00 PM",
+          connectedSince: "2026-01-01T15:00:00.000Z",
         },
       ],
       log: [

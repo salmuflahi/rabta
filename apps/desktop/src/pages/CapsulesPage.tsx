@@ -387,7 +387,7 @@ export function CapsulesPage() {
         <EmptyState
           icon={<Layers />}
           title="No capsules yet"
-          description="Capsules save and restore your editor, browser, and git state for a task."
+          description="A capsule is a snapshot of a task's workspace — save and restore your editor, browser, and git state so switching tasks never costs you your place."
           action={<Button onClick={() => setView("projects")}>Register a Project</Button>}
         />
       ) : (
