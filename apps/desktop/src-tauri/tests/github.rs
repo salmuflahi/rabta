@@ -180,6 +180,22 @@ async fn start_issue_task_creates_task_and_branch() {
 }
 
 #[tokio::test]
+async fn start_issue_task_rejects_an_archived_project_before_creating_a_capsule() {
+    let repo = repo_with_commit().await;
+    let db = Db::open_in_memory(DbConfig::default()).unwrap();
+    let project_id = project_at(&db, repo.path()).await;
+    db.archive_project(&project_id).unwrap();
+
+    assert_eq!(
+        start_issue_task(&db, repo.path(), &project_id, 42, "Fix login bug!")
+            .await
+            .unwrap_err(),
+        "project is archived — restore it before adding a capsule"
+    );
+    assert!(db.list_tasks(&project_id).unwrap().is_empty());
+}
+
+#[tokio::test]
 async fn start_issue_task_carries_dirty_changes() {
     let repo = repo_with_commit().await;
     std::fs::write(repo.path().join("wip.txt"), "uncommitted\n").unwrap();

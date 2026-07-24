@@ -1,4 +1,6 @@
-use rabta_db::{Db, DbConfig, DbError, NewProject, NewTask, NewTaskResource, TaskStatus};
+use rabta_db::{
+    Db, DbConfig, DbError, NewProject, NewTask, NewTaskResource, TaskStatus, PROJECT_ICONS,
+};
 use serde_json::json;
 
 fn db() -> Db {
@@ -51,6 +53,17 @@ fn newly_created_projects_append_to_the_persisted_order() {
 }
 
 #[test]
+fn newly_created_projects_append_after_archived_projects_too() {
+    let db = db();
+    let archived = a_project(&db, "Archived");
+    db.archive_project(&archived.id).unwrap();
+
+    let active = a_project(&db, "Active");
+
+    assert_eq!(active.sort_order, archived.sort_order + 1);
+}
+
+#[test]
 fn project_names_are_unique() {
     let db = db();
     a_project(&db, "omnibus");
@@ -87,6 +100,16 @@ fn rename_archive_icon_and_unarchive_round_trip() {
     let renamed = db.rename_project(&p.id, "  Rabta Desktop  ").unwrap();
     assert_eq!(renamed.name, "Rabta Desktop");
 
+    for icon_key in PROJECT_ICONS {
+        assert_eq!(
+            db.set_project_icon(&p.id, Some(icon_key))
+                .unwrap()
+                .icon
+                .as_deref(),
+            Some(*icon_key)
+        );
+    }
+
     let icon = db.set_project_icon(&p.id, Some("rocket")).unwrap();
     assert_eq!(icon.icon.as_deref(), Some("rocket"));
     assert!(db.set_project_icon(&p.id, Some("emoji")).is_err());
@@ -94,12 +117,12 @@ fn rename_archive_icon_and_unarchive_round_trip() {
 
     let archived = db.archive_project(&p.id).unwrap();
     assert!(archived.archived_at.is_some());
-    assert_eq!(
-        db.archive_project(&p.id).unwrap().archived_at,
-        archived.archived_at
-    );
+    std::thread::sleep(std::time::Duration::from_millis(1));
+    let archived_again = db.archive_project(&p.id).unwrap();
+    assert_eq!(archived_again.archived_at, archived.archived_at);
+    assert!(archived_again.updated_at > archived.updated_at);
     assert_eq!(db.list_projects().unwrap(), vec![tail.clone()]);
-    assert_eq!(db.list_archived_projects().unwrap(), vec![archived]);
+    assert_eq!(db.list_archived_projects().unwrap(), vec![archived_again]);
     assert_eq!(db.list_tasks(&p.id).unwrap(), vec![task.clone()]);
     assert_eq!(db.task_resources(&task.id).unwrap(), vec![resource]);
 
@@ -231,7 +254,7 @@ fn task_crud_and_status() {
 }
 
 #[test]
-fn duplicate_task_copies_resources_with_fresh_ids_and_an_open_status() {
+fn duplicate_task_copies_all_resources_in_attachment_order_with_fresh_ids() {
     let db = db();
     let p = a_project(&db, "Rabta");
     let source = db
@@ -240,14 +263,29 @@ fn duplicate_task_copies_resources_with_fresh_ids_and_an_open_status() {
             title: "Ship".into(),
         })
         .unwrap();
-    let source_resource = db
-        .add_task_resource(NewTaskResource {
+    let source_resources = [
+        (
+            "git",
+            "branch",
+            json!({"branch": "main", "ahead": 2}),
+        ),
+        (
+            "chrome",
+            "tabs",
+            json!({"urls": ["https://example.com", "https://docs.rs"]}),
+        ),
+    ]
+    .into_iter()
+    .map(|(connector_kind, resource_type, payload)| {
+        db.add_task_resource(NewTaskResource {
             task_id: source.id.clone(),
-            connector_kind: "git".into(),
-            resource_type: "branch".into(),
-            payload: json!({"branch": "main"}),
+            connector_kind: connector_kind.into(),
+            resource_type: resource_type.into(),
+            payload,
         })
-        .unwrap();
+        .unwrap()
+    })
+    .collect::<Vec<_>>();
     db.set_task_status(&source.id, TaskStatus::Done).unwrap();
 
     let copy = db.duplicate_task(&source.id).unwrap();
@@ -255,13 +293,34 @@ fn duplicate_task_copies_resources_with_fresh_ids_and_an_open_status() {
     assert_eq!(copy.title, "Copy of Ship");
     assert_eq!(copy.status, TaskStatus::Open);
     assert_ne!(copy.id, source.id);
-    assert_eq!(copied_resources.len(), 1);
-    assert_ne!(copied_resources[0].id, source_resource.id);
-    assert_eq!(copied_resources[0].payload, source_resource.payload);
-    assert_eq!(copied_resources[0].created_at, source_resource.created_at);
+    assert_eq!(copied_resources.len(), source_resources.len());
+    assert_eq!(
+        copied_resources
+            .iter()
+            .map(|resource| (&resource.connector_kind, &resource.resource_type, &resource.payload))
+            .collect::<Vec<_>>(),
+        source_resources
+            .iter()
+            .map(|resource| (&resource.connector_kind, &resource.resource_type, &resource.payload))
+            .collect::<Vec<_>>()
+    );
+    for (copied, source) in copied_resources.iter().zip(source_resources.iter()) {
+        assert_ne!(copied.id, source.id);
+        assert_eq!(copied.created_at, source.created_at);
+    }
 
     let second_copy = db.duplicate_task(&source.id).unwrap();
     assert_eq!(second_copy.title, "Copy of Ship (2)");
+}
+
+#[test]
+fn duplicate_task_rejects_a_missing_source() {
+    let db = db();
+
+    assert!(matches!(
+        db.duplicate_task("missing"),
+        Err(DbError::NotFound { entity: "task", .. })
+    ));
 }
 
 #[test]
@@ -275,10 +334,11 @@ fn rename_task_trims_and_validates_its_target() {
         })
         .unwrap();
 
-    assert_eq!(
-        db.rename_task(&task.id, "  New name  ").unwrap().title,
-        "New name"
-    );
+    std::thread::sleep(std::time::Duration::from_millis(1));
+    let renamed = db.rename_task(&task.id, "  New name  ").unwrap();
+    assert_eq!(renamed.title, "New name");
+    assert!(renamed.updated_at > task.updated_at);
+    assert_eq!(db.get_task(&task.id).unwrap(), Some(renamed));
     assert!(matches!(
         db.rename_task(&task.id, " "),
         Err(DbError::Validation { field: "title", .. })

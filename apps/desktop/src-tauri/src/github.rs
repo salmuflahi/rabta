@@ -7,7 +7,7 @@ use std::process::Stdio;
 use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 
-use rabta_db::{Db, NewTask};
+use rabta_db::Db;
 
 /// An open issue as shown in the UI.
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -214,12 +214,7 @@ pub async fn start_issue_task(
     number: u64,
     title: &str,
 ) -> Result<StartedTask, String> {
-    let task = db
-        .create_task(NewTask {
-            project_id: project_id.to_string(),
-            title: format!("#{number} {title}"),
-        })
-        .map_err(|e| e.to_string())?;
+    let task = crate::projects::create_task(db, project_id, &format!("#{number} {title}"))?;
     let branch = branch_name_for_issue(number, title);
     let branch_note = match crate::git::create_branch(repo_path, &branch).await {
         Ok(()) => format!("created and switched to {branch}"),

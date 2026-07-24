@@ -137,6 +137,19 @@ pub fn rename_task(db: &Db, id: &str, title: &str) -> Result<Task, String> {
 
 /// Duplicates a capsule and its resources transactionally.
 pub fn duplicate_task(db: &Db, id: &str) -> Result<Task, String> {
+    let source = db
+        .get_task(id)
+        .map_err(friendly_db_error)?
+        .ok_or_else(|| "task not found".to_string())?;
+    let project = db
+        .get_project(&source.project_id)
+        .map_err(friendly_db_error)?
+        .ok_or_else(|| "project not found".to_string())?;
+    if project.archived_at.is_some() {
+        return Err(
+            "project is archived — restore it before adding a capsule".to_string()
+        );
+    }
     db.duplicate_task(id).map_err(friendly_db_error)
 }
 

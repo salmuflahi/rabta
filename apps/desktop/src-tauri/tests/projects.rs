@@ -203,4 +203,9 @@ fn task_services_reject_archived_projects_and_duplicate_resources() {
         create_task(&db, &project.id, "Blocked").unwrap_err(),
         "project is archived — restore it before adding a capsule"
     );
+    assert_eq!(
+        duplicate_task(&db, &source.id).unwrap_err(),
+        "project is archived — restore it before adding a capsule"
+    );
+    assert_eq!(db.list_tasks(&project.id).unwrap().len(), 2);
 }

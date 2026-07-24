@@ -358,6 +358,72 @@ describe("ProjectsPage durable management", () => {
     );
   });
 
+  it("permanently deletes an archived project and refreshes both project lists", async () => {
+    let activeRows: Project[] = [FAKE_PROJECT];
+    let archivedRows: Project[] = [ARCHIVED_PROJECT];
+    mockInvoke.mockImplementation(async (cmd: string, args?: unknown) => {
+      switch (cmd) {
+        case "list_projects":
+          return activeRows as unknown;
+        case "list_archived_projects":
+          return archivedRows as unknown;
+        case "delete_project":
+          expect(args).toEqual({ id: ARCHIVED_PROJECT.id });
+          activeRows = [];
+          archivedRows = [];
+          return undefined as unknown;
+        case "git_status":
+          return {
+            branch: "main",
+            dirty: false,
+            changedCount: 0,
+            ahead: 0,
+            behind: 0,
+          } as unknown;
+        default:
+          return [] as unknown;
+      }
+    });
+
+    renderWithProviders(<ProjectsPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Archived projects" }));
+    expect(await screen.findByText("Archived Project")).toBeInTheDocument();
+    const activeListCalls = mockInvoke.mock.calls.filter(
+      ([cmd]) => cmd === "list_projects",
+    ).length;
+    const archivedListCalls = mockInvoke.mock.calls.filter(
+      ([cmd]) => cmd === "list_archived_projects",
+    ).length;
+
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Delete Archived Project permanently",
+        }),
+      );
+      expect(screen.queryByText("Archived Project")).not.toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+
+      expect(mockInvoke).toHaveBeenCalledWith("delete_project", {
+        id: ARCHIVED_PROJECT.id,
+      });
+      expect(
+        mockInvoke.mock.calls.filter(([cmd]) => cmd === "list_projects"),
+      ).toHaveLength(activeListCalls + 1);
+      expect(
+        mockInvoke.mock.calls.filter(
+          ([cmd]) => cmd === "list_archived_projects",
+        ),
+      ).toHaveLength(archivedListCalls + 1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("shows persisted last-opened and session duration metadata only after a session exists", async () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       switch (cmd) {

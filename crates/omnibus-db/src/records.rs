@@ -172,8 +172,7 @@ impl Db {
         let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let sort_order = conn.query_row(
             "SELECT COALESCE(MAX(sort_order), -1) + 1
-             FROM projects
-             WHERE archived_at IS NULL",
+             FROM projects",
             [],
             |r| r.get(0),
         )?;
@@ -286,15 +285,12 @@ impl Db {
     /// Reversibly archives a project without deleting its tasks or resources.
     pub fn archive_project(&self, id: &str) -> Result<Project> {
         let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        let project = require_project(&conn, id)?;
-        if project.archived_at.is_some() {
-            return Ok(project);
-        }
+        require_project(&conn, id)?;
         let timestamp = now();
         let changed = conn.execute(
             "UPDATE projects
-             SET archived_at = ?2, updated_at = ?2
-             WHERE id = ?1 AND archived_at IS NULL",
+             SET archived_at = COALESCE(archived_at, ?2), updated_at = ?2
+             WHERE id = ?1",
             params![id, timestamp],
         )?;
         if changed == 0 {

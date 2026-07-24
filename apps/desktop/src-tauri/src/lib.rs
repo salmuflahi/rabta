@@ -83,7 +83,7 @@ async fn create_project(
     .map_err(|e| e.to_string())?
 }
 
-/// All registered projects.
+/// All active projects in their persisted order.
 #[tauri::command]
 async fn list_projects(db: State<'_, DbHandle>) -> Result<Vec<Project>, String> {
     let db = db.0.clone();
