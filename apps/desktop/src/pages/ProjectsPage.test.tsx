@@ -35,6 +35,14 @@ const FAKE_PROJECT: Project = {
   updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
+const ARCHIVED_PROJECT: Project = {
+  ...FAKE_PROJECT,
+  id: "archived-1",
+  name: "Archived Project",
+  archivedAt: "2026-02-01T00:00:00.000Z",
+  sortOrder: 4,
+};
+
 describe("ProjectsPage", () => {
   beforeEach(() => {
     useStore.setState({ newProjectRequest: false });
@@ -113,6 +121,16 @@ function mockProjectsInvoke(opts?: { deleteProject?: () => unknown }) {
   });
 }
 
+async function openProjectMenu(name = FAKE_PROJECT.name) {
+  const row = await screen.findByText(name);
+  fireEvent.contextMenu(row);
+}
+
+async function chooseProjectMenuItem(name: string | RegExp) {
+  await openProjectMenu();
+  fireEvent.click(screen.getByRole("menuitem", { name }));
+}
+
 describe("ProjectsPage delete (deferred undo)", () => {
   beforeEach(() => {
     useStore.setState({ newProjectRequest: false });
@@ -127,8 +145,7 @@ describe("ProjectsPage delete (deferred undo)", () => {
     mockProjectsInvoke();
     renderWithProviders(<ProjectsPage />);
 
-    await screen.findByText("Test Project");
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await chooseProjectMenuItem(/Delete/);
 
     expect(screen.queryByText("Test Project")).not.toBeInTheDocument();
     expect(mockedToast()).toHaveBeenCalledTimes(1);
@@ -142,8 +159,7 @@ describe("ProjectsPage delete (deferred undo)", () => {
     mockProjectsInvoke();
     renderWithProviders(<ProjectsPage />);
 
-    await screen.findByText("Test Project");
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await chooseProjectMenuItem(/Delete/);
     expect(screen.queryByText("Test Project")).not.toBeInTheDocument();
 
     const [, options] = mockedToast().mock.calls[0];
@@ -157,16 +173,13 @@ describe("ProjectsPage delete (deferred undo)", () => {
 
   it("letting the undo window elapse calls delete_project exactly once with the right id, and the row stays gone", async () => {
     mockProjectsInvoke();
+    renderWithProviders(<ProjectsPage />);
+    await openProjectMenu();
+    const deleteItem = await screen.findByRole("menuitem", { name: /Delete/ });
+
     vi.useFakeTimers();
     try {
-      renderWithProviders(<ProjectsPage />);
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(0);
-      });
-      expect(screen.getByText("Test Project")).toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+      fireEvent.click(deleteItem);
       expect(screen.queryByText("Test Project")).not.toBeInTheDocument();
 
       await act(async () => {
@@ -180,6 +193,199 @@ describe("ProjectsPage delete (deferred undo)", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("ProjectsPage durable management", () => {
+  beforeEach(() => {
+    useStore.setState({ newProjectRequest: false });
+    mockedToast().mockClear();
+    vi.mocked(toast.error).mockClear();
+  });
+
+  it("archives immediately, reports warnings, and Undo calls real unarchive_project", async () => {
+    let archived = false;
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      switch (cmd) {
+        case "list_projects":
+          return (archived ? [] : [FAKE_PROJECT]) as unknown;
+        case "archive_project":
+          archived = true;
+          return {
+            project: { ...FAKE_PROJECT, archivedAt: "2026-02-01T00:00:00.000Z" },
+            warnings: ["git capture unavailable"],
+          } as unknown;
+        case "unarchive_project":
+          archived = false;
+          return FAKE_PROJECT as unknown;
+        case "git_status":
+          return {
+            branch: "main",
+            dirty: false,
+            changedCount: 0,
+            ahead: 0,
+            behind: 0,
+          } as unknown;
+        default:
+          return [] as unknown;
+      }
+    });
+
+    renderWithProviders(<ProjectsPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Archive Test Project" }));
+
+    await waitFor(() =>
+      expect(screen.queryByText("Test Project")).not.toBeInTheDocument(),
+    );
+    expect(mockInvoke).toHaveBeenCalledWith("archive_project", {
+      id: FAKE_PROJECT.id,
+    });
+    expect(toast.error).toHaveBeenCalledWith("git capture unavailable");
+
+    const archiveToast = mockedToast().mock.calls.find(
+      ([message]) => message === "Test Project archived",
+    );
+    expect(archiveToast).toBeTruthy();
+    await act(async () => {
+      await archiveToast![1].action.onClick();
+    });
+
+    expect(mockInvoke).toHaveBeenCalledWith("unarchive_project", {
+      id: FAKE_PROJECT.id,
+    });
+    expect(await screen.findByText("Test Project")).toBeInTheDocument();
+  });
+
+  it("renames from the context menu and disables empty or unchanged names", async () => {
+    let project = FAKE_PROJECT;
+    mockInvoke.mockImplementation(async (cmd: string, args?: unknown) => {
+      switch (cmd) {
+        case "list_projects":
+          return [project] as unknown;
+        case "rename_project":
+          project = {
+            ...project,
+            name: (args as { name: string }).name,
+          };
+          return project as unknown;
+        case "git_status":
+          return {
+            branch: "main",
+            dirty: false,
+            changedCount: 0,
+            ahead: 0,
+            behind: 0,
+          } as unknown;
+        default:
+          return [] as unknown;
+      }
+    });
+
+    renderWithProviders(<ProjectsPage />);
+    await chooseProjectMenuItem("Rename");
+
+    const input = await screen.findByRole("textbox", { name: "Project name" });
+    const save = screen.getByRole("button", { name: "Save changes" });
+    expect(save).toBeDisabled();
+    fireEvent.change(input, { target: { value: " " } });
+    expect(save).toBeDisabled();
+    fireEvent.change(input, { target: { value: "Rabta Core" } });
+    expect(save).toBeEnabled();
+    fireEvent.click(save);
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("rename_project", {
+        id: FAKE_PROJECT.id,
+        name: "Rabta Core",
+      }),
+    );
+    expect(await screen.findByText("Rabta Core")).toBeInTheDocument();
+  });
+
+  it("sets an allowlisted icon and lazily restores an archived project", async () => {
+    let active = FAKE_PROJECT;
+    let archivedRows = [ARCHIVED_PROJECT];
+    mockInvoke.mockImplementation(async (cmd: string, args?: unknown) => {
+      switch (cmd) {
+        case "list_projects":
+          return [active] as unknown;
+        case "set_project_icon":
+          active = { ...active, icon: (args as { icon: Project["icon"] }).icon };
+          return active as unknown;
+        case "list_archived_projects":
+          return archivedRows as unknown;
+        case "unarchive_project":
+          archivedRows = [];
+          return { ...ARCHIVED_PROJECT, archivedAt: null } as unknown;
+        case "git_status":
+          return {
+            branch: "main",
+            dirty: false,
+            changedCount: 0,
+            ahead: 0,
+            behind: 0,
+          } as unknown;
+        default:
+          return [] as unknown;
+      }
+    });
+
+    renderWithProviders(<ProjectsPage />);
+    await screen.findByText("Test Project");
+    expect(
+      mockInvoke.mock.calls.some(([cmd]) => cmd === "list_archived_projects"),
+    ).toBe(false);
+
+    await chooseProjectMenuItem("Change icon");
+    fireEvent.click(await screen.findByRole("button", { name: "Launch icon" }));
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("set_project_icon", {
+        id: FAKE_PROJECT.id,
+        icon: "rocket",
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Archived projects" }));
+    expect(await screen.findByText("Archived Project")).toBeInTheDocument();
+    expect(mockInvoke).toHaveBeenCalledWith("list_archived_projects");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Restore Archived Project" }),
+    );
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("unarchive_project", {
+        id: ARCHIVED_PROJECT.id,
+      }),
+    );
+  });
+
+  it("shows persisted last-opened and session duration metadata only after a session exists", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      switch (cmd) {
+        case "list_projects":
+          return [
+            {
+              ...FAKE_PROJECT,
+              lastOpenedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+              activeSeconds: 2 * 3600 + 17 * 60,
+            },
+          ] as unknown;
+        case "git_status":
+          return {
+            branch: "main",
+            dirty: false,
+            changedCount: 0,
+            ahead: 0,
+            behind: 0,
+          } as unknown;
+        default:
+          return [] as unknown;
+      }
+    });
+
+    renderWithProviders(<ProjectsPage />);
+
+    expect(await screen.findByText("Opened 5m ago")).toBeInTheDocument();
+    expect(screen.getByText("Last session 2h 17m")).toBeInTheDocument();
   });
 });
 

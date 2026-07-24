@@ -1,15 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
-import { FolderGit2, FolderOpen, Trash2 } from "lucide-react";
+import { ArchiveRestore, FolderGit2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
 import {
   Dialog,
   DialogContent,
@@ -22,64 +15,23 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "@/components/ui/sonner";
+import { ArchivedProjectsDialog } from "@/features/projects/ArchivedProjectsDialog";
+import { ProjectCard } from "@/features/projects/ProjectCard";
+import { ProjectDialogs } from "@/features/projects/ProjectDialogs";
 import { toastErr, toastOk } from "@/lib/toast";
 import { useDeferredDelete } from "@/lib/useDeferredDelete";
 import { PageHeader } from "@/shell/PageHeader";
-import { useStore, type Project, type RepoInspection } from "@/store";
-import { GitHubSection } from "@/views/GitHubSection";
-import { GitLine } from "@/views/GitLine";
+import {
+  useStore,
+  type Project,
+  type ProjectIconKey,
+  type RepoInspection,
+} from "@/store";
 
-// Shape copied from GitLine.tsx's `git_status` invoke — kept independent (not
-// imported) since GitLine owns its own fetch/refresh lifecycle and this is a
-// small, plan-sanctioned duplicate fetch just for the card-level dot.
-interface GitStatus {
-  branch: string | null;
-  dirty: boolean;
-  changedCount: number;
-  ahead: number;
-  behind: number;
-}
-
-/** Subtle amber dot next to a project card's name when its git working tree
- * has uncommitted changes. Does its own small `git_status` fetch (separate
- * from GitLine's) so the dot doesn't depend on GitLine's render order or
- * internal state — re-fetches on mount, on `activationNonce` (a restore
- * elsewhere may have git-first-restored this project's branch), and on
- * `refreshKey` (the sum of two nonces: one bumped when a GitHub issue-task
- * start switches/creates this project's branch, the other bumped by
- * GitLine's own `onChanged` after its fetch/checkout/create-branch ops) —
- * so the dot stays in sync with GitLine on every git mutation, not just
- * the issue-task path, without forcing GitLine to remount.
- * Renders nothing when clean or while still loading — never an empty
- * placeholder gap. */
-export function UnsavedChangesDot({ projectId, refreshKey }: { projectId: string; refreshKey?: number }) {
-  const activationNonce = useStore((s) => s.activationNonce);
-  const [status, setStatus] = useState<GitStatus | null>(null);
-
-  useEffect(() => {
-    invoke<GitStatus>("git_status", { projectId })
-      .then(setStatus)
-      .catch((e) => console.error("git status refresh (dot) failed:", e));
-  }, [projectId, activationNonce, refreshKey]);
-
-  if (!status?.dirty) return null;
-
-  const n = status.changedCount;
-  const label = `${n} uncommitted ${n === 1 ? "change" : "changes"}`;
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span
-          role="status"
-          aria-label={label}
-          className="inline-block size-2 shrink-0 rounded-full bg-warning"
-        />
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  );
+interface ArchiveProjectResult {
+  project: Project;
+  warnings: string[];
 }
 
 /** Skeleton placeholder for the pre-first-load window only — approximates
@@ -125,6 +77,10 @@ export function ProjectsPage() {
   // Pre-first-load window only: true until the initial list_projects fetch
   // settles, then stays false for the life of the page.
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [renameProject, setRenameProject] = useState<Project | null>(null);
+  const [iconProject, setIconProject] = useState<Project | null>(null);
+  const [archivedOpen, setArchivedOpen] = useState(false);
 
   const refresh = () =>
     invoke<Project[]>("list_projects")
@@ -196,6 +152,63 @@ export function ProjectsPage() {
     }
   }
 
+  async function renameProjectById(id: string, nextName: string) {
+    setBusy(true);
+    try {
+      await invoke<Project>("rename_project", { id, name: nextName });
+      setRenameProject(null);
+      await refresh();
+      toastOk("Project renamed");
+    } catch (error) {
+      toastErr(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function setProjectIcon(
+    id: string,
+    icon: ProjectIconKey | null,
+  ) {
+    setBusy(true);
+    try {
+      await invoke<Project>("set_project_icon", { id, icon });
+      setIconProject(null);
+      await refresh();
+    } catch (error) {
+      toastErr(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function archiveProject(project: Project) {
+    setBusy(true);
+    try {
+      const result = await invoke<ArchiveProjectResult>("archive_project", {
+        id: project.id,
+      });
+      await refresh();
+      result.warnings.forEach(toastErr);
+      toast(`${project.name} archived`, {
+        action: {
+          label: "Undo",
+          onClick: () =>
+            invoke<Project>("unarchive_project", { id: project.id })
+              .then(refresh)
+              .catch((error) => {
+                void refresh();
+                toastErr(error);
+              }),
+        },
+      });
+    } catch (error) {
+      toastErr(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   // Deferred-commit delete: requestDelete hides the row immediately and
   // shows an Undo toast; the real delete_project invoke only fires ~5s
   // later if the user hasn't clicked Undo (see useDeferredDelete.ts).
@@ -216,14 +229,24 @@ export function ProjectsPage() {
         title="Projects"
         subtitle={subtitle}
         actions={
-          <Button
-            onClick={() => {
-              resetForm();
-              setRegisterOpen(true);
-            }}
-          >
-            Register Project
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              aria-label="Archived projects"
+              onClick={() => setArchivedOpen(true)}
+            >
+              <ArchiveRestore />
+              Archived
+            </Button>
+            <Button
+              onClick={() => {
+                resetForm();
+                setRegisterOpen(true);
+              }}
+            >
+              Register Project
+            </Button>
+          </>
         }
       />
 
@@ -247,59 +270,57 @@ export function ProjectsPage() {
         />
       ) : (
         <div className="flex flex-col gap-3">
-          {visibleProjects.map((p) => (
-            <ContextMenu key={p.id}>
-              <ContextMenuTrigger asChild>
-                <Card className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex min-w-0 items-center gap-1.5">
-                        <p className="truncate text-foreground font-medium">
-                          {p.name} <span className="font-normal text-muted-foreground">({p.defaultBranch})</span>
-                        </p>
-                        <UnsavedChangesDot
-                          projectId={p.id}
-                          refreshKey={(startedNonce[p.id] ?? 0) + (gitOpNonce[p.id] ?? 0)}
-                        />
-                      </div>
-                      <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{p.repoPath}</p>
-                      {p.devUrl && <p className="truncate text-xs text-muted-foreground">{p.devUrl}</p>}
-                      <p className="truncate text-xs text-muted-foreground/70">Created {p.createdAt}</p>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => requestDelete(p)}>
-                      Delete
-                    </Button>
-                  </div>
-
-                  <GitLine
-                    key={`${p.id}-${startedNonce[p.id] ?? 0}`}
-                    projectId={p.id}
-                    onChanged={() => setGitOpNonce((n) => ({ ...n, [p.id]: (n[p.id] ?? 0) + 1 }))}
-                  />
-                  <GitHubSection
-                    projectId={p.id}
-                    onStarted={() => setStartedNonce((n) => ({ ...n, [p.id]: (n[p.id] ?? 0) + 1 }))}
-                  />
-                </Card>
-              </ContextMenuTrigger>
-              <ContextMenuContent>
-                <ContextMenuItem onSelect={() => invoke("reveal_in_finder", { path: p.repoPath }).catch((e) => toastErr(e))}>
-                  <FolderOpen className="mr-2 size-4" />
-                  Reveal in Finder
-                </ContextMenuItem>
-                <ContextMenuSeparator />
-                <ContextMenuItem
-                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                  onSelect={() => requestDelete(p)}
-                >
-                  <Trash2 className="mr-2 size-4" />
-                  Delete
-                </ContextMenuItem>
-              </ContextMenuContent>
-            </ContextMenu>
+          {visibleProjects.map((project, index) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              actionsDisabled={busy}
+              gitRefreshKey={
+                (startedNonce[project.id] ?? 0) +
+                (gitOpNonce[project.id] ?? 0)
+              }
+              startedNonce={startedNonce[project.id] ?? 0}
+              onGitChanged={() =>
+                setGitOpNonce((nonces) => ({
+                  ...nonces,
+                  [project.id]: (nonces[project.id] ?? 0) + 1,
+                }))
+              }
+              onIssueStarted={() =>
+                setStartedNonce((nonces) => ({
+                  ...nonces,
+                  [project.id]: (nonces[project.id] ?? 0) + 1,
+                }))
+              }
+              onRename={setRenameProject}
+              onChangeIcon={setIconProject}
+              onMove={() => {}}
+              canMoveUp={index > 0}
+              canMoveDown={index < visibleProjects.length - 1}
+              onArchive={(target) => void archiveProject(target)}
+              onDelete={requestDelete}
+            />
           ))}
         </div>
       )}
+
+      <ProjectDialogs
+        renameProject={renameProject}
+        iconProject={iconProject}
+        busy={busy}
+        onClose={() => {
+          setRenameProject(null);
+          setIconProject(null);
+        }}
+        onRename={renameProjectById}
+        onSetIcon={setProjectIcon}
+      />
+
+      <ArchivedProjectsDialog
+        open={archivedOpen}
+        onOpenChange={setArchivedOpen}
+        onActiveChanged={refresh}
+      />
 
       <Dialog
         open={registerOpen}
