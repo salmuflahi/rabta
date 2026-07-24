@@ -1,8 +1,27 @@
 import { fireEvent, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { useStore, type Project, type Task } from "@/store";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { OverviewPage } from "./OverviewPage";
+
+function projectFixture(overrides: Partial<Project> = {}): Project {
+  return {
+    id: "proj-fixture",
+    name: "Fixture Project",
+    repoPath: "/tmp/fixture-project",
+    devUrl: null,
+    defaultBranch: "main",
+    icon: null,
+    archivedAt: null,
+    lastOpenedAt: null,
+    lastTaskId: null,
+    activeSeconds: 0,
+    sortOrder: 0,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
 
 describe("OverviewPage", () => {
   it("renders the empty-state welcome copy without throwing", async () => {
@@ -55,6 +74,123 @@ describe("OverviewPage", () => {
 
     expect(await screen.findByText("Connectors Connected")).toBeInTheDocument();
     expect(screen.getByText("Recent Activity")).toBeInTheDocument();
+  });
+
+  it("omits Continue Working projects with malformed persisted lastOpenedAt timestamps", async () => {
+    const valid = projectFixture({
+      id: "proj-valid",
+      name: "Valid Project",
+      lastOpenedAt: "2026-07-24T15:00:00.000Z",
+    });
+    const invalid = projectFixture({
+      id: "proj-invalid",
+      name: "Invalid Timestamp Project",
+      lastOpenedAt: "not-a-timestamp",
+    });
+    mockInvoke.mockClear();
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "list_projects") return [invalid, valid];
+      if (cmd === "list_tasks") return [];
+      if (cmd === "active_task") return null;
+      return [];
+    });
+
+    renderWithProviders(<OverviewPage />);
+
+    expect(await screen.findByText("Continue Working")).toBeInTheDocument();
+    expect(screen.getByText("Valid Project")).toBeInTheDocument();
+    expect(screen.queryByText("Invalid Timestamp Project")).not.toBeInTheDocument();
+    expect(screen.queryByText("Opened unknown")).not.toBeInTheDocument();
+  });
+
+  it("caps Continue Working at five projects in deterministic newest-first order", async () => {
+    const rankedProjects = [
+      projectFixture({
+        id: "proj-rank-1",
+        name: "Rank 1",
+        lastOpenedAt: "2026-07-24T16:00:00.000Z",
+      }),
+      projectFixture({
+        id: "proj-rank-2",
+        name: "Rank 2",
+        lastOpenedAt: "2026-07-24T15:00:00.000Z",
+      }),
+      projectFixture({
+        id: "proj-rank-3",
+        name: "Rank 3",
+        lastOpenedAt: "2026-07-24T14:00:00.000Z",
+      }),
+      projectFixture({
+        id: "proj-rank-4",
+        name: "Rank 4",
+        lastOpenedAt: "2026-07-24T13:00:00.000Z",
+      }),
+      projectFixture({
+        id: "proj-rank-5",
+        name: "Rank 5",
+        lastOpenedAt: "2026-07-24T12:00:00.000Z",
+      }),
+      projectFixture({
+        id: "proj-rank-6",
+        name: "Rank 6",
+        lastOpenedAt: "2026-07-24T11:00:00.000Z",
+      }),
+    ];
+    mockInvoke.mockClear();
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "list_projects") {
+        return [
+          rankedProjects[5],
+          rankedProjects[2],
+          rankedProjects[0],
+          rankedProjects[4],
+          rankedProjects[1],
+          rankedProjects[3],
+        ];
+      }
+      if (cmd === "list_tasks") return [];
+      if (cmd === "active_task") return null;
+      return [];
+    });
+
+    renderWithProviders(<OverviewPage />);
+
+    expect(await screen.findByText("Continue Working")).toBeInTheDocument();
+    expect(screen.getAllByText(/^Rank [1-6]$/).map((node) => node.textContent)).toEqual([
+      "Rank 1",
+      "Rank 2",
+      "Rank 3",
+      "Rank 4",
+      "Rank 5",
+    ]);
+    expect(screen.queryByText("Rank 6")).not.toBeInTheDocument();
+  });
+
+  it("renders deterministic relative-time copy and omits a zero-duration last session", async () => {
+    const now = Date.parse("2026-07-24T16:00:00.000Z");
+    const dateNow = vi.spyOn(Date, "now").mockReturnValue(now);
+    const project = projectFixture({
+      id: "proj-relative-time",
+      name: "Relative Time Project",
+      lastOpenedAt: "2026-07-24T15:55:00.000Z",
+      activeSeconds: 0,
+    });
+    mockInvoke.mockClear();
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "list_projects") return [project];
+      if (cmd === "list_tasks") return [];
+      if (cmd === "active_task") return null;
+      return [];
+    });
+
+    try {
+      renderWithProviders(<OverviewPage />);
+
+      expect(await screen.findByText("Opened 5m ago")).toBeInTheDocument();
+      expect(screen.queryByText(/^Last session /)).not.toBeInTheDocument();
+    } finally {
+      dateNow.mockRestore();
+    }
   });
 
   it("shows newest active Continue Working projects and routes Resume through Capsules", async () => {

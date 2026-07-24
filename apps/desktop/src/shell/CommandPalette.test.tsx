@@ -30,6 +30,20 @@ const FAKE_TASK: Task = {
   updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
+const INACTIVE_PROJECT: Project = {
+  ...FAKE_PROJECT,
+  id: "proj-inactive",
+  name: "Inactive Project",
+  archivedAt: "2026-07-20T00:00:00.000Z",
+};
+
+const INACTIVE_TASK: Task = {
+  ...FAKE_TASK,
+  id: "task-inactive",
+  projectId: INACTIVE_PROJECT.id,
+  title: "Inactive task",
+};
+
 /** `list_tasks` only, keyed to FAKE_PROJECT/FAKE_TASK; every other invoke
  * (list_projects, task_resources, ...) resolves `[]` via smoke-utils'
  * default. */
@@ -66,7 +80,17 @@ describe("CommandPalette", () => {
   });
 
   it("uses active project records for palette icons and task scope", async () => {
-    mockListTasks();
+    mockInvoke.mockClear();
+    mockInvoke.mockImplementation(async (cmd: string, args?: InvokeArgs) => {
+      const a = args as Record<string, unknown> | undefined;
+      if (cmd === "list_tasks" && a?.projectId === FAKE_PROJECT.id) {
+        return [FAKE_TASK, INACTIVE_TASK] as unknown;
+      }
+      if (cmd === "list_tasks" && a?.projectId === INACTIVE_PROJECT.id) {
+        return [INACTIVE_TASK] as unknown;
+      }
+      return [] as unknown;
+    });
     useStore.setState({ commandOpen: true, projects: [FAKE_PROJECT] });
 
     renderWithProviders(<CommandPalette />);
@@ -75,8 +99,11 @@ describe("CommandPalette", () => {
     const projectItem = projectName.closest("[cmdk-item]");
     expect(projectItem?.querySelector("svg.lucide-rocket")).toBeInTheDocument();
     expect(await screen.findByText(FAKE_TASK.title)).toBeInTheDocument();
+    expect(screen.queryByText(INACTIVE_PROJECT.name)).not.toBeInTheDocument();
+    expect(screen.queryByText(INACTIVE_TASK.title)).not.toBeInTheDocument();
     expect(mockInvoke).toHaveBeenCalledTimes(1);
     expect(mockInvoke).toHaveBeenCalledWith("list_tasks", { projectId: FAKE_PROJECT.id });
+    expect(mockInvoke).not.toHaveBeenCalledWith("list_tasks", { projectId: INACTIVE_PROJECT.id });
   });
 
   it("cmdk's fuzzy filter narrows to the matching task and hides unrelated nav items", async () => {

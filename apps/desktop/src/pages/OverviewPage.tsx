@@ -149,7 +149,10 @@ export function OverviewPage() {
   const activeTask = tasks.find((t) => t.id === activeTaskId);
   const recentLog = [...log].slice(-5).reverse();
   const continueProjects = projects
-    .filter((project) => project.lastOpenedAt)
+    .filter(
+      (project) =>
+        project.lastOpenedAt !== null && Number.isFinite(Date.parse(project.lastOpenedAt)),
+    )
     .sort((a, b) => Date.parse(b.lastOpenedAt!) - Date.parse(a.lastOpenedAt!))
     .slice(0, 5);
 
