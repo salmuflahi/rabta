@@ -338,6 +338,7 @@ fn reveal_in_finder(path: String) -> Result<(), String> {
 pub fn run() {
     let _ = env_logger::try_init();
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
