@@ -1,3 +1,4 @@
+import type { InvokeArgs } from "@tauri-apps/api/core";
 import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useStore, type Project, type Task } from "@/store";
@@ -259,9 +260,15 @@ describe("OverviewPage", () => {
     ];
 
     mockInvoke.mockClear();
-    mockInvoke.mockImplementation(async (cmd: string, args?: { projectId?: string }) => {
+    mockInvoke.mockImplementation(async (cmd: string, args?: InvokeArgs) => {
       if (cmd === "list_projects") return [ship, previous, stale, neverOpened];
-      if (cmd === "list_tasks") return tasks.filter((task) => task.projectId === args?.projectId);
+      if (cmd === "list_tasks") {
+        const projectId =
+          args && !Array.isArray(args) && typeof args === "object"
+            ? (args as { projectId?: string }).projectId
+            : undefined;
+        return tasks.filter((task) => task.projectId === projectId);
+      }
       if (cmd === "active_task") return null;
       return [];
     });
