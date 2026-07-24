@@ -24,27 +24,18 @@ pub trait SessionClock: Send + Sync {
 /// Test-oriented seam around the two durable session writes.
 #[doc(hidden)]
 pub trait SessionPersistence: Send + Sync {
-    fn begin_project_session_for_task(
-        &self,
-        task_id: &str,
-        opened_at: &str,
-    ) -> Result<(), String>;
+    fn begin_project_session_for_task(&self, task_id: &str, opened_at: &str) -> Result<(), String>;
     fn add_active_seconds_for_task(&self, task_id: &str, seconds: u64) -> Result<(), String>;
 }
 
 impl SessionPersistence for Db {
-    fn begin_project_session_for_task(
-        &self,
-        task_id: &str,
-        opened_at: &str,
-    ) -> Result<(), String> {
+    fn begin_project_session_for_task(&self, task_id: &str, opened_at: &str) -> Result<(), String> {
         Db::begin_project_session_for_task(self, task_id, opened_at)
             .map_err(|error| error.to_string())
     }
 
     fn add_active_seconds_for_task(&self, task_id: &str, seconds: u64) -> Result<(), String> {
-        Db::add_active_seconds_for_task(self, task_id, seconds)
-            .map_err(|error| error.to_string())
+        Db::add_active_seconds_for_task(self, task_id, seconds).map_err(|error| error.to_string())
     }
 }
 
@@ -113,7 +104,11 @@ pub struct Capsules {
     clock: Arc<dyn SessionClock>,
     session_persistence: Arc<dyn SessionPersistence>,
     pending: Arc<Mutex<Option<PendingRestore>>>,
-    activation_lock: Arc<tokio::sync::Mutex<()>>,
+    transition_lock: Arc<tokio::sync::Mutex<()>>,
+    activation_archive_lock: Arc<tokio::sync::Mutex<()>>,
+    continuation_lock: Arc<tokio::sync::Mutex<()>>,
+    transition_boundary_signal: Arc<Mutex<Option<tokio::sync::oneshot::Sender<()>>>>,
+    activation_continuation_boundary_signal: Arc<Mutex<Option<tokio::sync::oneshot::Sender<()>>>>,
     generation: Arc<std::sync::atomic::AtomicU64>,
 }
 
@@ -141,13 +136,7 @@ impl Capsules {
         clock: Arc<dyn SessionClock>,
     ) -> Capsules {
         let session_persistence = Arc::new(db.clone());
-        Self::new_with_clock_and_persistence(
-            hub,
-            db,
-            settle,
-            clock,
-            session_persistence,
-        )
+        Self::new_with_clock_and_persistence(hub, db, settle, clock, session_persistence)
     }
 
     /// Clock and persistence-injected constructor for deterministic tests.
@@ -174,14 +163,21 @@ impl Capsules {
             clock,
             session_persistence,
             pending: Arc::new(Mutex::new(None)),
-            activation_lock: Arc::new(tokio::sync::Mutex::new(())),
+            transition_lock: Arc::new(tokio::sync::Mutex::new(())),
+            activation_archive_lock: Arc::new(tokio::sync::Mutex::new(())),
+            continuation_lock: Arc::new(tokio::sync::Mutex::new(())),
+            transition_boundary_signal: Arc::new(Mutex::new(None)),
+            activation_continuation_boundary_signal: Arc::new(Mutex::new(None)),
             generation: Arc::new(std::sync::atomic::AtomicU64::new(0)),
         }
     }
 
     /// The task currently considered active (in-memory, this phase).
     pub fn active_task(&self) -> Option<String> {
-        self.active_task.lock().unwrap_or_else(std::sync::PoisonError::into_inner).clone()
+        self.active_task
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
     }
 
     /// Snapshot of continuation metadata for failure-neutrality tests.
@@ -200,15 +196,87 @@ impl Capsules {
     /// Whether a transition currently holds the shared serialization lock.
     #[doc(hidden)]
     pub fn transition_lock_is_held_for_test(&self) -> bool {
-        self.activation_lock.try_lock().is_err()
+        self.transition_lock.try_lock().is_err()
     }
 
-    /// Flushes elapsed time while the caller holds `activation_lock`.
-    async fn flush_session(&self) -> Result<(), String> {
+    /// Signals when the next state-changing command is about to wait for
+    /// transition serialization.
+    #[doc(hidden)]
+    pub fn set_next_transition_boundary_signal_for_test(
+        &self,
+        signal: tokio::sync::oneshot::Sender<()>,
+    ) {
+        *self
+            .transition_boundary_signal
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(signal);
+    }
+
+    /// Signals after the next activation has polled the continuation gate.
+    #[doc(hidden)]
+    pub fn set_next_activation_continuation_boundary_signal_for_test(
+        &self,
+        signal: tokio::sync::oneshot::Sender<()>,
+    ) {
+        *self
+            .activation_continuation_boundary_signal
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(signal);
+    }
+
+    async fn lock_after_first_poll<'a>(
+        lock: &'a tokio::sync::Mutex<()>,
+        mut signal: Option<tokio::sync::oneshot::Sender<()>>,
+    ) -> tokio::sync::MutexGuard<'a, ()> {
+        use std::future::Future;
+
+        if signal.is_none() {
+            return lock.lock().await;
+        }
+        let mut lock = Box::pin(lock.lock());
+        std::future::poll_fn(move |context| {
+            let result = lock.as_mut().poll(context);
+            if let Some(signal) = signal.take() {
+                let _ = signal.send(());
+            }
+            result
+        })
+        .await
+    }
+
+    async fn lock_transition(&self) -> tokio::sync::MutexGuard<'_, ()> {
+        let signal = self
+            .transition_boundary_signal
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .take();
+        Self::lock_after_first_poll(&self.transition_lock, signal).await
+    }
+
+    async fn lock_activation_continuation(&self) -> tokio::sync::MutexGuard<'_, ()> {
+        let signal = self
+            .activation_continuation_boundary_signal
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .take();
+        Self::lock_after_first_poll(&self.continuation_lock, signal).await
+    }
+
+    /// Flushes elapsed time under session-transition serialization.
+    pub(crate) async fn flush_session(&self) -> Result<(), String> {
+        let _serialized = self.lock_transition().await;
+        self.flush_session_locked().await
+    }
+
+    /// Flushes elapsed time while the caller holds `transition_lock`.
+    async fn flush_session_locked(&self) -> Result<(), String> {
         let active_task = self.active_task();
         let seconds = {
             let now = self.clock.monotonic_now();
-            let mut session = self.session.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            let mut session = self
+                .session
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
             let elapsed = now.saturating_duration_since(session.last_tick);
             session.last_tick = now;
             if session.focused && !session.idle && active_task.is_some() {
@@ -230,10 +298,13 @@ impl Capsules {
         tokio::task::spawn_blocking(move || {
             persistence.add_active_seconds_for_task(&task_id, seconds)
         })
-            .await
-            .map_err(|e| e.to_string())??;
+        .await
+        .map_err(|e| e.to_string())??;
 
-        let mut session = self.session.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut session = self
+            .session
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         session.pending_eligible = session
             .pending_eligible
             .saturating_sub(Duration::from_secs(seconds));
@@ -242,18 +313,22 @@ impl Capsules {
 
     /// Updates focus/idle state after flushing time under the previous state.
     pub async fn session_update(&self, focused: bool, idle: bool) -> Result<(), String> {
-        let _serialized = self.activation_lock.lock().await;
-        self.flush_session().await?;
-        let mut session = self.session.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        session.focused = focused;
-        session.idle = idle;
-        session.last_tick = self.clock.monotonic_now();
-        Ok(())
+        let _serialized = self.lock_transition().await;
+        let flush_result = self.flush_session_locked().await;
+        {
+            let mut session = self
+                .session
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            session.focused = focused;
+            session.idle = idle;
+            session.last_tick = self.clock.monotonic_now();
+        }
+        flush_result
     }
 
     /// Persists one heartbeat's eligible whole seconds.
     pub async fn session_heartbeat(&self) -> Result<(), String> {
-        let _serialized = self.activation_lock.lock().await;
         self.flush_session().await
     }
 
@@ -284,7 +359,11 @@ impl Capsules {
             if !CAPTURABLE.contains(&kind) {
                 continue;
             }
-            match self.hub.send_command(&c.id, "workspace.state", json!({})).await {
+            match self
+                .hub
+                .send_command(&c.id, "workspace.state", json!({}))
+                .await
+            {
                 Ok(state) => {
                     let db = self.db.clone();
                     let (tid, k) = (task_id.to_string(), kind.to_string());
@@ -329,27 +408,33 @@ impl Capsules {
 
     /// Archives a project, saving and clearing its active capsule first.
     pub async fn archive_project(&self, project_id: &str) -> Result<ArchiveProjectResult, String> {
-        let _serialized = self.activation_lock.lock().await;
-        let active_task = self.active_task();
-        let active_belongs_to_project = if let Some(task_id) = active_task.as_deref() {
-            let db = self.db.clone();
-            let task_id = task_id.to_string();
-            let project_id = project_id.to_string();
-            tokio::task::spawn_blocking(move || {
-                db.get_task(&task_id)
-                    .map(|task| task.is_some_and(|task| task.project_id == project_id))
-            })
-            .await
-            .map_err(|e| e.to_string())?
-            .map_err(|e| e.to_string())?
-        } else {
-            false
+        let _operation = self.activation_archive_lock.lock().await;
+        let (active_task, active_belongs_to_project) = {
+            let _transition = self.lock_transition().await;
+            let active_task = self.active_task();
+            let active_belongs_to_project = if let Some(task_id) = active_task.as_deref() {
+                let db = self.db.clone();
+                let task_id = task_id.to_string();
+                let project_id = project_id.to_string();
+                tokio::task::spawn_blocking(move || {
+                    db.get_task(&task_id)
+                        .map(|task| task.is_some_and(|task| task.project_id == project_id))
+                })
+                .await
+                .map_err(|e| e.to_string())?
+                .map_err(|e| e.to_string())?
+            } else {
+                false
+            };
+            if active_belongs_to_project {
+                self.flush_session_locked().await?;
+            }
+            (active_task, active_belongs_to_project)
         };
 
         let mut warnings = vec![];
         if active_belongs_to_project {
-            self.flush_session().await?;
-            if let Some(task_id) = active_task {
+            if let Some(task_id) = active_task.as_deref() {
                 match self.save_capsule(&task_id).await {
                     Ok(summary) => warnings.extend(
                         summary
@@ -362,41 +447,61 @@ impl Capsules {
                     }
                 }
             }
-            *self.active_task.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
-            *self.pending.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
-            self.generation.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            let mut session = self.session.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-            session.pending_eligible = Duration::ZERO;
-            session.last_tick = self.clock.monotonic_now();
         }
 
+        let _transition = self.transition_lock.lock().await;
+        if active_belongs_to_project {
+            self.flush_session_locked().await?;
+        }
         let db = self.db.clone();
         let project_id = project_id.to_string();
         let project = tokio::task::spawn_blocking(move || db.archive_project(&project_id))
             .await
             .map_err(|e| e.to_string())?
             .map_err(crate::projects::friendly_db_error)?;
+
+        if active_belongs_to_project {
+            *self
+                .active_task
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+            *self
+                .pending
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+            self.generation
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let mut session = self
+                .session
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            session.pending_eligible = Duration::ZERO;
+            session.last_tick = self.clock.monotonic_now();
+        }
+
         Ok(ArchiveProjectResult { project, warnings })
     }
 
     /// Auto-saves the outgoing active task (if any), then restores `task_id`'s
     /// capsule best-effort per connector, and marks it active.
     pub async fn activate_task(&self, task_id: &str) -> Result<ActivateSummary, String> {
-        let _serialized = self.activation_lock.lock().await;
+        let _operation = self.activation_archive_lock.lock().await;
         let target = {
             let db = self.db.clone();
             let task_id = task_id.to_string();
             tokio::task::spawn_blocking(move || {
-                let task = db.get_task(&task_id)?.ok_or_else(|| rabta_db::DbError::NotFound {
-                    entity: "task",
-                    id: task_id.clone(),
-                })?;
-                let project = db
-                    .get_project(&task.project_id)?
+                let task = db
+                    .get_task(&task_id)?
                     .ok_or_else(|| rabta_db::DbError::NotFound {
+                        entity: "task",
+                        id: task_id.clone(),
+                    })?;
+                let project = db.get_project(&task.project_id)?.ok_or_else(|| {
+                    rabta_db::DbError::NotFound {
                         entity: "project",
                         id: task.project_id.clone(),
-                    })?;
+                    }
+                })?;
                 let resources = db.task_resources(&task_id)?;
                 Ok::<_, rabta_db::DbError>((project, resources))
             })
@@ -406,13 +511,22 @@ impl Capsules {
         };
         if target.0.archived_at.is_some() {
             return Err(
-                "project is archived — restore it before resuming this capsule".to_string()
+                "project is archived — restore it before resuming this capsule".to_string(),
             );
         }
 
-        self.flush_session().await?;
+        let previous = {
+            let _transition = self.lock_transition().await;
+            self.flush_session_locked().await?;
+            self.active_task()
+        };
+
+        // Queue behind any in-flight continuation command before connector
+        // auto-save. This prevents the continuation from checking the old
+        // generation again until this activation either durably commits or
+        // fails without changing continuation state.
+        let continuation = self.lock_activation_continuation().await;
         let mut errors = vec![];
-        let previous = self.active_task();
         let mut saved_previous = None;
         if let Some(prev) = previous.filter(|p| p != task_id) {
             match self.save_capsule(&prev).await {
@@ -422,28 +536,46 @@ impl Capsules {
             }
         }
 
-        let tid = task_id.to_string();
-        let opened_at = self.clock.utc_now();
-        let persistence = self.session_persistence.clone();
-        tokio::task::spawn_blocking(move || {
-            persistence.begin_project_session_for_task(&tid, &opened_at)
-        })
-        .await
-        .map_err(|e| e.to_string())??;
+        let generation = {
+            let _transition = self.transition_lock.lock().await;
+            // Heartbeats and focus changes can continue while connector
+            // auto-save is in flight. Flush that interval before switching.
+            self.flush_session_locked().await?;
+            let tid = task_id.to_string();
+            let opened_at = self.clock.utc_now();
+            let persistence = self.session_persistence.clone();
+            tokio::task::spawn_blocking(move || {
+                persistence.begin_project_session_for_task(&tid, &opened_at)
+            })
+            .await
+            .map_err(|e| e.to_string())??;
 
-        let generation =
-            self.generation.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
-        // One pending restore slot, replaced only after the new session is
-        // durable so a failed activation leaves continuation state untouched.
-        *self.pending.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
-        *self.active_task.lock().unwrap_or_else(std::sync::PoisonError::into_inner) =
-            Some(task_id.to_string());
-        {
-            let mut session =
-                self.session.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-            session.pending_eligible = Duration::ZERO;
-            session.last_tick = self.clock.monotonic_now();
-        }
+            let generation = self
+                .generation
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+                + 1;
+            // One pending restore slot, replaced only after the new session
+            // is durable so a failed activation leaves continuation state
+            // untouched.
+            *self
+                .pending
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+            *self
+                .active_task
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(task_id.to_string());
+            {
+                let mut session = self
+                    .session
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+                session.pending_eligible = Duration::ZERO;
+                session.last_tick = self.clock.monotonic_now();
+            }
+            generation
+        };
+        drop(continuation);
 
         let resources = target.1;
         let mut applied = vec![];
@@ -456,7 +588,10 @@ impl Capsules {
             .iter()
             .find(|r| r.connector_kind == "git" && r.resource_type == "branch")
         {
-            match (git_row.payload["branch"].as_str(), self.repo_for_task(task_id).await) {
+            match (
+                git_row.payload["branch"].as_str(),
+                self.repo_for_task(task_id).await,
+            ) {
                 (Some(target), Ok(Some(repo))) => {
                     let repo = std::path::Path::new(&repo);
                     match crate::git::status(repo).await {
@@ -490,14 +625,19 @@ impl Capsules {
 
         let connectors = self.hub.connectors().await;
         for r in resources.iter().filter(|r| r.resource_type == "workspace") {
-            let Some(conn) = connectors.iter().find(|c| kind_str(c.kind) == r.connector_kind)
+            let Some(conn) = connectors
+                .iter()
+                .find(|c| kind_str(c.kind) == r.connector_kind)
             else {
                 skipped.push(r.connector_kind.clone());
                 continue;
             };
             match r.connector_kind.as_str() {
                 "vscode" => {
-                    match self.restore_vscode(conn, &r.payload, generation, &mut errors).await {
+                    match self
+                        .restore_vscode(conn, &r.payload, generation, &mut errors)
+                        .await
+                    {
                         RestoreOutcome::Applied => applied.push("vscode".into()),
                         RestoreOutcome::Pending => pending.push("vscode".into()),
                     }
@@ -531,7 +671,13 @@ impl Capsules {
             }
         }
 
-        Ok(ActivateSummary { applied, pending, skipped, saved_previous, errors })
+        Ok(ActivateSummary {
+            applied,
+            pending,
+            skipped,
+            saved_previous,
+            errors,
+        })
     }
 
     async fn restore_vscode(
@@ -544,7 +690,11 @@ impl Capsules {
         let target_folder = payload["workspaceFolder"].as_str();
         let mut open_files: Vec<String> = payload["openFiles"]
             .as_array()
-            .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
             .unwrap_or_default();
         // Open the active file last so editor focus lands on it.
         if let Some(active) = payload["activeFile"].as_str() {
@@ -558,21 +708,29 @@ impl Capsules {
             .map(|a| {
                 a.iter()
                     .filter_map(|t| {
-                        t["cwd"].as_str().map(|cwd| {
-                            (cwd.to_string(), t["name"].as_str().map(String::from))
-                        })
+                        t["cwd"]
+                            .as_str()
+                            .map(|cwd| (cwd.to_string(), t["name"].as_str().map(String::from)))
                     })
                     .collect()
             })
             .unwrap_or_default();
 
-        let current = self.hub.send_command(&conn.id, "workspace.state", json!({})).await;
-        let current_folder =
-            current.as_ref().ok().and_then(|s| s["workspaceFolder"].as_str().map(String::from));
+        let current = self
+            .hub
+            .send_command(&conn.id, "workspace.state", json!({}))
+            .await;
+        let current_folder = current
+            .as_ref()
+            .ok()
+            .and_then(|s| s["workspaceFolder"].as_str().map(String::from));
 
         match target_folder {
             Some(target) if current_folder.as_deref() != Some(target) => {
-                *self.pending.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(PendingRestore {
+                *self
+                    .pending
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(PendingRestore {
                     kind: "vscode".into(),
                     generation,
                     open_files,
@@ -588,7 +746,8 @@ impl Capsules {
                 RestoreOutcome::Pending
             }
             _ => {
-                self.apply_editor_state(&conn.id, &open_files, &terminals, errors).await;
+                self.apply_editor_state(&conn.id, &open_files, &terminals, errors)
+                    .await;
                 RestoreOutcome::Applied
             }
         }
@@ -602,8 +761,10 @@ impl Capsules {
         errors: &mut Vec<String>,
     ) {
         for path in open_files {
-            if let Err(e) =
-                self.hub.send_command(connector_id, "editor.openFile", json!({ "path": path })).await
+            if let Err(e) = self
+                .hub
+                .send_command(connector_id, "editor.openFile", json!({ "path": path }))
+                .await
             {
                 errors.push(format!("openFile {path}: {e}"));
             }
@@ -613,8 +774,10 @@ impl Capsules {
             if let Some(n) = name {
                 args["name"] = json!(n);
             }
-            if let Err(e) =
-                self.hub.send_command(connector_id, "terminal.create", args).await
+            if let Err(e) = self
+                .hub
+                .send_command(connector_id, "terminal.create", args)
+                .await
             {
                 errors.push(format!("terminal.create {cwd}: {e}"));
             }
@@ -622,9 +785,9 @@ impl Capsules {
     }
 
     /// Same as `apply_editor_state`, but for the reconnect continuation.
-    /// Serializes each checked send with activation so a failed activation
-    /// leaves the continuation live while a durable newer activation stops
-    /// it before the next command.
+    /// The continuation gate keeps each generation check/send pair ordered
+    /// with activation commit without holding session-transition
+    /// serialization across connector I/O.
     async fn apply_editor_state_checked(
         &self,
         connector_id: &str,
@@ -635,21 +798,23 @@ impl Capsules {
     ) {
         use std::sync::atomic::Ordering::SeqCst;
         for path in open_files {
-            let _serialized = self.activation_lock.lock().await;
+            let _continuation = self.continuation_lock.lock().await;
             if self.generation.load(SeqCst) != expected_generation {
                 log::debug!(
                     "capsule continuation: superseded mid-apply before openFile {path}; stopped"
                 );
                 return;
             }
-            if let Err(e) =
-                self.hub.send_command(connector_id, "editor.openFile", json!({ "path": path })).await
+            if let Err(e) = self
+                .hub
+                .send_command(connector_id, "editor.openFile", json!({ "path": path }))
+                .await
             {
                 errors.push(format!("openFile {path}: {e}"));
             }
         }
         for (cwd, name) in terminals {
-            let _serialized = self.activation_lock.lock().await;
+            let _continuation = self.continuation_lock.lock().await;
             if self.generation.load(SeqCst) != expected_generation {
                 log::debug!(
                     "capsule continuation: superseded mid-apply before terminal.create {cwd}; stopped"
@@ -660,7 +825,11 @@ impl Capsules {
             if let Some(n) = name {
                 args["name"] = json!(n);
             }
-            if let Err(e) = self.hub.send_command(connector_id, "terminal.create", args).await {
+            if let Err(e) = self
+                .hub
+                .send_command(connector_id, "terminal.create", args)
+                .await
+            {
                 errors.push(format!("terminal.create {cwd}: {e}"));
             }
         }
@@ -676,17 +845,30 @@ impl Capsules {
     /// `tabs.open` succeeded. False only when there were urls and every
     /// single one of them failed — the caller reports `skipped` in that
     /// case instead of claiming a restore that didn't actually happen.
-    async fn restore_chrome(&self, conn: &ConnectorInfo, payload: &Value, errors: &mut Vec<String>) -> bool {
+    async fn restore_chrome(
+        &self,
+        conn: &ConnectorInfo,
+        payload: &Value,
+        errors: &mut Vec<String>,
+    ) -> bool {
         let urls: Vec<String> = payload["tabs"]
             .as_array()
-            .map(|a| a.iter().filter_map(|t| t["url"].as_str().map(String::from)).collect())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|t| t["url"].as_str().map(String::from))
+                    .collect()
+            })
             .unwrap_or_default();
         if urls.is_empty() {
             return true;
         }
         let mut any_succeeded = false;
         for url in urls {
-            match self.hub.send_command(&conn.id, "tabs.open", json!({ "url": url })).await {
+            match self
+                .hub
+                .send_command(&conn.id, "tabs.open", json!({ "url": url }))
+                .await
+            {
                 Ok(_) => any_succeeded = true,
                 Err(e) => errors.push(format!("tabs.open {url}: {e}")),
             }
@@ -736,8 +918,12 @@ impl Capsules {
                         .as_ref()
                         .map(|p| p.kind.clone());
                     if let Some(kind) = kind {
-                        if let Some(conn) =
-                            self.hub.connectors().await.into_iter().find(|c| kind_str(c.kind) == kind)
+                        if let Some(conn) = self
+                            .hub
+                            .connectors()
+                            .await
+                            .into_iter()
+                            .find(|c| kind_str(c.kind) == kind)
                         {
                             if let Some(p) = self.take_pending_for(&kind) {
                                 log::debug!(
@@ -756,7 +942,10 @@ impl Capsules {
 
     /// Takes the pending restore slot iff it matches `kind`, under the lock.
     fn take_pending_for(&self, kind: &str) -> Option<PendingRestore> {
-        let mut slot = self.pending.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut slot = self
+            .pending
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         if slot.as_ref().map(|p| p.kind == kind).unwrap_or(false) {
             slot.take()
         } else {
@@ -775,8 +964,14 @@ impl Capsules {
             return;
         }
         let mut errors = vec![];
-        self.apply_editor_state_checked(connector_id, &p.open_files, &p.terminals, p.generation, &mut errors)
-            .await;
+        self.apply_editor_state_checked(
+            connector_id,
+            &p.open_files,
+            &p.terminals,
+            p.generation,
+            &mut errors,
+        )
+        .await;
         for e in errors {
             log::warn!("capsule continuation: {e}");
         }

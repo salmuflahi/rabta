@@ -12,9 +12,47 @@ use tokio::sync::{mpsc, oneshot};
 mod common;
 use common::{git, repo_with_commit};
 
-type Ws = tokio_tungstenite::WebSocketStream<
-    tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
->;
+const TEST_WAIT: Duration = Duration::from_secs(5);
+
+type Ws =
+    tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
+
+async fn wait_for_signal(signal: oneshot::Receiver<()>, context: &'static str) {
+    tokio::time::timeout(TEST_WAIT, signal)
+        .await
+        .expect(context)
+        .expect(context);
+}
+
+async fn wait_for_task<T>(task: tokio::task::JoinHandle<T>, context: &'static str) -> T {
+    tokio::time::timeout(TEST_WAIT, task)
+        .await
+        .expect(context)
+        .expect(context)
+}
+
+async fn wait_for_message<T>(
+    messages: &mut mpsc::UnboundedReceiver<T>,
+    context: &'static str,
+) -> T {
+    tokio::time::timeout(TEST_WAIT, messages.recv())
+        .await
+        .expect(context)
+        .expect(context)
+}
+
+async fn wait_for_connector_count(hub: &Hub, expected: usize) {
+    tokio::time::timeout(TEST_WAIT, async {
+        loop {
+            if hub.connectors().await.len() == expected {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .expect("connector count did not reach the expected value");
+}
 
 /// Connects a scripted `vscode`-kind connector. Every command it receives is
 /// forwarded to `seen`; replies come from `respond`.
@@ -34,8 +72,9 @@ async fn scripted_connector_kind(
     seen: mpsc::UnboundedSender<(String, Value)>,
     respond: impl Fn(&str, &Value) -> Value + Send + 'static,
 ) -> tokio::task::JoinHandle<()> {
-    let (mut ws, _) =
-        tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port())).await.unwrap();
+    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port()))
+        .await
+        .unwrap();
     ws.send(
         json!({"v":1,"id":"h","kind":"hello","payload":{"name":kind,"kind":kind,"protocolVersion":1,"capabilities":["workspace","editor","terminal"],"secret":hub.secret()}})
             .to_string()
@@ -43,7 +82,11 @@ async fn scripted_connector_kind(
     )
     .await
     .unwrap();
-    ws.next().await; // welcome
+    tokio::time::timeout(TEST_WAIT, ws.next())
+        .await
+        .expect("connector welcome timed out")
+        .expect("connector closed before welcome")
+        .expect("connector welcome failed");
     tokio::spawn(async move { pump(ws, seen, respond).await })
 }
 
@@ -54,11 +97,17 @@ async fn pump(
 ) {
     while let Some(Ok(frame)) = ws.next().await {
         let Ok(txt) = frame.to_text() else { continue };
-        let Ok(env) = serde_json::from_str::<Value>(txt) else { continue };
+        let Ok(env) = serde_json::from_str::<Value>(txt) else {
+            continue;
+        };
         match env["kind"].as_str() {
             Some("ping") => {
                 let _ = ws
-                    .send(json!({"v":1,"id":"p","kind":"pong","payload":{}}).to_string().into())
+                    .send(
+                        json!({"v":1,"id":"p","kind":"pong","payload":{}})
+                            .to_string()
+                            .into(),
+                    )
                     .await;
             }
             Some("command") => {
@@ -95,7 +144,11 @@ fn tabs_state(urls: &[&str]) -> Value {
 
 async fn setup() -> (Arc<Hub>, Db, Capsules, String, tempfile::TempDir) {
     let dir = tempfile::tempdir().unwrap();
-    let hub = Arc::new(Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap());
+    let hub = Arc::new(
+        Hub::start(HubConfig::new(dir.path().to_path_buf()))
+            .await
+            .unwrap(),
+    );
     let db = Db::open_in_memory(DbConfig::default()).unwrap();
     let p = db
         .create_project(NewProject {
@@ -105,7 +158,12 @@ async fn setup() -> (Arc<Hub>, Db, Capsules, String, tempfile::TempDir) {
             default_branch: "main".into(),
         })
         .unwrap();
-    let t = db.create_task(NewTask { project_id: p.id, title: "task".into() }).unwrap();
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id,
+            title: "task".into(),
+        })
+        .unwrap();
     let capsules = Capsules::new(hub.clone(), db.clone(), Duration::from_millis(50));
     (hub, db, capsules, t.id, dir)
 }
@@ -152,7 +210,9 @@ struct PersistenceRelease {
 impl PersistenceRelease {
     fn release(&self) {
         let (released, wake) = &*self.released;
-        *released.lock().unwrap() = true;
+        *released
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = true;
         wake.notify_all();
     }
 }
@@ -200,11 +260,7 @@ impl TestSessionPersistence {
 }
 
 impl SessionPersistence for TestSessionPersistence {
-    fn begin_project_session_for_task(
-        &self,
-        task_id: &str,
-        opened_at: &str,
-    ) -> Result<(), String> {
+    fn begin_project_session_for_task(&self, task_id: &str, opened_at: &str) -> Result<(), String> {
         if self.fail_next_begin.swap(false, Ordering::SeqCst) {
             return Err("injected session begin failure".into());
         }
@@ -219,8 +275,19 @@ impl SessionPersistence for TestSessionPersistence {
             let _ = blocking.entered.send(());
             let (released, wake) = &*blocking.released;
             let mut released = released.lock().unwrap();
+            let deadline = Instant::now() + TEST_WAIT;
             while !*released {
-                released = wake.wait(released).unwrap();
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                assert!(
+                    !remaining.is_zero(),
+                    "timed out waiting to release blocked persistence call"
+                );
+                let (guard, timeout) = wake.wait_timeout(released, remaining).unwrap();
+                released = guard;
+                assert!(
+                    !timeout.timed_out() || *released,
+                    "timed out waiting to release blocked persistence call"
+                );
             }
         }
         if self.fail_next_add.swap(false, Ordering::SeqCst) {
@@ -251,7 +318,11 @@ impl SessionFixture {
 
 async fn session_fixture() -> SessionFixture {
     let dir = tempfile::tempdir().unwrap();
-    let hub = Arc::new(Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap());
+    let hub = Arc::new(
+        Hub::start(HubConfig::new(dir.path().to_path_buf()))
+            .await
+            .unwrap(),
+    );
     let db = Db::open_in_memory(DbConfig::default()).unwrap();
     let project = db
         .create_project(NewProject {
@@ -291,7 +362,11 @@ async fn session_fixture() -> SessionFixture {
 #[tokio::test]
 async fn session_credits_only_focused_non_idle_time_and_caps_sleep_gaps() {
     let fixture = session_fixture().await;
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
     assert_eq!(
         fixture.project().last_opened_at.as_deref(),
         Some("2026-07-23T12:00:00Z")
@@ -335,7 +410,11 @@ async fn session_switch_flushes_the_previous_task_before_starting_the_next() {
             title: "next task".into(),
         })
         .unwrap();
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
     fixture.clock.advance(Duration::from_secs(12));
 
@@ -345,7 +424,10 @@ async fn session_switch_flushes_the_previous_task_before_starting_the_next() {
     let next = fixture.db.get_project(&next_project.id).unwrap().unwrap();
     assert_eq!(next.active_seconds, 0);
     assert_eq!(next.last_task_id.as_deref(), Some(next_task.id.as_str()));
-    assert_eq!(fixture.capsules.active_task().as_deref(), Some(next_task.id.as_str()));
+    assert_eq!(
+        fixture.capsules.active_task().as_deref(),
+        Some(next_task.id.as_str())
+    );
 }
 
 #[tokio::test]
@@ -358,7 +440,11 @@ async fn session_reactivation_within_the_same_project_resets_duration() {
             title: "next task".into(),
         })
         .unwrap();
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
     fixture.clock.advance(Duration::from_secs(12));
     fixture.capsules.session_heartbeat().await.unwrap();
@@ -374,11 +460,19 @@ async fn session_reactivation_within_the_same_project_resets_duration() {
 #[tokio::test]
 async fn session_archive_flushes_before_clearing_and_archiving() {
     let fixture = session_fixture().await;
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
     fixture.clock.advance(Duration::from_secs(9));
 
-    let result = fixture.capsules.archive_project(&fixture.project_id).await.unwrap();
+    let result = fixture
+        .capsules
+        .archive_project(&fixture.project_id)
+        .await
+        .unwrap();
 
     assert_eq!(result.project.active_seconds, 9);
     assert!(result.project.archived_at.is_some());
@@ -388,7 +482,11 @@ async fn session_archive_flushes_before_clearing_and_archiving() {
 #[tokio::test]
 async fn session_flush_persists_whole_seconds_and_repeated_flush_is_idempotent() {
     let fixture = session_fixture().await;
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
     fixture.clock.advance(Duration::from_millis(1_900));
 
@@ -402,7 +500,11 @@ async fn session_flush_persists_whole_seconds_and_repeated_flush_is_idempotent()
 #[tokio::test]
 async fn session_carries_fractional_eligible_time_across_successful_flushes() {
     let fixture = session_fixture().await;
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
 
     fixture.clock.advance(Duration::from_millis(900));
@@ -417,7 +519,11 @@ async fn session_carries_fractional_eligible_time_across_successful_flushes() {
 #[tokio::test]
 async fn session_discards_ineligible_fractional_time() {
     let fixture = session_fixture().await;
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
 
     fixture.clock.advance(Duration::from_millis(900));
     fixture.capsules.session_heartbeat().await.unwrap();
@@ -434,7 +540,11 @@ async fn session_discards_ineligible_fractional_time() {
 #[tokio::test]
 async fn session_cap_discards_excess_but_keeps_new_fractional_time() {
     let fixture = session_fixture().await;
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
 
     fixture.clock.advance(Duration::from_secs(3_600));
@@ -453,7 +563,11 @@ async fn session_cap_discards_excess_but_keeps_new_fractional_time() {
 #[tokio::test]
 async fn session_failed_accrual_retries_all_eligible_time_without_clock_advance() {
     let fixture = session_fixture().await;
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
     fixture.clock.advance(Duration::from_millis(1_900));
     fixture.persistence.fail_next_add();
@@ -467,15 +581,48 @@ async fn session_failed_accrual_retries_all_eligible_time_without_clock_advance(
 }
 
 #[tokio::test]
+async fn session_failed_focus_loss_retries_only_pre_transition_eligible_time() {
+    let fixture = session_fixture().await;
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
+    fixture.capsules.session_update(true, false).await.unwrap();
+    fixture.clock.advance(Duration::from_millis(1_900));
+    fixture.persistence.fail_next_add();
+
+    let error = fixture
+        .capsules
+        .session_update(false, false)
+        .await
+        .unwrap_err();
+    assert_eq!(error, "injected active-seconds failure");
+    assert_eq!(fixture.project().active_seconds, 0);
+
+    fixture.clock.advance(Duration::from_secs(10));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 1);
+}
+
+#[tokio::test]
 async fn session_same_task_reactivation_resets_duration_and_fractional_carry() {
     let fixture = session_fixture().await;
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
     fixture.clock.advance(Duration::from_millis(2_900));
     fixture.capsules.session_heartbeat().await.unwrap();
     assert_eq!(fixture.project().active_seconds, 2);
 
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
     assert_eq!(fixture.project().active_seconds, 0);
 
     fixture.clock.advance(Duration::from_millis(100));
@@ -505,11 +652,18 @@ async fn session_failed_begin_after_preload_preserves_active_and_continuation_st
     })
     .await;
     assert_eq!(fixture.hub.connectors().await.len(), 1);
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
     while commands.try_recv().is_ok() {}
 
     let before = fixture.capsules.continuation_state_for_test();
-    assert!(before.1.is_some(), "fixture must have a pending continuation");
+    assert!(
+        before.1.is_some(),
+        "fixture must have a pending continuation"
+    );
 
     let target_project = fixture
         .db
@@ -561,11 +715,13 @@ async fn session_failed_begin_after_preload_preserves_active_and_continuation_st
     );
     while let Ok((name, args)) = commands.try_recv() {
         assert!(
-            name != "editor.openFile"
-                || args["path"].as_str() != Some("/repo/current/new.ts"),
+            name != "editor.openFile" || args["path"].as_str() != Some("/repo/current/new.ts"),
             "failed activation restored preloaded target resources"
         );
-        assert_ne!(name, "workspace.open", "failed activation switched workspace");
+        assert_ne!(
+            name, "workspace.open",
+            "failed activation switched workspace"
+        );
     }
 }
 
@@ -588,20 +744,33 @@ async fn session_heartbeat_serializes_with_activation() {
             title: "activation target task".into(),
         })
         .unwrap();
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
     fixture.clock.advance(Duration::from_secs(2));
     let (entered, release) = fixture.persistence.block_next_add();
 
     let heartbeat_capsules = fixture.capsules.clone();
     let heartbeat = tokio::spawn(async move { heartbeat_capsules.session_heartbeat().await });
-    entered.await.unwrap();
+    wait_for_signal(entered, "heartbeat did not reach blocked persistence").await;
     assert!(fixture.capsules.transition_lock_is_held_for_test());
 
+    let (at_boundary, boundary_reached) = oneshot::channel();
+    fixture
+        .capsules
+        .set_next_transition_boundary_signal_for_test(at_boundary);
     let activation_capsules = fixture.capsules.clone();
     let target_task_id = target_task.id.clone();
     let activation =
         tokio::spawn(async move { activation_capsules.activate_task(&target_task_id).await });
+    wait_for_signal(
+        boundary_reached,
+        "activation did not reach the session transition boundary",
+    )
+    .await;
     assert_eq!(
         fixture.capsules.active_task().as_deref(),
         Some(fixture.task_id.as_str())
@@ -617,8 +786,12 @@ async fn session_heartbeat_serializes_with_activation() {
     );
 
     release.release();
-    heartbeat.await.unwrap().unwrap();
-    activation.await.unwrap().unwrap();
+    wait_for_task(heartbeat, "heartbeat task did not finish")
+        .await
+        .unwrap();
+    wait_for_task(activation, "activation task did not finish")
+        .await
+        .unwrap();
     assert_eq!(fixture.project().active_seconds, 2);
     assert_eq!(
         fixture.capsules.active_task().as_deref(),
@@ -629,19 +802,32 @@ async fn session_heartbeat_serializes_with_activation() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn session_update_serializes_with_archive() {
     let fixture = session_fixture().await;
-    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture
+        .capsules
+        .activate_task(&fixture.task_id)
+        .await
+        .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
     fixture.clock.advance(Duration::from_secs(2));
     let (entered, release) = fixture.persistence.block_next_add();
 
     let update_capsules = fixture.capsules.clone();
     let update = tokio::spawn(async move { update_capsules.session_update(false, false).await });
-    entered.await.unwrap();
+    wait_for_signal(entered, "session update did not reach blocked persistence").await;
     assert!(fixture.capsules.transition_lock_is_held_for_test());
 
+    let (at_boundary, boundary_reached) = oneshot::channel();
+    fixture
+        .capsules
+        .set_next_transition_boundary_signal_for_test(at_boundary);
     let archive_capsules = fixture.capsules.clone();
     let project_id = fixture.project_id.clone();
     let archive = tokio::spawn(async move { archive_capsules.archive_project(&project_id).await });
+    wait_for_signal(
+        boundary_reached,
+        "archive did not reach the session transition boundary",
+    )
+    .await;
     assert!(fixture.project().archived_at.is_none());
     assert_eq!(
         fixture.capsules.active_task().as_deref(),
@@ -649,8 +835,12 @@ async fn session_update_serializes_with_archive() {
     );
 
     release.release();
-    update.await.unwrap().unwrap();
-    let archived = archive.await.unwrap().unwrap();
+    wait_for_task(update, "session update task did not finish")
+        .await
+        .unwrap();
+    let archived = wait_for_task(archive, "archive task did not finish")
+        .await
+        .unwrap();
     assert_eq!(archived.project.active_seconds, 2);
     assert!(archived.project.archived_at.is_some());
     assert_eq!(fixture.capsules.active_task(), None);
@@ -700,7 +890,10 @@ async fn archiving_an_inactive_project_keeps_the_current_capsule_active() {
         .unwrap();
     capsules.activate_task(&active_task_id).await.unwrap();
 
-    capsules.archive_project(&inactive_project.id).await.unwrap();
+    capsules
+        .archive_project(&inactive_project.id)
+        .await
+        .unwrap();
 
     assert_eq!(
         capsules.active_task().as_deref(),
@@ -732,8 +925,13 @@ async fn save_capsule_captures_workspace_state_into_rows() {
 #[tokio::test]
 async fn activate_same_folder_opens_files_and_terminals() {
     let (hub, db, capsules, task_id, _dir) = setup().await;
-    db.replace_task_resources(&task_id, "vscode", "workspace", &state("/repo/a", &["/repo/a/x.ts", "/repo/a/y.ts"]))
-        .unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "vscode",
+        "workspace",
+        &state("/repo/a", &["/repo/a/x.ts", "/repo/a/y.ts"]),
+    )
+    .unwrap();
     let (tx, mut rx) = mpsc::unbounded_channel();
     let _conn = scripted_connector(&hub, tx, |name, _| match name {
         "workspace.state" => state("/repo/a", &[]), // same folder, no files open
@@ -749,7 +947,10 @@ async fn activate_same_folder_opens_files_and_terminals() {
 
     let mut names = vec![];
     while let Ok((name, args)) = rx.try_recv() {
-        names.push(format!("{name}:{}", args["path"].as_str().or(args["cwd"].as_str()).unwrap_or("")));
+        names.push(format!(
+            "{name}:{}",
+            args["path"].as_str().or(args["cwd"].as_str()).unwrap_or("")
+        ));
     }
     assert!(names.contains(&"workspace.state:".to_string()));
     assert!(names.contains(&"editor.openFile:/repo/a/x.ts".to_string()));
@@ -761,8 +962,13 @@ async fn activate_same_folder_opens_files_and_terminals() {
 async fn activate_cross_folder_defers_and_continues_on_reconnect() {
     let (hub, db, capsules, task_id, _dir) = setup().await;
     capsules.spawn_continuation_on(tokio::runtime::Handle::current());
-    db.replace_task_resources(&task_id, "vscode", "workspace", &state("/repo/b", &["/repo/b/z.ts"]))
-        .unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "vscode",
+        "workspace",
+        &state("/repo/b", &["/repo/b/z.ts"]),
+    )
+    .unwrap();
     let (tx, rx_ignored) = mpsc::unbounded_channel();
     drop(rx_ignored);
     let conn = scripted_connector(&hub, tx, |name, _| match name {
@@ -786,17 +992,32 @@ async fn activate_cross_folder_defers_and_continues_on_reconnect() {
     tokio::time::sleep(Duration::from_millis(700)).await;
     let mut names = vec![];
     while let Ok((name, args)) = rx2.try_recv() {
-        names.push(format!("{name}:{}", args["path"].as_str().or(args["cwd"].as_str()).unwrap_or("")));
+        names.push(format!(
+            "{name}:{}",
+            args["path"].as_str().or(args["cwd"].as_str()).unwrap_or("")
+        ));
     }
-    assert!(names.contains(&"editor.openFile:/repo/b/z.ts".to_string()), "got {names:?}");
-    assert!(names.contains(&"terminal.create:/repo/b".to_string()), "got {names:?}");
+    assert!(
+        names.contains(&"editor.openFile:/repo/b/z.ts".to_string()),
+        "got {names:?}"
+    );
+    assert!(
+        names.contains(&"terminal.create:/repo/b".to_string()),
+        "got {names:?}"
+    );
 }
 
 #[tokio::test]
 async fn activating_b_autosaves_active_a_first() {
     let (hub, db, capsules, task_a, _dir) = setup().await;
     let p2 = db.list_projects().unwrap().remove(0);
-    let task_b = db.create_task(NewTask { project_id: p2.id, title: "b".into() }).unwrap().id;
+    let task_b = db
+        .create_task(NewTask {
+            project_id: p2.id,
+            title: "b".into(),
+        })
+        .unwrap()
+        .id;
     let (tx, _rx) = mpsc::unbounded_channel();
     let _conn = scripted_connector(&hub, tx, |name, _| match name {
         "workspace.state" => state("/repo/a", &["/repo/a/current.ts"]),
@@ -819,10 +1040,21 @@ async fn newer_activation_clears_stale_pending_restore() {
     let (hub, db, capsules, task_a, _dir) = setup().await;
     capsules.spawn_continuation_on(tokio::runtime::Handle::current());
     let p = db.list_projects().unwrap().remove(0);
-    let task_b = db.create_task(NewTask { project_id: p.id, title: "b".into() }).unwrap().id;
+    let task_b = db
+        .create_task(NewTask {
+            project_id: p.id,
+            title: "b".into(),
+        })
+        .unwrap()
+        .id;
     // A's capsule points at a DIFFERENT folder -> activation defers to pending.
-    db.replace_task_resources(&task_a, "vscode", "workspace", &state("/repo/other", &["/repo/other/old.ts"]))
-        .unwrap();
+    db.replace_task_resources(
+        &task_a,
+        "vscode",
+        "workspace",
+        &state("/repo/other", &["/repo/other/old.ts"]),
+    )
+    .unwrap();
     // B's capsule matches the current folder -> plain apply, no pending.
     db.replace_task_resources(&task_b, "vscode", "workspace", &state("/repo/a", &[]))
         .unwrap();
@@ -857,8 +1089,13 @@ async fn newer_activation_clears_stale_pending_restore() {
 #[tokio::test]
 async fn activate_fake_capsule_opens_root_workspace() {
     let (hub, db, capsules, task_id, _dir) = setup().await;
-    db.replace_task_resources(&task_id, "fake", "workspace", &fake_state("/repo/f", &["a"]))
-        .unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "fake",
+        "workspace",
+        &fake_state("/repo/f", &["a"]),
+    )
+    .unwrap();
     let (tx, mut rx) = mpsc::unbounded_channel();
     let _conn = scripted_connector_kind(&hub, "fake", tx, |_, _| json!({})).await;
     tokio::time::sleep(Duration::from_millis(100)).await;
@@ -871,7 +1108,10 @@ async fn activate_fake_capsule_opens_root_workspace() {
         names.push((name, args));
     }
     let opened = names.iter().find(|(n, _)| n == "workspace.open");
-    assert!(opened.is_some(), "connector should have received workspace.open, got {names:?}");
+    assert!(
+        opened.is_some(),
+        "connector should have received workspace.open, got {names:?}"
+    );
     assert_eq!(opened.unwrap().1["path"].as_str(), Some("/repo/f"));
 }
 
@@ -880,7 +1120,11 @@ async fn mid_settle_activation_supersedes_pending() {
     // A dedicated Capsules with a longer settle window so we can land an
     // activation squarely inside it.
     let dir = tempfile::tempdir().unwrap();
-    let hub = Arc::new(Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap());
+    let hub = Arc::new(
+        Hub::start(HubConfig::new(dir.path().to_path_buf()))
+            .await
+            .unwrap(),
+    );
     let db = Db::open_in_memory(DbConfig::default()).unwrap();
     let p = db
         .create_project(NewProject {
@@ -890,8 +1134,20 @@ async fn mid_settle_activation_supersedes_pending() {
             default_branch: "main".into(),
         })
         .unwrap();
-    let task_a = db.create_task(NewTask { project_id: p.id.clone(), title: "a".into() }).unwrap().id;
-    let task_b = db.create_task(NewTask { project_id: p.id, title: "b".into() }).unwrap().id;
+    let task_a = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "a".into(),
+        })
+        .unwrap()
+        .id;
+    let task_b = db
+        .create_task(NewTask {
+            project_id: p.id,
+            title: "b".into(),
+        })
+        .unwrap()
+        .id;
     let capsules = Capsules::new(hub.clone(), db.clone(), Duration::from_millis(300));
     capsules.spawn_continuation_on(tokio::runtime::Handle::current());
 
@@ -904,7 +1160,8 @@ async fn mid_settle_activation_supersedes_pending() {
     )
     .unwrap();
     // B's capsule matches the current folder -> plain apply, no pending.
-    db.replace_task_resources(&task_b, "vscode", "workspace", &state("/repo/a", &[])).unwrap();
+    db.replace_task_resources(&task_b, "vscode", "workspace", &state("/repo/a", &[]))
+        .unwrap();
 
     let (tx, _rx) = mpsc::unbounded_channel();
     let conn = scripted_connector(&hub, tx, |name, _| match name {
@@ -941,9 +1198,9 @@ async fn mid_settle_activation_supersedes_pending() {
         names.push((name, args));
     }
     assert!(
-        !names
-            .iter()
-            .any(|(n, a)| n == "editor.openFile" && a["path"].as_str() == Some("/repo/other/old.ts")),
+        !names.iter().any(
+            |(n, a)| n == "editor.openFile" && a["path"].as_str() == Some("/repo/other/old.ts")
+        ),
         "stale pending from task A must not apply after B's mid-settle activation: {names:?}"
     );
 }
@@ -957,7 +1214,12 @@ async fn project_with_repo(db: &Db, repo: &std::path::Path) -> String {
             default_branch: "main".into(),
         })
         .unwrap();
-    db.create_task(rabta_db::NewTask { project_id: p.id, title: "git task".into() }).unwrap().id
+    db.create_task(rabta_db::NewTask {
+        project_id: p.id,
+        title: "git task".into(),
+    })
+    .unwrap()
+    .id
 }
 
 #[tokio::test]
@@ -968,7 +1230,10 @@ async fn save_capsule_records_current_branch() {
     let task = project_with_repo(&db, repo.path()).await;
 
     let summary = capsules.save_capsule(&task).await.unwrap();
-    assert!(summary.captured.contains(&"git".to_string()), "got {summary:?}");
+    assert!(
+        summary.captured.contains(&"git".to_string()),
+        "got {summary:?}"
+    );
 
     let rows = db.task_resources(&task).unwrap();
     let git_row = rows.iter().find(|r| r.connector_kind == "git").unwrap();
@@ -981,15 +1246,27 @@ async fn activate_restores_branch_on_clean_tree() {
     let (_hub, db, capsules, _t, _dir) = setup().await;
     let repo = repo_with_commit().await;
     let task = project_with_repo(&db, repo.path()).await;
-    db.replace_task_resources(&task, "git", "branch", &serde_json::json!({"branch": "main"}))
-        .unwrap();
+    db.replace_task_resources(
+        &task,
+        "git",
+        "branch",
+        &serde_json::json!({"branch": "main"}),
+    )
+    .unwrap();
     // Move the repo off main; activation must bring it back.
     git(repo.path(), &["switch", "-c", "elsewhere"]).await;
 
     let summary = capsules.activate_task(&task).await.unwrap();
-    assert!(summary.applied.contains(&"git".to_string()), "got {summary:?}");
+    assert!(
+        summary.applied.contains(&"git".to_string()),
+        "got {summary:?}"
+    );
     assert_eq!(
-        rabta_desktop_lib::git::status(repo.path()).await.unwrap().branch.as_deref(),
+        rabta_desktop_lib::git::status(repo.path())
+            .await
+            .unwrap()
+            .branch
+            .as_deref(),
         Some("main")
     );
 }
@@ -999,9 +1276,15 @@ async fn activate_refuses_branch_switch_on_dirty_tree() {
     let (hub, db, capsules, _t, _dir) = setup().await;
     let repo = repo_with_commit().await;
     let task = project_with_repo(&db, repo.path()).await;
-    db.replace_task_resources(&task, "git", "branch", &serde_json::json!({"branch": "main"}))
+    db.replace_task_resources(
+        &task,
+        "git",
+        "branch",
+        &serde_json::json!({"branch": "main"}),
+    )
+    .unwrap();
+    db.replace_task_resources(&task, "vscode", "workspace", &state("/repo/a", &[]))
         .unwrap();
-    db.replace_task_resources(&task, "vscode", "workspace", &state("/repo/a", &[])).unwrap();
     git(repo.path(), &["switch", "-c", "elsewhere"]).await;
     std::fs::write(repo.path().join("a.txt"), "precious\n").unwrap();
 
@@ -1014,18 +1297,31 @@ async fn activate_refuses_branch_switch_on_dirty_tree() {
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     let summary = capsules.activate_task(&task).await.unwrap();
-    assert!(summary.skipped.contains(&"git".to_string()), "got {summary:?}");
-    assert!(summary.errors.iter().any(|e| e.contains("never discards")), "got {summary:?}");
+    assert!(
+        summary.skipped.contains(&"git".to_string()),
+        "got {summary:?}"
+    );
+    assert!(
+        summary.errors.iter().any(|e| e.contains("never discards")),
+        "got {summary:?}"
+    );
     assert!(
         summary.applied.contains(&"vscode".to_string()),
         "editor restore must proceed despite git refusal: got {summary:?}"
     );
     assert_eq!(
-        rabta_desktop_lib::git::status(repo.path()).await.unwrap().branch.as_deref(),
+        rabta_desktop_lib::git::status(repo.path())
+            .await
+            .unwrap()
+            .branch
+            .as_deref(),
         Some("elsewhere"),
         "branch unchanged"
     );
-    assert_eq!(std::fs::read_to_string(repo.path().join("a.txt")).unwrap(), "precious\n");
+    assert_eq!(
+        std::fs::read_to_string(repo.path().join("a.txt")).unwrap(),
+        "precious\n"
+    );
 }
 
 #[tokio::test]
@@ -1041,7 +1337,10 @@ async fn save_capsule_captures_chrome_tabs() {
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     let summary = capsules.save_capsule(&task_id).await.unwrap();
-    assert!(summary.captured.contains(&"chrome".to_string()), "got {summary:?}");
+    assert!(
+        summary.captured.contains(&"chrome".to_string()),
+        "got {summary:?}"
+    );
     let rows = db.task_resources(&task_id).unwrap();
     let chrome = rows.iter().find(|r| r.connector_kind == "chrome").unwrap();
     assert_eq!(chrome.payload["tabs"][0]["url"], "https://a.test");
@@ -1050,14 +1349,22 @@ async fn save_capsule_captures_chrome_tabs() {
 #[tokio::test]
 async fn activate_opens_chrome_tabs_additively() {
     let (hub, db, capsules, task_id, _dir) = setup().await;
-    db.replace_task_resources(&task_id, "chrome", "workspace", &tabs_state(&["https://x.test", "https://y.test"]))
-        .unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        "workspace",
+        &tabs_state(&["https://x.test", "https://y.test"]),
+    )
+    .unwrap();
     let (tx, mut rx) = mpsc::unbounded_channel();
     let _c = scripted_connector_kind(&hub, "chrome", tx, |_, _| json!({})).await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     let summary = capsules.activate_task(&task_id).await.unwrap();
-    assert!(summary.applied.contains(&"chrome".to_string()), "got {summary:?}");
+    assert!(
+        summary.applied.contains(&"chrome".to_string()),
+        "got {summary:?}"
+    );
     assert!(summary.pending.is_empty(), "chrome restore is not deferred");
 
     let mut opened = vec![];
@@ -1066,35 +1373,49 @@ async fn activate_opens_chrome_tabs_additively() {
             opened.push(args["url"].as_str().unwrap().to_string());
         }
     }
-    assert!(opened.contains(&"https://x.test".to_string()), "got {opened:?}");
-    assert!(opened.contains(&"https://y.test".to_string()), "got {opened:?}");
+    assert!(
+        opened.contains(&"https://x.test".to_string()),
+        "got {opened:?}"
+    );
+    assert!(
+        opened.contains(&"https://y.test".to_string()),
+        "got {opened:?}"
+    );
 }
 
 #[tokio::test]
 async fn activate_chrome_without_browser_is_skipped() {
     let (_hub, db, capsules, task_id, _dir) = setup().await;
-    db.replace_task_resources(&task_id, "chrome", "workspace", &tabs_state(&["https://z.test"]))
-        .unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        "workspace",
+        &tabs_state(&["https://z.test"]),
+    )
+    .unwrap();
     let summary = capsules.activate_task(&task_id).await.unwrap();
-    assert!(summary.skipped.contains(&"chrome".to_string()), "got {summary:?}");
+    assert!(
+        summary.skipped.contains(&"chrome".to_string()),
+        "got {summary:?}"
+    );
 }
 
-/// Proves the continuation's per-command generation recheck: a newer
-/// activation landing WHILE the continuation is mid-way through sending
-/// several commands to the same connector must stop the remaining sends,
-/// not just be caught by the single check before the loop starts (that
-/// narrower case is `mid_settle_activation_supersedes_pending` above).
+/// Proves a blocked continuation command does not hold session-transition
+/// serialization, and that a newer activation waiting on the continuation
+/// gate still stops all remaining stale sends after the in-flight command.
 ///
 /// The reconnected connector's mock blocks synchronously (via a std
-/// channel) while handling the first `editor.openFile`, which lets the
-/// test deterministically land a second, generation-bumping `activate_task`
-/// call in the gap between command #1 completing and command #2 being
-/// sent — without racing on wall-clock timing. Requires a multi-thread
-/// runtime so the one blocked mock doesn't stall the whole test.
+/// channel) while handling the first `editor.openFile`. Boundary signals
+/// prove every contender reached the relevant lock before assertions, and
+/// every wait is bounded so a regression fails instead of hanging.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn continuation_recheck_stops_mid_apply_on_newer_activation() {
     let dir = tempfile::tempdir().unwrap();
-    let hub = Arc::new(Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap());
+    let hub = Arc::new(
+        Hub::start(HubConfig::new(dir.path().to_path_buf()))
+            .await
+            .unwrap(),
+    );
     let db = Db::open_in_memory(DbConfig::default()).unwrap();
     let p = db
         .create_project(NewProject {
@@ -1104,8 +1425,28 @@ async fn continuation_recheck_stops_mid_apply_on_newer_activation() {
             default_branch: "main".into(),
         })
         .unwrap();
-    let task_a = db.create_task(NewTask { project_id: p.id.clone(), title: "a".into() }).unwrap().id;
-    let task_b = db.create_task(NewTask { project_id: p.id, title: "b".into() }).unwrap().id;
+    let task_a = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "a".into(),
+        })
+        .unwrap()
+        .id;
+    let task_b = db
+        .create_task(NewTask {
+            project_id: p.id,
+            title: "b".into(),
+        })
+        .unwrap()
+        .id;
+    let inactive_project = db
+        .create_project(NewProject {
+            name: "inactive".into(),
+            repo_path: "/tmp/inactive".into(),
+            dev_url: None,
+            default_branch: "main".into(),
+        })
+        .unwrap();
     let capsules = Capsules::new(hub.clone(), db.clone(), Duration::from_millis(50));
     capsules.spawn_continuation_on(tokio::runtime::Handle::current());
 
@@ -1131,7 +1472,7 @@ async fn continuation_recheck_stops_mid_apply_on_newer_activation() {
         _ => json!({}),
     })
     .await;
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    wait_for_connector_count(&hub, 1).await;
 
     let a = capsules.activate_task(&task_a).await.unwrap();
     assert_eq!(a.pending, vec!["vscode"], "A defers cross-folder");
@@ -1140,7 +1481,7 @@ async fn continuation_recheck_stops_mid_apply_on_newer_activation() {
     // mock that blocks (synchronously, off the async executor) the instant
     // it sees the first openFile, and reports every command back on rx2.
     conn.abort();
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    wait_for_connector_count(&hub, 0).await;
 
     let (signal_tx, mut signal_rx) = mpsc::unbounded_channel::<()>();
     let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
@@ -1154,37 +1495,61 @@ async fn continuation_recheck_stops_mid_apply_on_newer_activation() {
             // tied up, and nothing else needed to make progress depends on
             // this specific thread.
             if let Some(rx) = release_rx.lock().unwrap().take() {
-                let _ = rx.recv();
+                rx.recv_timeout(TEST_WAIT)
+                    .expect("timed out waiting to release blocked connector");
             }
         }
         json!({})
     })
     .await;
+    wait_for_connector_count(&hub, 1).await;
 
     // Wait for the continuation to be mid-way through sending a.ts before
     // doing anything else — no sleeps/guessing involved.
-    signal_rx.recv().await.expect("a.ts command should have been sent");
+    wait_for_message(&mut signal_rx, "a.ts command should have been sent").await;
 
-    // Bump the generation via a second activation while a.ts's response is
-    // still withheld. `activate_task` increments the generation counter
-    // synchronously right after acquiring the activation lock, before it
-    // ever touches the hub (the hub round-trip — auto-saving the previous
-    // task's capsule — only happens afterwards, and will itself then block
-    // on the same withheld connector until we release it below). A short
-    // sleep gives the spawned task ample time to reach and clear that
-    // point — the preceding work is a handful of uncontended lock
-    // acquisitions and an atomic increment, not I/O.
+    tokio::time::timeout(TEST_WAIT, capsules.session_heartbeat())
+        .await
+        .expect("blocked continuation prevented session heartbeat")
+        .unwrap();
+    tokio::time::timeout(TEST_WAIT, capsules.session_update(false, true))
+        .await
+        .expect("blocked continuation prevented session update")
+        .unwrap();
+    let archived = tokio::time::timeout(TEST_WAIT, capsules.archive_project(&inactive_project.id))
+        .await
+        .expect("blocked continuation prevented inactive-project archive")
+        .unwrap();
+    assert!(archived.project.archived_at.is_some());
+
+    // The newer activation reaches the transition boundary while a.ts is
+    // still in flight, then queues on continuation-specific synchronization.
+    // Once a.ts returns, activation durably switches generation before the
+    // continuation is allowed to check and send b.ts.
+    let (at_boundary, boundary_reached) = oneshot::channel();
+    capsules.set_next_transition_boundary_signal_for_test(at_boundary);
+    let (at_continuation_boundary, continuation_boundary_reached) = oneshot::channel();
+    capsules.set_next_activation_continuation_boundary_signal_for_test(at_continuation_boundary);
     let capsules2 = capsules.clone();
     let task_b2 = task_b.clone();
-    let second_activation = tokio::spawn(async move {
-        let _ = capsules2.activate_task(&task_b2).await;
-    });
-    tokio::time::sleep(Duration::from_millis(150)).await;
+    let second_activation = tokio::spawn(async move { capsules2.activate_task(&task_b2).await });
+    wait_for_signal(
+        boundary_reached,
+        "newer activation did not reach the session transition boundary",
+    )
+    .await;
+    wait_for_signal(
+        continuation_boundary_reached,
+        "newer activation did not queue behind the continuation command",
+    )
+    .await;
+    assert_eq!(capsules.active_task().as_deref(), Some(task_a.as_str()));
 
     // Now let a.ts's response (and everything queued behind it) through.
     release_tx.send(()).unwrap();
-    let _ = tokio::time::timeout(Duration::from_secs(5), second_activation).await;
-    tokio::time::sleep(Duration::from_millis(200)).await;
+    wait_for_task(second_activation, "newer activation did not finish")
+        .await
+        .unwrap();
 
     let mut names = vec![];
     while let Ok((name, args)) = rx2.try_recv() {
@@ -1195,7 +1560,9 @@ async fn continuation_recheck_stops_mid_apply_on_newer_activation() {
         "a.ts (already in flight when the newer activation landed) must still have applied: {names:?}"
     );
     assert!(
-        !names.iter().any(|(n, a)| n == "editor.openFile" && a["path"].as_str() == Some("/repo/other/b.ts")),
+        !names
+            .iter()
+            .any(|(n, a)| n == "editor.openFile" && a["path"].as_str() == Some("/repo/other/b.ts")),
         "b.ts must not have been sent once superseded: {names:?}"
     );
     assert!(
