@@ -185,6 +185,8 @@ describe("useSessionTracking", () => {
   });
 
   it("removes listeners and timers when unmounted", async () => {
+    const scroller = document.createElement("main");
+    document.body.appendChild(scroller);
     const { unmount } = renderHook(() => useSessionTracking());
     mockInvoke.mockClear();
 
@@ -193,25 +195,49 @@ describe("useSessionTracking", () => {
     fireEvent.pointerDown(window);
     fireEvent.pointerMove(window);
     fireEvent.scroll(window);
+    fireEvent.scroll(scroller);
     fireEvent.blur(window);
     fireEvent.focus(window);
     fireEvent(document, new Event("visibilitychange"));
     await act(() => vi.advanceTimersByTimeAsync(IDLE_MS));
 
     expect(mockInvoke).not.toHaveBeenCalled();
+    scroller.remove();
   });
 
   it("logs rejected lifecycle invokes without leaking an unhandled rejection", async () => {
     const error = new Error("backend unavailable");
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-    mockInvoke.mockRejectedValue(error);
+    let updateAttempts = 0;
+    mockInvoke.mockImplementation((command) => {
+      if (command === "session_heartbeat") {
+        return Promise.reject(error);
+      }
+      updateAttempts += 1;
+      return updateAttempts === 1 ? Promise.reject(error) : Promise.resolve(undefined);
+    });
 
     renderHook(() => useSessionTracking());
     await act(async () => Promise.resolve());
 
     expect(consoleError).toHaveBeenCalledWith("session update failed:", error);
 
+    mockInvoke.mockClear();
     consoleError.mockClear();
+    await act(async () => {
+      fireEvent.blur(window);
+      fireEvent.focus(window);
+      for (let flush = 0; flush < 5; flush += 1) {
+        await Promise.resolve();
+      }
+    });
+    expect(mockInvoke.mock.calls).toEqual([
+      ["session_update", { focused: false, idle: false }],
+      ["session_update", { focused: true, idle: false }],
+    ]);
+    expect(consoleError).not.toHaveBeenCalled();
+
+    mockInvoke.mockClear();
     await act(() => vi.advanceTimersByTimeAsync(HEARTBEAT_MS));
     expect(consoleError).toHaveBeenCalledWith("session heartbeat failed:", error);
   });
