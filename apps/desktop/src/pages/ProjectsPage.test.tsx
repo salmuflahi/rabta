@@ -691,6 +691,14 @@ describe("ProjectsPage accessible project ordering", () => {
     useStore.setState({ newProjectRequest: false });
   });
 
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((resolvePromise) => {
+      resolve = resolvePromise;
+    });
+    return { promise, resolve };
+  }
+
   function mockOrderedProjects(
     reorderProjects: (orderedIds: string[]) => Project[] | Promise<Project[]>,
   ) {
@@ -727,6 +735,37 @@ describe("ProjectsPage accessible project ordering", () => {
     ).toBeTruthy();
   }
 
+  function projectCard(name: string) {
+    const card = screen.getByText(name).closest("[data-state]");
+    expect(card).toBeInstanceOf(HTMLElement);
+    return card as HTMLElement;
+  }
+
+  function rectAt(top: number): DOMRect {
+    return {
+      x: 0,
+      y: top,
+      top,
+      left: 0,
+      right: 400,
+      bottom: top + 100,
+      width: 400,
+      height: 100,
+      toJSON: () => ({}),
+    } as DOMRect;
+  }
+
+  it("disables Move Down for the final project", async () => {
+    mockOrderedProjects(() => [FAKE_PROJECT, SECOND_PROJECT]);
+    renderWithProviders(<ProjectsPage />);
+
+    await openMenuFor("Second Project");
+
+    expect(await screen.findByRole("menuitem", { name: "Move Down" })).toHaveAttribute(
+      "data-disabled",
+    );
+  });
+
   it("persists Move Down through the context menu and exposes a labeled drag handle", async () => {
     mockOrderedProjects((orderedIds) =>
       orderedIds.map((id, sortOrder) =>
@@ -758,6 +797,87 @@ describe("ProjectsPage accessible project ordering", () => {
       "data-disabled",
     );
     expect(screen.getByRole("menuitem", { name: "Move Down" })).not.toHaveAttribute("data-disabled");
+  });
+
+  it("allows only one pending reorder and replaces optimism with the authoritative response", async () => {
+    const pending = deferred<Project[]>();
+    mockOrderedProjects(() => pending.promise);
+    renderWithProviders(<ProjectsPage />);
+
+    await openMenuFor("Test Project");
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Move Down" }));
+
+    await waitFor(() => expectProjectOrder("Second Project", "Test Project"));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Reorder Second Project")).toBeDisabled(),
+    );
+
+    await openMenuFor("Second Project");
+    const blockedMove = await screen.findByRole("menuitem", { name: "Move Down" });
+    expect(blockedMove).toHaveAttribute("data-disabled");
+    fireEvent.click(blockedMove);
+    expect(
+      mockInvoke.mock.calls.filter(([cmd]) => cmd === "reorder_projects"),
+    ).toHaveLength(1);
+
+    const authoritativeProjects = [
+      { ...FAKE_PROJECT, name: "Canonical First", sortOrder: 40 },
+      { ...SECOND_PROJECT, name: "Canonical Second", sortOrder: 41 },
+    ];
+    await act(async () => {
+      pending.resolve(authoritativeProjects);
+      await pending.promise;
+    });
+
+    await waitFor(() =>
+      expectProjectOrder("Canonical First", "Canonical Second"),
+    );
+    expect(useStore.getState().projects).toEqual(authoritativeProjects);
+    expect(screen.queryByText("Test Project")).not.toBeInTheDocument();
+    expect(screen.queryByText("Second Project")).not.toBeInTheDocument();
+  });
+
+  it("reorders through the configured keyboard sensor", async () => {
+    mockOrderedProjects((orderedIds) =>
+      orderedIds.map((id, sortOrder) =>
+        id === FAKE_PROJECT.id
+          ? { ...FAKE_PROJECT, sortOrder }
+          : { ...SECOND_PROJECT, sortOrder },
+      ),
+    );
+    renderWithProviders(<ProjectsPage />);
+
+    await screen.findByText("Second Project");
+    vi.spyOn(projectCard("Test Project"), "getBoundingClientRect").mockReturnValue(
+      rectAt(0),
+    );
+    vi.spyOn(projectCard("Second Project"), "getBoundingClientRect").mockReturnValue(
+      rectAt(120),
+    );
+
+    const handle = screen.getByLabelText("Reorder Test Project");
+    handle.focus();
+    fireEvent.keyDown(handle, { code: "Space", key: " " });
+    await waitFor(() => expect(handle).toHaveAttribute("aria-pressed", "true"));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    fireEvent.keyDown(handle, { code: "ArrowDown", key: "ArrowDown" });
+    await waitFor(() =>
+      expect(projectCard("Test Project")).toHaveStyle({
+        transform: "translate3d(0px, 120px, 0) scaleX(1) scaleY(1)",
+      }),
+    );
+
+    fireEvent.keyDown(handle, { code: "Space", key: " " });
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("reorder_projects", {
+        orderedIds: ["proj-2", "proj-1"],
+      }),
+    );
+    await waitFor(() => expectProjectOrder("Second Project", "Test Project"));
   });
 
   it("restores the original visual order when persisted reordering fails", async () => {
