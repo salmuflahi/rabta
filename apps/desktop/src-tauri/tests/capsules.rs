@@ -1,12 +1,13 @@
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
 use futures_util::{SinkExt, StreamExt};
 use rabta_db::{Db, DbConfig, NewProject, NewTask};
-use rabta_desktop_lib::capsules::{Capsules, SessionClock};
+use rabta_desktop_lib::capsules::{Capsules, SessionClock, SessionPersistence};
 use rabta_hub::{Hub, HubConfig};
 use serde_json::{json, Value};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 
 mod common;
 use common::{git, repo_with_commit};
@@ -138,10 +139,105 @@ impl SessionClock for FakeSessionClock {
     }
 }
 
+struct BlockingPersistenceCall {
+    entered: oneshot::Sender<()>,
+    released: Arc<(Mutex<bool>, Condvar)>,
+}
+
+#[derive(Clone)]
+struct PersistenceRelease {
+    released: Arc<(Mutex<bool>, Condvar)>,
+}
+
+impl PersistenceRelease {
+    fn release(&self) {
+        let (released, wake) = &*self.released;
+        *released.lock().unwrap() = true;
+        wake.notify_all();
+    }
+}
+
+impl Drop for PersistenceRelease {
+    fn drop(&mut self) {
+        self.release();
+    }
+}
+
+struct TestSessionPersistence {
+    db: Db,
+    fail_next_add: AtomicBool,
+    fail_next_begin: AtomicBool,
+    block_next_add: Mutex<Option<BlockingPersistenceCall>>,
+}
+
+impl TestSessionPersistence {
+    fn new(db: Db) -> Self {
+        Self {
+            db,
+            fail_next_add: AtomicBool::new(false),
+            fail_next_begin: AtomicBool::new(false),
+            block_next_add: Mutex::new(None),
+        }
+    }
+
+    fn fail_next_add(&self) {
+        self.fail_next_add.store(true, Ordering::SeqCst);
+    }
+
+    fn fail_next_begin(&self) {
+        self.fail_next_begin.store(true, Ordering::SeqCst);
+    }
+
+    fn block_next_add(&self) -> (oneshot::Receiver<()>, PersistenceRelease) {
+        let (entered, wait_for_entry) = oneshot::channel();
+        let released = Arc::new((Mutex::new(false), Condvar::new()));
+        *self.block_next_add.lock().unwrap() = Some(BlockingPersistenceCall {
+            entered,
+            released: released.clone(),
+        });
+        (wait_for_entry, PersistenceRelease { released })
+    }
+}
+
+impl SessionPersistence for TestSessionPersistence {
+    fn begin_project_session_for_task(
+        &self,
+        task_id: &str,
+        opened_at: &str,
+    ) -> Result<(), String> {
+        if self.fail_next_begin.swap(false, Ordering::SeqCst) {
+            return Err("injected session begin failure".into());
+        }
+        self.db
+            .begin_project_session_for_task(task_id, opened_at)
+            .map_err(|error| error.to_string())
+    }
+
+    fn add_active_seconds_for_task(&self, task_id: &str, seconds: u64) -> Result<(), String> {
+        let blocking = self.block_next_add.lock().unwrap().take();
+        if let Some(blocking) = blocking {
+            let _ = blocking.entered.send(());
+            let (released, wake) = &*blocking.released;
+            let mut released = released.lock().unwrap();
+            while !*released {
+                released = wake.wait(released).unwrap();
+            }
+        }
+        if self.fail_next_add.swap(false, Ordering::SeqCst) {
+            return Err("injected active-seconds failure".into());
+        }
+        self.db
+            .add_active_seconds_for_task(task_id, seconds)
+            .map_err(|error| error.to_string())
+    }
+}
+
 struct SessionFixture {
+    hub: Arc<Hub>,
     db: Db,
     capsules: Capsules,
     clock: FakeSessionClock,
+    persistence: Arc<TestSessionPersistence>,
     project_id: String,
     task_id: String,
     _dir: tempfile::TempDir,
@@ -172,16 +268,20 @@ async fn session_fixture() -> SessionFixture {
         })
         .unwrap();
     let clock = FakeSessionClock::new();
-    let capsules = Capsules::new_with_clock(
-        hub,
+    let persistence = Arc::new(TestSessionPersistence::new(db.clone()));
+    let capsules = Capsules::new_with_clock_and_persistence(
+        hub.clone(),
         db.clone(),
         Duration::from_millis(50),
         Arc::new(clock.clone()),
+        persistence.clone(),
     );
     SessionFixture {
+        hub,
         db,
         capsules,
         clock,
+        persistence,
         project_id: project.id,
         task_id: task.id,
         _dir: dir,
@@ -297,6 +397,263 @@ async fn session_flush_persists_whole_seconds_and_repeated_flush_is_idempotent()
 
     fixture.capsules.session_heartbeat().await.unwrap();
     assert_eq!(fixture.project().active_seconds, 1);
+}
+
+#[tokio::test]
+async fn session_carries_fractional_eligible_time_across_successful_flushes() {
+    let fixture = session_fixture().await;
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture.capsules.session_update(true, false).await.unwrap();
+
+    fixture.clock.advance(Duration::from_millis(900));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 0);
+
+    fixture.clock.advance(Duration::from_millis(900));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 1);
+}
+
+#[tokio::test]
+async fn session_discards_ineligible_fractional_time() {
+    let fixture = session_fixture().await;
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+
+    fixture.clock.advance(Duration::from_millis(900));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    fixture.capsules.session_update(true, false).await.unwrap();
+    fixture.clock.advance(Duration::from_millis(200));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 0);
+
+    fixture.clock.advance(Duration::from_millis(800));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 1);
+}
+
+#[tokio::test]
+async fn session_cap_discards_excess_but_keeps_new_fractional_time() {
+    let fixture = session_fixture().await;
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture.capsules.session_update(true, false).await.unwrap();
+
+    fixture.clock.advance(Duration::from_secs(3_600));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 30);
+
+    fixture.clock.advance(Duration::from_millis(900));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 30);
+
+    fixture.clock.advance(Duration::from_millis(100));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 31);
+}
+
+#[tokio::test]
+async fn session_failed_accrual_retries_all_eligible_time_without_clock_advance() {
+    let fixture = session_fixture().await;
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture.capsules.session_update(true, false).await.unwrap();
+    fixture.clock.advance(Duration::from_millis(1_900));
+    fixture.persistence.fail_next_add();
+
+    let error = fixture.capsules.session_heartbeat().await.unwrap_err();
+    assert_eq!(error, "injected active-seconds failure");
+    assert_eq!(fixture.project().active_seconds, 0);
+
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 1);
+}
+
+#[tokio::test]
+async fn session_same_task_reactivation_resets_duration_and_fractional_carry() {
+    let fixture = session_fixture().await;
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture.capsules.session_update(true, false).await.unwrap();
+    fixture.clock.advance(Duration::from_millis(2_900));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 2);
+
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 0);
+
+    fixture.clock.advance(Duration::from_millis(100));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 0);
+    fixture.clock.advance(Duration::from_millis(900));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 1);
+}
+
+#[tokio::test]
+async fn session_failed_begin_after_preload_preserves_active_and_continuation_state() {
+    let fixture = session_fixture().await;
+    fixture
+        .db
+        .replace_task_resources(
+            &fixture.task_id,
+            "vscode",
+            "workspace",
+            &state("/repo/pending", &["/repo/pending/old.ts"]),
+        )
+        .unwrap();
+    let (seen, mut commands) = mpsc::unbounded_channel();
+    let _connector = scripted_connector(&fixture.hub, seen, |name, _| match name {
+        "workspace.state" => state("/repo/current", &[]),
+        _ => json!({}),
+    })
+    .await;
+    assert_eq!(fixture.hub.connectors().await.len(), 1);
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    while commands.try_recv().is_ok() {}
+
+    let before = fixture.capsules.continuation_state_for_test();
+    assert!(before.1.is_some(), "fixture must have a pending continuation");
+
+    let target_project = fixture
+        .db
+        .create_project(NewProject {
+            name: "failed target".into(),
+            repo_path: "/tmp/failed-target".into(),
+            dev_url: None,
+            default_branch: "main".into(),
+        })
+        .unwrap();
+    let target_task = fixture
+        .db
+        .create_task(NewTask {
+            project_id: target_project.id.clone(),
+            title: "failed target task".into(),
+        })
+        .unwrap();
+    fixture
+        .db
+        .replace_task_resources(
+            &target_task.id,
+            "vscode",
+            "workspace",
+            &state("/repo/current", &["/repo/current/new.ts"]),
+        )
+        .unwrap();
+    fixture.persistence.fail_next_begin();
+
+    let error = fixture
+        .capsules
+        .activate_task(&target_task.id)
+        .await
+        .unwrap_err();
+
+    assert_eq!(error, "injected session begin failure");
+    assert_eq!(
+        fixture.capsules.active_task().as_deref(),
+        Some(fixture.task_id.as_str())
+    );
+    assert_eq!(fixture.capsules.continuation_state_for_test(), before);
+    assert_eq!(
+        fixture
+            .db
+            .get_project(&target_project.id)
+            .unwrap()
+            .unwrap()
+            .last_task_id,
+        None
+    );
+    while let Ok((name, args)) = commands.try_recv() {
+        assert!(
+            name != "editor.openFile"
+                || args["path"].as_str() != Some("/repo/current/new.ts"),
+            "failed activation restored preloaded target resources"
+        );
+        assert_ne!(name, "workspace.open", "failed activation switched workspace");
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn session_heartbeat_serializes_with_activation() {
+    let fixture = session_fixture().await;
+    let target_project = fixture
+        .db
+        .create_project(NewProject {
+            name: "activation target".into(),
+            repo_path: "/tmp/activation-target".into(),
+            dev_url: None,
+            default_branch: "main".into(),
+        })
+        .unwrap();
+    let target_task = fixture
+        .db
+        .create_task(NewTask {
+            project_id: target_project.id.clone(),
+            title: "activation target task".into(),
+        })
+        .unwrap();
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture.capsules.session_update(true, false).await.unwrap();
+    fixture.clock.advance(Duration::from_secs(2));
+    let (entered, release) = fixture.persistence.block_next_add();
+
+    let heartbeat_capsules = fixture.capsules.clone();
+    let heartbeat = tokio::spawn(async move { heartbeat_capsules.session_heartbeat().await });
+    entered.await.unwrap();
+    assert!(fixture.capsules.transition_lock_is_held_for_test());
+
+    let activation_capsules = fixture.capsules.clone();
+    let target_task_id = target_task.id.clone();
+    let activation =
+        tokio::spawn(async move { activation_capsules.activate_task(&target_task_id).await });
+    assert_eq!(
+        fixture.capsules.active_task().as_deref(),
+        Some(fixture.task_id.as_str())
+    );
+    assert_eq!(
+        fixture
+            .db
+            .get_project(&target_project.id)
+            .unwrap()
+            .unwrap()
+            .last_task_id,
+        None
+    );
+
+    release.release();
+    heartbeat.await.unwrap().unwrap();
+    activation.await.unwrap().unwrap();
+    assert_eq!(fixture.project().active_seconds, 2);
+    assert_eq!(
+        fixture.capsules.active_task().as_deref(),
+        Some(target_task.id.as_str())
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn session_update_serializes_with_archive() {
+    let fixture = session_fixture().await;
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture.capsules.session_update(true, false).await.unwrap();
+    fixture.clock.advance(Duration::from_secs(2));
+    let (entered, release) = fixture.persistence.block_next_add();
+
+    let update_capsules = fixture.capsules.clone();
+    let update = tokio::spawn(async move { update_capsules.session_update(false, false).await });
+    entered.await.unwrap();
+    assert!(fixture.capsules.transition_lock_is_held_for_test());
+
+    let archive_capsules = fixture.capsules.clone();
+    let project_id = fixture.project_id.clone();
+    let archive = tokio::spawn(async move { archive_capsules.archive_project(&project_id).await });
+    assert!(fixture.project().archived_at.is_none());
+    assert_eq!(
+        fixture.capsules.active_task().as_deref(),
+        Some(fixture.task_id.as_str())
+    );
+
+    release.release();
+    update.await.unwrap().unwrap();
+    let archived = archive.await.unwrap().unwrap();
+    assert_eq!(archived.project.active_seconds, 2);
+    assert!(archived.project.archived_at.is_some());
+    assert_eq!(fixture.capsules.active_task(), None);
 }
 
 #[tokio::test]

@@ -122,7 +122,7 @@ fn zero_second_accrual_is_a_no_op_only_for_an_active_project_task() {
 }
 
 #[test]
-fn session_accrual_saturates_values_that_exceed_sqlite_integer() {
+fn session_accrual_atomically_saturates_the_stored_sqlite_integer_sum() {
     let db = db();
     let p = a_project(&db, "Rabta");
     let t = db
@@ -134,8 +134,21 @@ fn session_accrual_saturates_values_that_exceed_sqlite_integer() {
     db.begin_project_session_for_task(&t.id, "2026-07-23T12:00:00Z")
         .unwrap();
 
-    db.add_active_seconds_for_task(&t.id, u64::MAX).unwrap();
+    db.add_active_seconds_for_task(&t.id, i64::MAX as u64 - 1)
+        .unwrap();
+    assert_eq!(
+        db.get_project(&p.id).unwrap().unwrap().active_seconds,
+        i64::MAX as u64 - 1
+    );
 
+    db.add_active_seconds_for_task(&t.id, 2).unwrap();
+    assert_eq!(
+        db.get_project(&p.id).unwrap().unwrap().active_seconds,
+        i64::MAX as u64
+    );
+
+    db.add_active_seconds_for_task(&t.id, 1).unwrap();
+    db.add_active_seconds_for_task(&t.id, u64::MAX).unwrap();
     assert_eq!(
         db.get_project(&p.id).unwrap().unwrap().active_seconds,
         i64::MAX as u64

@@ -21,6 +21,33 @@ pub trait SessionClock: Send + Sync {
     fn utc_now(&self) -> String;
 }
 
+/// Test-oriented seam around the two durable session writes.
+#[doc(hidden)]
+pub trait SessionPersistence: Send + Sync {
+    fn begin_project_session_for_task(
+        &self,
+        task_id: &str,
+        opened_at: &str,
+    ) -> Result<(), String>;
+    fn add_active_seconds_for_task(&self, task_id: &str, seconds: u64) -> Result<(), String>;
+}
+
+impl SessionPersistence for Db {
+    fn begin_project_session_for_task(
+        &self,
+        task_id: &str,
+        opened_at: &str,
+    ) -> Result<(), String> {
+        Db::begin_project_session_for_task(self, task_id, opened_at)
+            .map_err(|error| error.to_string())
+    }
+
+    fn add_active_seconds_for_task(&self, task_id: &str, seconds: u64) -> Result<(), String> {
+        Db::add_active_seconds_for_task(self, task_id, seconds)
+            .map_err(|error| error.to_string())
+    }
+}
+
 struct SystemSessionClock;
 
 impl SessionClock for SystemSessionClock {
@@ -37,6 +64,7 @@ struct SessionState {
     focused: bool,
     idle: bool,
     last_tick: std::time::Instant,
+    pending_eligible: Duration,
 }
 
 /// Result of an explicit or automatic capsule save.
@@ -83,6 +111,7 @@ pub struct Capsules {
     active_task: Arc<Mutex<Option<String>>>,
     session: Arc<Mutex<SessionState>>,
     clock: Arc<dyn SessionClock>,
+    session_persistence: Arc<dyn SessionPersistence>,
     pending: Arc<Mutex<Option<PendingRestore>>>,
     activation_lock: Arc<tokio::sync::Mutex<()>>,
     generation: Arc<std::sync::atomic::AtomicU64>,
@@ -111,6 +140,25 @@ impl Capsules {
         settle: Duration,
         clock: Arc<dyn SessionClock>,
     ) -> Capsules {
+        let session_persistence = Arc::new(db.clone());
+        Self::new_with_clock_and_persistence(
+            hub,
+            db,
+            settle,
+            clock,
+            session_persistence,
+        )
+    }
+
+    /// Clock and persistence-injected constructor for deterministic tests.
+    #[doc(hidden)]
+    pub fn new_with_clock_and_persistence(
+        hub: Arc<Hub>,
+        db: Db,
+        settle: Duration,
+        clock: Arc<dyn SessionClock>,
+        session_persistence: Arc<dyn SessionPersistence>,
+    ) -> Capsules {
         let last_tick = clock.monotonic_now();
         Capsules {
             hub,
@@ -121,8 +169,10 @@ impl Capsules {
                 focused: false,
                 idle: false,
                 last_tick,
+                pending_eligible: Duration::ZERO,
             })),
             clock,
+            session_persistence,
             pending: Arc::new(Mutex::new(None)),
             activation_lock: Arc::new(tokio::sync::Mutex::new(())),
             generation: Arc::new(std::sync::atomic::AtomicU64::new(0)),
@@ -134,31 +184,60 @@ impl Capsules {
         self.active_task.lock().unwrap_or_else(std::sync::PoisonError::into_inner).clone()
     }
 
+    /// Snapshot of continuation metadata for failure-neutrality tests.
+    #[doc(hidden)]
+    pub fn continuation_state_for_test(&self) -> (u64, Option<(String, u64)>) {
+        let generation = self.generation.load(std::sync::atomic::Ordering::SeqCst);
+        let pending = self
+            .pending
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .as_ref()
+            .map(|pending| (pending.kind.clone(), pending.generation));
+        (generation, pending)
+    }
+
+    /// Whether a transition currently holds the shared serialization lock.
+    #[doc(hidden)]
+    pub fn transition_lock_is_held_for_test(&self) -> bool {
+        self.activation_lock.try_lock().is_err()
+    }
+
     /// Flushes elapsed time while the caller holds `activation_lock`.
     async fn flush_session(&self) -> Result<(), String> {
+        let active_task = self.active_task();
         let seconds = {
             let now = self.clock.monotonic_now();
             let mut session = self.session.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
             let elapsed = now.saturating_duration_since(session.last_tick);
             session.last_tick = now;
-            if session.focused && !session.idle {
-                elapsed.min(MAX_SESSION_GAP).as_secs()
-            } else {
-                0
+            if session.focused && !session.idle && active_task.is_some() {
+                session.pending_eligible = session
+                    .pending_eligible
+                    .checked_add(elapsed.min(MAX_SESSION_GAP))
+                    .unwrap_or(Duration::MAX);
             }
+            session.pending_eligible.as_secs()
         };
 
         if seconds == 0 {
             return Ok(());
         }
-        let Some(task_id) = self.active_task() else {
+        let Some(task_id) = active_task else {
             return Ok(());
         };
-        let db = self.db.clone();
-        tokio::task::spawn_blocking(move || db.add_active_seconds_for_task(&task_id, seconds))
+        let persistence = self.session_persistence.clone();
+        tokio::task::spawn_blocking(move || {
+            persistence.add_active_seconds_for_task(&task_id, seconds)
+        })
             .await
-            .map_err(|e| e.to_string())?
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())??;
+
+        let mut session = self.session.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        session.pending_eligible = session
+            .pending_eligible
+            .saturating_sub(Duration::from_secs(seconds));
+        Ok(())
     }
 
     /// Updates focus/idle state after flushing time under the previous state.
@@ -286,6 +365,9 @@ impl Capsules {
             *self.active_task.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
             *self.pending.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
             self.generation.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let mut session = self.session.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            session.pending_eligible = Duration::ZERO;
+            session.last_tick = self.clock.monotonic_now();
         }
 
         let db = self.db.clone();
@@ -328,12 +410,6 @@ impl Capsules {
             );
         }
 
-        let generation =
-            self.generation.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
-        // Spec: one pending restore slot, replaced by the newer activation —
-        // every activation must reset it, not just cross-folder vscode ones.
-        *self.pending.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
-
         self.flush_session().await?;
         let mut errors = vec![];
         let previous = self.active_task();
@@ -346,22 +422,28 @@ impl Capsules {
             }
         }
 
-        let db = self.db.clone();
         let tid = task_id.to_string();
         let opened_at = self.clock.utc_now();
+        let persistence = self.session_persistence.clone();
         tokio::task::spawn_blocking(move || {
-            db.begin_project_session_for_task(&tid, &opened_at)
+            persistence.begin_project_session_for_task(&tid, &opened_at)
         })
         .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| e.to_string())??;
 
+        let generation =
+            self.generation.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+        // One pending restore slot, replaced only after the new session is
+        // durable so a failed activation leaves continuation state untouched.
+        *self.pending.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
         *self.active_task.lock().unwrap_or_else(std::sync::PoisonError::into_inner) =
             Some(task_id.to_string());
-        self.session
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .last_tick = self.clock.monotonic_now();
+        {
+            let mut session =
+                self.session.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            session.pending_eligible = Duration::ZERO;
+            session.last_tick = self.clock.monotonic_now();
+        }
 
         let resources = target.1;
         let mut applied = vec![];
@@ -539,12 +621,10 @@ impl Capsules {
         }
     }
 
-    /// Same as `apply_editor_state`, but for the reconnect continuation,
-    /// which runs *outside* the activation lock — a newer activation can
-    /// land while these sends are still going out. Rechecks
-    /// `expected_generation` immediately before every `send_command` and
-    /// stops applying (without erroring) the moment it no longer matches,
-    /// since a newer activation has already taken over the workspace.
+    /// Same as `apply_editor_state`, but for the reconnect continuation.
+    /// Serializes each checked send with activation so a failed activation
+    /// leaves the continuation live while a durable newer activation stops
+    /// it before the next command.
     async fn apply_editor_state_checked(
         &self,
         connector_id: &str,
@@ -555,6 +635,7 @@ impl Capsules {
     ) {
         use std::sync::atomic::Ordering::SeqCst;
         for path in open_files {
+            let _serialized = self.activation_lock.lock().await;
             if self.generation.load(SeqCst) != expected_generation {
                 log::debug!(
                     "capsule continuation: superseded mid-apply before openFile {path}; stopped"
@@ -568,6 +649,7 @@ impl Capsules {
             }
         }
         for (cwd, name) in terminals {
+            let _serialized = self.activation_lock.lock().await;
             if self.generation.load(SeqCst) != expected_generation {
                 log::debug!(
                     "capsule continuation: superseded mid-apply before terminal.create {cwd}; stopped"

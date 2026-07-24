@@ -474,13 +474,16 @@ impl Db {
         let seconds = i64::try_from(seconds).unwrap_or(i64::MAX);
         let changed = conn.execute(
             "UPDATE projects
-             SET active_seconds = active_seconds + ?2,
+             SET active_seconds = CASE
+                   WHEN active_seconds >= ?4 - ?2 THEN ?4
+                   ELSE active_seconds + ?2
+                 END,
                  updated_at = ?3
              WHERE id = (
                SELECT project_id FROM tasks WHERE id = ?1
              )
              AND archived_at IS NULL",
-            params![task_id, seconds, now()],
+            params![task_id, seconds, now(), i64::MAX],
         )?;
         if changed == 0 {
             return Err(DbError::NotFound {
