@@ -1,7 +1,7 @@
 # Rabta Track B Core (B1–B3) Design
 
 **Date:** 2026-07-23
-**Status:** Proposed for implementation
+**Status:** Approved 2026-07-23
 **Scope:** B1 data/backend, B2 product UI, B3 active-session runtime, including persisted project ordering
 
 ## Summary
