@@ -11,6 +11,12 @@ const FAKE_PROJECT: Project = {
   repoPath: "/tmp/test-project",
   devUrl: null,
   defaultBranch: "main",
+  icon: null,
+  archivedAt: null,
+  lastOpenedAt: null,
+  lastTaskId: null,
+  activeSeconds: 0,
+  sortOrder: 0,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
 };

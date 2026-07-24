@@ -29,6 +29,17 @@ function startOfDay(ms: number): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
 
+/** Compact whole-minute duration without claiming time that was not earned. */
+export function formatDuration(seconds: number): string {
+  const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+  if (safe === 0) return "0m";
+  if (safe < 60) return "<1m";
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  if (hours === 0) return `${minutes}m`;
+  return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
+}
+
 /**
  * "just now" / "5m ago" / "3h ago" / "yesterday" / "Mar 4".
  * Deterministic when `now` is passed (defaults to `Date.now()`).

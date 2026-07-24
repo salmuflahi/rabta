@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { relativeTime, humanizeCapsule, describeEvent } from "@/lib/humanize";
+import {
+  describeEvent,
+  formatDuration,
+  humanizeCapsule,
+  relativeTime,
+} from "@/lib/humanize";
 import type { TaskResource } from "@/store";
 
 const NOW = new Date(2024, 2, 10, 12, 0, 0).getTime(); // Sun Mar 10 2024, 12:00:00 local
@@ -7,6 +12,22 @@ const NOW = new Date(2024, 2, 10, 12, 0, 0).getTime(); // Sun Mar 10 2024, 12:00
 function iso(offsetMs: number): string {
   return new Date(NOW - offsetMs).toISOString();
 }
+
+describe("formatDuration", () => {
+  it("formats honest compact durations", () => {
+    expect(formatDuration(0)).toBe("0m");
+    expect(formatDuration(59)).toBe("<1m");
+    expect(formatDuration(60)).toBe("1m");
+    expect(formatDuration(2 * 3600 + 17 * 60)).toBe("2h 17m");
+  });
+
+  it("normalizes invalid, negative, and fractional input", () => {
+    expect(formatDuration(Number.NaN)).toBe("0m");
+    expect(formatDuration(Number.POSITIVE_INFINITY)).toBe("0m");
+    expect(formatDuration(-90)).toBe("0m");
+    expect(formatDuration(3600.9)).toBe("1h");
+  });
+});
 
 describe("relativeTime", () => {
   it("returns 'just now' for under 45 seconds", () => {

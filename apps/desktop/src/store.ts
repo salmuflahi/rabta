@@ -58,12 +58,28 @@ function readSidebarCollapsed(): boolean {
 
 const knownId = (c: { name: string; kind: string }) => `known:${c.name}:${c.kind}`;
 
+export type ProjectIconKey =
+  | "code"
+  | "globe"
+  | "database"
+  | "terminal"
+  | "blocks"
+  | "rocket"
+  | "wrench"
+  | "folder";
+
 export interface Project {
   id: string;
   name: string;
   repoPath: string;
   devUrl: string | null;
   defaultBranch: string;
+  icon: ProjectIconKey | null;
+  archivedAt: string | null;
+  lastOpenedAt: string | null;
+  lastTaskId: string | null;
+  activeSeconds: number;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }
