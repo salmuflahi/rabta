@@ -442,7 +442,7 @@ fn reveal_in_finder(path: String) -> Result<(), String> {
 /// stream to the frontend as `hub-event`.
 pub fn run() {
     let _ = env_logger::try_init();
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
@@ -553,8 +553,20 @@ pub fn run() {
             hub_port,
             reveal_in_finder
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running OmniBus");
+        .build(tauri::generate_context!())
+        .expect("error while building Rabta");
+
+    app.run(|handle, event| {
+        if matches!(
+            event,
+            tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
+        ) {
+            let capsules = handle.state::<CapsulesHandle>().0.clone();
+            if let Err(error) = tauri::async_runtime::block_on(capsules.flush_session()) {
+                log::warn!("final session flush failed: {error}");
+            }
+        }
+    });
 }
 
 #[cfg(test)]

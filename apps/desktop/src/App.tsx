@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Button } from "./components/ui/button";
 import { decidePairing } from "./lib/pairing";
 import { toastOk } from "./lib/toast";
+import { useSessionTracking } from "./lib/useSessionTracking";
 import { ActivityPage } from "./pages/ActivityPage";
 import { CapsulesPage } from "./pages/CapsulesPage";
 import { ConnectorsPage } from "./pages/ConnectorsPage";
@@ -101,6 +102,8 @@ export default function App() {
   const setHubPort = useStore((s) => s.setHubPort);
   const toggleCommandOpen = useStore((s) => s.toggleCommandOpen);
   const toggleSidebar = useStore((s) => s.toggleSidebar);
+
+  useSessionTracking();
 
   useEffect(() => {
     const refresh = () =>

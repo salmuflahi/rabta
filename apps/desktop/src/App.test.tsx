@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { useStore } from "@/store";
@@ -20,6 +20,17 @@ describe("App global keyboard shortcuts", () => {
     mockInvoke.mockImplementation(async () => [] as unknown[]);
     localStorage.clear();
     useStore.setState(STORE_DEFAULTS);
+  });
+
+  it("starts one session-tracking lifecycle from the app root", async () => {
+    const { unmount } = renderWithProviders(<App />);
+    await screen.findByText("Rabta");
+
+    expect(
+      mockInvoke.mock.calls.filter(([command]) => command === "session_update")
+    ).toHaveLength(1);
+
+    unmount();
   });
 
   it("⌘⇧N navigates to Capsules and sets newTaskRequest", async () => {
@@ -67,6 +78,8 @@ describe("App global keyboard shortcuts", () => {
 
     expect(useStore.getState().pendingResumeTaskId).toBe("task-42");
     expect(useStore.getState().view).toBe("capsules");
+
+    await act(async () => {});
   });
 
   it("⌘R with no active task is a no-op (no pendingResume, no navigation)", async () => {
@@ -98,7 +111,9 @@ describe("App global keyboard shortcuts", () => {
     expect(useStore.getState().pendingResumeTaskId).toBeNull();
     expect(useStore.getState().view).toBe("capsules");
 
-    fireEvent.keyDown(input, { key: "k", metaKey: true });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "k", metaKey: true });
+    });
     expect(useStore.getState().commandOpen).toBe(true);
 
     document.body.removeChild(input);
