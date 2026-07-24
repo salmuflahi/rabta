@@ -78,6 +78,7 @@ function stubReducedMotion(): () => void {
 function mockCapsulesInvoke(opts: {
   activateTask: (args: Record<string, unknown> | undefined) => unknown;
   resources?: TaskResource[];
+  project?: Project;
 }) {
   // Clear call history (not just the implementation) so a test that asserts
   // on `mockInvoke.mock.calls` — e.g. "exactly one activate_task call" —
@@ -89,13 +90,17 @@ function mockCapsulesInvoke(opts: {
     const a = args as Record<string, unknown> | undefined;
     switch (cmd) {
       case "list_projects":
-        return [FAKE_PROJECT] as unknown;
+        return [opts.project ?? FAKE_PROJECT] as unknown;
       case "list_tasks":
         return (a?.projectId === FAKE_PROJECT.id ? [FAKE_TASK] : []) as unknown;
       case "task_resources":
         return (a?.taskId === FAKE_TASK.id ? (opts.resources ?? [FAKE_RESOURCE]) : []) as unknown;
       case "activate_task":
         return opts.activateTask(a);
+      case "rename_task":
+        return { ...FAKE_TASK, title: a?.title } as unknown;
+      case "duplicate_task":
+        return { ...FAKE_TASK, id: "task-2", title: `${FAKE_TASK.title} copy` } as unknown;
       default:
         return [] as unknown;
     }
@@ -483,6 +488,58 @@ describe("CapsulesPage context menu", () => {
     expect(screen.getByRole("menuitem", { name: "Save State" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Done" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /Delete/ })).toBeInTheDocument();
+  });
+
+  it("renames a capsule through rename_task", async () => {
+    mockCapsulesInvoke({ activateTask: async () => ({}) });
+    renderWithProviders(<CapsulesPage />);
+
+    fireEvent.contextMenu(await screen.findByText(FAKE_TASK.title));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Rename" }));
+
+    const title = await screen.findByLabelText("Capsule title");
+    fireEvent.change(title, { target: { value: "Enterprise launch" } });
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("rename_task", {
+        id: FAKE_TASK.id,
+        title: "Enterprise launch",
+      })
+    );
+  });
+
+  it("duplicates a capsule without activating it", async () => {
+    mockCapsulesInvoke({ activateTask: async () => ({}) });
+    renderWithProviders(<CapsulesPage />);
+
+    fireEvent.contextMenu(await screen.findByText(FAKE_TASK.title));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
+
+    await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("duplicate_task", { id: FAKE_TASK.id }));
+    expect(mockInvoke).not.toHaveBeenCalledWith("activate_task", expect.anything());
+  });
+
+  it("shows persisted last-session duration only when available", async () => {
+    mockCapsulesInvoke({
+      activateTask: async () => ({}),
+      project: { ...FAKE_PROJECT, activeSeconds: 8220 },
+    });
+    renderWithProviders(<CapsulesPage />);
+
+    fireEvent.click(await screen.findByText("on main"));
+
+    expect(await screen.findByText("Last session 2h 17m")).toBeInTheDocument();
+  });
+
+  it("does not show a last-session claim when persisted duration is zero", async () => {
+    mockCapsulesInvoke({ activateTask: async () => ({}) });
+    renderWithProviders(<CapsulesPage />);
+
+    fireEvent.click(await screen.findByText("on main"));
+
+    expect(await screen.findByText("Saved state")).toBeInTheDocument();
+    expect(screen.queryByText(/Last session/)).not.toBeInTheDocument();
   });
 
   it("selecting Resume from the menu drives the same activate_task path as the Resume button", async () => {

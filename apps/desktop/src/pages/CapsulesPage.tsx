@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Box, Check, Code2, GitBranch, Globe, Layers, Loader2, Play, RotateCcw, Save, Terminal, Trash2 } from "lucide-react";
+import { Box, Check, Code2, Copy, GitBranch, Globe, Layers, Loader2, Pencil, Play, RotateCcw, Save, Terminal, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,19 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
-import { humanizeCapsule } from "@/lib/humanize";
+import { formatDuration, humanizeCapsule } from "@/lib/humanize";
 import { toastErr, toastOk } from "@/lib/toast";
 import { useDeferredDelete } from "@/lib/useDeferredDelete";
 import { activateSummaryToResult, type ActivateSummary } from "@/restore/normalize";
@@ -111,7 +119,13 @@ function CapsulesSkeleton() {
  * capsule's per-tool breakdown, so a user can check what's saved before
  * committing to Resume — no modal, no new invoke, Resume itself is
  * untouched and stays one click. */
-function CapsuleSummary({ resources }: { resources: TaskResource[] }) {
+function CapsuleSummary({
+  resources,
+  lastSessionSeconds,
+}: {
+  resources: TaskResource[];
+  lastSessionSeconds?: number;
+}) {
   const summary =
     resources.length === 0 ? (
       <span className="mt-0.5 block text-xs text-muted-foreground">No capsule yet</span>
@@ -164,6 +178,11 @@ function CapsuleSummary({ resources }: { resources: TaskResource[] }) {
             })}
           </div>
         )}
+        {typeof lastSessionSeconds === "number" && lastSessionSeconds > 0 ? (
+          <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
+            Last session {formatDuration(lastSessionSeconds)}
+          </p>
+        ) : null}
       </PopoverContent>
     </Popover>
   );
@@ -184,6 +203,8 @@ export function CapsulesPage() {
   const [tasksByProject, setTasksByProject] = useState<Record<string, Task[]>>({});
   const [resources, setResources] = useState<Record<string, TaskResource[]>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [renameTarget, setRenameTarget] = useState<Task | null>(null);
+  const [renameTitle, setRenameTitle] = useState("");
   // In-flight affordance only (the result of an action is a toast, not
   // inline text): which task is mid-save, so its button can read "Saving…"
   // while busy. Resume's in-flight state now lives entirely in the Restore
@@ -322,6 +343,33 @@ export function CapsulesPage() {
     }
   }
 
+  async function renameTask(id: string, title: string) {
+    setBusy(true);
+    try {
+      await invoke<Task>("rename_task", { id, title: title.trim() });
+      await refresh();
+      toastOk("Capsule renamed");
+      setRenameTarget(null);
+    } catch (error) {
+      toastErr(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function duplicateTask(task: Task) {
+    setBusy(true);
+    try {
+      const copy = await invoke<Task>("duplicate_task", { id: task.id });
+      await refresh();
+      toastOk("Capsule duplicated", copy.title);
+    } catch (error) {
+      toastErr(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   // Deferred-commit delete: requestDelete hides the row immediately and
   // shows an Undo toast; the real delete_task invoke only fires ~5s later
   // if the user hasn't clicked Undo (see useDeferredDelete.ts).
@@ -379,6 +427,37 @@ export function CapsulesPage() {
   return (
     <div>
       {restoreNode}
+      <Dialog open={renameTarget !== null} onOpenChange={(open) => !open && setRenameTarget(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (renameTarget && renameTitle.trim()) void renameTask(renameTarget.id, renameTitle);
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>Rename capsule</DialogTitle>
+            </DialogHeader>
+            <div className="mt-4 flex flex-col gap-1.5">
+              <Label htmlFor="capsule-title">Capsule title</Label>
+              <Input
+                id="capsule-title"
+                value={renameTitle}
+                onChange={(event) => setRenameTitle(event.target.value)}
+                autoFocus
+              />
+            </div>
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => setRenameTarget(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={busy || !renameTitle.trim()}>
+                Rename
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       <PageHeader eyebrow="TASKS" title="Capsules" subtitle={subtitle} />
 
       {loading ? (
@@ -435,7 +514,7 @@ export function CapsulesPage() {
                                   </p>
                                   {isActive && <Badge className="shrink-0">Active</Badge>}
                                 </div>
-                                <CapsuleSummary resources={resources[t.id] ?? []} />
+                                <CapsuleSummary resources={resources[t.id] ?? []} lastSessionSeconds={p.activeSeconds} />
                               </div>
                               <div className="flex shrink-0 items-center gap-2">
                                 <Button
@@ -481,6 +560,20 @@ export function CapsulesPage() {
                           <ContextMenuItem onSelect={() => save(t.id)} disabled={actionsDisabled}>
                             <Save className="mr-2 size-4" />
                             Save State
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            onSelect={() => {
+                              setRenameTarget(t);
+                              setRenameTitle(t.title);
+                            }}
+                            disabled={actionsDisabled}
+                          >
+                            <Pencil className="mr-2 size-4" />
+                            Rename
+                          </ContextMenuItem>
+                          <ContextMenuItem onSelect={() => duplicateTask(t)} disabled={actionsDisabled}>
+                            <Copy className="mr-2 size-4" />
+                            Duplicate
                           </ContextMenuItem>
                           <ContextMenuItem onSelect={() => toggleStatus(t)} disabled={actionsDisabled}>
                             {t.status === "open" ? (
