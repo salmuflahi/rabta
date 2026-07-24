@@ -1,10 +1,17 @@
 //! Projects, tasks, and task resources — the data model phases 6+ build on.
-use rusqlite::params;
+use std::collections::HashSet;
+
+use rusqlite::{params, Connection};
 use rusqlite::OptionalExtension;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::{new_id, now, Db, Result};
+use crate::{new_id, now, Db, DbError, Result};
+
+/// Stable project icon keys accepted by storage and mapped by every client.
+pub const PROJECT_ICONS: &[&str] = &[
+    "code", "globe", "database", "terminal", "blocks", "rocket", "wrench", "folder",
+];
 
 /// Input for creating a project (fields match phase 6 registration).
 pub struct NewProject {
@@ -110,6 +117,25 @@ fn project_from_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
     })
 }
 
+fn project_by_id(conn: &Connection, id: &str) -> Result<Option<Project>> {
+    Ok(conn
+        .query_row(
+            "SELECT id, name, repo_path, dev_url, default_branch, icon, archived_at,
+                    last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at
+             FROM projects WHERE id = ?1",
+            params![id],
+            project_from_row,
+        )
+        .optional()?)
+}
+
+fn require_project(conn: &Connection, id: &str) -> Result<Project> {
+    project_by_id(conn, id)?.ok_or_else(|| DbError::NotFound {
+        entity: "project",
+        id: id.to_string(),
+    })
+}
+
 impl Db {
     /// Creates a project; fails on duplicate name (UNIQUE constraint).
     pub fn create_project(&self, new: NewProject) -> Result<Project> {
@@ -178,15 +204,155 @@ impl Db {
     /// One project by id.
     pub fn get_project(&self, id: &str) -> Result<Option<Project>> {
         let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        Ok(conn
-            .query_row(
-                "SELECT id, name, repo_path, dev_url, default_branch, icon, archived_at,
-                        last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at
-                 FROM projects WHERE id = ?1",
-                params![id],
-                project_from_row,
-            )
-            .optional()?)
+        project_by_id(&conn, id)
+    }
+
+    /// Renames a project after trimming its user-facing name.
+    pub fn rename_project(&self, id: &str, name: &str) -> Result<Project> {
+        let name = name.trim();
+        if name.is_empty() {
+            return Err(DbError::Validation {
+                field: "name",
+                message: "must not be empty".into(),
+            });
+        }
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let changed = conn.execute(
+            "UPDATE projects SET name = ?2, updated_at = ?3 WHERE id = ?1",
+            params![id, name, now()],
+        )?;
+        if changed == 0 {
+            return Err(DbError::NotFound {
+                entity: "project",
+                id: id.to_string(),
+            });
+        }
+        require_project(&conn, id)
+    }
+
+    /// Assigns an allowlisted icon key, or clears the custom icon.
+    pub fn set_project_icon(&self, id: &str, icon: Option<&str>) -> Result<Project> {
+        if let Some(icon) = icon {
+            if !PROJECT_ICONS.contains(&icon) {
+                return Err(DbError::Validation {
+                    field: "icon",
+                    message: format!("unknown project icon: {icon}"),
+                });
+            }
+        }
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let changed = conn.execute(
+            "UPDATE projects SET icon = ?2, updated_at = ?3 WHERE id = ?1",
+            params![id, icon, now()],
+        )?;
+        if changed == 0 {
+            return Err(DbError::NotFound {
+                entity: "project",
+                id: id.to_string(),
+            });
+        }
+        require_project(&conn, id)
+    }
+
+    /// Reversibly archives a project without deleting its tasks or resources.
+    pub fn archive_project(&self, id: &str) -> Result<Project> {
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let project = require_project(&conn, id)?;
+        if project.archived_at.is_some() {
+            return Ok(project);
+        }
+        let timestamp = now();
+        let changed = conn.execute(
+            "UPDATE projects
+             SET archived_at = ?2, updated_at = ?2
+             WHERE id = ?1 AND archived_at IS NULL",
+            params![id, timestamp],
+        )?;
+        if changed == 0 {
+            return require_project(&conn, id);
+        }
+        require_project(&conn, id)
+    }
+
+    /// Restores an archived project at the end of the active project order.
+    pub fn unarchive_project(&self, id: &str) -> Result<Project> {
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let project = require_project(&conn, id)?;
+        if project.archived_at.is_none() {
+            return Ok(project);
+        }
+
+        let tx = conn.unchecked_transaction()?;
+        let sort_order: i64 = tx.query_row(
+            "SELECT COALESCE(MAX(sort_order), -1) + 1
+             FROM projects WHERE archived_at IS NULL",
+            [],
+            |row| row.get(0),
+        )?;
+        let changed = tx.execute(
+            "UPDATE projects
+             SET archived_at = NULL, sort_order = ?2, updated_at = ?3
+             WHERE id = ?1 AND archived_at IS NOT NULL",
+            params![id, sort_order, now()],
+        )?;
+        if changed == 0 {
+            return require_project(&tx, id);
+        }
+        let restored = require_project(&tx, id)?;
+        tx.commit()?;
+        Ok(restored)
+    }
+
+    /// Archived projects, newest archive first.
+    pub fn list_archived_projects(&self) -> Result<Vec<Project>> {
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut stmt = conn.prepare(
+            "SELECT id, name, repo_path, dev_url, default_branch, icon, archived_at,
+                    last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at
+             FROM projects
+             WHERE archived_at IS NOT NULL
+             ORDER BY archived_at DESC, lower(name), id",
+        )?;
+        let rows = stmt.query_map([], project_from_row)?;
+        Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
+    }
+
+    /// Replaces active project order atomically with a dense exact ordering.
+    pub fn reorder_projects(&self, ordered_ids: &[String]) -> Result<Vec<Project>> {
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let tx = conn.unchecked_transaction()?;
+        let active_ids = {
+            let mut stmt = tx.prepare(
+                "SELECT id FROM projects
+                 WHERE archived_at IS NULL
+                 ORDER BY sort_order, lower(name), id",
+            )?;
+            let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+            rows.collect::<std::result::Result<Vec<_>, _>>()?
+        };
+        let ordered_set: HashSet<&str> = ordered_ids.iter().map(String::as_str).collect();
+        if ordered_set.len() != ordered_ids.len() {
+            return Err(DbError::Validation {
+                field: "orderedIds",
+                message: "must not contain duplicate project IDs".into(),
+            });
+        }
+        let active_set: HashSet<&str> = active_ids.iter().map(String::as_str).collect();
+        if ordered_ids.len() != active_ids.len() || ordered_set != active_set {
+            return Err(DbError::Validation {
+                field: "orderedIds",
+                message: "must contain every active project exactly once".into(),
+            });
+        }
+        for (position, id) in ordered_ids.iter().enumerate() {
+            tx.execute(
+                "UPDATE projects SET sort_order = ?2 WHERE id = ?1",
+                params![id, position as i64],
+            )?;
+        }
+        tx.commit()?;
+        drop(conn);
+        self.list_projects()
     }
 
     /// Deletes a project; tasks and resources cascade.

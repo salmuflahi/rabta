@@ -1,4 +1,4 @@
-use rabta_db::{Db, DbConfig, NewProject, NewTask, NewTaskResource, TaskStatus};
+use rabta_db::{Db, DbConfig, DbError, NewProject, NewTask, NewTaskResource, TaskStatus};
 use serde_json::json;
 
 fn db() -> Db {
@@ -62,6 +62,159 @@ fn project_names_are_unique() {
             default_branch: "main".into(),
         })
         .is_err());
+}
+
+#[test]
+fn rename_archive_icon_and_unarchive_round_trip() {
+    let db = db();
+    let p = a_project(&db, "Rabta");
+    let tail = a_project(&db, "Tail");
+    let task = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "Preserved capsule".into(),
+        })
+        .unwrap();
+    let resource = db
+        .add_task_resource(NewTaskResource {
+            task_id: task.id.clone(),
+            connector_kind: "git".into(),
+            resource_type: "branch".into(),
+            payload: json!({"branch": "main"}),
+        })
+        .unwrap();
+
+    let renamed = db.rename_project(&p.id, "  Rabta Desktop  ").unwrap();
+    assert_eq!(renamed.name, "Rabta Desktop");
+
+    let icon = db.set_project_icon(&p.id, Some("rocket")).unwrap();
+    assert_eq!(icon.icon.as_deref(), Some("rocket"));
+    assert!(db.set_project_icon(&p.id, Some("emoji")).is_err());
+    assert_eq!(db.set_project_icon(&p.id, None).unwrap().icon, None);
+
+    let archived = db.archive_project(&p.id).unwrap();
+    assert!(archived.archived_at.is_some());
+    assert_eq!(
+        db.archive_project(&p.id).unwrap().archived_at,
+        archived.archived_at
+    );
+    assert_eq!(db.list_projects().unwrap(), vec![tail.clone()]);
+    assert_eq!(db.list_archived_projects().unwrap(), vec![archived]);
+    assert_eq!(db.list_tasks(&p.id).unwrap(), vec![task.clone()]);
+    assert_eq!(db.task_resources(&task.id).unwrap(), vec![resource]);
+
+    let restored = db.unarchive_project(&p.id).unwrap();
+    assert!(restored.archived_at.is_none());
+    assert_eq!(
+        db.unarchive_project(&p.id).unwrap().sort_order,
+        restored.sort_order
+    );
+    assert_eq!(
+        db.list_projects()
+            .unwrap()
+            .into_iter()
+            .map(|project| project.id)
+            .collect::<Vec<_>>(),
+        vec![tail.id, restored.id]
+    );
+}
+
+#[test]
+fn project_mutations_reject_invalid_or_missing_targets() {
+    let db = db();
+    let a = a_project(&db, "A");
+    let b = a_project(&db, "B");
+
+    assert!(matches!(
+        db.rename_project(&a.id, "  "),
+        Err(DbError::Validation { field: "name", .. })
+    ));
+    assert!(db.rename_project(&a.id, "B").is_err());
+    assert!(matches!(
+        db.rename_project("missing", "New name"),
+        Err(DbError::NotFound {
+            entity: "project",
+            ..
+        })
+    ));
+    assert!(matches!(
+        db.archive_project("missing"),
+        Err(DbError::NotFound {
+            entity: "project",
+            ..
+        })
+    ));
+    assert!(matches!(
+        db.unarchive_project("missing"),
+        Err(DbError::NotFound {
+            entity: "project",
+            ..
+        })
+    ));
+    assert!(matches!(
+        db.set_project_icon("missing", Some("code")),
+        Err(DbError::NotFound {
+            entity: "project",
+            ..
+        })
+    ));
+    assert_eq!(db.get_project(&a.id).unwrap().unwrap().name, "A");
+    assert_eq!(db.get_project(&b.id).unwrap().unwrap().name, "B");
+}
+
+#[test]
+fn reorder_requires_the_exact_active_project_set_and_rolls_back() {
+    let db = db();
+    let a = a_project(&db, "A");
+    let b = a_project(&db, "B");
+    let c = a_project(&db, "C");
+
+    db.reorder_projects(&[c.id.clone(), a.id.clone(), b.id.clone()])
+        .unwrap();
+    let expected = vec![c.id.clone(), a.id.clone(), b.id.clone()];
+    assert_eq!(
+        db.list_projects()
+            .unwrap()
+            .into_iter()
+            .map(|project| project.id)
+            .collect::<Vec<_>>(),
+        expected
+    );
+
+    assert!(db
+        .reorder_projects(&[a.id.clone(), b.id.clone()])
+        .is_err());
+    assert!(matches!(
+        db.reorder_projects(&[a.id.clone(), a.id.clone(), c.id.clone()]),
+        Err(DbError::Validation {
+            field: "orderedIds",
+            ..
+        })
+    ));
+    assert!(db
+        .reorder_projects(&[a.id.clone(), b.id.clone(), "unknown".into()])
+        .is_err());
+    assert_eq!(
+        db.list_projects()
+            .unwrap()
+            .into_iter()
+            .map(|project| project.id)
+            .collect::<Vec<_>>(),
+        expected
+    );
+
+    db.archive_project(&b.id).unwrap();
+    assert!(db
+        .reorder_projects(&[a.id.clone(), c.id.clone(), b.id.clone()])
+        .is_err());
+    assert_eq!(
+        db.list_projects()
+            .unwrap()
+            .into_iter()
+            .map(|project| project.id)
+            .collect::<Vec<_>>(),
+        vec![c.id, a.id]
+    );
 }
 
 #[test]

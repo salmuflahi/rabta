@@ -16,7 +16,9 @@ mod activity;
 pub use activity::{EventRow, KnownConnector};
 
 mod records;
-pub use records::{NewProject, NewTask, NewTaskResource, Project, Task, TaskResource, TaskStatus};
+pub use records::{
+    NewProject, NewTask, NewTaskResource, Project, Task, TaskResource, TaskStatus, PROJECT_ICONS,
+};
 
 mod recorder;
 pub use recorder::Recorder;
@@ -41,6 +43,10 @@ pub enum DbError {
     Sqlite(#[from] rusqlite::Error),
     #[error("database schema version {0} is newer than this build supports")]
     SchemaTooNew(i64),
+    #[error("{entity} not found: {id}")]
+    NotFound { entity: &'static str, id: String },
+    #[error("{field}: {message}")]
+    Validation { field: &'static str, message: String },
 }
 
 pub type Result<T> = std::result::Result<T, DbError>;
