@@ -231,6 +231,132 @@ fn task_crud_and_status() {
 }
 
 #[test]
+fn duplicate_task_copies_resources_with_fresh_ids_and_an_open_status() {
+    let db = db();
+    let p = a_project(&db, "Rabta");
+    let source = db
+        .create_task(NewTask {
+            project_id: p.id,
+            title: "Ship".into(),
+        })
+        .unwrap();
+    let source_resource = db
+        .add_task_resource(NewTaskResource {
+            task_id: source.id.clone(),
+            connector_kind: "git".into(),
+            resource_type: "branch".into(),
+            payload: json!({"branch": "main"}),
+        })
+        .unwrap();
+    db.set_task_status(&source.id, TaskStatus::Done).unwrap();
+
+    let copy = db.duplicate_task(&source.id).unwrap();
+    let copied_resources = db.task_resources(&copy.id).unwrap();
+    assert_eq!(copy.title, "Copy of Ship");
+    assert_eq!(copy.status, TaskStatus::Open);
+    assert_ne!(copy.id, source.id);
+    assert_eq!(copied_resources.len(), 1);
+    assert_ne!(copied_resources[0].id, source_resource.id);
+    assert_eq!(copied_resources[0].payload, source_resource.payload);
+    assert_eq!(copied_resources[0].created_at, source_resource.created_at);
+
+    let second_copy = db.duplicate_task(&source.id).unwrap();
+    assert_eq!(second_copy.title, "Copy of Ship (2)");
+}
+
+#[test]
+fn rename_task_trims_and_validates_its_target() {
+    let db = db();
+    let project = a_project(&db, "Rabta");
+    let task = db
+        .create_task(NewTask {
+            project_id: project.id,
+            title: "Old name".into(),
+        })
+        .unwrap();
+
+    assert_eq!(
+        db.rename_task(&task.id, "  New name  ").unwrap().title,
+        "New name"
+    );
+    assert!(matches!(
+        db.rename_task(&task.id, " "),
+        Err(DbError::Validation { field: "title", .. })
+    ));
+    assert!(matches!(
+        db.rename_task("missing", "New name"),
+        Err(DbError::NotFound { entity: "task", .. })
+    ));
+}
+
+#[test]
+fn duplicate_task_rolls_back_when_a_resource_copy_fails() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
+    let project = a_project(&db, "Rabta");
+    let source = db
+        .create_task(NewTask {
+            project_id: project.id.clone(),
+            title: "Source".into(),
+        })
+        .unwrap();
+    for connector_kind in ["git", "rollback-sentinel"] {
+        db.add_task_resource(NewTaskResource {
+            task_id: source.id.clone(),
+            connector_kind: connector_kind.into(),
+            resource_type: "state".into(),
+            payload: json!({"kind": connector_kind}),
+        })
+        .unwrap();
+    }
+    let external = rusqlite::Connection::open(&path).unwrap();
+    external
+        .execute_batch(
+            "CREATE TRIGGER fail_duplicate_resource
+             BEFORE INSERT ON task_resources
+             WHEN NEW.connector_kind = 'rollback-sentinel'
+             BEGIN
+               SELECT RAISE(ABORT, 'intentional duplicate failure');
+             END;",
+        )
+        .unwrap();
+    drop(external);
+
+    assert!(db.duplicate_task(&source.id).is_err());
+    assert_eq!(db.list_tasks(&project.id).unwrap(), vec![source.clone()]);
+    assert_eq!(db.task_resources(&source.id).unwrap().len(), 2);
+}
+
+#[test]
+fn deleting_last_opened_task_clears_the_project_soft_reference() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
+    let project = a_project(&db, "Rabta");
+    let task = db
+        .create_task(NewTask {
+            project_id: project.id.clone(),
+            title: "Active".into(),
+        })
+        .unwrap();
+    let external = rusqlite::Connection::open(&path).unwrap();
+    external
+        .execute(
+            "UPDATE projects SET last_task_id = ?2 WHERE id = ?1",
+            rusqlite::params![project.id, task.id],
+        )
+        .unwrap();
+    drop(external);
+
+    db.delete_task(&task.id).unwrap();
+    assert_eq!(
+        db.get_project(&project.id).unwrap().unwrap().last_task_id,
+        None
+    );
+}
+
+#[test]
 fn deleting_project_cascades_to_tasks_and_resources() {
     let db = db();
     let p = a_project(&db, "omnibus");

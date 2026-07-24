@@ -136,6 +136,35 @@ fn require_project(conn: &Connection, id: &str) -> Result<Project> {
     })
 }
 
+fn task_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Task> {
+    Ok(Task {
+        id: row.get(0)?,
+        project_id: row.get(1)?,
+        title: row.get(2)?,
+        status: TaskStatus::parse(&row.get::<_, String>(3)?),
+        created_at: row.get(4)?,
+        updated_at: row.get(5)?,
+    })
+}
+
+fn task_by_id(conn: &Connection, id: &str) -> Result<Option<Task>> {
+    Ok(conn
+        .query_row(
+            "SELECT id, project_id, title, status, created_at, updated_at
+             FROM tasks WHERE id = ?1",
+            params![id],
+            task_from_row,
+        )
+        .optional()?)
+}
+
+fn require_task(conn: &Connection, id: &str) -> Result<Task> {
+    task_by_id(conn, id)?.ok_or_else(|| DbError::NotFound {
+        entity: "task",
+        id: id.to_string(),
+    })
+}
+
 impl Db {
     /// Creates a project; fails on duplicate name (UNIQUE constraint).
     pub fn create_project(&self, new: NewProject) -> Result<Project> {
@@ -389,39 +418,115 @@ impl Db {
             "SELECT id, project_id, title, status, created_at, updated_at \
              FROM tasks WHERE project_id = ?1 ORDER BY created_at DESC",
         )?;
-        let rows = stmt.query_map(params![project_id], |r| {
-            Ok(Task {
-                id: r.get(0)?,
-                project_id: r.get(1)?,
-                title: r.get(2)?,
-                status: TaskStatus::parse(&r.get::<_, String>(3)?),
-                created_at: r.get(4)?,
-                updated_at: r.get(5)?,
-            })
-        })?;
+        let rows = stmt.query_map(params![project_id], task_from_row)?;
         Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
     }
 
     /// One task by id.
     pub fn get_task(&self, id: &str) -> Result<Option<Task>> {
         let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        Ok(conn
-            .query_row(
-                "SELECT id, project_id, title, status, created_at, updated_at \
-                 FROM tasks WHERE id = ?1",
-                params![id],
-                |r| {
-                    Ok(Task {
-                        id: r.get(0)?,
-                        project_id: r.get(1)?,
-                        title: r.get(2)?,
-                        status: TaskStatus::parse(&r.get::<_, String>(3)?),
-                        created_at: r.get(4)?,
-                        updated_at: r.get(5)?,
-                    })
-                },
-            )
-            .optional()?)
+        task_by_id(&conn, id)
+    }
+
+    /// Renames a task after trimming its user-facing title.
+    pub fn rename_task(&self, id: &str, title: &str) -> Result<Task> {
+        let title = title.trim();
+        if title.is_empty() {
+            return Err(DbError::Validation {
+                field: "title",
+                message: "must not be empty".into(),
+            });
+        }
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let changed = conn.execute(
+            "UPDATE tasks SET title = ?2, updated_at = ?3 WHERE id = ?1",
+            params![id, title, now()],
+        )?;
+        if changed == 0 {
+            return Err(DbError::NotFound {
+                entity: "task",
+                id: id.to_string(),
+            });
+        }
+        require_task(&conn, id)
+    }
+
+    /// Creates an open copy of a task and all of its captured resources.
+    pub fn duplicate_task(&self, id: &str) -> Result<Task> {
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let tx = conn.unchecked_transaction()?;
+        let source = require_task(&tx, id)?;
+
+        let base_title = format!("Copy of {}", source.title);
+        let mut copy_title = base_title.clone();
+        let mut suffix = 2;
+        while tx.query_row(
+            "SELECT EXISTS(
+                SELECT 1 FROM tasks WHERE project_id = ?1 AND title = ?2
+             )",
+            params![source.project_id, copy_title],
+            |row| row.get::<_, bool>(0),
+        )? {
+            copy_title = format!("{base_title} ({suffix})");
+            suffix += 1;
+        }
+
+        let timestamp = now();
+        let copy = Task {
+            id: new_id(),
+            project_id: source.project_id,
+            title: copy_title,
+            status: TaskStatus::Open,
+            created_at: timestamp.clone(),
+            updated_at: timestamp,
+        };
+        tx.execute(
+            "INSERT INTO tasks (id, project_id, title, status, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                copy.id,
+                copy.project_id,
+                copy.title,
+                copy.status.as_str(),
+                copy.created_at,
+                copy.updated_at
+            ],
+        )?;
+
+        let resources = {
+            let mut stmt = tx.prepare(
+                "SELECT connector_kind, resource_type, payload, created_at
+                 FROM task_resources
+                 WHERE task_id = ?1
+                 ORDER BY created_at, id",
+            )?;
+            let rows = stmt.query_map(params![id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                ))
+            })?;
+            rows.collect::<std::result::Result<Vec<_>, _>>()?
+        };
+        for (connector_kind, resource_type, payload, created_at) in resources {
+            tx.execute(
+                "INSERT INTO task_resources
+                 (id, task_id, connector_kind, resource_type, payload, created_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    new_id(),
+                    copy.id,
+                    connector_kind,
+                    resource_type,
+                    payload,
+                    created_at
+                ],
+            )?;
+        }
+        tx.commit()?;
+        Ok(copy)
     }
 
     /// Updates a task's status and `updated_at`.
@@ -437,7 +542,13 @@ impl Db {
     /// Deletes a task; its resources cascade.
     pub fn delete_task(&self, id: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        conn.execute("DELETE FROM tasks WHERE id = ?1", params![id])?;
+        let tx = conn.unchecked_transaction()?;
+        tx.execute(
+            "UPDATE projects SET last_task_id = NULL WHERE last_task_id = ?1",
+            params![id],
+        )?;
+        tx.execute("DELETE FROM tasks WHERE id = ?1", params![id])?;
+        tx.commit()?;
         Ok(())
     }
 
