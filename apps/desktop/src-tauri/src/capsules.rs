@@ -12,6 +12,32 @@ use serde_json::{json, Value};
 
 /// Connector kinds capsules know how to capture and restore.
 const CAPTURABLE: &[&str] = &["vscode", "fake", "chrome"];
+const MAX_SESSION_GAP: Duration = Duration::from_secs(30);
+
+/// Time source for session persistence. Monotonic time measures elapsed work;
+/// UTC time is used only for durable project metadata.
+pub trait SessionClock: Send + Sync {
+    fn monotonic_now(&self) -> std::time::Instant;
+    fn utc_now(&self) -> String;
+}
+
+struct SystemSessionClock;
+
+impl SessionClock for SystemSessionClock {
+    fn monotonic_now(&self) -> std::time::Instant {
+        std::time::Instant::now()
+    }
+
+    fn utc_now(&self) -> String {
+        chrono::Utc::now().to_rfc3339()
+    }
+}
+
+struct SessionState {
+    focused: bool,
+    idle: bool,
+    last_tick: std::time::Instant,
+}
 
 /// Result of an explicit or automatic capsule save.
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -55,6 +81,8 @@ pub struct Capsules {
     db: Db,
     settle: Duration,
     active_task: Arc<Mutex<Option<String>>>,
+    session: Arc<Mutex<SessionState>>,
+    clock: Arc<dyn SessionClock>,
     pending: Arc<Mutex<Option<PendingRestore>>>,
     activation_lock: Arc<tokio::sync::Mutex<()>>,
     generation: Arc<std::sync::atomic::AtomicU64>,
@@ -72,11 +100,29 @@ impl Capsules {
     /// `settle` is the wait between a connector re-registering and the
     /// pending restore being applied (spec default 1500 ms; short in tests).
     pub fn new(hub: Arc<Hub>, db: Db, settle: Duration) -> Capsules {
+        Self::new_with_clock(hub, db, settle, Arc::new(SystemSessionClock))
+    }
+
+    /// Clock-injected constructor for deterministic session tests.
+    #[doc(hidden)]
+    pub fn new_with_clock(
+        hub: Arc<Hub>,
+        db: Db,
+        settle: Duration,
+        clock: Arc<dyn SessionClock>,
+    ) -> Capsules {
+        let last_tick = clock.monotonic_now();
         Capsules {
             hub,
             db,
             settle,
             active_task: Arc::new(Mutex::new(None)),
+            session: Arc::new(Mutex::new(SessionState {
+                focused: false,
+                idle: false,
+                last_tick,
+            })),
+            clock,
             pending: Arc::new(Mutex::new(None)),
             activation_lock: Arc::new(tokio::sync::Mutex::new(())),
             generation: Arc::new(std::sync::atomic::AtomicU64::new(0)),
@@ -86,6 +132,50 @@ impl Capsules {
     /// The task currently considered active (in-memory, this phase).
     pub fn active_task(&self) -> Option<String> {
         self.active_task.lock().unwrap_or_else(std::sync::PoisonError::into_inner).clone()
+    }
+
+    /// Flushes elapsed time while the caller holds `activation_lock`.
+    async fn flush_session(&self) -> Result<(), String> {
+        let seconds = {
+            let now = self.clock.monotonic_now();
+            let mut session = self.session.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            let elapsed = now.saturating_duration_since(session.last_tick);
+            session.last_tick = now;
+            if session.focused && !session.idle {
+                elapsed.min(MAX_SESSION_GAP).as_secs()
+            } else {
+                0
+            }
+        };
+
+        if seconds == 0 {
+            return Ok(());
+        }
+        let Some(task_id) = self.active_task() else {
+            return Ok(());
+        };
+        let db = self.db.clone();
+        tokio::task::spawn_blocking(move || db.add_active_seconds_for_task(&task_id, seconds))
+            .await
+            .map_err(|e| e.to_string())?
+            .map_err(|e| e.to_string())
+    }
+
+    /// Updates focus/idle state after flushing time under the previous state.
+    pub async fn session_update(&self, focused: bool, idle: bool) -> Result<(), String> {
+        let _serialized = self.activation_lock.lock().await;
+        self.flush_session().await?;
+        let mut session = self.session.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        session.focused = focused;
+        session.idle = idle;
+        session.last_tick = self.clock.monotonic_now();
+        Ok(())
+    }
+
+    /// Persists one heartbeat's eligible whole seconds.
+    pub async fn session_heartbeat(&self) -> Result<(), String> {
+        let _serialized = self.activation_lock.lock().await;
+        self.flush_session().await
     }
 
     /// The repo path of the project owning `task_id`, if both still exist.
@@ -179,6 +269,7 @@ impl Capsules {
 
         let mut warnings = vec![];
         if active_belongs_to_project {
+            self.flush_session().await?;
             if let Some(task_id) = active_task {
                 match self.save_capsule(&task_id).await {
                     Ok(summary) => warnings.extend(
@@ -224,13 +315,14 @@ impl Capsules {
                         entity: "project",
                         id: task.project_id.clone(),
                     })?;
-                Ok::<_, rabta_db::DbError>((task, project))
+                let resources = db.task_resources(&task_id)?;
+                Ok::<_, rabta_db::DbError>((project, resources))
             })
             .await
             .map_err(|e| e.to_string())?
             .map_err(|e| e.to_string())?
         };
-        if target.1.archived_at.is_some() {
+        if target.0.archived_at.is_some() {
             return Err(
                 "project is archived — restore it before resuming this capsule".to_string()
             );
@@ -242,6 +334,7 @@ impl Capsules {
         // every activation must reset it, not just cross-folder vscode ones.
         *self.pending.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
 
+        self.flush_session().await?;
         let mut errors = vec![];
         let previous = self.active_task();
         let mut saved_previous = None;
@@ -253,15 +346,24 @@ impl Capsules {
             }
         }
 
-        let resources = {
-            let db = self.db.clone();
-            let tid = task_id.to_string();
-            tokio::task::spawn_blocking(move || db.task_resources(&tid))
-                .await
-                .map_err(|e| e.to_string())?
-                .map_err(|e| e.to_string())?
-        };
+        let db = self.db.clone();
+        let tid = task_id.to_string();
+        let opened_at = self.clock.utc_now();
+        tokio::task::spawn_blocking(move || {
+            db.begin_project_session_for_task(&tid, &opened_at)
+        })
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())?;
 
+        *self.active_task.lock().unwrap_or_else(std::sync::PoisonError::into_inner) =
+            Some(task_id.to_string());
+        self.session
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .last_tick = self.clock.monotonic_now();
+
+        let resources = target.1;
         let mut applied = vec![];
         let mut pending = vec![];
         let mut skipped = vec![];
@@ -347,8 +449,6 @@ impl Capsules {
             }
         }
 
-        *self.active_task.lock().unwrap_or_else(std::sync::PoisonError::into_inner) =
-            Some(task_id.to_string());
         Ok(ActivateSummary { applied, pending, skipped, saved_previous, errors })
     }
 

@@ -35,6 +35,114 @@ fn project_crud_round_trip() {
 }
 
 #[test]
+fn session_begin_resets_duration_and_accrual_credits_the_tasks_project() {
+    let db = db();
+    let p = a_project(&db, "Rabta");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "Ship".into(),
+        })
+        .unwrap();
+
+    db.begin_project_session_for_task(&t.id, "2026-07-23T12:00:00Z")
+        .unwrap();
+    db.add_active_seconds_for_task(&t.id, 17).unwrap();
+
+    let current = db.get_project(&p.id).unwrap().unwrap();
+    assert_eq!(current.last_task_id.as_deref(), Some(t.id.as_str()));
+    assert_eq!(
+        current.last_opened_at.as_deref(),
+        Some("2026-07-23T12:00:00Z")
+    );
+    assert_eq!(current.active_seconds, 17);
+
+    db.begin_project_session_for_task(&t.id, "2026-07-23T13:00:00Z")
+        .unwrap();
+    assert_eq!(db.get_project(&p.id).unwrap().unwrap().active_seconds, 0);
+}
+
+#[test]
+fn session_operations_reject_missing_tasks_and_archived_projects() {
+    let db = db();
+    let p = a_project(&db, "Rabta");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "Ship".into(),
+        })
+        .unwrap();
+
+    assert!(matches!(
+        db.begin_project_session_for_task("missing", "2026-07-23T12:00:00Z"),
+        Err(DbError::NotFound { .. })
+    ));
+    assert!(matches!(
+        db.add_active_seconds_for_task("missing", 1),
+        Err(DbError::NotFound { .. })
+    ));
+
+    db.archive_project(&p.id).unwrap();
+    assert!(matches!(
+        db.begin_project_session_for_task(&t.id, "2026-07-23T12:00:00Z"),
+        Err(DbError::NotFound { .. })
+    ));
+    assert!(matches!(
+        db.add_active_seconds_for_task(&t.id, 1),
+        Err(DbError::NotFound { .. })
+    ));
+}
+
+#[test]
+fn zero_second_accrual_is_a_no_op_only_for_an_active_project_task() {
+    let db = db();
+    let p = a_project(&db, "Rabta");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "Ship".into(),
+        })
+        .unwrap();
+    db.begin_project_session_for_task(&t.id, "2026-07-23T12:00:00Z")
+        .unwrap();
+    let before = db.get_project(&p.id).unwrap().unwrap();
+
+    db.add_active_seconds_for_task(&t.id, 0).unwrap();
+
+    assert_eq!(db.get_project(&p.id).unwrap().unwrap(), before);
+    assert!(matches!(
+        db.add_active_seconds_for_task("missing", 0),
+        Err(DbError::NotFound { .. })
+    ));
+    db.archive_project(&p.id).unwrap();
+    assert!(matches!(
+        db.add_active_seconds_for_task(&t.id, 0),
+        Err(DbError::NotFound { .. })
+    ));
+}
+
+#[test]
+fn session_accrual_saturates_values_that_exceed_sqlite_integer() {
+    let db = db();
+    let p = a_project(&db, "Rabta");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "Ship".into(),
+        })
+        .unwrap();
+    db.begin_project_session_for_task(&t.id, "2026-07-23T12:00:00Z")
+        .unwrap();
+
+    db.add_active_seconds_for_task(&t.id, u64::MAX).unwrap();
+
+    assert_eq!(
+        db.get_project(&p.id).unwrap().unwrap().active_seconds,
+        i64::MAX as u64
+    );
+}
+
+#[test]
 fn newly_created_projects_append_to_the_persisted_order() {
     let db = db();
     let first = a_project(&db, "Zulu");

@@ -188,6 +188,22 @@ fn active_task(caps: State<'_, CapsulesHandle>) -> Option<String> {
     caps.0.active_task()
 }
 
+/// Updates whether the app is focused and the user is idle.
+#[tauri::command]
+async fn session_update(
+    caps: State<'_, CapsulesHandle>,
+    focused: bool,
+    idle: bool,
+) -> Result<(), String> {
+    caps.0.session_update(focused, idle).await
+}
+
+/// Flushes eligible elapsed time for the authoritative active task.
+#[tauri::command]
+async fn session_heartbeat(caps: State<'_, CapsulesHandle>) -> Result<(), String> {
+    caps.0.session_heartbeat().await
+}
+
 /// Creates a task under a project (status `open`).
 #[tauri::command]
 async fn create_task(db: State<'_, DbHandle>, project_id: String, title: String) -> Result<Task, String> {
@@ -514,6 +530,8 @@ pub fn run() {
             save_capsule,
             activate_task,
             active_task,
+            session_update,
+            session_heartbeat,
             create_task,
             list_tasks,
             set_task_status,

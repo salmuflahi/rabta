@@ -424,6 +424,73 @@ impl Db {
         task_by_id(&conn, id)
     }
 
+    /// Starts a fresh session for the active project that owns `task_id`.
+    pub fn begin_project_session_for_task(&self, task_id: &str, opened_at: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let changed = conn.execute(
+            "UPDATE projects
+             SET last_opened_at = ?2,
+                 last_task_id = ?1,
+                 active_seconds = 0,
+                 updated_at = ?2
+             WHERE id = (
+               SELECT project_id FROM tasks WHERE id = ?1
+             )
+             AND archived_at IS NULL",
+            params![task_id, opened_at],
+        )?;
+        if changed == 0 {
+            return Err(DbError::NotFound {
+                entity: "active project for task",
+                id: task_id.to_string(),
+            });
+        }
+        Ok(())
+    }
+
+    /// Adds focused, non-idle whole seconds to the active project owning `task_id`.
+    pub fn add_active_seconds_for_task(&self, task_id: &str, seconds: u64) -> Result<()> {
+        let conn = self.conn.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        if seconds == 0 {
+            let active: bool = conn.query_row(
+                "SELECT EXISTS(
+                   SELECT 1
+                   FROM tasks
+                   JOIN projects ON projects.id = tasks.project_id
+                   WHERE tasks.id = ?1 AND projects.archived_at IS NULL
+                 )",
+                params![task_id],
+                |row| row.get(0),
+            )?;
+            if !active {
+                return Err(DbError::NotFound {
+                    entity: "active project for task",
+                    id: task_id.to_string(),
+                });
+            }
+            return Ok(());
+        }
+
+        let seconds = i64::try_from(seconds).unwrap_or(i64::MAX);
+        let changed = conn.execute(
+            "UPDATE projects
+             SET active_seconds = active_seconds + ?2,
+                 updated_at = ?3
+             WHERE id = (
+               SELECT project_id FROM tasks WHERE id = ?1
+             )
+             AND archived_at IS NULL",
+            params![task_id, seconds, now()],
+        )?;
+        if changed == 0 {
+            return Err(DbError::NotFound {
+                entity: "active project for task",
+                id: task_id.to_string(),
+            });
+        }
+        Ok(())
+    }
+
     /// Renames a task after trimming its user-facing title.
     pub fn rename_task(&self, id: &str, title: &str) -> Result<Task> {
         let title = title.trim();

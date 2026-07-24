@@ -1,9 +1,9 @@
-use std::sync::Arc;
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use futures_util::{SinkExt, StreamExt};
 use rabta_db::{Db, DbConfig, NewProject, NewTask};
-use rabta_desktop_lib::capsules::Capsules;
+use rabta_desktop_lib::capsules::{Capsules, SessionClock};
 use rabta_hub::{Hub, HubConfig};
 use serde_json::{json, Value};
 use tokio::sync::mpsc;
@@ -107,6 +107,196 @@ async fn setup() -> (Arc<Hub>, Db, Capsules, String, tempfile::TempDir) {
     let t = db.create_task(NewTask { project_id: p.id, title: "task".into() }).unwrap();
     let capsules = Capsules::new(hub.clone(), db.clone(), Duration::from_millis(50));
     (hub, db, capsules, t.id, dir)
+}
+
+#[derive(Clone)]
+struct FakeSessionClock {
+    monotonic: Arc<Mutex<Instant>>,
+    utc: Arc<Mutex<String>>,
+}
+
+impl FakeSessionClock {
+    fn new() -> Self {
+        Self {
+            monotonic: Arc::new(Mutex::new(Instant::now())),
+            utc: Arc::new(Mutex::new("2026-07-23T12:00:00Z".into())),
+        }
+    }
+
+    fn advance(&self, duration: Duration) {
+        *self.monotonic.lock().unwrap() += duration;
+    }
+}
+
+impl SessionClock for FakeSessionClock {
+    fn monotonic_now(&self) -> Instant {
+        *self.monotonic.lock().unwrap()
+    }
+
+    fn utc_now(&self) -> String {
+        self.utc.lock().unwrap().clone()
+    }
+}
+
+struct SessionFixture {
+    db: Db,
+    capsules: Capsules,
+    clock: FakeSessionClock,
+    project_id: String,
+    task_id: String,
+    _dir: tempfile::TempDir,
+}
+
+impl SessionFixture {
+    fn project(&self) -> rabta_db::Project {
+        self.db.get_project(&self.project_id).unwrap().unwrap()
+    }
+}
+
+async fn session_fixture() -> SessionFixture {
+    let dir = tempfile::tempdir().unwrap();
+    let hub = Arc::new(Hub::start(HubConfig::new(dir.path().to_path_buf())).await.unwrap());
+    let db = Db::open_in_memory(DbConfig::default()).unwrap();
+    let project = db
+        .create_project(NewProject {
+            name: "session project".into(),
+            repo_path: "/tmp/session-project".into(),
+            dev_url: None,
+            default_branch: "main".into(),
+        })
+        .unwrap();
+    let task = db
+        .create_task(NewTask {
+            project_id: project.id.clone(),
+            title: "session task".into(),
+        })
+        .unwrap();
+    let clock = FakeSessionClock::new();
+    let capsules = Capsules::new_with_clock(
+        hub,
+        db.clone(),
+        Duration::from_millis(50),
+        Arc::new(clock.clone()),
+    );
+    SessionFixture {
+        db,
+        capsules,
+        clock,
+        project_id: project.id,
+        task_id: task.id,
+        _dir: dir,
+    }
+}
+
+#[tokio::test]
+async fn session_credits_only_focused_non_idle_time_and_caps_sleep_gaps() {
+    let fixture = session_fixture().await;
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    assert_eq!(
+        fixture.project().last_opened_at.as_deref(),
+        Some("2026-07-23T12:00:00Z")
+    );
+    fixture.capsules.session_update(true, false).await.unwrap();
+    fixture.clock.advance(Duration::from_secs(15));
+    fixture.capsules.session_update(false, false).await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 15);
+
+    fixture.clock.advance(Duration::from_secs(15));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 15);
+
+    fixture.capsules.session_update(true, true).await.unwrap();
+    fixture.clock.advance(Duration::from_secs(15));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 15);
+
+    fixture.capsules.session_update(true, false).await.unwrap();
+    fixture.clock.advance(Duration::from_secs(3_600));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 45);
+}
+
+#[tokio::test]
+async fn session_switch_flushes_the_previous_task_before_starting_the_next() {
+    let fixture = session_fixture().await;
+    let next_project = fixture
+        .db
+        .create_project(NewProject {
+            name: "next project".into(),
+            repo_path: "/tmp/next-project".into(),
+            dev_url: None,
+            default_branch: "main".into(),
+        })
+        .unwrap();
+    let next_task = fixture
+        .db
+        .create_task(NewTask {
+            project_id: next_project.id.clone(),
+            title: "next task".into(),
+        })
+        .unwrap();
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture.capsules.session_update(true, false).await.unwrap();
+    fixture.clock.advance(Duration::from_secs(12));
+
+    fixture.capsules.activate_task(&next_task.id).await.unwrap();
+
+    assert_eq!(fixture.project().active_seconds, 12);
+    let next = fixture.db.get_project(&next_project.id).unwrap().unwrap();
+    assert_eq!(next.active_seconds, 0);
+    assert_eq!(next.last_task_id.as_deref(), Some(next_task.id.as_str()));
+    assert_eq!(fixture.capsules.active_task().as_deref(), Some(next_task.id.as_str()));
+}
+
+#[tokio::test]
+async fn session_reactivation_within_the_same_project_resets_duration() {
+    let fixture = session_fixture().await;
+    let next_task = fixture
+        .db
+        .create_task(NewTask {
+            project_id: fixture.project_id.clone(),
+            title: "next task".into(),
+        })
+        .unwrap();
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture.capsules.session_update(true, false).await.unwrap();
+    fixture.clock.advance(Duration::from_secs(12));
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 12);
+
+    fixture.capsules.activate_task(&next_task.id).await.unwrap();
+
+    let project = fixture.project();
+    assert_eq!(project.active_seconds, 0);
+    assert_eq!(project.last_task_id.as_deref(), Some(next_task.id.as_str()));
+}
+
+#[tokio::test]
+async fn session_archive_flushes_before_clearing_and_archiving() {
+    let fixture = session_fixture().await;
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture.capsules.session_update(true, false).await.unwrap();
+    fixture.clock.advance(Duration::from_secs(9));
+
+    let result = fixture.capsules.archive_project(&fixture.project_id).await.unwrap();
+
+    assert_eq!(result.project.active_seconds, 9);
+    assert!(result.project.archived_at.is_some());
+    assert_eq!(fixture.capsules.active_task(), None);
+}
+
+#[tokio::test]
+async fn session_flush_persists_whole_seconds_and_repeated_flush_is_idempotent() {
+    let fixture = session_fixture().await;
+    fixture.capsules.activate_task(&fixture.task_id).await.unwrap();
+    fixture.capsules.session_update(true, false).await.unwrap();
+    fixture.clock.advance(Duration::from_millis(1_900));
+
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 1);
+
+    fixture.capsules.session_heartbeat().await.unwrap();
+    assert_eq!(fixture.project().active_seconds, 1);
 }
 
 #[tokio::test]
