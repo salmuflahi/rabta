@@ -1,61 +1,82 @@
 # Rabta — Project Status & Handoff
 
 > **Read this first.** This is the single "where we are / what's next" file for picking up work.
-> Last updated: **2026-07-23**. Branch: **`main`** (local-only repo, no git remote). HEAD: **`ed8bf0b`**.
-> Durable design records live in `docs/superpowers/plans/` and `docs/superpowers/specs/` (committed).
-> The SDD per-task progress ledger at `.superpowers/sdd/progress.md` is git-ignored scratch — this file + `git log` are the source of truth.
+> Last updated: **2026-07-24**. Branch: **`codex/track-b-core`** (local-only repo, no git remote).
+> Track B Core implementation range: **`cc39522` through `52bbadf`**, based on main at `27a6c8b`.
+> Durable plans and specs live in `docs/superpowers/plans/` and `docs/superpowers/specs/`.
 
 ---
 
 ## What this project is
-**Rabta** (formerly OmniBus) — a local-first desktop app (Tauri + React + TS + Tailwind/shadcn; Rust hub + connectors) that saves and restores a task's full workspace "capsule": editor files/terminals, browser tabs, and git branch. Renamed OmniBus→Rabta (internal crates/packages `rabta-*`, user-facing name, Context-Fold app icon; bundle id + data dir `com.omnibus.dev` kept).
+
+**Rabta** (formerly OmniBus) is a local-first Tauri desktop app that saves and restores a task's workspace "capsule": editor files and terminals, browser tabs, and git branch. The frontend is React/TypeScript/Tailwind; the Rust side owns the local database, connector hub, capsule orchestration, and session accounting.
 
 ## Where we are
-- **All 11 vision-roadmap phases: COMPLETE**, merged to main (register project → task/GitHub-issue → work in editor+browser on a branch → save → switch → everything restores; authenticated hub; VS Code/Cursor, Chrome, fake connectors).
-- **QoL & polish arc A1–A6: COMPLETE**, merged to main (2026-07-23). Subagent-driven from `docs/superpowers/plans/`, per-task + final fable/opus reviews.
-- Desktop TS suite: **125 tests green**. `cargo build` clean.
 
-### Polish arc A1–A6 (all on main)
-| Phase | What landed | Plan file |
-|-------|-------------|-----------|
-| A1 / RX | "Restore Experience" restore sheet (Radix dialog, truthful tool statuses, folded-corner brand detail, success/partial/failure, reduced-motion) — replaced the old fold-logo ceremony | `plans/2026-07-21-qol-polish-arc.md`, `specs/2026-07-22-restore-experience-spec.md` |
-| A2 | macOS traffic lights integrated into a single nav bar; button/card/sidebar/input microinteractions; overlay motion; loading skeletons | `plans/2026-07-22-a2-microinteractions.md`, `plans/2026-07-22-a2-a3-batch.md` |
-| A3 | ⌘K Raycast-style fuzzy command palette; ⌘N / ⌘⇧N / ⌘R shortcuts | `plans/2026-07-22-a2-a3-batch.md` |
-| A4 | Right-click context menus (projects + capsules); deferred-commit Undo for delete; Reveal in Finder | `plans/2026-07-22-a4-context-undo-reveal.md` |
-| A5 | Resume preview popover (peek a capsule); unsaved-changes git-dirty dot; connector last-seen (`connectedSince`→ISO, no fake version); educational empty states | `plans/2026-07-22-a5-a6-batch.md` |
-| A6 | Collapsible localStorage-persisted sidebar (⌘\, 56px icon rail + tooltips); `tauri-plugin-window-state` (window size/position restore) | `plans/2026-07-22-a5-a6-batch.md` |
+- **All 11 original vision-roadmap phases: complete.**
+- **QoL and polish arc A1–A6: complete.**
+- **Track B Core B1–B3: complete on `codex/track-b-core`.**
+- Desktop suite: **164 Vitest tests passing across 20 files**.
+- Rust workspace suite: **all tests passing**.
+- `cargo fmt --all -- --check`: passing.
+- `cargo clippy --workspace --all-targets -- -D warnings`: passing.
+- `pnpm build`: passing. Vite reports only its advisory 500 kB chunk-size notice.
+- A real tempfile-backed schema-v1 database upgrades to schema v2 in place while preserving project, task, and resource IDs.
 
-A5+A6 commit range on main: `1cdbf65..ed8bf0b` (incl. review fixes `cf59494`, `ed8bf0b`).
+### Track B Core B1–B3
+
+| Phase | Completed work |
+|---|---|
+| B1 — Durable operations | Schema v2 migration; project rename, archive/unarchive, icon, exact ordering, and permanent delete; capsule rename and duplicate; archive-safe task/GitHub operations; persisted session metadata and saturating duration accrual |
+| B2 — Product UI | Project and capsule actions wired into existing menus; curated project icons; accessible drag and keyboard ordering; Archived Projects restore/delete flow; truthful duplicate/rename feedback; persisted Continue Working and capsule session preview |
+| B3 — Active-session runtime | Focused, non-idle active-time accounting with fractional carry and 30-second sleep cap; durable activation/archive transitions; continuation/session concurrency isolation; 15-second heartbeat, 60-second idle bridge, and best-effort shutdown flush |
+
+The high-risk session path has deterministic tests for persistence failure, focus loss, activation/archive serialization, overflow saturation, subsecond carry, and blocked reconnect continuation behavior.
 
 ---
 
-## What's next (pick up here)
+## Manual GUI acceptance still pending
 
-### 1. Live-verify the two A6 features (needs a human GUI — could not be automated)
-- **Sidebar collapse:** run the app, toggle the sidebar (button + **⌘\**), confirm the 56px icon rail, right-side tooltips, and smooth animation.
-- **Window-state:** resize/move the window → quit → relaunch → confirm it reopens at the last size/position (clamped to the 760×540 minimum), with traffic lights still correct.
-- To run: see `/run` skill or `apps/desktop` (`pnpm tauri dev`). Note: this machine has **no assistive access for osascript / GUI automation** — a person must click. Be surgical with app control (never `tell application to quit`).
+The live debug app was launched successfully with `pnpm tauri dev`. The available GUI automation can attach only to bundled macOS apps, not the raw Tauri debug executable, so these checks remain explicitly pending rather than being reported as verified:
 
-### 2. Track B — backend features that complete the context menus (deferred, needs DB/backend work)
-Per the plan's reality checks, these were explicitly out of scope for the presentation-first polish arc:
-- **Rename / Archive (+ real un-archive) / Duplicate** wired into the existing A4 context menus (archive = primary non-destructive; delete = secondary destructive; undo genuinely un-archives).
-- **Project icons** (curated lucide, not emoji).
-- **Session tracking** → enables "Last session 2h 17m" in the Resume preview (real persisted ACTIVE focused usage; no charts/scoring).
-- **Project reordering** (needs a DB sort field).
-- **Connector version** in last-seen (needs the hub to capture a connector-reported version).
+1. Rename a project and capsule.
+2. Choose and persist a project icon.
+3. Drag reorder and keyboard reorder; relaunch and confirm order.
+4. Archive, Undo, Archived Restore, and permanent Delete safety.
+5. Duplicate a capsule and confirm resources copy without automatic activation or branch switching.
+6. Resume and confirm last-open/session copy.
+7. Keep focused for at least 20 seconds, blur, idle for 60 seconds, refocus, and confirm only eligible time accrues.
+8. Toggle sidebar collapse with its button and **⌘\\**.
+9. Move/resize, quit, relaunch, and confirm window state.
 
-### 3. Deferred cosmetic Minors from A5/A6 reviews (low priority, all acceptable as-is)
-- Sidebar labels disappear instantly instead of fading during collapse.
-- `humanizeCapsule` computed twice per open Resume-preview row (pure/cheap).
-- Unsaved-dot tooltip isn't keyboard-focusable (mirrors GitLine's existing pattern; screen-reader label already carries the count).
+Do not treat these GUI-only checks as blockers to the automated B1–B3 implementation; record any observed failure as a focused test before fixing it.
 
-### 4. Older hardening / follow-up backlog (not roadmap)
-Tracked in the `omnibus-status` auto-memory and prior plans: packaging/signing (unsigned ad-hoc builds only), plus per-phase follow-ups (git/hub/capsule/connector robustness items). Not blocking.
+---
+
+## What's next
+
+### B4 — Connector version reporting
+
+Capture a connector-reported version in the hub handshake/registry, persist or project it through the existing connector model, and replace placeholder version copy in the UI. Keep this narrowly scoped; do not add a marketplace or generic capability framework.
+
+### B5 — Packaging, signing, and release hardening
+
+After B4, produce a repeatable macOS bundle, settle signing/notarization strategy, verify clean-install data migration and window state, and run the manual GUI acceptance list against the bundled app.
+
+### Deferred low-priority polish
+
+- Sidebar labels disappear immediately rather than fading during collapse.
+- `humanizeCapsule` is computed twice per open Resume-preview row.
+- The unsaved-changes dot tooltip is not independently keyboard-focusable.
+- The production bundle remains slightly above Vite's default 500 kB advisory threshold.
 
 ---
 
 ## How to resume
-1. Read this file, then `git log --oneline -15` on `main`.
-2. For a specific area, open its plan/spec in `docs/superpowers/`.
-3. New multi-task work uses the superpowers **subagent-driven-development** workflow (plan → per-task implementer+review → final whole-branch review → finishing-a-development-branch). Write the plan with the **writing-plans** skill first.
-4. Repo notes: `apps/desktop` = the app; cargo needs `export PATH="$HOME/.cargo/bin:$PATH"`; Node v18 default (v22 at `/usr/local/bin/node`); tests via `pnpm test` in `apps/desktop`, `cargo build` for the Tauri side.
+
+1. Run `git log --oneline -15` and confirm `codex/track-b-core` is clean.
+2. Complete the manual GUI list against a bundled build or with a human operator.
+3. Start B4 from the Track B design and plan:
+   - `docs/superpowers/specs/2026-07-23-track-b-core-design.md`
+   - `docs/superpowers/plans/2026-07-23-track-b-core.md`
+4. Keep B4 and B5 separate. Prefer the smallest implementation that proves the current phase.
