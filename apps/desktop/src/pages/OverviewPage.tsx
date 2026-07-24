@@ -14,7 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/shell/PageHeader";
-import { relativeTime } from "@/lib/humanize";
+import { formatDuration, relativeTime } from "@/lib/humanize";
+import { ProjectIcon } from "@/lib/project-icons";
 import { useStore, type Project, type Task } from "@/store";
 
 function NextStepCard({
@@ -111,6 +112,7 @@ export function OverviewPage() {
   const setActiveTaskId = useStore((s) => s.setActiveTaskId);
   const log = useStore((s) => s.log);
   const setView = useStore((s) => s.setView);
+  const requestResume = useStore((s) => s.requestResume);
 
   const [tasks, setTasks] = useState<Task[]>([]);
   // Pre-first-load window only: true until the initial list_projects fetch
@@ -146,6 +148,15 @@ export function OverviewPage() {
   const openCount = tasks.filter((t) => t.status === "open").length;
   const activeTask = tasks.find((t) => t.id === activeTaskId);
   const recentLog = [...log].slice(-5).reverse();
+  const continueProjects = projects
+    .filter((project) => project.lastOpenedAt)
+    .sort((a, b) => Date.parse(b.lastOpenedAt!) - Date.parse(a.lastOpenedAt!))
+    .slice(0, 5);
+
+  function resumeTask(taskId: string) {
+    requestResume(taskId);
+    setView("capsules");
+  }
 
   return (
     <div>
@@ -212,6 +223,51 @@ export function OverviewPage() {
             <Card className="border-l-2 border-l-primary p-4">
               <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Active Task</p>
               <p className="mt-1 font-medium text-foreground">{activeTask.title}</p>
+            </Card>
+          )}
+
+          {continueProjects.length > 0 && (
+            <Card className="p-4">
+              <p className="mb-3 text-sm font-medium text-foreground">Continue Working</p>
+              <div className="flex flex-col divide-y divide-border">
+                {continueProjects.map((project) => {
+                  const task = project.lastTaskId
+                    ? tasks.find((candidate) => candidate.id === project.lastTaskId && candidate.projectId === project.id)
+                    : undefined;
+
+                  return (
+                    <div key={project.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/5 text-primary">
+                        <ProjectIcon icon={project.icon} className="size-[18px]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">{project.name}</p>
+                        <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                          <span>Opened {relativeTime(project.lastOpenedAt!)}</span>
+                          {project.activeSeconds > 0 && (
+                            <span>Last session {formatDuration(project.activeSeconds)}</span>
+                          )}
+                        </div>
+                        {task && <p className="mt-1 truncate text-xs text-muted-foreground">{task.title}</p>}
+                      </div>
+                      {task ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          aria-label={`Resume ${project.name}`}
+                          onClick={() => resumeTask(task.id)}
+                        >
+                          Resume
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => setView("capsules")}>
+                          View Capsules
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </Card>
           )}
 

@@ -10,6 +10,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useTheme } from "@/components/theme-provider";
+import { ProjectIcon } from "@/lib/project-icons";
 import { useStore, type NavKey, type Task } from "@/store";
 import { NAV_ITEMS, SETTINGS_ITEM } from "./nav";
 
@@ -40,9 +41,10 @@ export function CommandPalette() {
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+    const projectIds = new Set(projects.map((project) => project.id));
     Promise.all(projects.map((p) => invoke<Task[]>("list_tasks", { projectId: p.id })))
       .then((perProject) => {
-        if (!cancelled) setTasks(perProject.flat());
+        if (!cancelled) setTasks(perProject.flat().filter((task) => projectIds.has(task.projectId)));
       })
       .catch((e) => console.error("command palette list_tasks failed:", e));
     return () => {
@@ -88,7 +90,7 @@ export function CommandPalette() {
           <CommandGroup heading="Projects">
             {projects.map((p) => (
               <CommandItem key={p.id} value={`project ${p.name}`} onSelect={() => go("projects")}>
-                <FolderGit2 />
+                <ProjectIcon icon={p.icon} />
                 <span>{p.name}</span>
               </CommandItem>
             ))}

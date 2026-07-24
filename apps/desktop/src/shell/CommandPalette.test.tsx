@@ -11,7 +11,7 @@ const FAKE_PROJECT: Project = {
   repoPath: "/tmp/test-project",
   devUrl: null,
   defaultBranch: "main",
-  icon: null,
+  icon: "rocket",
   archivedAt: null,
   lastOpenedAt: null,
   lastTaskId: null,
@@ -62,6 +62,20 @@ describe("CommandPalette", () => {
     expect(await screen.findByText("Write onboarding docs")).toBeInTheDocument();
     expect(screen.getByText("Resume Write onboarding docs")).toBeInTheDocument();
     // Fetched once for the one project in the store.
+    expect(mockInvoke).toHaveBeenCalledWith("list_tasks", { projectId: FAKE_PROJECT.id });
+  });
+
+  it("uses active project records for palette icons and task scope", async () => {
+    mockListTasks();
+    useStore.setState({ commandOpen: true, projects: [FAKE_PROJECT] });
+
+    renderWithProviders(<CommandPalette />);
+
+    const projectName = await screen.findByText(FAKE_PROJECT.name);
+    const projectItem = projectName.closest("[cmdk-item]");
+    expect(projectItem?.querySelector("svg.lucide-rocket")).toBeInTheDocument();
+    expect(await screen.findByText(FAKE_TASK.title)).toBeInTheDocument();
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
     expect(mockInvoke).toHaveBeenCalledWith("list_tasks", { projectId: FAKE_PROJECT.id });
   });
 
