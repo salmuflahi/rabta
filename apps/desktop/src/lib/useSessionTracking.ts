@@ -10,12 +10,18 @@ export function useSessionTracking() {
 
   useEffect(() => {
     let idleTimeout: number | undefined;
+    let updateTail: Promise<unknown> | undefined;
 
     const report = () => {
-      void invoke("session_update", {
+      const args = {
         focused: focusedRef.current && !document.hidden,
         idle: idleRef.current,
-      }).catch((error) => console.error("session update failed:", error));
+      };
+      const send = () =>
+        invoke("session_update", args).catch((error) =>
+          console.error("session update failed:", error)
+        );
+      updateTail = updateTail ? updateTail.then(send) : send();
     };
 
     const scheduleIdle = () => {
@@ -59,7 +65,7 @@ export function useSessionTracking() {
     window.addEventListener("keydown", onActivity);
     window.addEventListener("pointerdown", onActivity);
     window.addEventListener("pointermove", onActivity);
-    window.addEventListener("scroll", onActivity);
+    document.addEventListener("scroll", onActivity, true);
     window.addEventListener("focus", onFocus);
     window.addEventListener("blur", onBlur);
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -71,10 +77,10 @@ export function useSessionTracking() {
     }, HEARTBEAT_MS);
 
     return () => {
-      window.removeEventListener("keydown", onActivity);
-      window.removeEventListener("pointerdown", onActivity);
-      window.removeEventListener("pointermove", onActivity);
-      window.removeEventListener("scroll", onActivity);
+    window.removeEventListener("keydown", onActivity);
+    window.removeEventListener("pointerdown", onActivity);
+    window.removeEventListener("pointermove", onActivity);
+    document.removeEventListener("scroll", onActivity, true);
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("blur", onBlur);
       document.removeEventListener("visibilitychange", onVisibilityChange);

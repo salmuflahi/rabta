@@ -37,33 +37,46 @@ describe("useSessionTracking", () => {
       idle: true,
     });
 
-    fireEvent.keyDown(window, { key: "a" });
+    await act(async () => {
+      fireEvent.keyDown(window, { key: "a" });
+      await Promise.resolve();
+    });
     expect(mockInvoke).toHaveBeenLastCalledWith("session_update", {
       focused: true,
       idle: false,
     });
   });
 
-  it("reports window focus changes and current document visibility", () => {
+  it("reports window focus changes and current document visibility", async () => {
     const hidden = vi.spyOn(document, "hidden", "get");
     renderHook(() => useSessionTracking());
+    await act(async () => Promise.resolve());
     mockInvoke.mockClear();
 
-    fireEvent.blur(window);
+    await act(async () => {
+      fireEvent.blur(window);
+      await Promise.resolve();
+    });
     expect(mockInvoke).toHaveBeenLastCalledWith("session_update", {
       focused: false,
       idle: false,
     });
 
     hidden.mockReturnValue(true);
-    fireEvent(document, new Event("visibilitychange"));
+    await act(async () => {
+      fireEvent(document, new Event("visibilitychange"));
+      await Promise.resolve();
+    });
     expect(mockInvoke).toHaveBeenLastCalledWith("session_update", {
       focused: false,
       idle: false,
     });
 
     hidden.mockReturnValue(false);
-    fireEvent.focus(window);
+    await act(async () => {
+      fireEvent.focus(window);
+      await Promise.resolve();
+    });
     expect(mockInvoke).toHaveBeenLastCalledWith("session_update", {
       focused: true,
       idle: false,
@@ -90,12 +103,85 @@ describe("useSessionTracking", () => {
     });
 
     mockInvoke.mockClear();
-    fireEvent.pointerMove(window);
+    await act(async () => {
+      fireEvent.pointerMove(window);
+      await Promise.resolve();
+    });
     expect(mockInvoke).toHaveBeenCalledTimes(1);
     expect(mockInvoke).toHaveBeenCalledWith("session_update", {
       focused: true,
       idle: false,
     });
+  });
+
+  it("serializes lifecycle updates in the order transitions were observed", async () => {
+    let resolveFirstUpdate: (() => void) | undefined;
+    let updateCount = 0;
+    mockInvoke.mockImplementation((command) => {
+      if (command !== "session_update") {
+        return Promise.resolve(undefined);
+      }
+      updateCount += 1;
+      if (updateCount === 1) {
+        return new Promise<void>((resolve) => {
+          resolveFirstUpdate = resolve;
+        });
+      }
+      return Promise.resolve(undefined);
+    });
+
+    renderHook(() => useSessionTracking());
+    fireEvent.blur(window);
+    fireEvent.focus(window);
+
+    expect(
+      mockInvoke.mock.calls.filter(([command]) => command === "session_update")
+    ).toHaveLength(1);
+
+    await act(async () => {
+      resolveFirstUpdate?.();
+      for (let flush = 0; flush < 5; flush += 1) {
+        await Promise.resolve();
+      }
+    });
+
+    expect(
+      mockInvoke.mock.calls.filter(([command]) => command === "session_update")
+    ).toEqual([
+      ["session_update", { focused: true, idle: false }],
+      ["session_update", { focused: false, idle: false }],
+      ["session_update", { focused: true, idle: false }],
+    ]);
+  });
+
+  it("resumes from idle on nested scrolling and pointer activity", async () => {
+    const scroller = document.createElement("main");
+    document.body.appendChild(scroller);
+    renderHook(() => useSessionTracking());
+
+    await act(() => vi.advanceTimersByTimeAsync(IDLE_MS));
+    mockInvoke.mockClear();
+    await act(async () => {
+      fireEvent.scroll(scroller);
+      await Promise.resolve();
+    });
+    expect(mockInvoke).toHaveBeenCalledWith("session_update", {
+      focused: true,
+      idle: false,
+    });
+
+    await act(() => vi.advanceTimersByTimeAsync(IDLE_MS));
+    mockInvoke.mockClear();
+    await act(async () => {
+      fireEvent.pointerDown(scroller);
+      await Promise.resolve();
+    });
+    expect(mockInvoke).toHaveBeenCalledWith("session_update", {
+      focused: true,
+      idle: false,
+    });
+
+    scroller.remove();
   });
 
   it("removes listeners and timers when unmounted", async () => {
