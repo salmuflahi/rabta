@@ -2,14 +2,14 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use rabta_db::{Db, DbConfig, EventRow, KnownConnector, NewTask, Project, Recorder, Task, TaskResource, TaskStatus};
+use rabta_db::{Db, DbConfig, EventRow, KnownConnector, Project, Recorder, Task, TaskResource, TaskStatus};
 use rabta_hub::{ConnectorInfo, Hub, HubConfig};
 use serde::Serialize;
 use serde_json::Value;
 use tauri::{Emitter, Manager, State};
 use tokio::sync::broadcast::error::RecvError;
 
-use crate::capsules::{ActivateSummary, Capsules, SaveSummary};
+use crate::capsules::{ActivateSummary, ArchiveProjectResult, Capsules, SaveSummary};
 use crate::git::GitStatus;
 use crate::github::{Issue, StartedTask};
 use crate::projects::RepoInspection;
@@ -92,6 +92,75 @@ async fn list_projects(db: State<'_, DbHandle>) -> Result<Vec<Project>, String> 
         .map_err(|e| e.to_string())?
 }
 
+/// Renames a registered project.
+#[tauri::command]
+async fn rename_project(
+    db: State<'_, DbHandle>,
+    id: String,
+    name: String,
+) -> Result<Project, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || projects::rename_project(&db, &id, &name))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Archived projects, newest archive first.
+#[tauri::command]
+async fn list_archived_projects(db: State<'_, DbHandle>) -> Result<Vec<Project>, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || projects::list_archived_projects(&db))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Archives a project and safely clears its active capsule when needed.
+#[tauri::command]
+async fn archive_project(
+    caps: State<'_, CapsulesHandle>,
+    id: String,
+) -> Result<ArchiveProjectResult, String> {
+    caps.0.archive_project(&id).await
+}
+
+/// Restores an archived project.
+#[tauri::command]
+async fn unarchive_project(db: State<'_, DbHandle>, id: String) -> Result<Project, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || projects::unarchive_project(&db, &id))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Assigns or clears one curated project icon.
+#[tauri::command]
+async fn set_project_icon(
+    db: State<'_, DbHandle>,
+    id: String,
+    icon: Option<String>,
+) -> Result<Project, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        projects::set_project_icon(&db, &id, icon.as_deref())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Persists an exact active-project ordering.
+#[tauri::command]
+async fn reorder_projects(
+    db: State<'_, DbHandle>,
+    ordered_ids: Vec<String>,
+) -> Result<Vec<Project>, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        projects::reorder_projects(&db, &ordered_ids)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Deletes a project; its tasks and resources cascade (phase 5 schema).
 #[tauri::command]
 async fn delete_project(db: State<'_, DbHandle>, id: String) -> Result<(), String> {
@@ -123,11 +192,9 @@ fn active_task(caps: State<'_, CapsulesHandle>) -> Option<String> {
 #[tauri::command]
 async fn create_task(db: State<'_, DbHandle>, project_id: String, title: String) -> Result<Task, String> {
     let db = db.0.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        db.create_task(NewTask { project_id, title }).map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || projects::create_task(&db, &project_id, &title))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 /// Tasks for one project, newest first.
@@ -149,6 +216,28 @@ async fn set_task_status(db: State<'_, DbHandle>, id: String, status: String) ->
     };
     let db = db.0.clone();
     tauri::async_runtime::spawn_blocking(move || db.set_task_status(&id, parsed).map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Renames a task capsule.
+#[tauri::command]
+async fn rename_task(
+    db: State<'_, DbHandle>,
+    id: String,
+    title: String,
+) -> Result<Task, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || projects::rename_task(&db, &id, &title))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Duplicates a task capsule and all captured resources.
+#[tauri::command]
+async fn duplicate_task(db: State<'_, DbHandle>, id: String) -> Result<Task, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || projects::duplicate_task(&db, &id))
         .await
         .map_err(|e| e.to_string())?
 }
@@ -415,6 +504,12 @@ pub fn run() {
             inspect_repo_path,
             create_project,
             list_projects,
+            rename_project,
+            list_archived_projects,
+            archive_project,
+            unarchive_project,
+            set_project_icon,
+            reorder_projects,
             delete_project,
             save_capsule,
             activate_task,
@@ -422,6 +517,8 @@ pub fn run() {
             create_task,
             list_tasks,
             set_task_status,
+            rename_task,
+            duplicate_task,
             delete_task,
             task_resources,
             git_status,

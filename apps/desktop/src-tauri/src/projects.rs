@@ -3,7 +3,7 @@
 //! (safe git ops) absorbs this helper when real git operations arrive.
 use std::path::Path;
 
-use rabta_db::{Db, DbError, NewProject, Project};
+use rabta_db::{Db, DbError, NewProject, NewTask, Project, Task};
 use serde::Serialize;
 
 /// What a candidate repository path looks like on disk.
@@ -83,13 +83,76 @@ pub fn validate_and_create(
     .map_err(friendly_db_error)
 }
 
+/// Renames a project and maps storage errors to stable UI copy.
+pub fn rename_project(db: &Db, id: &str, name: &str) -> Result<Project, String> {
+    db.rename_project(id, name).map_err(friendly_db_error)
+}
+
+/// Archived projects ordered by their archive timestamp.
+pub fn list_archived_projects(db: &Db) -> Result<Vec<Project>, String> {
+    db.list_archived_projects().map_err(friendly_db_error)
+}
+
+/// Restores an archived project at the end of active ordering.
+pub fn unarchive_project(db: &Db, id: &str) -> Result<Project, String> {
+    db.unarchive_project(id).map_err(friendly_db_error)
+}
+
+/// Assigns or clears one curated project icon.
+pub fn set_project_icon(
+    db: &Db,
+    id: &str,
+    icon: Option<&str>,
+) -> Result<Project, String> {
+    db.set_project_icon(id, icon).map_err(friendly_db_error)
+}
+
+/// Persists an exact active-project ordering.
+pub fn reorder_projects(db: &Db, ordered_ids: &[String]) -> Result<Vec<Project>, String> {
+    db.reorder_projects(ordered_ids).map_err(friendly_db_error)
+}
+
+/// Creates a capsule only when its owning project is active.
+pub fn create_task(db: &Db, project_id: &str, title: &str) -> Result<Task, String> {
+    let project = db
+        .get_project(project_id)
+        .map_err(friendly_db_error)?
+        .ok_or_else(|| "project not found".to_string())?;
+    if project.archived_at.is_some() {
+        return Err(
+            "project is archived — restore it before adding a capsule".to_string()
+        );
+    }
+    db.create_task(NewTask {
+        project_id: project_id.to_string(),
+        title: title.to_string(),
+    })
+    .map_err(friendly_db_error)
+}
+
+/// Renames a capsule and maps validation failures to stable UI copy.
+pub fn rename_task(db: &Db, id: &str, title: &str) -> Result<Task, String> {
+    db.rename_task(id, title).map_err(friendly_db_error)
+}
+
+/// Duplicates a capsule and its resources transactionally.
+pub fn duplicate_task(db: &Db, id: &str) -> Result<Task, String> {
+    db.duplicate_task(id).map_err(friendly_db_error)
+}
+
 /// Maps storage errors to user-facing messages.
-fn friendly_db_error(e: DbError) -> String {
-    let msg = e.to_string();
-    if msg.contains("UNIQUE constraint failed: projects.name") {
-        "a project with this name already exists".to_string()
-    } else {
-        log::error!("project save failed: {msg}");
-        "failed to save project — see the app log for details".to_string()
+pub(crate) fn friendly_db_error(e: DbError) -> String {
+    match e {
+        DbError::NotFound { entity, .. } => format!("{entity} not found"),
+        DbError::Validation { field, message } => format!("{field} {message}"),
+        other => {
+            let msg = other.to_string();
+            if msg.contains("UNIQUE constraint failed: projects.name") {
+                "a project with this name already exists".to_string()
+            } else {
+                log::error!("project operation failed: {msg}");
+                "project operation failed — see the app log for details".to_string()
+            }
+        }
     }
 }

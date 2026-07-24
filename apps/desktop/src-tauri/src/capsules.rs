@@ -4,7 +4,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use rabta_db::Db;
+use rabta_db::{Db, Project};
 use rabta_hub::protocol::ConnectorKind;
 use rabta_hub::{ConnectorInfo, Hub, HubEvent};
 use serde::Serialize;
@@ -30,6 +30,14 @@ pub struct ActivateSummary {
     pub skipped: Vec<String>,
     pub saved_previous: Option<String>,
     pub errors: Vec<String>,
+}
+
+/// Durable project archive result plus best-effort capsule-save warnings.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ArchiveProjectResult {
+    pub project: Project,
+    pub warnings: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -150,10 +158,84 @@ impl Capsules {
         Ok(SaveSummary { captured, skipped })
     }
 
+    /// Archives a project, saving and clearing its active capsule first.
+    pub async fn archive_project(&self, project_id: &str) -> Result<ArchiveProjectResult, String> {
+        let _serialized = self.activation_lock.lock().await;
+        let active_task = self.active_task();
+        let active_belongs_to_project = if let Some(task_id) = active_task.as_deref() {
+            let db = self.db.clone();
+            let task_id = task_id.to_string();
+            let project_id = project_id.to_string();
+            tokio::task::spawn_blocking(move || {
+                db.get_task(&task_id)
+                    .map(|task| task.is_some_and(|task| task.project_id == project_id))
+            })
+            .await
+            .map_err(|e| e.to_string())?
+            .map_err(|e| e.to_string())?
+        } else {
+            false
+        };
+
+        let mut warnings = vec![];
+        if active_belongs_to_project {
+            if let Some(task_id) = active_task {
+                match self.save_capsule(&task_id).await {
+                    Ok(summary) => warnings.extend(
+                        summary
+                            .skipped
+                            .into_iter()
+                            .map(|warning| format!("capsule save: {warning}")),
+                    ),
+                    Err(error) => {
+                        warnings.push(format!("capsule save failed: {error}"));
+                    }
+                }
+            }
+            *self.active_task.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+            *self.pending.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+            self.generation.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }
+
+        let db = self.db.clone();
+        let project_id = project_id.to_string();
+        let project = tokio::task::spawn_blocking(move || db.archive_project(&project_id))
+            .await
+            .map_err(|e| e.to_string())?
+            .map_err(crate::projects::friendly_db_error)?;
+        Ok(ArchiveProjectResult { project, warnings })
+    }
+
     /// Auto-saves the outgoing active task (if any), then restores `task_id`'s
     /// capsule best-effort per connector, and marks it active.
     pub async fn activate_task(&self, task_id: &str) -> Result<ActivateSummary, String> {
         let _serialized = self.activation_lock.lock().await;
+        let target = {
+            let db = self.db.clone();
+            let task_id = task_id.to_string();
+            tokio::task::spawn_blocking(move || {
+                let task = db.get_task(&task_id)?.ok_or_else(|| rabta_db::DbError::NotFound {
+                    entity: "task",
+                    id: task_id.clone(),
+                })?;
+                let project = db
+                    .get_project(&task.project_id)?
+                    .ok_or_else(|| rabta_db::DbError::NotFound {
+                        entity: "project",
+                        id: task.project_id.clone(),
+                    })?;
+                Ok::<_, rabta_db::DbError>((task, project))
+            })
+            .await
+            .map_err(|e| e.to_string())?
+            .map_err(|e| e.to_string())?
+        };
+        if target.1.archived_at.is_some() {
+            return Err(
+                "project is archived — restore it before resuming this capsule".to_string()
+            );
+        }
+
         let generation =
             self.generation.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
         // Spec: one pending restore slot, replaced by the newer activation —

@@ -110,6 +110,58 @@ async fn setup() -> (Arc<Hub>, Db, Capsules, String, tempfile::TempDir) {
 }
 
 #[tokio::test]
+async fn activation_refuses_a_task_whose_project_is_archived() {
+    let (_hub, db, capsules, task_id, _dir) = setup().await;
+    let project_id = db.get_task(&task_id).unwrap().unwrap().project_id;
+    db.archive_project(&project_id).unwrap();
+
+    let error = capsules.activate_task(&task_id).await.unwrap_err();
+
+    assert_eq!(
+        error,
+        "project is archived — restore it before resuming this capsule"
+    );
+    assert_eq!(capsules.active_task(), None);
+}
+
+#[tokio::test]
+async fn archiving_the_active_project_clears_activation_and_preserves_data() {
+    let (_hub, db, capsules, task_id, _dir) = setup().await;
+    let project_id = db.get_task(&task_id).unwrap().unwrap().project_id;
+    capsules.activate_task(&task_id).await.unwrap();
+    assert_eq!(capsules.active_task().as_deref(), Some(task_id.as_str()));
+
+    let result = capsules.archive_project(&project_id).await.unwrap();
+
+    assert_eq!(result.project.id, project_id);
+    assert!(result.project.archived_at.is_some());
+    assert!(db.list_projects().unwrap().is_empty());
+    assert_eq!(db.list_tasks(&project_id).unwrap().len(), 1);
+    assert_eq!(capsules.active_task(), None);
+}
+
+#[tokio::test]
+async fn archiving_an_inactive_project_keeps_the_current_capsule_active() {
+    let (_hub, db, capsules, active_task_id, _dir) = setup().await;
+    let inactive_project = db
+        .create_project(NewProject {
+            name: "inactive".into(),
+            repo_path: "/tmp/inactive".into(),
+            dev_url: None,
+            default_branch: "main".into(),
+        })
+        .unwrap();
+    capsules.activate_task(&active_task_id).await.unwrap();
+
+    capsules.archive_project(&inactive_project.id).await.unwrap();
+
+    assert_eq!(
+        capsules.active_task().as_deref(),
+        Some(active_task_id.as_str())
+    );
+}
+
+#[tokio::test]
 async fn save_capsule_captures_workspace_state_into_rows() {
     let (hub, db, capsules, task_id, _dir) = setup().await;
     let (tx, _rx) = mpsc::unbounded_channel();
