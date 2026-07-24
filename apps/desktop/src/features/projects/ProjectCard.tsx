@@ -1,7 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   Archive,
+  ArrowDown,
+  ArrowUp,
   FolderOpen,
+  GripVertical,
   Palette,
   Pencil,
   Trash2,
@@ -96,18 +101,39 @@ export function ProjectCard({
   onIssueStarted,
   onRename,
   onChangeIcon,
-  onMove: _onMove,
-  canMoveUp: _canMoveUp,
-  canMoveDown: _canMoveDown,
+  onMove,
+  canMoveUp,
+  canMoveDown,
   onArchive,
   onDelete,
 }: ProjectCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: project.id, disabled: actionsDisabled });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <Card className="overflow-hidden p-0">
+        <Card
+          ref={setNodeRef}
+          style={style}
+          className={`overflow-hidden p-0 ${isDragging ? "opacity-60" : ""}`}
+        >
           <div className="flex items-start justify-between gap-4 p-4">
             <div className="flex min-w-0 items-start gap-3">
+              <button
+                type="button"
+                aria-label={`Reorder ${project.name}`}
+                disabled={actionsDisabled}
+                className="mt-1 shrink-0 cursor-grab touch-none rounded-sm p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing disabled:cursor-default disabled:opacity-50"
+                {...attributes}
+                {...listeners}
+              >
+                <GripVertical className="size-4" />
+              </button>
               <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-primary/15 bg-primary/5 text-primary">
                 <ProjectIcon icon={project.icon} className="size-[18px]" />
               </div>
@@ -183,6 +209,21 @@ export function ProjectCard({
         >
           <Palette className="mr-2 size-4" />
           Change icon
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          disabled={actionsDisabled || !canMoveUp}
+          onSelect={() => onMove(project, -1)}
+        >
+          <ArrowUp className="mr-2 size-4" />
+          Move Up
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={actionsDisabled || !canMoveDown}
+          onSelect={() => onMove(project, 1)}
+        >
+          <ArrowDown className="mr-2 size-4" />
+          Move Down
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem

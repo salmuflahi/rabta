@@ -1,4 +1,18 @@
 import { invoke } from "@tauri-apps/api/core";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { ArchiveRestore, FolderGit2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +33,7 @@ import { toast } from "@/components/ui/sonner";
 import { ArchivedProjectsDialog } from "@/features/projects/ArchivedProjectsDialog";
 import { ProjectCard } from "@/features/projects/ProjectCard";
 import { ProjectDialogs } from "@/features/projects/ProjectDialogs";
+import { moveProject, moveProjectBy } from "@/lib/project-order";
 import { toastErr, toastOk } from "@/lib/toast";
 import { useDeferredDelete } from "@/lib/useDeferredDelete";
 import { PageHeader } from "@/shell/PageHeader";
@@ -78,9 +93,14 @@ export function ProjectsPage() {
   // settles, then stays false for the life of the page.
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [reorderBusy, setReorderBusy] = useState(false);
   const [renameProject, setRenameProject] = useState<Project | null>(null);
   const [iconProject, setIconProject] = useState<Project | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const refresh = () =>
     invoke<Project[]>("list_projects")
@@ -218,6 +238,37 @@ export function ProjectsPage() {
     onCommitted: refresh,
   });
 
+  async function persistReorder(
+    reorder: (snapshot: Project[]) => Project[],
+  ) {
+    if (reorderBusy) return;
+
+    const snapshot = projects;
+    const nextProjects = reorder(snapshot);
+    if (nextProjects === snapshot) return;
+
+    setProjects(nextProjects);
+    setReorderBusy(true);
+    try {
+      const reordered = await invoke<Project[]>("reorder_projects", {
+        orderedIds: nextProjects.map((project) => project.id),
+      });
+      setProjects(reordered);
+    } catch (error) {
+      setProjects(snapshot);
+      toastErr(error);
+    } finally {
+      setReorderBusy(false);
+    }
+  }
+
+  function onDragEnd({ active, over }: DragEndEvent) {
+    if (!over) return;
+    void persistReorder((snapshot) =>
+      moveProject(snapshot, String(active.id), String(over.id)),
+    );
+  }
+
   const visibleProjects = projects.filter((p) => !pendingIds.has(p.id));
   const count = visibleProjects.length;
   const subtitle = count === 0 ? "No projects registered yet" : `${count} ${count === 1 ? "project" : "projects"} registered`;
@@ -269,39 +320,54 @@ export function ProjectsPage() {
           }
         />
       ) : (
-        <div className="flex flex-col gap-3">
-          {visibleProjects.map((project, index) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              actionsDisabled={busy}
-              gitRefreshKey={
-                (startedNonce[project.id] ?? 0) +
-                (gitOpNonce[project.id] ?? 0)
-              }
-              startedNonce={startedNonce[project.id] ?? 0}
-              onGitChanged={() =>
-                setGitOpNonce((nonces) => ({
-                  ...nonces,
-                  [project.id]: (nonces[project.id] ?? 0) + 1,
-                }))
-              }
-              onIssueStarted={() =>
-                setStartedNonce((nonces) => ({
-                  ...nonces,
-                  [project.id]: (nonces[project.id] ?? 0) + 1,
-                }))
-              }
-              onRename={setRenameProject}
-              onChangeIcon={setIconProject}
-              onMove={() => {}}
-              canMoveUp={index > 0}
-              canMoveDown={index < visibleProjects.length - 1}
-              onArchive={(target) => void archiveProject(target)}
-              onDelete={requestDelete}
-            />
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
+          <SortableContext
+            items={visibleProjects.map((project) => project.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="flex flex-col gap-3">
+              {visibleProjects.map((project, index) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  actionsDisabled={busy || reorderBusy}
+                  gitRefreshKey={
+                    (startedNonce[project.id] ?? 0) +
+                    (gitOpNonce[project.id] ?? 0)
+                  }
+                  startedNonce={startedNonce[project.id] ?? 0}
+                  onGitChanged={() =>
+                    setGitOpNonce((nonces) => ({
+                      ...nonces,
+                      [project.id]: (nonces[project.id] ?? 0) + 1,
+                    }))
+                  }
+                  onIssueStarted={() =>
+                    setStartedNonce((nonces) => ({
+                      ...nonces,
+                      [project.id]: (nonces[project.id] ?? 0) + 1,
+                    }))
+                  }
+                  onRename={setRenameProject}
+                  onChangeIcon={setIconProject}
+                  onMove={(target, direction) =>
+                    void persistReorder((snapshot) =>
+                      moveProjectBy(snapshot, target.id, direction),
+                    )
+                  }
+                  canMoveUp={index > 0}
+                  canMoveDown={index < visibleProjects.length - 1}
+                  onArchive={(target) => void archiveProject(target)}
+                  onDelete={requestDelete}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       <ProjectDialogs

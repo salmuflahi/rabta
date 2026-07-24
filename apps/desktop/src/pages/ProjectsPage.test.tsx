@@ -43,6 +43,14 @@ const ARCHIVED_PROJECT: Project = {
   sortOrder: 4,
 };
 
+const SECOND_PROJECT: Project = {
+  ...FAKE_PROJECT,
+  id: "proj-2",
+  name: "Second Project",
+  repoPath: "/tmp/second-project",
+  sortOrder: 1,
+};
+
 describe("ProjectsPage", () => {
   beforeEach(() => {
     useStore.setState({ newProjectRequest: false });
@@ -675,5 +683,95 @@ describe("ProjectsPage context menu", () => {
     expect(message).toBe("Test Project deleted");
     expect(options.action.label).toBe("Undo");
     expect(mockInvoke).not.toHaveBeenCalledWith("delete_project", expect.anything());
+  });
+});
+
+describe("ProjectsPage accessible project ordering", () => {
+  beforeEach(() => {
+    useStore.setState({ newProjectRequest: false });
+  });
+
+  function mockOrderedProjects(
+    reorderProjects: (orderedIds: string[]) => Project[] | Promise<Project[]>,
+  ) {
+    mockInvoke.mockClear();
+    mockInvoke.mockImplementation(async (cmd: string, args?: unknown) => {
+      switch (cmd) {
+        case "list_projects":
+          return [FAKE_PROJECT, SECOND_PROJECT] as unknown;
+        case "reorder_projects":
+          return reorderProjects((args as { orderedIds: string[] }).orderedIds) as unknown;
+        case "git_status":
+          return {
+            branch: "main",
+            dirty: false,
+            changedCount: 0,
+            ahead: 0,
+            behind: 0,
+          } as unknown;
+        default:
+          return [] as unknown;
+      }
+    });
+  }
+
+  async function openMenuFor(projectName: string) {
+    fireEvent.contextMenu(await screen.findByText(projectName));
+  }
+
+  function expectProjectOrder(first: string, second: string) {
+    const firstNode = screen.getByText(first);
+    const secondNode = screen.getByText(second);
+    expect(
+      firstNode.compareDocumentPosition(secondNode) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  }
+
+  it("persists Move Down through the context menu and exposes a labeled drag handle", async () => {
+    mockOrderedProjects((orderedIds) =>
+      orderedIds.map((id, sortOrder) =>
+        id === FAKE_PROJECT.id
+          ? { ...FAKE_PROJECT, sortOrder }
+          : { ...SECOND_PROJECT, sortOrder },
+      ),
+    );
+    renderWithProviders(<ProjectsPage />);
+
+    expect(await screen.findByLabelText("Reorder Test Project")).toBeInTheDocument();
+    await openMenuFor("Test Project");
+    const moveUp = await screen.findByRole("menuitem", { name: "Move Up" });
+    expect(moveUp).toHaveAttribute("data-disabled");
+    fireEvent.click(screen.getByRole("menuitem", { name: "Move Down" }));
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("reorder_projects", {
+        orderedIds: ["proj-2", "proj-1"],
+      }),
+    );
+    await waitFor(() => expectProjectOrder("Second Project", "Test Project"));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Reorder Second Project")).toBeEnabled(),
+    );
+
+    await openMenuFor("Second Project");
+    expect(await screen.findByRole("menuitem", { name: "Move Up" })).toHaveAttribute(
+      "data-disabled",
+    );
+    expect(screen.getByRole("menuitem", { name: "Move Down" })).not.toHaveAttribute("data-disabled");
+  });
+
+  it("restores the original visual order when persisted reordering fails", async () => {
+    mockOrderedProjects(() => Promise.reject(new Error("backend unavailable")));
+    renderWithProviders(<ProjectsPage />);
+
+    await openMenuFor("Test Project");
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Move Down" }));
+
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith("reorder_projects", {
+        orderedIds: ["proj-2", "proj-1"],
+      }),
+    );
+    await waitFor(() => expectProjectOrder("Test Project", "Second Project"));
   });
 });
