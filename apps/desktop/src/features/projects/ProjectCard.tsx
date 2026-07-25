@@ -68,7 +68,8 @@ export function UnsavedChangesDot({
         <span
           role="status"
           aria-label={label}
-          className="inline-block size-2 shrink-0 rounded-full bg-warning"
+          tabIndex={0}
+          className="inline-block size-2 shrink-0 rounded-full bg-warning outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
         />
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>

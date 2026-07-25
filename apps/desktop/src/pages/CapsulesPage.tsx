@@ -126,22 +126,25 @@ function CapsuleSummary({
   resources: TaskResource[];
   lastSessionSeconds?: number;
 }) {
+  // Humanize each resource once; both the inline summary and the popover
+  // rows below reuse it rather than recomputing per render.
+  const items = resources.map((r) => {
+    const h = humanizeCapsule(r);
+    return { r, h, Icon: CAPSULE_ICONS[h.icon] };
+  });
+
   const summary =
-    resources.length === 0 ? (
+    items.length === 0 ? (
       <span className="mt-0.5 block text-xs text-muted-foreground">No capsule yet</span>
     ) : (
       <span className="mt-1 inline-flex flex-wrap items-center gap-x-3 gap-y-1">
-        {resources.map((r) => {
-          const h = humanizeCapsule(r);
-          const Icon = CAPSULE_ICONS[h.icon];
-          return (
-            <span key={r.id} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Icon className="size-3.5 shrink-0" />
-              <span>{h.summary}</span>
-              <span className="text-muted-foreground/70">· {h.savedAgo}</span>
-            </span>
-          );
-        })}
+        {items.map(({ r, h, Icon }) => (
+          <span key={r.id} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Icon className="size-3.5 shrink-0" />
+            <span>{h.summary}</span>
+            <span className="text-muted-foreground/70">· {h.savedAgo}</span>
+          </span>
+        ))}
       </span>
     );
 
@@ -161,21 +164,17 @@ function CapsuleSummary({
           <p className="mt-2 text-xs text-muted-foreground">No saved state yet.</p>
         ) : (
           <div className="mt-3 flex flex-col gap-3">
-            {resources.map((r) => {
-              const h = humanizeCapsule(r);
-              const Icon = CAPSULE_ICONS[h.icon];
-              return (
-                <div key={r.id} className="flex items-start gap-2">
-                  <Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0">
-                    <p className="truncate text-xs text-popover-foreground">
-                      {friendlyToolName(r.connectorKind)} — {h.summary}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">saved {h.savedAgo}</p>
-                  </div>
+            {items.map(({ r, h, Icon }) => (
+              <div key={r.id} className="flex items-start gap-2">
+                <Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-popover-foreground">
+                    {friendlyToolName(r.connectorKind)} — {h.summary}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">saved {h.savedAgo}</p>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
         {typeof lastSessionSeconds === "number" && lastSessionSeconds > 0 ? (

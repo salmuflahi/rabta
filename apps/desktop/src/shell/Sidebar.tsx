@@ -32,14 +32,18 @@ function NavRow({
       )}
     >
       <Icon className="size-4 shrink-0" />
-      {!collapsed && (
-        <>
-          <span className="flex-1 text-left">{item.label}</span>
-          <Kbd className="border-sidebar-foreground/20 bg-transparent text-sidebar-foreground/50">
-            {item.shortcut}
-          </Kbd>
-        </>
-      )}
+      <span
+        aria-hidden={collapsed}
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden whitespace-nowrap transition-opacity duration-200 ease-brand",
+          collapsed && "pointer-events-none w-0 flex-none opacity-0"
+        )}
+      >
+        <span className="flex-1 truncate text-left">{item.label}</span>
+        <Kbd className="border-sidebar-foreground/20 bg-transparent text-sidebar-foreground/50">
+          {item.shortcut}
+        </Kbd>
+      </span>
     </button>
   );
 
@@ -74,7 +78,15 @@ export function Sidebar() {
       )}
     >
       <ToggleIcon className="size-4 shrink-0" />
-      {!collapsed && <span className="flex-1 text-left">{toggleLabel}</span>}
+      <span
+        aria-hidden={collapsed}
+        className={cn(
+          "flex-1 overflow-hidden whitespace-nowrap text-left transition-opacity duration-200 ease-brand",
+          collapsed && "pointer-events-none w-0 flex-none opacity-0"
+        )}
+      >
+        {toggleLabel}
+      </span>
     </button>
   );
 
@@ -87,7 +99,15 @@ export function Sidebar() {
     >
       <div className={cn("mb-6 flex items-center gap-2", collapsed ? "justify-center px-0" : "px-2.5")}>
         <img src={markUrl} alt="" className="size-6 shrink-0 rounded-[6px]" />
-        {!collapsed && <span className="text-sm font-semibold tracking-tight">Rabta</span>}
+        <span
+          aria-hidden={collapsed}
+          className={cn(
+            "overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight transition-opacity duration-200 ease-brand",
+            collapsed && "w-0 opacity-0"
+          )}
+        >
+          Rabta
+        </span>
       </div>
 
       <nav className="flex flex-1 flex-col gap-1">

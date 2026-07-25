@@ -103,12 +103,18 @@ Residuals — genuinely blocked, not skipped:
   being written) and the **manual GUI acceptance list** must be run against the
   bundled app by a human — no GUI automation attaches to the app in this env.
 
-### Deferred low-priority polish
+### Low-priority polish — done
 
-- Sidebar labels disappear immediately rather than fading during collapse.
-- `humanizeCapsule` is computed twice per open Resume-preview row.
-- The unsaved-changes dot tooltip is not independently keyboard-focusable.
-- The production bundle remains slightly above Vite's default 500 kB advisory threshold.
+- ✅ Sidebar labels now opacity-fade (200ms, matching the rail width animation)
+  instead of popping out — labels stay mounted + `aria-hidden` when collapsed.
+  *(Visual polish; behavior is component-tested, but the animation itself wants a
+  quick human look.)*
+- ✅ `humanizeCapsule` is computed once per resource and reused across the summary
+  trigger and popover (was computed twice per row).
+- ✅ The unsaved-changes dot is keyboard-focusable (`tabIndex=0` + focus ring), so
+  the tooltip is reachable without a pointer.
+- ✅ The production bundle is split into `react` / `radix` / `dnd-kit` / `icons` /
+  `vendor` chunks (largest is now ~319 kB) — no more Vite 500 kB advisory.
 
 ---
 

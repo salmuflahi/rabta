@@ -27,10 +27,13 @@ describe("Sidebar collapse", () => {
     expect(localStorage.getItem("rabta.sidebarCollapsed")).toBe("false");
   });
 
-  it("hides nav labels when collapsed but keeps icon buttons", () => {
+  it("keeps nav labels mounted but aria-hidden when collapsed, so they can fade out", () => {
     useStore.setState({ sidebarCollapsed: false });
     renderWithProviders(<Sidebar />);
-    expect(screen.getByText("Overview")).toBeInTheDocument();
+    // Expanded: the label is visible and not aria-hidden.
+    const expanded = screen.getByText("Overview");
+    expect(expanded).toBeInTheDocument();
+    expect(expanded.closest("[aria-hidden='true']")).toBeNull();
 
     // Sidebar reads sidebarCollapsed via useStore, so flipping it in the
     // store re-renders the already-mounted component (no `rerender` needed).
@@ -38,10 +41,11 @@ describe("Sidebar collapse", () => {
       useStore.setState({ sidebarCollapsed: true });
     });
 
-    // Radix tooltip content isn't in the DOM until hovered/focused, so the
-    // label text should not be found inline while collapsed.
-    expect(screen.queryByText("Overview")).not.toBeInTheDocument();
-    // The icon button itself still renders, addressable by its aria-label.
+    // Collapsed: the label stays in the DOM (so it can opacity-fade rather
+    // than pop out) but is aria-hidden, and the icon button is still
+    // addressable by its aria-label.
+    const collapsed = screen.getByText("Overview");
+    expect(collapsed.closest("[aria-hidden='true']")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Overview" })).toBeInTheDocument();
   });
 });
