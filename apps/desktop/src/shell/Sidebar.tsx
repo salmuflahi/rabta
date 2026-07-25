@@ -24,10 +24,12 @@ function NavRow({
       onClick={onClick}
       aria-label={collapsed ? item.label : undefined}
       className={cn(
-        "flex h-[38px] w-full items-center rounded-[8px] text-sm transition-[background-color,color] duration-150 ease-brand active:scale-[0.99]",
+        "relative flex h-[38px] w-full items-center rounded-[8px] text-sm transition-[background-color,color] duration-150 ease-brand active:scale-[0.99]",
         collapsed ? "justify-center px-0" : "gap-2.5 px-2.5",
+        // Active page reads as "locked in": a filled accent plus a small
+        // primary rail bar at the left edge.
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          ? "bg-sidebar-accent text-sidebar-accent-foreground before:absolute before:left-0 before:top-1/2 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-sidebar-primary before:content-['']"
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
       )}
     >
