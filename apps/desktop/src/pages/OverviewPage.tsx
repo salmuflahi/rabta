@@ -4,19 +4,43 @@ import {
   FolderGit2,
   Globe,
   ListChecks,
+  Play,
   Plug,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/shell/PageHeader";
-import { formatDuration, relativeTime } from "@/lib/humanize";
+import { describeEvent, formatDuration, relativeTime } from "@/lib/humanize";
 import { ProjectIcon } from "@/lib/project-icons";
+import { cn } from "@/lib/utils";
 import { useStore, type Project, type Task } from "@/store";
+
+/** A consistent section heading used across the command center. */
+function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="mb-3 flex items-center justify-between gap-2">
+      <p className="text-body font-semibold text-foreground">{children}</p>
+      {action}
+    </div>
+  );
+}
+
+function SectionLink({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-sm text-label text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {label}
+    </button>
+  );
+}
 
 function NextStepCard({
   icon: Icon,
@@ -32,13 +56,13 @@ function NextStepCard({
   onAction: () => void;
 }) {
   return (
-    <Card className="flex flex-col p-4">
+    <Card className="card-lift flex flex-col p-4">
       <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
         <Icon className="size-4" />
       </div>
       <CardHeader className="p-0 pt-3">
-        <CardTitle className="text-sm">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardTitle className="text-card">{title}</CardTitle>
+        <CardDescription className="text-meta">{description}</CardDescription>
       </CardHeader>
       <CardContent className="mt-auto p-0 pt-3">
         <Button variant="outline" size="sm" onClick={onAction}>
@@ -65,8 +89,8 @@ function StatCard({
           <Icon className="size-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-2xl font-semibold tracking-tight text-foreground">{value}</p>
-          <p className="truncate text-xs text-muted-foreground">{label}</p>
+          <p className="text-[26px] font-semibold leading-none tracking-tight text-foreground">{value}</p>
+          <p className="mt-1 truncate text-meta text-muted-foreground">{label}</p>
         </div>
       </div>
     </Card>
@@ -146,6 +170,7 @@ export function OverviewPage() {
 
   const connectedCount = connectors.filter((c) => c.connected).length;
   const openCount = tasks.filter((t) => t.status === "open").length;
+  const resolveName = (id: string) => connectors.find((c) => c.id === id)?.name;
   const activeTask = tasks.find((t) => t.id === activeTaskId);
   const recentLog = [...log].slice(-5).reverse();
   const continueProjects = projects
@@ -224,14 +249,18 @@ export function OverviewPage() {
 
           {activeTask && (
             <Card className="border-l-2 border-l-primary p-4">
-              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Active Task</p>
-              <p className="mt-1 font-medium text-foreground">{activeTask.title}</p>
+              <p className="font-mono text-label font-medium uppercase tracking-widest text-muted-foreground">
+                Active Task
+              </p>
+              <p className="mt-1 text-card font-medium text-foreground">{activeTask.title}</p>
             </Card>
           )}
 
           {continueProjects.length > 0 && (
             <Card className="p-4">
-              <p className="mb-3 text-sm font-medium text-foreground">Continue Working</p>
+              <SectionTitle action={<SectionLink label="All capsules" onClick={() => setView("capsules")} />}>
+                Continue Working
+              </SectionTitle>
               <div className="flex flex-col divide-y divide-border">
                 {continueProjects.map((project) => {
                   const task = project.lastTaskId
@@ -244,22 +273,22 @@ export function OverviewPage() {
                         <ProjectIcon icon={project.icon} className="size-[18px]" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-foreground">{project.name}</p>
-                        <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                        <p className="truncate text-body font-medium text-foreground">{project.name}</p>
+                        <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-label text-muted-foreground">
                           <span>Opened {relativeTime(project.lastOpenedAt!)}</span>
                           {project.activeSeconds > 0 && (
                             <span>Last session {formatDuration(project.activeSeconds)}</span>
                           )}
                         </div>
-                        {task && <p className="mt-1 truncate text-xs text-muted-foreground">{task.title}</p>}
+                        {task && <p className="mt-1 truncate text-meta text-muted-foreground">{task.title}</p>}
                       </div>
                       {task ? (
                         <Button
-                          variant="outline"
                           size="sm"
                           aria-label={`Resume ${project.name}`}
                           onClick={() => resumeTask(task.id)}
                         >
+                          <Play className="size-3.5 fill-current" />
                           Resume
                         </Button>
                       ) : (
@@ -274,21 +303,70 @@ export function OverviewPage() {
             </Card>
           )}
 
-          <Card className="p-4">
-            <p className="mb-3 text-sm font-medium text-foreground">Recent Activity</p>
-            {recentLog.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No activity yet.</p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {recentLog.map((e) => (
-                  <div key={e.seq} className="flex items-center gap-2 text-xs">
-                    <span className="text-muted-foreground">{relativeTime(e.at)}</span>
-                    <Badge variant="outline">{e.type}</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card className="p-4">
+              <SectionTitle action={<SectionLink label="Manage" onClick={() => setView("connectors")} />}>
+                Connected Apps
+              </SectionTitle>
+              {connectors.length === 0 ? (
+                <p className="text-meta text-muted-foreground">
+                  No tools linked yet — install the VS Code and Chrome extensions and they'll pair
+                  with Rabta automatically.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2.5">
+                  {connectors.map((c) => (
+                    <div key={c.id} className="flex items-center gap-2.5 text-meta">
+                      <span
+                        className={cn(
+                          "size-2 shrink-0 rounded-full",
+                          c.connected ? "bg-success" : "bg-muted-foreground/40",
+                        )}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-foreground">{c.name}</span>
+                      <Badge variant="outline" className="shrink-0 text-label">
+                        {c.kind}
+                      </Badge>
+                      <span className="shrink-0 text-label text-muted-foreground">
+                        {c.connected ? "Connected" : "Offline"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-4">
+              <SectionTitle
+                action={
+                  recentLog.length > 0 ? (
+                    <SectionLink label="View all" onClick={() => setView("activity")} />
+                  ) : undefined
+                }
+              >
+                Recent Activity
+              </SectionTitle>
+              {recentLog.length === 0 ? (
+                <p className="text-meta text-muted-foreground">
+                  Nothing yet — actions from your connectors will appear here.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2.5">
+                  {recentLog.map((e) => (
+                    <div key={e.seq} className="flex items-center gap-2.5 text-meta">
+                      <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
+                      <span className="min-w-0 flex-1 truncate text-foreground/90">
+                        {describeEvent(e, resolveName).sentence}
+                      </span>
+                      <span className="shrink-0 text-label text-muted-foreground">
+                        {relativeTime(e.at)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
         </div>
       )}
     </div>
