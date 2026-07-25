@@ -23,7 +23,8 @@ describe("ConnectorsPage", () => {
     renderWithProviders(<ConnectorsPage />);
 
     expect(await screen.findByText("Connectors")).toBeInTheDocument();
-    expect(screen.getByText("VS Code")).toBeInTheDocument();
+    // "VS Code" appears as both the connector name and the friendly kind badge.
+    expect(screen.getAllByText("VS Code").length).toBeGreaterThan(0);
     expect(screen.getByText(/^Connected/)).toBeInTheDocument();
     expect(screen.getByText(/Chrome/)).toBeInTheDocument();
     expect(screen.getByText("Approve")).toBeInTheDocument();
@@ -98,8 +99,8 @@ describe("ConnectorsPage", () => {
 
     renderWithProviders(<ConnectorsPage />);
 
-    expect(await screen.findByText(/^Last seen /)).toBeInTheDocument();
+    expect(await screen.findByText(/^Offline · last seen /)).toBeInTheDocument();
     // Not the raw unparseable locale string / "unknown" fallback.
-    expect(screen.queryByText("Last seen unknown")).not.toBeInTheDocument();
+    expect(screen.queryByText(/last seen unknown/)).not.toBeInTheDocument();
   });
 });

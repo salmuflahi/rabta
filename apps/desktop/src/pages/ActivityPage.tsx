@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { describeEvent, relativeTime } from "@/lib/humanize";
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type LogEntry } from "@/store";
 
@@ -64,22 +65,29 @@ function LogRow({
   const Icon = iconFor(entry, icon);
 
   return (
-    <div className={`min-w-0 rounded-md border border-border/60 p-2 ${entry.historical ? "opacity-60" : ""}`}>
-      <div className="flex min-w-0 items-center gap-2">
-        <Icon className="size-4 shrink-0 text-muted-foreground" />
-        <span className="min-w-0 flex-1 truncate text-sm text-foreground">{sentence}</span>
+    <div
+      className={cn(
+        "min-w-0 rounded-lg border border-border/60 bg-card/40 p-2.5 transition-colors hover:border-border",
+        entry.historical && "opacity-60",
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+          <Icon className="size-3.5" />
+        </span>
+        <span className="min-w-0 flex-1 truncate text-meta text-foreground">{sentence}</span>
         {entry.historical && (
-          <Badge variant="secondary" className="shrink-0">
+          <Badge variant="secondary" className="shrink-0 text-label">
             Historical
           </Badge>
         )}
-        <span className="shrink-0 text-xs text-muted-foreground">{relativeTime(entry.at)}</span>
+        <span className="shrink-0 font-mono text-label text-muted-foreground">{relativeTime(entry.at)}</span>
       </div>
-      <details className="mt-1 group min-w-0">
-        <summary className="cursor-pointer select-none text-xs text-muted-foreground hover:text-foreground">
+      <details className="group mt-1 min-w-0 pl-[34px]">
+        <summary className="cursor-pointer select-none text-label text-muted-foreground transition-colors hover:text-foreground">
           Details
         </summary>
-        <pre className="mt-1 max-h-40 min-w-0 overflow-x-auto overflow-y-auto whitespace-pre-wrap break-all rounded bg-muted/40 p-2 font-mono text-xs text-muted-foreground">
+        <pre className="mt-1 max-h-40 min-w-0 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted/40 p-2 font-mono text-label text-muted-foreground">
           {JSON.stringify(entry, null, 2)}
         </pre>
       </details>

@@ -1,12 +1,21 @@
-import { Cable, Circle, CircleDot } from "lucide-react";
+import { Cable } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { relativeTime } from "@/lib/humanize";
 import { decidePairing } from "@/lib/pairing";
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type ConnectorRow, type PendingPairing } from "@/store";
+
+// Friendly display names for the raw connector kind.
+const KIND_LABEL: Record<string, string> = {
+  vscode: "VS Code",
+  cursor: "Cursor",
+  chrome: "Chrome",
+  fake: "Fake",
+};
 
 function PairingCard({
   pairing,
@@ -36,42 +45,49 @@ function PairingCard({
 }
 
 function ConnectorCard({ connector }: { connector: ConnectorRow }) {
+  const kindLabel = KIND_LABEL[connector.kind] ?? connector.kind;
   return (
-    <Card className="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+    <Card className="card-lift p-4">
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden
+          className={cn(
+            "mt-1.5 size-2.5 shrink-0 rounded-full",
+            connector.connected ? "bg-success ring-4 ring-success/15" : "bg-muted-foreground/40",
+          )}
+        />
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="min-w-0 truncate font-medium text-foreground">{connector.name}</p>
-            <Badge variant="outline" className="shrink-0">
-              {connector.kind}
+            <p className="min-w-0 truncate text-card font-medium text-foreground">{connector.name}</p>
+            <Badge variant="outline" className="shrink-0 text-label">
+              {kindLabel}
             </Badge>
             {connector.version && (
-              <span className="shrink-0 font-mono text-xs text-muted-foreground">
+              <span className="shrink-0 rounded-full bg-muted/60 px-1.5 py-0.5 font-mono text-label text-muted-foreground">
                 v{connector.version}
               </span>
             )}
           </div>
-          <div className="mt-1 flex items-center gap-1.5 text-xs">
-            {connector.connected ? (
-              <>
-                <CircleDot className="size-3.5 text-success" />
-                <span className="text-success">
-                  Connected · since {relativeTime(connector.connectedSince)}
-                </span>
-              </>
-            ) : (
-              <>
-                <Circle className="size-3.5 text-muted-foreground" />
-                <span className="text-muted-foreground">
-                  Last seen {relativeTime(connector.connectedSince)}
-                </span>
-              </>
-            )}
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {connector.capabilities.join(", ") || "No capabilities reported"}
+          <p className={cn("mt-1 text-meta", connector.connected ? "text-success" : "text-muted-foreground")}>
+            {connector.connected
+              ? `Connected · since ${relativeTime(connector.connectedSince)}`
+              : `Offline · last seen ${relativeTime(connector.connectedSince)}`}
           </p>
-          <p className="mt-1 truncate font-mono text-xs text-muted-foreground/70">{connector.id}</p>
+          {connector.capabilities.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {connector.capabilities.map((cap) => (
+                <span
+                  key={cap}
+                  className="rounded-full border border-border bg-muted/40 px-2 py-0.5 text-label text-muted-foreground"
+                >
+                  {cap}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-label text-muted-foreground/70">No capabilities reported</p>
+          )}
+          <p className="mt-2 truncate font-mono text-label text-muted-foreground/60">{connector.id}</p>
         </div>
       </div>
     </Card>
