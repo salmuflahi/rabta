@@ -78,6 +78,24 @@
   :focus-visible { @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background; }
 }
 
+@layer components {
+  /* Interactive card surfaces: a restrained 2px lift + deeper shadow on
+     hover. No scaling, no flash — the card should feel like it rises to
+     meet the cursor. Opt-in so static container cards stay put. */
+  .card-lift {
+    @apply transition-[transform,box-shadow,border-color] duration-150 ease-brand;
+  }
+  .card-lift:hover {
+    @apply -translate-y-0.5 border-border/70 shadow-card-hover;
+  }
+  /* Stagger helper: children fade+rise in sequence. Set on a container;
+     each direct child animates with an increasing delay via --i. */
+  .stagger-children > * {
+    animation: card-in 220ms ease-out both;
+    animation-delay: calc(var(--i, 0) * 20ms);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
