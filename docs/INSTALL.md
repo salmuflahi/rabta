@@ -34,7 +34,7 @@ code   --install-extension dist-artifacts/rabta-vscode-0.1.0.vsix   # VS Code
 cursor --install-extension dist-artifacts/rabta-vscode-0.1.0.vsix   # Cursor
 ```
 
-Or in the editor UI: Extensions panel → `⋯` → **Install from VSIX…**. Reload the window. On the next start it activates automatically, reads the hub's per-run secret from the discovery file, and appears as a `vscode` connector in Rabta's **Debug** tab. It never blocks editor startup, even when Rabta isn't running.
+Or in the editor UI: Extensions panel → `⋯` → **Install from VSIX…**. Reload the window. On the next start it activates automatically, reads the hub's per-run secret from the discovery file, and appears as a `vscode` connector in Rabta's **Connectors** view. It never blocks editor startup, even when Rabta isn't running.
 
 ## 3. Chrome connector (`.zip`)
 

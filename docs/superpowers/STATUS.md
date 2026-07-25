@@ -78,9 +78,30 @@ cargo+desktop-only gate). Only residual: the literal `v<version>` badge in the l
 Tauri window is component-tested but not GUI-verified (same automation limitation as
 the Track B manual list).
 
-### B5 — Packaging, signing, and release hardening
+### B5 — Packaging, signing, and release hardening — mostly done; residuals are externally blocked
 
-After B4, produce a repeatable macOS bundle, settle signing/notarization strategy, verify clean-install data migration and window state, and run the manual GUI acceptance list against the bundled app.
+Done and verified:
+- **Repeatable bundle.** `./scripts/package.sh` builds all three artifacts fresh
+  and clean post-rename + post-B4: `Rabta_0.1.0_aarch64.dmg`,
+  `rabta-chrome-0.1.0.zip`, `rabta-vscode-0.1.0.vsix` (the .vsix step auto-selects
+  a Node ≥ 20 for vsce). `tauri.conf.json` is already `productName: "Rabta"`,
+  `identifier: com.omnibus.dev` (kept intentionally). Stale pre-rename artifacts
+  removed from `dist-artifacts/`.
+- **Signing/notarization strategy** is settled and documented in
+  `docs/INSTALL.md` → "Signed / store distribution": macOS needs an Apple
+  Developer cert ($99/yr) wired via `bundle.macOS.signingIdentity` + notarization
+  env (no code changes); Chrome Web Store ($5); VS Code Marketplace via `vsce`.
+- **Clean-install / upgrade migration** to schema **v3** is covered by db tests
+  (fresh→v3 idempotent; v1→v3 and v2 records preserved; a pre-003 connectors row
+  survives the ALTER with null version).
+
+Residuals — genuinely blocked, not skipped:
+- **Actual signing/notarization** needs the paid Apple (and Chrome) accounts
+  above. Builds remain unsigned/ad-hoc (Gatekeeper right-click-Open); this is a
+  credentials/CI step, no code change.
+- **Window-state restore** (`tauri-plugin-window-state`; `.window-state.json` is
+  being written) and the **manual GUI acceptance list** must be run against the
+  bundled app by a human — no GUI automation attaches to the app in this env.
 
 ### Deferred low-priority polish
 
