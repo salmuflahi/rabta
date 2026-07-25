@@ -74,7 +74,9 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "flex h-full flex-col border-r border-sidebar-border/60 bg-sidebar pb-[18px] text-sidebar-foreground",
+        // Fixed, non-scrolling frame region: it fills the grid cell and clips
+        // its own overflow so navigation never scrolls with the workspace.
+        "flex h-full min-h-0 flex-col overflow-hidden border-r border-sidebar-border/60 bg-sidebar pb-[18px] text-sidebar-foreground",
         collapsed ? "px-2.5" : "px-[13px]",
       )}
     >
