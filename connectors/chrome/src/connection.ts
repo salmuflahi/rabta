@@ -60,6 +60,9 @@ export interface ConnectionOptions {
   name: string;
   kind: "chrome";
   capabilities: string[];
+  /** The extension's own version (from the manifest), distinct from the
+   * protocol version. Reported in `hello`; omitted if unset. */
+  version?: string;
   port: number;
   makeSocket: (url: string) => SocketLike;
   store: TokenStore;
@@ -175,6 +178,7 @@ export class Connection {
         kind: this.opts.kind,
         protocolVersion: PROTOCOL_VERSION,
         capabilities: this.opts.capabilities,
+        ...(this.opts.version ? { version: this.opts.version } : {}),
         token: this.token,
       });
     } else {

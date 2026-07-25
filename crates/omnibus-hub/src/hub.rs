@@ -59,6 +59,9 @@ pub struct ConnectorInfo {
     pub name: String,
     pub kind: ConnectorKind,
     pub capabilities: Vec<String>,
+    /// Connector-reported product version, if it sent one in `hello`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
 }
 
 /// Everything observable about hub activity, broadcast to subscribers
@@ -506,6 +509,7 @@ async fn handle_connection(
         name: hello.name,
         kind: hello.kind,
         capabilities: hello.capabilities,
+        version: hello.version,
     };
     let (out_tx, mut out_rx) = mpsc::unbounded_channel::<Envelope>();
     state.lock().await.connectors.insert(

@@ -62,8 +62,9 @@ impl Recorder {
                     }),
                     None => Vec::new(),
                 };
+                let version = ev.pointer("/connector/version").and_then(Value::as_str);
                 if let (Some(name), Some(kind), Some(id)) = (name, kind, session_id.as_deref()) {
-                    if let Err(e) = self.db.upsert_connector(name, kind, &caps) {
+                    if let Err(e) = self.db.upsert_connector(name, kind, &caps, version) {
                         log::warn!("recorder: connector upsert failed: {e}");
                     }
                     self.sessions

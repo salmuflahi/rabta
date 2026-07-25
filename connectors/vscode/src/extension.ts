@@ -43,7 +43,12 @@ export function activate(context: vscode.ExtensionContext): void {
   const out = vscode.window.createOutputChannel("Rabta");
 
   connect(
-    { name: "vscode", kind: "vscode", capabilities: ["workspace", "editor", "terminal"] },
+    {
+      name: "vscode",
+      kind: "vscode",
+      capabilities: ["workspace", "editor", "terminal"],
+      version: context.extension.packageJSON.version as string,
+    },
     (c) => {
       connector = c;
       c.onCommand("workspace.state", () => snapshot());

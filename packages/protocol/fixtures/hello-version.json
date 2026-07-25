@@ -1,0 +1,1 @@
+{ "v": 1, "id": "22222222-2222-2222-2222-222222222222", "kind": "hello", "payload": { "name": "fake-vscode", "kind": "fake", "protocolVersion": 1, "capabilities": ["workspace", "editor"], "version": "0.1.0" } }

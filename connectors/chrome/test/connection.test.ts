@@ -101,6 +101,29 @@ describe("Connection token lifecycle", () => {
     expect(sockets[0].lastPayload().token).toBe("tok-existing");
   });
 
+  it("reports its own version in the hello payload when configured", async () => {
+    const sockets: FakeSocket[] = [];
+    const conn = new Connection({
+      name: "chrome",
+      kind: "chrome",
+      capabilities: ["tabs"],
+      port: 17872,
+      version: "2.0.0",
+      makeSocket: () => {
+        const s = new FakeSocket();
+        sockets.push(s);
+        return s;
+      },
+      store: new MemStore("tok-existing"),
+      onCommand: () => ({}),
+    });
+    conn.start();
+    sockets[0].open();
+    await vi.waitFor(() => expect(sockets[0].sent.length).toBeGreaterThan(0));
+    expect(sockets[0].lastKind()).toBe("hello");
+    expect(sockets[0].lastPayload().version).toBe("2.0.0");
+  });
+
   it("auth_failed clears the token and falls back to pairing", async () => {
     const store = new MemStore("stale");
     const { conn, sockets } = connectionWith(store);

@@ -1,11 +1,21 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { connect } from "@rabta/connector-sdk";
 import { createWorkspace } from "./state";
 
 const chatty = process.argv.includes("--chatty");
 const ws = createWorkspace();
 
+// Report our own package version, distinct from the wire protocol version.
+const version = (
+  JSON.parse(
+    readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8")
+  ) as { version: string }
+).version;
+
 const connector = await connect(
-  { name: "fake-vscode", kind: "fake", capabilities: ["workspace", "editor"] },
+  { name: "fake-vscode", kind: "fake", capabilities: ["workspace", "editor"], version },
   (c) => {
     c.onCommand("workspace.open", (args) => ws.open((args as { path: string }).path));
     c.onCommand("workspace.state", () => ws.state);

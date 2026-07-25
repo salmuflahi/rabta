@@ -50,6 +50,37 @@ describe("ConnectorsPage", () => {
     expect(await screen.findByText(/^Connected · since /)).toBeInTheDocument();
   });
 
+  it("shows a connector's reported version and renders none when it reported none", async () => {
+    useStore.setState({
+      connectors: [
+        {
+          id: "conn-v",
+          name: "VS Code",
+          kind: "vscode",
+          capabilities: ["files"],
+          version: "0.1.0",
+          connected: true,
+          connectedSince: new Date().toISOString(),
+        },
+        {
+          id: "conn-nov",
+          name: "Legacy",
+          kind: "fake",
+          capabilities: [],
+          connected: false,
+          connectedSince: "2026-01-01T15:04:12.000Z",
+        },
+      ],
+      pairings: [],
+    });
+
+    renderWithProviders(<ConnectorsPage />);
+
+    expect(await screen.findByText("v0.1.0")).toBeInTheDocument();
+    // Only the connector that reported a version shows a version chip.
+    expect(screen.getAllByText(/^v\d/)).toHaveLength(1);
+  });
+
   it("shows 'Last seen {relativeTime}' for a disconnected connector, using an honest ISO connectedSince", async () => {
     useStore.setState({
       connectors: [

@@ -11,6 +11,8 @@ export const HelloPayload = z.object({
   kind: ConnectorKind,
   protocolVersion: z.number().int(),
   capabilities: z.array(z.string()),
+  /** The connector's own product/build version, distinct from protocolVersion. */
+  version: z.string().min(1).optional(),
   secret: z.string().min(1).optional(),
   token: z.string().min(1).optional(),
 });

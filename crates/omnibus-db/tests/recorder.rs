@@ -22,7 +22,7 @@ async fn recorder_persists_hub_activity() {
         .await
         .unwrap();
     ws.send(
-        json!({"v":1,"id":"h","kind":"hello","payload":{"name":"rec-test","kind":"fake","protocolVersion":1,"capabilities":["workspace"],"secret":hub.secret()}})
+        json!({"v":1,"id":"h","kind":"hello","payload":{"name":"rec-test","kind":"fake","protocolVersion":1,"capabilities":["workspace"],"version":"3.2.1","secret":hub.secret()}})
             .to_string()
             .into(),
     )
@@ -71,6 +71,9 @@ async fn recorder_persists_hub_activity() {
     assert_eq!(known[0].name, "rec-test");
     assert_eq!(known[0].kind, "fake");
     assert_eq!(known[0].capabilities, vec!["workspace"]);
+    // The reported version rode the full path: hello -> ConnectorInfo ->
+    // connectorConnected broadcast -> recorder -> connectors row.
+    assert_eq!(known[0].version.as_deref(), Some("3.2.1"));
 }
 
 /// `pairingRequested` fires with no authentication at all, so an attacker

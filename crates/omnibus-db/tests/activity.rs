@@ -52,12 +52,13 @@ fn event_cap_prunes_oldest_rows() {
 #[test]
 fn upsert_connector_is_identity_by_name_and_kind() {
     let db = db();
-    db.upsert_connector("fake-vscode", "fake", &["workspace".into()])
+    db.upsert_connector("fake-vscode", "fake", &["workspace".into()], None)
         .unwrap();
     db.upsert_connector(
         "fake-vscode",
         "fake",
         &["workspace".into(), "editor".into()],
+        None,
     )
     .unwrap();
     let known = db.known_connectors().unwrap();
@@ -71,9 +72,40 @@ fn upsert_connector_is_identity_by_name_and_kind() {
 }
 
 #[test]
+fn upsert_connector_persists_and_refreshes_version() {
+    let db = db();
+    // A connector that reports no version stores none, never a fabricated one.
+    db.upsert_connector("no-ver", "fake", &[], None).unwrap();
+    assert_eq!(db.known_connectors().unwrap()[0].version, None);
+
+    db.upsert_connector("fake-vscode", "fake", &["workspace".into()], Some("0.1.0"))
+        .unwrap();
+    let ver = db
+        .known_connectors()
+        .unwrap()
+        .into_iter()
+        .find(|c| c.name == "fake-vscode")
+        .unwrap()
+        .version;
+    assert_eq!(ver.as_deref(), Some("0.1.0"));
+
+    // A newer build reconnects under the same identity: the version refreshes.
+    db.upsert_connector("fake-vscode", "fake", &["workspace".into()], Some("0.2.0"))
+        .unwrap();
+    let refreshed = db
+        .known_connectors()
+        .unwrap()
+        .into_iter()
+        .find(|c| c.name == "fake-vscode")
+        .unwrap()
+        .version;
+    assert_eq!(refreshed.as_deref(), Some("0.2.0"));
+}
+
+#[test]
 fn touch_connector_seen_updates_last_seen_only_for_known() {
     let db = db();
-    db.upsert_connector("a", "fake", &[]).unwrap();
+    db.upsert_connector("a", "fake", &[], None).unwrap();
     let before = db.known_connectors().unwrap()[0].last_seen.clone();
     std::thread::sleep(std::time::Duration::from_millis(5));
     db.touch_connector_seen("a", "fake").unwrap();
@@ -93,13 +125,13 @@ fn connector_token_set_and_load() {
         vec![("chrome".into(), "chrome".into(), "tok-1".into())]
     );
     // Upsert on an existing row keeps identity, replaces token.
-    db.upsert_connector("chrome", "chrome", &["tabs".into()])
+    db.upsert_connector("chrome", "chrome", &["tabs".into()], None)
         .unwrap();
     db.set_connector_token("chrome", "chrome", "tok-2").unwrap();
     let tokens = db.connector_tokens().unwrap();
     assert_eq!(tokens.len(), 1);
     assert_eq!(tokens[0].2, "tok-2");
     // Rows without tokens are absent.
-    db.upsert_connector("vscode", "vscode", &[]).unwrap();
+    db.upsert_connector("vscode", "vscode", &[], None).unwrap();
     assert_eq!(db.connector_tokens().unwrap().len(), 1);
 }

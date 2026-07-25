@@ -41,6 +41,29 @@ async fn writes_discovery_file_and_registers_connector() {
     assert_eq!(conns.len(), 1);
     assert_eq!(conns[0].name, "test-conn");
     assert_eq!(conns[0].capabilities, vec!["workspace"]);
+    // A hello without a `version` field reports no version, never a fabricated one.
+    assert_eq!(conns[0].version, None);
+}
+
+#[tokio::test]
+async fn records_connector_reported_version() {
+    let (hub, _dir) = start_hub().await;
+    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port()))
+        .await
+        .unwrap();
+    let frame = json!({"v": 1, "id": "t-hello", "kind": "hello", "payload": {
+        "name": "versioned", "kind": "fake", "protocolVersion": 1,
+        "capabilities": ["workspace"], "version": "1.4.2", "secret": hub.secret()
+    }})
+    .to_string();
+    ws.send(frame.into()).await.unwrap();
+    let reply: Value =
+        serde_json::from_str(ws.next().await.unwrap().unwrap().to_text().unwrap()).unwrap();
+    assert_eq!(reply["kind"], "welcome");
+
+    let conns = hub.connectors().await;
+    assert_eq!(conns.len(), 1);
+    assert_eq!(conns[0].version.as_deref(), Some("1.4.2"));
 }
 
 #[tokio::test]

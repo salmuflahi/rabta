@@ -55,9 +55,28 @@ Do not treat these GUI-only checks as blockers to the automated B1–B3 implemen
 
 ## What's next
 
-### B4 — Connector version reporting
+### B4 — Connector version reporting — DONE
 
-Capture a connector-reported version in the hub handshake/registry, persist or project it through the existing connector model, and replace placeholder version copy in the UI. Keep this narrowly scoped; do not add a marketplace or generic capability framework.
+Connectors self-report a product/build `version` on the `hello` frame (distinct
+from `protocolVersion`). It threads through the shared protocol (Zod +
+serde/fixture `hello-version.json`), the hub `ConnectorInfo`, the
+`connectorConnected` broadcast, and is **persisted** in the `connectors` table
+(migration `003_connector_version.sql`, mirroring how capabilities persist) so a
+known/last-seen connector still shows its version. The SDK (`ConnectOptions.version`)
+and all three connectors report it — fake reads its `package.json`, VS Code reads
+`context.extension.packageJSON.version`, Chrome reads `chrome.runtime.getManifest().version`.
+The Connectors page shows a `v<version>` chip next to the kind badge, omitted when
+none was reported. A `None`/absent version is never fabricated at any layer.
+
+Verified green: full Rust workspace (fmt/clippy/tests incl. new handshake, db,
+recorder, migration coverage), all TS package suites (protocol 15, desktop 169,
+connector-sdk 9 incl. the real headless-hub integration test, chrome 28, vscode 5,
+fake 2), all builds, and vscode/chrome `tsc` typecheck. Drive-by fix: the
+connector-sdk integration test referenced the pre-rename crate `omnibus-hub`;
+corrected to `rabta-hub` (the package rename had left it red, uncaught by Track B's
+cargo+desktop-only gate). Only residual: the literal `v<version>` badge in the live
+Tauri window is component-tested but not GUI-verified (same automation limitation as
+the Track B manual list).
 
 ### B5 — Packaging, signing, and release hardening
 
@@ -74,9 +93,12 @@ After B4, produce a repeatable macOS bundle, settle signing/notarization strateg
 
 ## How to resume
 
-1. Run `git log --oneline -15` and confirm `codex/track-b-core` is clean.
+Track B Core B1–B3 is merged to `main` (fast-forward to `f52224a`). B4 is
+implemented on branch `track-b-b4-connector-version`.
+
+1. Run `git log --oneline -15` to confirm state.
 2. Complete the manual GUI list against a bundled build or with a human operator.
-3. Start B4 from the Track B design and plan:
-   - `docs/superpowers/specs/2026-07-23-track-b-core-design.md`
-   - `docs/superpowers/plans/2026-07-23-track-b-core.md`
+3. B5 is next: produce a repeatable macOS bundle, settle signing/notarization,
+   verify clean-install migration (now through schema v3) and window state, then
+   run the manual GUI acceptance list against the bundled app.
 4. Keep B4 and B5 separate. Prefer the smallest implementation that proves the current phase.

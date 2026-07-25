@@ -47,6 +47,7 @@ async function connect(port: number) {
     name: "chrome",
     kind: "chrome",
     capabilities: ["tabs"],
+    version: chrome.runtime.getManifest().version,
     port,
     makeSocket: (url) => nativeSocket(url),
     store,

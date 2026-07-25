@@ -9,6 +9,9 @@ export interface ConnectOptions {
   name: string;
   kind: "fake" | "vscode" | "chrome";
   capabilities: string[];
+  /** The connector's own product/build version, distinct from the protocol
+   * version. Reported to the hub in `hello`; omitted entirely if unset. */
+  version?: string;
   /** Override the discovery file path (tests). */
   hubFile?: string;
   /** Persistent token for browser-class connectors; wins over the secret. */
@@ -103,6 +106,7 @@ export class Connector {
           kind: this.opts.kind,
           protocolVersion: PROTOCOL_VERSION,
           capabilities: this.opts.capabilities,
+          ...(this.opts.version ? { version: this.opts.version } : {}),
           ...(this.opts.token ? { token: this.opts.token } : this.secret ? { secret: this.secret } : {}),
         },
       });

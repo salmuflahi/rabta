@@ -43,7 +43,7 @@ describe("connector-sdk against headless hub", () => {
   let conn: Connector | undefined;
 
   beforeAll(() => {
-    const build = spawnSync("cargo", ["build", "-p", "omnibus-hub", "--example", "headless"], {
+    const build = spawnSync("cargo", ["build", "-p", "rabta-hub", "--example", "headless"], {
       cwd: repoRoot,
       stdio: "inherit",
     });

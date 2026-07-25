@@ -49,6 +49,10 @@ pub struct Hello {
     #[serde(rename = "protocolVersion")]
     pub protocol_version: u8,
     pub capabilities: Vec<String>,
+    /// The connector's own product/build version (e.g. `"0.1.0"`), distinct
+    /// from `protocol_version`. Optional: older connectors omit it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

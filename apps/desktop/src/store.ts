@@ -5,6 +5,8 @@ export interface ConnectorInfo {
   name: string;
   kind: string;
   capabilities: string[];
+  /** The connector's own product/build version, if it reported one. */
+  version?: string;
 }
 
 export interface ConnectorRow extends ConnectorInfo {
@@ -32,6 +34,7 @@ export interface KnownConnector {
   name: string;
   kind: string;
   capabilities: string[];
+  version?: string;
   firstSeen: string;
   lastSeen: string;
 }
@@ -285,6 +288,7 @@ export const useStore = create<Store>((set) => ({
           name: k.name,
           kind: k.kind,
           capabilities: k.capabilities,
+          version: k.version,
           connected: false,
           connectedSince: toIsoOrNow(k.lastSeen),
         }));

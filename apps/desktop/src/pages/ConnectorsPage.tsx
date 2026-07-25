@@ -45,6 +45,11 @@ function ConnectorCard({ connector }: { connector: ConnectorRow }) {
             <Badge variant="outline" className="shrink-0">
               {connector.kind}
             </Badge>
+            {connector.version && (
+              <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                v{connector.version}
+              </span>
+            )}
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-xs">
             {connector.connected ? (

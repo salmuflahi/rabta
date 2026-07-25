@@ -20,5 +20,5 @@ fn fixtures_round_trip() {
         assert_eq!(back, raw, "{path:?} did not round-trip");
         checked += 1;
     }
-    assert_eq!(checked, 12, "expected all 12 fixtures");
+    assert_eq!(checked, 13, "expected all 13 fixtures");
 }

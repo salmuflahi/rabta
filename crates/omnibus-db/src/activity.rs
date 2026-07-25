@@ -24,6 +24,8 @@ pub struct KnownConnector {
     pub name: String,
     pub kind: String,
     pub capabilities: Vec<String>,
+    /// The connector's last-reported product/build version, if any.
+    pub version: Option<String>,
     pub first_seen: String,
     pub last_seen: String,
 }
@@ -76,8 +78,16 @@ impl Db {
         Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
     }
 
-    /// Registers a connector identity or refreshes its capabilities/last_seen.
-    pub fn upsert_connector(&self, name: &str, kind: &str, capabilities: &[String]) -> Result<()> {
+    /// Registers a connector identity or refreshes its capabilities, version,
+    /// and last_seen. A `None` version overwrites any prior value, so the row
+    /// always reflects what the currently-connecting build reported.
+    pub fn upsert_connector(
+        &self,
+        name: &str,
+        kind: &str,
+        capabilities: &[String],
+        version: Option<&str>,
+    ) -> Result<()> {
         let conn = self
             .conn
             .lock()
@@ -85,10 +95,10 @@ impl Db {
         let caps = serde_json::to_string(capabilities).unwrap_or_else(|_| "[]".into());
         let ts = now();
         conn.execute(
-            "INSERT INTO connectors (id, name, kind, capabilities, first_seen, last_seen) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?5) \
-             ON CONFLICT(name, kind) DO UPDATE SET capabilities = ?4, last_seen = ?5",
-            params![new_id(), name, kind, caps, ts],
+            "INSERT INTO connectors (id, name, kind, capabilities, version, first_seen, last_seen) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6) \
+             ON CONFLICT(name, kind) DO UPDATE SET capabilities = ?4, version = ?5, last_seen = ?6",
+            params![new_id(), name, kind, caps, version, ts],
         )?;
         Ok(())
     }
@@ -142,7 +152,7 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
-            "SELECT name, kind, capabilities, first_seen, last_seen \
+            "SELECT name, kind, capabilities, version, first_seen, last_seen \
              FROM connectors ORDER BY last_seen DESC",
         )?;
         let rows = stmt.query_map([], |r| {
@@ -153,8 +163,9 @@ impl Db {
                     log::warn!("known_connectors: corrupt connectors.capabilities: {e}");
                     Vec::new()
                 }),
-                first_seen: r.get(3)?,
-                last_seen: r.get(4)?,
+                version: r.get(3)?,
+                first_seen: r.get(4)?,
+                last_seen: r.get(5)?,
             })
         })?;
         Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
