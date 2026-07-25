@@ -46,6 +46,8 @@ describe("Sidebar collapse", () => {
     // addressable by its aria-label.
     const collapsed = screen.getByText("Overview");
     expect(collapsed.closest("[aria-hidden='true']")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Overview" })).toBeInTheDocument();
+    // Collapsed rows expose the label + shortcut via aria-label (the visible
+    // ⌘-badges were removed), so the button is addressable by that name.
+    expect(screen.getByRole("button", { name: "Overview (⌘1)" })).toBeInTheDocument();
   });
 });

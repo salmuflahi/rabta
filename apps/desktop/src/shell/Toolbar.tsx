@@ -1,6 +1,3 @@
-import { Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Kbd } from "@/components/ui/kbd";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useStore, type ConnectorRow } from "@/store";
@@ -97,43 +94,16 @@ function ConnectionIndicator() {
   );
 }
 
-export function Titlebar() {
-  const collapsed = useStore((s) => s.sidebarCollapsed);
-  const setCommandOpen = useStore((s) => s.setCommandOpen);
-
+/** The workspace toolbar: a slim, mostly-draggable strip that begins at the
+ * sidebar boundary. Global search now lives behind ⌘K (see CommandPalette),
+ * so the only control here is the connection status. */
+export function Toolbar() {
   return (
     <header
       data-tauri-drag-region
-      className={cn(
-        "grid h-16 shrink-0 items-center border-b border-border/50 bg-background transition-[grid-template-columns] duration-200 ease-out",
-        // Left column mirrors the sidebar width so the workspace region (and
-        // the search centered within it) tracks the sidebar as it collapses.
-        collapsed ? "grid-cols-[68px_1fr]" : "grid-cols-[276px_1fr]",
-      )}
+      className="flex h-[60px] shrink-0 items-center justify-end gap-3 border-b border-border/50 bg-background px-4"
     >
-      {/* Over the sidebar: draggable space that also clears the macOS
-          traffic lights (top-left). */}
-      <div className="h-full" />
-
-      <div className="grid h-full grid-cols-[1fr_auto_1fr] items-center gap-2 px-4">
-        <div />
-        <div className="flex min-w-0 justify-center">
-          <Button
-            variant="outline"
-            className="h-8 min-w-0 max-w-[min(360px,100%)] justify-between gap-3 px-3 text-muted-foreground sm:gap-6"
-            onClick={() => setCommandOpen(true)}
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <Search className="size-3.5 shrink-0 sm:hidden" />
-              <span className="hidden truncate text-sm sm:inline">Search or jump to…</span>
-            </span>
-            <Kbd className="shrink-0">⌘K</Kbd>
-          </Button>
-        </div>
-        <div className="flex min-w-0 items-center justify-end">
-          <ConnectionIndicator />
-        </div>
-      </div>
+      <ConnectionIndicator />
     </header>
   );
 }
