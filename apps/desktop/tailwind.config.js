@@ -11,13 +11,15 @@ export default {
       // Semantic type scale — one hierarchy for the whole app so titles
       // dominate and metadata recedes. Sizes map to the design spec
       // (display 32 / title 22 / card 17 / body 15 / meta 13 / label 11).
+      // Line-heights stay >= Inter's natural ~1.21 so descenders (p, j, g, y)
+      // never clip on tight headings.
       fontSize: {
-        display: ["2rem", { lineHeight: "1.15", letterSpacing: "-0.03em" }],
-        title: ["1.375rem", { lineHeight: "1.25", letterSpacing: "-0.02em" }],
+        display: ["2rem", { lineHeight: "1.25", letterSpacing: "-0.03em" }],
+        title: ["1.375rem", { lineHeight: "1.3", letterSpacing: "-0.02em" }],
         card: ["1.0625rem", { lineHeight: "1.4", letterSpacing: "-0.011em" }],
         body: ["0.9375rem", { lineHeight: "1.55" }],
         meta: ["0.8125rem", { lineHeight: "1.5" }],
-        label: ["0.6875rem", { lineHeight: "1.4", letterSpacing: "0.04em" }],
+        label: ["0.6875rem", { lineHeight: "1.5", letterSpacing: "0.04em" }],
       },
       colors: {
         border: "hsl(var(--border))",

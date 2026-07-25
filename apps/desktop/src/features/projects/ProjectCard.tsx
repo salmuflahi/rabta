@@ -6,6 +6,7 @@ import {
   ArrowDown,
   ArrowUp,
   FolderOpen,
+  GitBranch,
   GripVertical,
   Palette,
   Pencil,
@@ -121,7 +122,7 @@ export function ProjectCard({
         <Card
           ref={setNodeRef}
           style={style}
-          className={`overflow-hidden p-0 ${isDragging ? "opacity-60" : ""}`}
+          className={`overflow-hidden p-0 hover:shadow-card-hover ${isDragging ? "opacity-60 shadow-card-hover" : ""}`}
         >
           <div className="flex items-start justify-between gap-4 p-4">
             <div className="flex min-w-0 items-start gap-3">
@@ -139,33 +140,36 @@ export function ProjectCard({
                 <ProjectIcon icon={project.icon} className="size-[18px]" />
               </div>
               <div className="min-w-0">
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <p className="truncate font-medium text-foreground">
-                    {project.name}{" "}
-                    <span className="font-normal text-muted-foreground">
-                      ({project.defaultBranch})
-                    </span>
+                <div className="flex min-w-0 items-center gap-2">
+                  <p className="truncate text-card font-semibold text-foreground">
+                    {project.name}
                   </p>
+                  {project.defaultBranch ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 font-mono text-label text-muted-foreground">
+                      <GitBranch className="size-3" />
+                      {project.defaultBranch}
+                    </span>
+                  ) : null}
                   <UnsavedChangesDot
                     projectId={project.id}
                     refreshKey={gitRefreshKey}
                   />
                 </div>
-                <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                <p className="mt-1 truncate font-mono text-meta text-muted-foreground">
                   {project.repoPath}
                 </p>
                 {project.devUrl && (
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="truncate text-meta text-muted-foreground">
                     {project.devUrl}
                   </p>
                 )}
                 {project.lastOpenedAt ? (
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground/70">
+                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-label text-muted-foreground/70">
                     <span>Opened {relativeTime(project.lastOpenedAt)}</span>
                     <span>Last session {formatDuration(project.activeSeconds)}</span>
                   </div>
                 ) : (
-                  <p className="mt-1 truncate text-xs text-muted-foreground/70">
+                  <p className="mt-1.5 truncate text-label text-muted-foreground/70">
                     Created {project.createdAt}
                   </p>
                 )}

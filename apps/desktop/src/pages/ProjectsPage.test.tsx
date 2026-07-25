@@ -565,8 +565,8 @@ describe("ProjectsPage unsaved-changes dot", () => {
     await waitFor(() => expect(gitStatusCallsForProject.length).toBeGreaterThan(0));
     const callsBeforeStart = gitStatusCallsForProject.length;
 
-    fireEvent.click(await screen.findByText("Fetch Issues"));
-    fireEvent.click(await screen.findByText("Start Task"));
+    fireEvent.click(await screen.findByText("Sync GitHub"));
+    fireEvent.click(await screen.findByText("Start task"));
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("start_issue_task", expect.objectContaining({ projectId: FAKE_PROJECT.id }))
