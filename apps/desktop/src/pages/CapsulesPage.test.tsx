@@ -449,8 +449,10 @@ describe("CapsulesPage delete (deferred undo)", () => {
     mockedToast().mockClear();
     renderWithProviders(<CapsulesPage />);
 
-    await screen.findByText(FAKE_TASK.title);
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    // Delete now lives in the overflow (danger tucked away); the row's
+    // right-click menu is the quickest programmatic path to it.
+    fireEvent.contextMenu(await screen.findByText(FAKE_TASK.title));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Delete/ }));
 
     expect(screen.queryByText(FAKE_TASK.title)).not.toBeInTheDocument();
     expect(mockedToast()).toHaveBeenCalledTimes(1);
@@ -465,8 +467,8 @@ describe("CapsulesPage delete (deferred undo)", () => {
     mockedToast().mockClear();
     renderWithProviders(<CapsulesPage />);
 
-    await screen.findByText(FAKE_TASK.title);
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.contextMenu(await screen.findByText(FAKE_TASK.title));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Delete/ }));
     expect(screen.queryByText(FAKE_TASK.title)).not.toBeInTheDocument();
 
     const [, options] = mockedToast().mock.calls[0];
@@ -490,7 +492,11 @@ describe("CapsulesPage delete (deferred undo)", () => {
       });
       expect(screen.getByText(FAKE_TASK.title)).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+      fireEvent.contextMenu(screen.getByText(FAKE_TASK.title));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      fireEvent.click(screen.getByRole("menuitem", { name: /Delete/ }));
       expect(screen.queryByText(FAKE_TASK.title)).not.toBeInTheDocument();
 
       await act(async () => {
@@ -683,8 +689,11 @@ describe("CapsulesPage context menu", () => {
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Resume" })).toBeDisabled());
     expect(screen.getByRole("button", { name: "Save State" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Done" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Delete" })).toBeDisabled();
+    // Done/Rename/Duplicate/Delete now live behind the overflow ⋯ trigger;
+    // disabling that trigger makes all of them unreachable while busy.
+    expect(
+      screen.getByRole("button", { name: `More actions for ${FAKE_TASK.title}` })
+    ).toBeDisabled();
 
     pendingDuplicate.resolve({
       ...FAKE_TASK,

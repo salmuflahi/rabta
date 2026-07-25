@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Box, Check, Code2, Copy, GitBranch, Globe, Layers, Loader2, Pencil, Play, RotateCcw, Save, Terminal, Trash2 } from "lucide-react";
+import { Box, Check, Code2, Copy, GitBranch, Globe, Layers, Loader2, MoreHorizontal, Pencil, Play, RotateCcw, Save, Terminal, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,12 +18,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDuration, humanizeCapsule } from "@/lib/humanize";
+import { cn } from "@/lib/utils";
 import { toastErr, toastOk } from "@/lib/toast";
 import { useDeferredDelete } from "@/lib/useDeferredDelete";
 import { activateSummaryToResult, type ActivateSummary } from "@/restore/normalize";
@@ -478,9 +486,14 @@ export function CapsulesPage() {
             const tasks = (tasksByProject[p.id] ?? []).filter((t) => !pendingTaskIds.has(t.id));
             return (
               <div key={p.id}>
-                <div className="mb-3 flex min-w-0 items-baseline gap-2">
-                  <h2 className="min-w-0 truncate text-sm font-medium text-foreground">{p.name}</h2>
-                  <span className="shrink-0 text-xs text-muted-foreground">{p.defaultBranch}</span>
+                <div className="mb-3 flex min-w-0 items-center gap-2">
+                  <h2 className="min-w-0 truncate text-body font-semibold text-foreground">{p.name}</h2>
+                  {p.defaultBranch ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 font-mono text-label text-muted-foreground">
+                      <GitBranch className="size-3" />
+                      {p.defaultBranch}
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -490,18 +503,18 @@ export function CapsulesPage() {
                     </p>
                   )}
 
-                  {tasks.map((t) => {
+                  {tasks.map((t, ti) => {
                     const isActive = t.id === activeTaskId;
                     const actionsDisabled = busy || restoreActive;
                     return (
                       <ContextMenu key={t.id}>
                         <ContextMenuTrigger asChild>
                           <Card
-                            className={
-                              isActive
-                                ? "border-l-2 border-l-primary p-4 transition-colors hover:bg-accent/40"
-                                : "p-4 transition-colors hover:bg-accent/40"
-                            }
+                            style={{ animationDelay: `${Math.min(ti, 6) * 25}ms` }}
+                            className={cn(
+                              "card-lift animate-card-in p-4",
+                              isActive && "border-l-2 border-l-primary"
+                            )}
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="min-w-0">
@@ -509,8 +522,8 @@ export function CapsulesPage() {
                                   <p
                                     className={
                                       t.status === "done"
-                                        ? "min-w-0 truncate font-medium text-muted-foreground line-through"
-                                        : "min-w-0 truncate font-medium text-foreground"
+                                        ? "min-w-0 truncate text-card font-medium text-muted-foreground line-through"
+                                        : "min-w-0 truncate text-card font-medium text-foreground"
                                     }
                                   >
                                     {t.title}
@@ -519,10 +532,9 @@ export function CapsulesPage() {
                                 </div>
                                 <CapsuleSummary resources={resources[t.id] ?? []} lastSessionSeconds={p.activeSeconds} />
                               </div>
-                              <div className="flex shrink-0 items-center gap-2">
+                              <div className="flex shrink-0 items-center gap-1.5">
                                 <Button
                                   size="sm"
-                                  className="transition-transform hover:-translate-y-px active:scale-[0.98]"
                                   onClick={() => resume(t)}
                                   disabled={actionsDisabled}
                                 >
@@ -532,7 +544,10 @@ export function CapsulesPage() {
                                       Restoring…
                                     </>
                                   ) : (
-                                    "Resume"
+                                    <>
+                                      <Play className="size-3.5 fill-current" />
+                                      Resume
+                                    </>
                                   )}
                                 </Button>
                                 <Button size="sm" variant="outline" onClick={() => save(t.id)} disabled={actionsDisabled}>
@@ -540,17 +555,50 @@ export function CapsulesPage() {
                                     ? "Saving…"
                                     : "Save State"}
                                 </Button>
-                                <Button size="sm" variant="ghost" onClick={() => toggleStatus(t)} disabled={actionsDisabled}>
-                                  {t.status === "open" ? "Done" : "Reopen"}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => requestDelete(t)}
-                                  disabled={actionsDisabled}
-                                >
-                                  Delete
-                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="size-8 text-muted-foreground"
+                                      aria-label={`More actions for ${t.title}`}
+                                      disabled={actionsDisabled}
+                                    >
+                                      <MoreHorizontal className="size-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-44">
+                                    <DropdownMenuItem onSelect={() => toggleStatus(t)}>
+                                      {t.status === "open" ? (
+                                        <Check className="mr-2 size-4" />
+                                      ) : (
+                                        <RotateCcw className="mr-2 size-4" />
+                                      )}
+                                      {t.status === "open" ? "Mark done" : "Reopen"}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onSelect={() => {
+                                        setRenameTarget(t);
+                                        setRenameTitle(t.title);
+                                      }}
+                                    >
+                                      <Pencil className="mr-2 size-4" />
+                                      Rename
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => duplicateTask(t)}>
+                                      <Copy className="mr-2 size-4" />
+                                      Duplicate
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                                      onSelect={() => requestDelete(t)}
+                                    >
+                                      <Trash2 className="mr-2 size-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </div>
                           </Card>
