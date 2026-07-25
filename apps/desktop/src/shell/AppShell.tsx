@@ -13,8 +13,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Titlebar />
       <div
         className={cn(
-          "grid min-h-0 min-w-0 flex-1 transition-[grid-template-columns] duration-200 ease-brand",
-          collapsed ? "grid-cols-[56px_1fr]" : "grid-cols-[220px_1fr]"
+          "grid min-h-0 min-w-0 flex-1 transition-[grid-template-columns] duration-200 ease-out",
+          // Labels fade faster than this (150ms) so they clear before the
+          // width finishes collapsing. Rail stays a clean icon column.
+          collapsed ? "grid-cols-[68px_1fr]" : "grid-cols-[276px_1fr]"
         )}
       >
         <Sidebar />
