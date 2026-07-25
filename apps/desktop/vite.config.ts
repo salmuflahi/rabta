@@ -11,22 +11,12 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
   build: {
-    rollupOptions: {
-      output: {
-        // Split large dependencies out of the app bundle so no single chunk
-        // trips Vite's 500 kB advisory and browsers can cache vendor code
-        // across app-code changes.
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return;
-          if (id.includes("react-dom") || id.includes("/react/") || id.includes("scheduler"))
-            return "react";
-          if (id.includes("@radix-ui")) return "radix";
-          if (id.includes("@dnd-kit")) return "dnd-kit";
-          if (id.includes("lucide-react")) return "icons";
-          return "vendor";
-        },
-      },
-    },
+    // A larger single bundle (Vite's 500 kB advisory is cosmetic) is safer
+    // than manual vendor chunks: splitting React and Radix into separate
+    // chunks made the Radix chunk run `React.forwardRef` before React was
+    // initialized, crashing the production build with a blank screen. Let
+    // Vite/Rollup decide chunking so the React init order stays correct.
+    chunkSizeWarningLimit: 1200,
   },
   test: {
     globals: true,
