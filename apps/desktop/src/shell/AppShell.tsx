@@ -56,14 +56,17 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div
       className={cn(
         "relative grid h-full min-h-0 overflow-hidden transition-[grid-template-columns] duration-200 ease-out",
-        collapsed ? "grid-cols-[72px_1fr]" : "grid-cols-[280px_1fr]",
+        // minmax(0,1fr) lets the workspace column shrink below its content's
+        // intrinsic width instead of forcing the whole shell wider than the
+        // viewport (which let the app scroll/slide horizontally).
+        collapsed ? "grid-cols-[72px_minmax(0,1fr)]" : "grid-cols-[280px_minmax(0,1fr)]",
       )}
     >
       <Sidebar />
 
       <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
         <Toolbar />
-        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-background p-9">
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none bg-background p-9">
           {/* Only the workspace scrolls / transitions; the frame is fixed. */}
           <div key={view} className="animate-page-in">
             {children}

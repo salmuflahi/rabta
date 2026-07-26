@@ -73,6 +73,14 @@
 
 @layer base {
   * { @apply border-border; }
+  /* Lock the frame to the viewport: the document itself never scrolls or
+     rubber-bands (that caused the whole shell to slide sideways and reveal a
+     strip on the left). Only the workspace region scrolls, vertically. */
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
   html { -webkit-font-smoothing: antialiased; }
   body { @apply bg-background text-foreground font-sans; }
   :focus-visible { @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background; }

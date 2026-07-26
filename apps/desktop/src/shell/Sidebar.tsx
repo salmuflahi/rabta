@@ -131,32 +131,23 @@ export function Sidebar() {
           standalone
           onClick={() => go(SETTINGS_ITEM.key)}
         />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className={cn(
-                "flex items-center rounded-[8px] py-2 text-xs text-sidebar-foreground/50",
-                collapsed ? "justify-center px-0" : "gap-2 px-2.5",
-              )}
-            >
-              {/* Neutral status dot — deliberately not emerald, so it isn't
-                  read as an online/connected indicator. */}
-              <span className="size-1.5 shrink-0 rounded-full bg-sidebar-foreground/35" />
-              <span
-                aria-hidden={collapsed}
-                className={cn(
-                  "overflow-hidden whitespace-nowrap transition-opacity duration-150",
-                  collapsed && "w-0 opacity-0",
-                )}
-              >
-                Data stored locally
-              </span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            Runs entirely on 127.0.0.1 — no cloud account, no telemetry.
-          </TooltipContent>
-        </Tooltip>
+        {/* The local-storage status only reads with its label, so it's hidden
+            entirely when collapsed rather than leaving a meaningless dot. */}
+        {!collapsed && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-2 rounded-[8px] px-2.5 py-2 text-xs text-sidebar-foreground/50">
+                {/* Neutral status dot — deliberately not emerald, so it isn't
+                    read as an online/connected indicator. */}
+                <span className="size-1.5 shrink-0 rounded-full bg-sidebar-foreground/35" />
+                <span className="overflow-hidden whitespace-nowrap">Data stored locally</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              Runs entirely on 127.0.0.1 — no cloud account, no telemetry.
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </aside>
   );

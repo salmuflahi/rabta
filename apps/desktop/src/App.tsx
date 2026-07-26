@@ -232,7 +232,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen min-w-0 flex-col overflow-hidden">
       {pairings.map((p) => (
         <div key={p.pairingId} className="flex items-center gap-3 border-b border-warning/30 bg-warning/10 p-2 text-sm text-foreground">
           <span className="flex-1">
