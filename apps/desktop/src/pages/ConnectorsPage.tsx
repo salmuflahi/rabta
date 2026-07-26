@@ -29,7 +29,7 @@ function PairingCard({
       <div className="flex items-center justify-between gap-3">
         <p className="min-w-0 truncate text-sm text-foreground">
           <span className="font-medium">{pairing.name}</span>{" "}
-          <span className="text-muted-foreground">({pairing.kind})</span> wants to connect
+          <span className="text-muted-foreground">({KIND_LABEL[pairing.kind] ?? pairing.kind})</span> wants to connect
         </p>
         <div className="flex shrink-0 items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => onDecide(pairing, false)}>

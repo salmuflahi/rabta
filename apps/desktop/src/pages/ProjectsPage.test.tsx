@@ -755,18 +755,18 @@ describe("ProjectsPage accessible project ordering", () => {
     } as DOMRect;
   }
 
-  it("disables Move Down for the final project", async () => {
+  it("disables Move down for the final project", async () => {
     mockOrderedProjects(() => [FAKE_PROJECT, SECOND_PROJECT]);
     renderWithProviders(<ProjectsPage />);
 
     await openMenuFor("Second Project");
 
-    expect(await screen.findByRole("menuitem", { name: "Move Down" })).toHaveAttribute(
+    expect(await screen.findByRole("menuitem", { name: "Move down" })).toHaveAttribute(
       "data-disabled",
     );
   });
 
-  it("persists Move Down through the context menu and exposes a labeled drag handle", async () => {
+  it("persists Move down through the context menu and exposes a labeled drag handle", async () => {
     mockOrderedProjects((orderedIds) =>
       orderedIds.map((id, sortOrder) =>
         id === FAKE_PROJECT.id
@@ -778,9 +778,9 @@ describe("ProjectsPage accessible project ordering", () => {
 
     expect(await screen.findByLabelText("Reorder Test Project")).toBeInTheDocument();
     await openMenuFor("Test Project");
-    const moveUp = await screen.findByRole("menuitem", { name: "Move Up" });
+    const moveUp = await screen.findByRole("menuitem", { name: "Move up" });
     expect(moveUp).toHaveAttribute("data-disabled");
-    fireEvent.click(screen.getByRole("menuitem", { name: "Move Down" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Move down" }));
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("reorder_projects", {
@@ -793,10 +793,10 @@ describe("ProjectsPage accessible project ordering", () => {
     );
 
     await openMenuFor("Second Project");
-    expect(await screen.findByRole("menuitem", { name: "Move Up" })).toHaveAttribute(
+    expect(await screen.findByRole("menuitem", { name: "Move up" })).toHaveAttribute(
       "data-disabled",
     );
-    expect(screen.getByRole("menuitem", { name: "Move Down" })).not.toHaveAttribute("data-disabled");
+    expect(screen.getByRole("menuitem", { name: "Move down" })).not.toHaveAttribute("data-disabled");
   });
 
   it("allows only one pending reorder and replaces optimism with the authoritative response", async () => {
@@ -805,7 +805,7 @@ describe("ProjectsPage accessible project ordering", () => {
     renderWithProviders(<ProjectsPage />);
 
     await openMenuFor("Test Project");
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Move Down" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Move down" }));
 
     await waitFor(() => expectProjectOrder("Second Project", "Test Project"));
     await waitFor(() =>
@@ -813,7 +813,7 @@ describe("ProjectsPage accessible project ordering", () => {
     );
 
     await openMenuFor("Second Project");
-    const blockedMove = await screen.findByRole("menuitem", { name: "Move Down" });
+    const blockedMove = await screen.findByRole("menuitem", { name: "Move down" });
     expect(blockedMove).toHaveAttribute("data-disabled");
     fireEvent.click(blockedMove);
     expect(
@@ -885,7 +885,7 @@ describe("ProjectsPage accessible project ordering", () => {
     renderWithProviders(<ProjectsPage />);
 
     await openMenuFor("Test Project");
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Move Down" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Move down" }));
 
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("reorder_projects", {

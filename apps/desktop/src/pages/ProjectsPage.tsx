@@ -141,8 +141,8 @@ export function ProjectsPage() {
         setPathNote("");
         if (ins.defaultBranch && !branch) setBranch(ins.defaultBranch);
       }
-    } catch (e) {
-      setPathNote(String(e));
+    } catch {
+      setPathNote("Could not inspect that path");
     }
   }
 

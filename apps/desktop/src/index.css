@@ -33,6 +33,12 @@
     --ring: 18 100% 59%;   /* #ff6b2c */
     --radius: 0.625rem;   /* brand buttons use 10px; panels 14px via rounded-lg+ */
 
+    /* Motion tokens (Part 17) — one settling ease + a small duration set. */
+    --motion-fast: 120ms;
+    --motion-standard: 180ms;
+    --motion-sidebar: 280ms;
+    --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+
     --sidebar: 183 41% 11%;   /* #102526 */
     --sidebar-foreground: 44 33% 94%;   /* #f4f1e9 */
     --sidebar-primary: 18 100% 59%;   /* #ff6b2c */
@@ -104,10 +110,19 @@
   }
 }
 
+/* Reduced motion — either the OS preference, or the app's own Motion setting
+   (Settings → Appearance) which stamps data-motion="reduced" on the root. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
 }

@@ -137,6 +137,21 @@ export default function App() {
     };
   }, [setFullscreen]);
 
+  // Resume-on-launch (Settings → Behavior): if enabled and a task is active,
+  // route to Capsules and drive the existing Resume path once on startup.
+  useEffect(() => {
+    if (!useStore.getState().prefs.resumeOnLaunch) return;
+    invoke<string | null>("active_task")
+      .then((id) => {
+        if (id) {
+          requestResume(id);
+          setView("capsules");
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const refresh = () =>
       invoke<ConnectorInfo[]>("connectors")
@@ -210,6 +225,22 @@ export default function App() {
         return;
       }
 
+      // ⌘1–5 jump to the primary views; ⌘, opens Settings. Global chrome
+      // navigation (matches the tooltips on the nav rows), so it fires before
+      // the input guard too — a bare digit isn't something you'd type into a
+      // field with ⌘ held.
+      if (key >= "1" && key <= "5") {
+        e.preventDefault();
+        const order: NavKey[] = ["overview", "capsules", "projects", "connectors", "activity"];
+        setView(order[Number(key) - 1]);
+        return;
+      }
+      if (key === ",") {
+        e.preventDefault();
+        setView("settings");
+        return;
+      }
+
       // Input guard: don't let ⌘N/⌘⇧N/⌘R hijack typing "n"/"r" with a stray
       // modifier while focus is in a text field.
       const target = e.target as HTMLElement | null;
@@ -267,7 +298,7 @@ export default function App() {
     <div className="flex h-screen min-w-0 flex-col overflow-hidden">
       {pairings.map((p) => (
         <div key={p.pairingId} className="flex items-center gap-3 border-b border-warning/30 bg-warning/10 p-2 text-sm text-foreground">
-          <span className="flex-1">
+          <span className="min-w-0 flex-1">
             <b>{p.name}</b> ({p.kind}) wants to connect to Rabta
           </span>
           <Button size="sm" onClick={() => decide(p, true)}>

@@ -13,7 +13,7 @@ const Gallery = isGallery
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ThemeProvider defaultTheme="light">
+    <ThemeProvider>
       <TooltipProvider delayDuration={200}>
         {Gallery ? (
           <Suspense fallback={null}>

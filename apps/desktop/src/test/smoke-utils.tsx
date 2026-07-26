@@ -18,6 +18,16 @@ vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(async () => () => {}),
 }));
 
+// Settings → About reads the app version; Privacy reveals the data folder.
+// Neither has a Tauri bridge in jsdom, so stub them to stable values.
+vi.mock("@tauri-apps/api/app", () => ({
+  getVersion: vi.fn(async () => "0.1.0"),
+}));
+
+vi.mock("@tauri-apps/api/path", () => ({
+  appDataDir: vi.fn(async () => "/tmp/rabta-data"),
+}));
+
 // Re-exported (rather than left for each test to import "@tauri-apps/api/core"
 // itself) so callers get the mock reliably: vi.mock's hoist only reorders
 // code within *this* file, so resolving it here — where the hoist already

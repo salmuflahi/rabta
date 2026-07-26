@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { MotionPref } from "@/lib/motion";
 
 export interface ConnectorInfo {
   id: string;
@@ -58,6 +59,52 @@ function readSidebarCollapsed(): boolean {
     return false;
   }
 }
+
+/** User preferences (Settings). All client-side, persisted to one localStorage
+ * key. Only settings that actually change app behavior live here. */
+export type ThemePref = "system" | "light" | "dark";
+export interface Prefs {
+  theme: ThemePref;
+  motion: MotionPref;
+  /** Persist the collapsed rail across launches. */
+  rememberSidebar: boolean;
+  /** Which page Rabta opens on. */
+  landingPage: NavKey;
+  /** On launch, resume the previously-active task automatically. */
+  resumeOnLaunch: boolean;
+  /** Keep completed (done) capsules visible in the list. */
+  keepCompleted: boolean;
+  /** Reveal the raw connector-command console (Settings → Advanced). */
+  developerMode: boolean;
+}
+
+const PREFS_KEY = "rabta.prefs";
+const DEFAULT_PREFS: Prefs = {
+  theme: "system",
+  motion: "system",
+  rememberSidebar: true,
+  landingPage: "capsules",
+  resumeOnLaunch: false,
+  keepCompleted: true,
+  developerMode: false,
+};
+
+function readPrefs(): Prefs {
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    return raw ? { ...DEFAULT_PREFS, ...(JSON.parse(raw) as Partial<Prefs>) } : { ...DEFAULT_PREFS };
+  } catch {
+    return { ...DEFAULT_PREFS };
+  }
+}
+function writePrefs(prefs: Prefs) {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    /* ignore */
+  }
+}
+const INITIAL_PREFS = readPrefs();
 
 const knownId = (c: { name: string; kind: string }) => `known:${c.name}:${c.kind}`;
 
@@ -187,13 +234,17 @@ interface Store {
    * title-bar reservation and the collapsed rail narrows. */
   fullscreen: boolean;
   setFullscreen: (fullscreen: boolean) => void;
+  /** User preferences (Settings). */
+  prefs: Prefs;
+  setPref: <K extends keyof Prefs>(key: K, value: Prefs[K]) => void;
+  resetPrefs: () => void;
 }
 
 export const useStore = create<Store>((set) => ({
   connectors: [],
   log: [],
   paused: false,
-  view: "capsules",
+  view: INITIAL_PREFS.landingPage,
   setView: (view) => set({ view }),
   projects: [],
   setProjects: (projects) => set({ projects }),
@@ -216,19 +267,38 @@ export const useStore = create<Store>((set) => ({
   newTaskRequest: false,
   requestNewTask: () => set({ newTaskRequest: true }),
   clearNewTaskRequest: () => set({ newTaskRequest: false }),
-  sidebarCollapsed: readSidebarCollapsed(),
+  sidebarCollapsed: INITIAL_PREFS.rememberSidebar ? readSidebarCollapsed() : false,
   toggleSidebar: () =>
     set((s) => {
       const next = !s.sidebarCollapsed;
-      try {
-        localStorage.setItem(SIDEBAR_KEY, String(next));
-      } catch {
-        /* ignore */
+      // Only persist across launches when the user opted into remembering it.
+      if (s.prefs.rememberSidebar) {
+        try {
+          localStorage.setItem(SIDEBAR_KEY, String(next));
+        } catch {
+          /* ignore */
+        }
       }
       return { sidebarCollapsed: next };
     }),
   fullscreen: false,
   setFullscreen: (fullscreen) => set({ fullscreen }),
+  prefs: INITIAL_PREFS,
+  setPref: (key, value) =>
+    set((s) => {
+      const prefs = { ...s.prefs, [key]: value };
+      writePrefs(prefs);
+      return { prefs };
+    }),
+  resetPrefs: () => {
+    try {
+      localStorage.removeItem(PREFS_KEY);
+      localStorage.removeItem(SIDEBAR_KEY);
+    } catch {
+      /* ignore */
+    }
+    set({ prefs: { ...DEFAULT_PREFS }, sidebarCollapsed: false });
+  },
   setPairings: (incoming) =>
     set((s) => {
       const merged = [...s.pairings];

@@ -243,7 +243,7 @@ export function OverviewPage() {
         <div className="flex flex-col gap-6">
           <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
             <StatCard icon={FolderGit2} label={projects.length === 1 ? "Project" : "Projects"} value={projects.length} />
-            <StatCard icon={Plug} label="Connectors Connected" value={connectedCount} />
+            <StatCard icon={Plug} label="Connected Apps" value={connectedCount} />
             <StatCard icon={ListChecks} label={openCount === 1 ? "Open Task" : "Open Tasks"} value={openCount} />
           </div>
 

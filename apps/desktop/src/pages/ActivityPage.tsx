@@ -84,7 +84,7 @@ function LogRow({
         <span className="shrink-0 font-mono text-label text-muted-foreground">{relativeTime(entry.at)}</span>
       </div>
       <details className="group mt-1 min-w-0 pl-[34px]">
-        <summary className="cursor-pointer select-none text-label text-muted-foreground transition-colors hover:text-foreground">
+        <summary className="cursor-pointer select-none rounded-sm text-label text-muted-foreground transition-colors duration-fast ease-standard hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           Details
         </summary>
         <pre className="mt-1 max-h-40 min-w-0 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted/40 p-2 font-mono text-label text-muted-foreground">

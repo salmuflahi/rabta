@@ -170,7 +170,7 @@ export function ProjectCard({
                   </div>
                 ) : (
                   <p className="mt-1.5 truncate text-label text-muted-foreground/70">
-                    Created {project.createdAt}
+                    Created {relativeTime(project.createdAt)}
                   </p>
                 )}
               </div>
@@ -221,14 +221,14 @@ export function ProjectCard({
           onSelect={() => onMove(project, -1)}
         >
           <ArrowUp className="mr-2 size-4" />
-          Move Up
+          Move up
         </ContextMenuItem>
         <ContextMenuItem
           disabled={actionsDisabled || !canMoveDown}
           onSelect={() => onMove(project, 1)}
         >
           <ArrowDown className="mr-2 size-4" />
-          Move Down
+          Move down
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem

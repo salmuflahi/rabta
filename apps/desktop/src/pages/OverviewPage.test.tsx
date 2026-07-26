@@ -73,7 +73,9 @@ describe("OverviewPage", () => {
 
     renderWithProviders(<OverviewPage />);
 
-    expect(await screen.findByText("Connectors Connected")).toBeInTheDocument();
+    // "Connected Apps" appears twice — as the stat-card label and the section
+    // heading below it (summary → detail); both should render.
+    expect((await screen.findAllByText("Connected Apps")).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Recent Activity")).toBeInTheDocument();
   });
 

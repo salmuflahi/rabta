@@ -108,7 +108,7 @@ export function ProjectDialogs({
               <Button
                 type="button"
                 variant="outline"
-                className="h-auto flex-col py-3"
+                className="h-auto flex-col py-3 aria-pressed:border-primary aria-pressed:bg-primary/10"
                 aria-label="Default icon"
                 aria-pressed={iconProject.icon === null}
                 disabled={busy}

@@ -273,6 +273,7 @@ function RestoreActions({
             <button
               type="button"
               onClick={onToggleDetails}
+              aria-expanded={detailsOpen}
               className="underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               Technical details
@@ -294,7 +295,7 @@ function RestoreActions({
           <Button variant="ghost" size="sm" onClick={onClose}>
             Close
           </Button>
-          <Button size="sm" variant="secondary" onClick={onToggleDetails}>
+          <Button size="sm" variant="secondary" onClick={onToggleDetails} aria-expanded={detailsOpen}>
             View details
           </Button>
         </div>

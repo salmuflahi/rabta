@@ -76,7 +76,16 @@ export default {
         "page-in": "page-in 180ms ease-out both",
         "card-in": "card-in 220ms ease-out both",
       },
-      transitionTimingFunction: { brand: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+      transitionTimingFunction: {
+        brand: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        // Standard settling ease (Part 17) — smooth ease-out, no overshoot.
+        standard: "cubic-bezier(0.22, 1, 0.36, 1)",
+      },
+      transitionDuration: {
+        fast: "120ms",
+        standard: "180ms",
+        sidebar: "280ms",
+      },
       boxShadow: {
         soft: "0 2px 8px rgba(16,37,38,0.06)",
         "soft-md": "0 8px 24px rgba(16,37,38,0.10)",

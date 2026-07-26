@@ -161,7 +161,7 @@ function CapsuleSummary({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="block w-fit max-w-full rounded-sm text-left transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="block w-fit max-w-full rounded-sm text-left transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {summary}
         </button>

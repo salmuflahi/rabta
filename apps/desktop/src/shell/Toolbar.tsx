@@ -53,7 +53,7 @@ function ConnectionIndicator() {
         <button
           type="button"
           aria-label={`${connectedCount} connector${connectedCount === 1 ? "" : "s"} connected. Open connection status.`}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors duration-[120ms] hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors duration-fast ease-standard hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <span
             className={cn(
@@ -69,7 +69,7 @@ function ConnectionIndicator() {
         className="w-64 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
       >
         <p className="text-meta font-medium text-popover-foreground">Connections</p>
-        <p className="mt-0.5 text-label text-muted-foreground">Local hub · 127.0.0.1:{hubPort ?? "…"}</p>
+        <p className="mt-0.5 text-label text-muted-foreground">Local hub · localhost:{hubPort ?? "…"}</p>
         <div className="mt-3 flex flex-col gap-2">
           {rows.map(({ key, name, state }) => {
             const s = connStateStyles(state);
@@ -85,7 +85,7 @@ function ConnectionIndicator() {
         <button
           type="button"
           onClick={() => setView("connectors")}
-          className="mt-3 w-full border-t border-border pt-3 text-left text-label font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="mt-3 w-full border-t border-border pt-3 text-left text-label font-medium text-primary transition-colors duration-fast ease-standard hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Manage connectors →
         </button>
