@@ -102,8 +102,40 @@ export default function App() {
   const setHubPort = useStore((s) => s.setHubPort);
   const toggleCommandOpen = useStore((s) => s.toggleCommandOpen);
   const toggleSidebar = useStore((s) => s.toggleSidebar);
+  const setFullscreen = useStore((s) => s.setFullscreen);
 
   useSessionTracking();
+
+  // Track native macOS fullscreen so the frame can drop the traffic-light
+  // reservation and narrow the collapsed rail. Guarded so non-Tauri contexts
+  // (tests) simply stay windowed.
+  useEffect(() => {
+    let cancelled = false;
+    let unlisten: (() => void) | undefined;
+    (async () => {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const win = getCurrentWindow();
+        const sync = async () => {
+          try {
+            setFullscreen(await win.isFullscreen());
+          } catch {
+            /* ignore */
+          }
+        };
+        await sync();
+        const un = await win.onResized(() => void sync());
+        if (cancelled) un();
+        else unlisten = un;
+      } catch {
+        /* not running in Tauri — stay windowed */
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [setFullscreen]);
 
   useEffect(() => {
     const refresh = () =>

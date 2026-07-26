@@ -183,6 +183,10 @@ interface Store {
    * survives reload. Toggled via the sidebar's collapse button or ⌘\. */
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
+  /** Native macOS fullscreen: no traffic lights, so the frame drops the
+   * title-bar reservation and the collapsed rail narrows. */
+  fullscreen: boolean;
+  setFullscreen: (fullscreen: boolean) => void;
 }
 
 export const useStore = create<Store>((set) => ({
@@ -223,6 +227,8 @@ export const useStore = create<Store>((set) => ({
       }
       return { sidebarCollapsed: next };
     }),
+  fullscreen: false,
+  setFullscreen: (fullscreen) => set({ fullscreen }),
   setPairings: (incoming) =>
     set((s) => {
       const merged = [...s.pairings];

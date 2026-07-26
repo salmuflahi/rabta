@@ -33,8 +33,10 @@ function NavRow({
           aria-current={active ? "page" : undefined}
           aria-label={collapsed ? `${item.label} (${item.shortcut})` : undefined}
           className={cn(
-            "group relative z-10 flex h-[38px] w-full items-center rounded-[8px] text-sm transition-colors duration-[120ms] ease-out",
-            collapsed ? "justify-center px-0" : "gap-2.5 px-2.5",
+            "group relative z-10 flex h-[38px] items-center rounded-[8px] text-sm transition-colors duration-[120ms] ease-out",
+            // Collapsed: a centred, icon-sized hit area so the active/hover
+            // surface stays a tidy pill in the wider rail (not a full-width bar).
+            collapsed ? "mx-auto w-11 justify-center" : "w-full gap-2.5 px-2.5",
             active
               ? "text-sidebar-accent-foreground"
               : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
@@ -67,6 +69,7 @@ export function Sidebar() {
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
   const collapsed = useStore((s) => s.sidebarCollapsed);
+  const fullscreen = useStore((s) => s.fullscreen);
 
   const go = (key: NavKey) => setView(key);
   const activeNavIndex = NAV_ITEMS.findIndex((item) => item.key === view);
@@ -82,7 +85,10 @@ export function Sidebar() {
     >
       {/* Title-bar strip: draggable space that sits under the overlay traffic
           lights and the frame collapse control (both rendered by AppShell). */}
-      <div data-tauri-drag-region className="h-[52px] shrink-0" />
+      {/* Title-bar reservation: clears the traffic lights when windowed;
+          in fullscreen there are none, so only a small top gap for the
+          toggle + breathing room. */}
+      <div data-tauri-drag-region className={cn("shrink-0", fullscreen ? "h-11" : "h-[52px]")} />
 
       {/* Branding — application identity only, never a navigation control. */}
       <div
@@ -107,10 +113,15 @@ export function Sidebar() {
         <div
           aria-hidden
           className={cn(
-            "pointer-events-none absolute left-0 right-0 top-0 h-[38px] rounded-[8px] bg-sidebar-accent transition-[transform,opacity] duration-[160ms] ease-out",
+            "pointer-events-none absolute top-0 h-[38px] rounded-[8px] bg-sidebar-accent transition-[transform,opacity] duration-[160ms] ease-out",
+            collapsed ? "left-1/2 w-11" : "left-0 right-0",
             activeNavIndex < 0 && "opacity-0",
           )}
-          style={{ transform: `translateY(${Math.max(activeNavIndex, 0) * ROW_STRIDE}px)` }}
+          style={{
+            transform: collapsed
+              ? `translate(-50%, ${Math.max(activeNavIndex, 0) * ROW_STRIDE}px)`
+              : `translateY(${Math.max(activeNavIndex, 0) * ROW_STRIDE}px)`,
+          }}
         />
         {NAV_ITEMS.map((item) => (
           <NavRow

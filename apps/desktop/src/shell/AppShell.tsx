@@ -6,16 +6,23 @@ import { useStore } from "@/store";
 import { Sidebar } from "./Sidebar";
 import { Toolbar } from "./Toolbar";
 
-// The overlay traffic lights sit at x≈19 and span to ~77px, so the frame
-// collapse control lives just to their right. It's positioned against the
-// window (not the sidebar), so it holds a fixed screen position across a
-// collapse — and when the rail is narrow it sits over the ivory toolbar
-// rather than forcing the petrol background to protrude past the rail.
-const COLLAPSE_LEFT = 82;
+// The overlay traffic lights are centred over the collapsed rail
+// (trafficLightPosition x≈27, spanning to ~85px); the frame collapse control
+// sits just to their right in the rail's top-right. It's positioned against
+// the window (not the sidebar) so it keeps a fixed screen position across a
+// collapse, and the rail is wide enough that both stay on petrol in either
+// state — no ivory spill, no petrol protrusion. In fullscreen there are no
+// traffic lights, so the control moves to the natural top-left header spot.
+function toggleLeft(fullscreen: boolean, collapsed: boolean): number {
+  if (!fullscreen) return 90; // windowed: to the right of the traffic lights
+  return collapsed ? 20 : 16; // fullscreen: centred in the narrow rail / top-left
+}
 
-/** Frame-level sidebar toggle, pinned beside the traffic lights. */
+/** Frame-level sidebar toggle. Beside the traffic lights when windowed; a
+ * plain top-left header control in fullscreen. */
 function SidebarToggle() {
   const collapsed = useStore((s) => s.sidebarCollapsed);
+  const fullscreen = useStore((s) => s.fullscreen);
   const toggleSidebar = useStore((s) => s.toggleSidebar);
   const Icon = collapsed ? PanelLeftOpen : PanelLeftClose;
   const label = collapsed ? "Show Sidebar" : "Hide Sidebar";
@@ -26,15 +33,9 @@ function SidebarToggle() {
           type="button"
           onClick={toggleSidebar}
           aria-label={label}
-          style={{ left: COLLAPSE_LEFT }}
-          className={cn(
-            "absolute top-[11px] z-50 flex size-7 items-center justify-center rounded-[7px] transition-colors duration-[140ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            // Collapsed → the control is over the ivory toolbar (dark icon);
-            // expanded → over the petrol sidebar (light icon).
-            collapsed
-              ? "text-muted-foreground hover:bg-accent hover:text-foreground"
-              : "text-sidebar-foreground/55 hover:bg-white/10 hover:text-sidebar-foreground",
-          )}
+          style={{ left: toggleLeft(fullscreen, collapsed) }}
+          // Always over the petrol rail, so a light icon.
+          className="absolute top-[13px] z-50 flex size-7 items-center justify-center rounded-[7px] text-sidebar-foreground/55 transition-[left,color,background-color] duration-[160ms] hover:bg-white/10 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
           <Icon className="size-[18px]" />
         </button>
@@ -46,7 +47,16 @@ function SidebarToggle() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const collapsed = useStore((s) => s.sidebarCollapsed);
+  const fullscreen = useStore((s) => s.fullscreen);
   const view = useStore((s) => s.view);
+
+  // Collapsed rail: wide enough to centre the traffic lights when windowed,
+  // but a plain narrow icon rail in fullscreen (no lights to accommodate).
+  const cols = collapsed
+    ? fullscreen
+      ? "grid-cols-[68px_minmax(0,1fr)]"
+      : "grid-cols-[116px_minmax(0,1fr)]"
+    : "grid-cols-[280px_minmax(0,1fr)]";
 
   return (
     // The grid columns are the single source of truth for the sidebar/main
@@ -56,10 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div
       className={cn(
         "relative grid h-full min-h-0 overflow-hidden transition-[grid-template-columns] duration-200 ease-out",
-        // minmax(0,1fr) lets the workspace column shrink below its content's
-        // intrinsic width instead of forcing the whole shell wider than the
-        // viewport (which let the app scroll/slide horizontally).
-        collapsed ? "grid-cols-[72px_minmax(0,1fr)]" : "grid-cols-[280px_minmax(0,1fr)]",
+        cols,
       )}
     >
       <Sidebar />
