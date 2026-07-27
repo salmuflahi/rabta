@@ -142,20 +142,27 @@ function CapsuleSummary({
     return { r, h, Icon: CAPSULE_ICONS[h.icon] };
   });
 
-  const summary =
-    items.length === 0 ? (
-      <span className="mt-0.5 block text-xs text-muted-foreground">No capsule yet</span>
-    ) : (
-      <span className="mt-1 inline-flex flex-wrap items-center gap-x-3 gap-y-1">
-        {items.map(({ r, h, Icon }) => (
-          <span key={r.id} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Icon className="size-3.5 shrink-0" />
-            <span>{h.summary}</span>
-            <span className="text-muted-foreground/70">· {h.savedAgo}</span>
-          </span>
-        ))}
-      </span>
+  // No capsule yet: teach the first move instead of showing a dead popover.
+  if (items.length === 0) {
+    return (
+      <p className="mt-1 max-w-prose text-meta leading-relaxed text-muted-foreground">
+        Nothing saved yet — open your editor and tabs, then{" "}
+        <span className="font-medium text-foreground">Save State</span> to capture this workspace.
+      </p>
     );
+  }
+
+  const summary = (
+    <span className="mt-1 inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+      {items.map(({ r, h, Icon }) => (
+        <span key={r.id} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Icon className="size-3.5 shrink-0" />
+          <span>{h.summary}</span>
+          <span className="text-muted-foreground/70">· {h.savedAgo}</span>
+        </span>
+      ))}
+    </span>
+  );
 
   return (
     <Popover>
@@ -545,6 +552,10 @@ export function CapsulesPage() {
                   {tasks.map((t, ti) => {
                     const isActive = t.id === activeTaskId;
                     const actionsDisabled = busy || restoreActive;
+                    // Save comes before Resume: with no saved capsule there's
+                    // nothing to restore, so Save leads (primary) and Resume is
+                    // held back until a capsule exists.
+                    const hasCapsule = (resources[t.id] ?? []).length > 0;
                     return (
                       <ContextMenu key={t.id}>
                         <ContextMenuTrigger asChild>
@@ -574,8 +585,14 @@ export function CapsulesPage() {
                               <div className="flex shrink-0 items-center gap-1.5">
                                 <Button
                                   size="sm"
+                                  variant={hasCapsule ? "default" : "outline"}
                                   onClick={() => resume(t)}
-                                  disabled={actionsDisabled}
+                                  disabled={actionsDisabled || !hasCapsule}
+                                  title={
+                                    hasCapsule
+                                      ? "Restore this workspace — reopens the saved files, tabs, and git branch"
+                                      : "Save a capsule first, then Resume brings the whole workspace back"
+                                  }
                                 >
                                   {restoreActive ? (
                                     <>
@@ -589,7 +606,13 @@ export function CapsulesPage() {
                                     </>
                                   )}
                                 </Button>
-                                <Button size="sm" variant="outline" onClick={() => save(t.id)} disabled={actionsDisabled}>
+                                <Button
+                                  size="sm"
+                                  variant={hasCapsule ? "outline" : "default"}
+                                  onClick={() => save(t.id)}
+                                  disabled={actionsDisabled}
+                                  title="Capture your current editor files, browser tabs, and git branch into this capsule"
+                                >
                                   {pendingAction?.taskId === t.id && pendingAction.kind === "save"
                                     ? "Saving…"
                                     : "Save State"}

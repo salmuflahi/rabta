@@ -274,36 +274,20 @@ describe("CapsulesPage", () => {
     }
   });
 
-  it("a task with no capsule resources still opens the sheet and completes without throwing", async () => {
-    const restoreMatchMedia = stubReducedMotion();
+  it("disables Resume for a task with no saved capsule (nothing to restore yet)", async () => {
     mockCapsulesInvoke({
       resources: [],
-      activateTask: async () => ({
-        applied: [],
-        pending: [],
-        skipped: [],
-        savedPrevious: null,
-        errors: [],
-      }),
+      activateTask: async () => ({}),
     });
+    renderWithProviders(<CapsulesPage />);
 
-    try {
-      renderWithProviders(<CapsulesPage />);
-
-      const resumeButton = await screen.findByRole("button", { name: "Resume" });
-      fireEvent.click(resumeButton);
-
-      expect(await screen.findByRole("dialog")).toBeInTheDocument();
-      await waitFor(() =>
-        expect(mockInvoke).toHaveBeenCalledWith("activate_task", { taskId: FAKE_TASK.id })
-      );
-      // No capsule resources and no issues reported resolves to "success"
-      // (per normalize.ts: nothing to restore is not a partial failure)
-      // rather than throwing or hanging.
-      await waitFor(() => expect(screen.getByText("Workspace restored")).toBeInTheDocument());
-    } finally {
-      restoreMatchMedia();
-    }
+    // With nothing saved, Resume would be a confusing no-op, so it's held back
+    // until a capsule exists; Save State stays available as the first step.
+    const resumeButton = await screen.findByRole("button", { name: "Resume" });
+    expect(resumeButton).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save State" })).toBeEnabled();
+    // No activation is attempted on the empty capsule.
+    expect(mockInvoke).not.toHaveBeenCalledWith("activate_task", expect.anything());
   });
 
   it("clicking a task's capsule summary opens a Popover peek with the humanized per-tool breakdown and saved-ago text", async () => {
@@ -323,15 +307,15 @@ describe("CapsulesPage", () => {
     expect(screen.getByText(/^saved /)).toBeInTheDocument();
   });
 
-  it("a task with no saved capsule shows 'No saved state yet.' in the preview", async () => {
+  it("a task with no saved capsule shows an actionable hint, not a dead popover", async () => {
     mockCapsulesInvoke({ resources: [], activateTask: async () => ({}) });
     renderWithProviders(<CapsulesPage />);
 
     await screen.findByText(FAKE_TASK.title);
-    fireEvent.click(screen.getByText("No capsule yet"));
-
-    expect(await screen.findByText("Saved state")).toBeInTheDocument();
-    expect(screen.getByText("No saved state yet.")).toBeInTheDocument();
+    // The empty capsule now teaches the first move rather than opening an
+    // empty "No capsule yet" popover.
+    expect(screen.getByText(/Nothing saved yet/i)).toBeInTheDocument();
+    expect(screen.queryByText("No capsule yet")).not.toBeInTheDocument();
   });
 
   it("newTaskRequest focuses the first project's new-task input, then clears itself; a remount after consumption does not refocus", async () => {

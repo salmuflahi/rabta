@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
+  CheckCircle2,
+  Circle,
   Code2,
   FolderGit2,
   Globe,
@@ -75,6 +77,102 @@ function NextStepCard({
   );
 }
 
+/** Real-progress onboarding checklist. Each step is derived from actual store
+ * data (a registered project, a connector ever seen, a created task), and the
+ * whole card auto-hides once setup is complete — it never nags a set-up user.
+ * Only the next incomplete step surfaces an action, to keep the path obvious. */
+function GettingStarted({
+  hasConnector,
+  hasTask,
+  onConnect,
+  onNewCapsule,
+}: {
+  hasConnector: boolean;
+  hasTask: boolean;
+  onConnect: () => void;
+  onNewCapsule: () => void;
+}) {
+  const steps: {
+    done: boolean;
+    label: string;
+    description: string;
+    action?: { label: string; onClick: () => void };
+  }[] = [
+    { done: true, label: "Register a project", description: "Rabta is tracking a repository." },
+    {
+      done: hasConnector,
+      label: "Connect an editor or browser",
+      description: "Install the VS Code (or Cursor) or Chrome extension so Rabta can capture your workspace.",
+      action: { label: "Connect a tool", onClick: onConnect },
+    },
+    {
+      done: hasTask,
+      label: "Capture your first capsule",
+      description: "Create a task, open your files and tabs, then Save State to snapshot the workspace.",
+      action: { label: "New capsule", onClick: onNewCapsule },
+    },
+  ];
+  const doneCount = steps.filter((s) => s.done).length;
+
+  return (
+    <Card className="p-5">
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-card font-semibold text-foreground">Get started with Rabta</p>
+          <p className="mt-0.5 text-meta text-muted-foreground">
+            {doneCount} of {steps.length} done — you're moments from your first capture.
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5" aria-hidden>
+          {steps.map((s, i) => (
+            <span
+              key={i}
+              className={cn(
+                "h-1.5 w-8 rounded-full transition-colors duration-standard ease-standard",
+                s.done ? "bg-primary" : "bg-muted",
+              )}
+            />
+          ))}
+        </div>
+      </div>
+      <ol className="flex flex-col gap-0.5">
+        {steps.map((step, i) => {
+          const isNext = !step.done && steps.slice(0, i).every((s) => s.done);
+          return (
+            <li key={i} className="flex items-center gap-3 rounded-lg px-1 py-2">
+              {step.done ? (
+                <CheckCircle2 className="size-5 shrink-0 text-primary" />
+              ) : (
+                <Circle
+                  className={cn("size-5 shrink-0", isNext ? "text-primary" : "text-muted-foreground/40")}
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <p
+                  className={cn(
+                    "text-body font-medium",
+                    step.done ? "text-muted-foreground" : "text-foreground",
+                  )}
+                >
+                  {step.label}
+                </p>
+                {!step.done && (
+                  <p className="mt-0.5 text-meta leading-relaxed text-muted-foreground">{step.description}</p>
+                )}
+              </div>
+              {isNext && step.action && (
+                <Button size="sm" onClick={step.action.onClick} className="shrink-0">
+                  {step.action.label}
+                </Button>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </Card>
+  );
+}
+
 function StatCard({
   icon: Icon,
   label,
@@ -139,6 +237,7 @@ export function OverviewPage() {
   const log = useStore((s) => s.log);
   const setView = useStore((s) => s.setView);
   const requestResume = useStore((s) => s.requestResume);
+  const requestNewTask = useStore((s) => s.requestNewTask);
 
   const [tasks, setTasks] = useState<Task[]>([]);
   // Pre-first-load window only: true until the initial list_projects fetch
@@ -265,6 +364,17 @@ export function OverviewPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
+          {!(connectors.length > 0 && tasks.length > 0) && (
+            <GettingStarted
+              hasConnector={connectors.length > 0}
+              hasTask={tasks.length > 0}
+              onConnect={() => setView("connectors")}
+              onNewCapsule={() => {
+                requestNewTask();
+                setView("capsules");
+              }}
+            />
+          )}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
             <StatCard icon={FolderGit2} label={projects.length === 1 ? "Project" : "Projects"} value={projects.length} />
             <StatCard icon={Plug} label="Connected Apps" value={connectedCount} />

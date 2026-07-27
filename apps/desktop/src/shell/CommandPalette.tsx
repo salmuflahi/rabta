@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Fragment, useEffect, useState } from "react";
-import { FolderGit2, Layers, Play, Plug, Save, Settings, Sun } from "lucide-react";
+import { Compass, FolderGit2, Layers, Play, Plug, Save, Settings, Sun } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -189,6 +189,10 @@ export function CommandPalette() {
             <Settings />
             <span>Open Settings</span>
             <CommandShortcut>⌘,</CommandShortcut>
+          </CommandItem>
+          <CommandItem value="Getting started help guide" onSelect={() => go("overview")}>
+            <Compass />
+            <span>Getting started</span>
           </CommandItem>
         </CommandGroup>
       </CommandList>

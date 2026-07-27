@@ -114,6 +114,19 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // First-run onboarding: a brand-new user (no projects) lands on the guided
+  // Overview — with its Get-started checklist — rather than a bare Capsules
+  // empty state. The saved landing preference only makes sense once there's a
+  // workspace to return to, so it's respected as soon as any project exists.
+  useEffect(() => {
+    invoke<unknown[]>("list_projects")
+      .then((p) => {
+        if (p.length === 0) setView("overview");
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const refresh = () =>
       invoke<ConnectorInfo[]>("connectors")

@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { useStore } from "@/store";
@@ -12,6 +12,25 @@ const STORE_DEFAULTS = {
   newTaskRequest: false,
   commandOpen: false,
   sidebarCollapsed: false,
+};
+
+// A minimal valid project so the first-run onboarding effect (route to
+// Overview when list_projects is empty) doesn't fire in shortcut tests that
+// assert the view is unchanged.
+const FAKE_PROJECT = {
+  id: "p1",
+  name: "Demo",
+  repoPath: "/tmp/demo",
+  devUrl: null,
+  defaultBranch: "main",
+  icon: null,
+  archivedAt: null,
+  lastOpenedAt: null,
+  lastTaskId: null,
+  activeSeconds: 0,
+  sortOrder: 0,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 describe("App global keyboard shortcuts", () => {
@@ -69,7 +88,9 @@ describe("App global keyboard shortcuts", () => {
     // the result into the store's global activeTaskId — mock it to agree
     // with what we preset below, or that async resolution would clobber our
     // "task-42" (with the blanket `[]` default) before ⌘R ever fires.
-    mockInvoke.mockImplementation(async (cmd: string) => (cmd === "active_task" ? "task-42" : []));
+    mockInvoke.mockImplementation(async (cmd: string) =>
+      cmd === "active_task" ? "task-42" : cmd === "list_projects" ? [FAKE_PROJECT] : [],
+    );
     useStore.setState({ ...STORE_DEFAULTS, view: "projects", activeTaskId: "task-42" });
     renderWithProviders(<App />);
     await screen.findByText("Rabta");
@@ -83,7 +104,9 @@ describe("App global keyboard shortcuts", () => {
   });
 
   it("⌘R with no active task is a no-op (no pendingResume, no navigation)", async () => {
-    mockInvoke.mockImplementation(async (cmd: string) => (cmd === "active_task" ? null : []));
+    mockInvoke.mockImplementation(async (cmd: string) =>
+      cmd === "active_task" ? null : cmd === "list_projects" ? [FAKE_PROJECT] : [],
+    );
     useStore.setState({ ...STORE_DEFAULTS, view: "projects", activeTaskId: null });
     renderWithProviders(<App />);
     await screen.findByText("Rabta");
@@ -94,7 +117,21 @@ describe("App global keyboard shortcuts", () => {
     expect(useStore.getState().view).toBe("projects");
   });
 
+  it("routes a first-run user (no projects) to the guided Overview", async () => {
+    mockInvoke.mockImplementation(async () => [] as unknown[]); // list_projects -> []
+    useStore.setState({ ...STORE_DEFAULTS, view: "capsules" });
+    renderWithProviders(<App />);
+    await screen.findByText("Rabta");
+
+    await waitFor(() => expect(useStore.getState().view).toBe("overview"));
+  });
+
   it("ignores ⌘N/⌘⇧N/⌘R while focus is in a text input, but ⌘K still opens the palette", async () => {
+    // Seed a project so first-run onboarding doesn't route to Overview; this
+    // test asserts the view is unchanged by the guarded shortcuts.
+    mockInvoke.mockImplementation(async (cmd: string) =>
+      cmd === "list_projects" ? [FAKE_PROJECT] : [],
+    );
     renderWithProviders(<App />);
     await screen.findByText("Rabta");
 

@@ -1,4 +1,4 @@
-import { Cable } from "lucide-react";
+import { Cable, Code2, Globe, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -85,6 +85,40 @@ function ConnectorCard({ connector }: { connector: ConnectorRow }) {
   );
 }
 
+/** Real, do-it-now install steps for a connector — the app used to say
+ * "install the extension" with no how. Extensions are sideloaded (no
+ * marketplace yet), so these are the actual manual steps, honestly stated. */
+function ConnectHowTo({
+  icon: Icon,
+  title,
+  steps,
+}: {
+  icon: LucideIcon;
+  title: string;
+  steps: string[];
+}) {
+  return (
+    <Card className="p-4">
+      <div className="mb-3 flex items-center gap-2.5">
+        <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="size-4" />
+        </span>
+        <p className="text-body font-medium text-foreground">{title}</p>
+      </div>
+      <ol className="flex flex-col gap-2">
+        {steps.map((step, i) => (
+          <li key={i} className="flex gap-2.5 text-meta text-muted-foreground">
+            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-label font-medium text-foreground">
+              {i + 1}
+            </span>
+            <span className="leading-relaxed">{step}</span>
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
+
 export function ConnectorsPage() {
   const connectors = useStore((s) => s.connectors);
   const pairings = useStore((s) => s.pairings);
@@ -110,11 +144,33 @@ export function ConnectorsPage() {
       )}
 
       {connectors.length === 0 ? (
-        <EmptyState
-          icon={<Cable />}
-          title="No connectors yet"
-          description="Install the VS Code (or Cursor) extension and the Chrome extension, then open them once — each one pairs with Rabta automatically and shows up here."
-        />
+        <div className="flex flex-col gap-4">
+          <EmptyState
+            icon={<Cable />}
+            title="No connectors yet"
+            description="Connect your editor and browser so Rabta can capture and restore a task's workspace. Each pairs automatically the first time it runs — no accounts, no keys."
+          />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <ConnectHowTo
+              icon={Code2}
+              title="VS Code or Cursor"
+              steps={[
+                "Grab the Rabta extension (a .vsix file) from your Rabta download.",
+                "In the editor, open the Command Palette → “Extensions: Install from VSIX…” → pick it.",
+                "Reload the window — it pairs with Rabta automatically.",
+              ]}
+            />
+            <ConnectHowTo
+              icon={Globe}
+              title="Chrome"
+              steps={[
+                "Open chrome://extensions and turn on Developer mode.",
+                "Click “Load unpacked” and select the rabta-chrome folder from your download.",
+                "Approve the pairing prompt when it shows up here.",
+              ]}
+            />
+          </div>
+        </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
           {connectors.map((c) => (
