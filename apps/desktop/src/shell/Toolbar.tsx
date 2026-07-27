@@ -1,6 +1,27 @@
+import { Search } from "lucide-react";
+import { Kbd } from "@/components/ui/kbd";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useStore, type ConnectorRow } from "@/store";
+
+/** Visible entry point to the ⌘K command palette. Without it the palette is
+ * discoverable only by devs who already know the shortcut — so this both opens
+ * it (real: toggles the store's commandOpen) and teaches the binding. */
+function SearchTrigger() {
+  const toggleCommandOpen = useStore((s) => s.toggleCommandOpen);
+  return (
+    <button
+      type="button"
+      onClick={toggleCommandOpen}
+      aria-label="Search or jump to anything (Command K)"
+      className="flex items-center gap-2 rounded-lg border border-border/70 bg-card/60 py-1.5 pl-2.5 pr-1.5 text-meta text-muted-foreground transition-colors duration-fast ease-standard hover:border-border hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      <Search className="size-3.5 shrink-0" />
+      <span className="hidden sm:inline">Search or jump to…</span>
+      <Kbd className="ml-1">⌘K</Kbd>
+    </button>
+  );
+}
 
 // Connector types Rabta ships an integration for. The popover always lists
 // these so a user can see what's available, connected or not.
@@ -101,8 +122,9 @@ export function Toolbar() {
   return (
     <header
       data-tauri-drag-region
-      className="flex h-[60px] shrink-0 items-center justify-end gap-3 border-b border-border/50 bg-background px-4"
+      className="flex h-[60px] shrink-0 items-center justify-between gap-3 border-b border-border/50 bg-background px-4"
     >
+      <SearchTrigger />
       <ConnectionIndicator />
     </header>
   );

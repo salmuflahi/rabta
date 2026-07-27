@@ -804,3 +804,47 @@ describe("CapsulesPage context menu", () => {
     expect(mockInvoke).not.toHaveBeenCalledWith("delete_task", expect.anything());
   });
 });
+
+describe("CapsulesPage keepCompleted (Settings → Behavior)", () => {
+  afterEach(() => {
+    // Restore the default so the shared store doesn't leak into other suites.
+    act(() => {
+      useStore.getState().setPref("keepCompleted", true);
+    });
+  });
+
+  it("hides done capsules when Keep completed is off, and keeps them when on", async () => {
+    const openTask: Task = { ...FAKE_TASK, id: "t-open", title: "Open capsule", status: "open" };
+    const doneTask: Task = { ...FAKE_TASK, id: "t-done", title: "Done capsule", status: "done" };
+    mockInvoke.mockClear();
+    mockInvoke.mockImplementation(async (cmd: string, args?: InvokeArgs) => {
+      const a = args as Record<string, unknown> | undefined;
+      switch (cmd) {
+        case "list_projects":
+          return [FAKE_PROJECT] as unknown;
+        case "list_tasks":
+          return (a?.projectId === FAKE_PROJECT.id ? [openTask, doneTask] : []) as unknown;
+        case "active_task":
+          return null as unknown;
+        default:
+          return [] as unknown; // task_resources, etc.
+      }
+    });
+
+    act(() => {
+      useStore.getState().setPref("keepCompleted", true);
+    });
+    renderWithProviders(<CapsulesPage />);
+
+    // Kept: both the open and the done capsule are listed.
+    expect(await screen.findByText("Open capsule")).toBeInTheDocument();
+    expect(screen.getByText("Done capsule")).toBeInTheDocument();
+
+    // Turning it off drops the finished capsule; the open one stays.
+    act(() => {
+      useStore.getState().setPref("keepCompleted", false);
+    });
+    await waitFor(() => expect(screen.queryByText("Done capsule")).not.toBeInTheDocument());
+    expect(screen.getByText("Open capsule")).toBeInTheDocument();
+  });
+});

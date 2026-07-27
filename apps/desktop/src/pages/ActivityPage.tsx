@@ -151,8 +151,14 @@ export function ActivityPage() {
           </SelectContent>
         </Select>
 
-        <Button variant="outline" onClick={togglePause}>
-          {paused ? "Resume" : "Pause"}
+        {/* Only controls whether the view follows the newest event — the feed
+            itself keeps recording. Labelled for what it actually does. */}
+        <Button
+          variant="outline"
+          onClick={togglePause}
+          aria-label={paused ? "Resume auto-scroll" : "Pause auto-scroll"}
+        >
+          {paused ? "Resume scroll" : "Pause scroll"}
         </Button>
       </div>
 

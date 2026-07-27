@@ -198,6 +198,9 @@ function CapsuleSummary({
 export function CapsulesPage() {
   const activeTaskId = useStore((s) => s.activeTaskId);
   const setActiveTaskId = useStore((s) => s.setActiveTaskId);
+  // Settings → Behavior. When off, finished (done) capsules drop out of the
+  // list instead of lingering; the active one always stays regardless.
+  const keepCompleted = useStore((s) => s.prefs.keepCompleted);
   const activationNonce = useStore((s) => s.activationNonce);
   const bumpActivation = useStore((s) => s.bumpActivation);
   const setView = useStore((s) => s.setView);
@@ -483,7 +486,11 @@ export function CapsulesPage() {
       ) : (
         <div className="flex flex-col gap-8">
           {projects.map((p) => {
-            const tasks = (tasksByProject[p.id] ?? []).filter((t) => !pendingTaskIds.has(t.id));
+            const tasks = (tasksByProject[p.id] ?? []).filter(
+              (t) =>
+                !pendingTaskIds.has(t.id) &&
+                (keepCompleted || t.status !== "done" || t.id === activeTaskId),
+            );
             return (
               <div key={p.id}>
                 <div className="mb-3 flex min-w-0 items-center gap-2">

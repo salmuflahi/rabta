@@ -478,6 +478,34 @@ fn reveal_in_finder(path: String) -> Result<(), String> {
     }
 }
 
+/// Whether `url` is a plain http(s) URL. Split out so the scheme guard is
+/// unit-testable without spawning `open`.
+fn is_web_url(url: &str) -> bool {
+    url.starts_with("http://") || url.starts_with("https://")
+}
+
+/// Opens an http(s) URL in the user's default browser via `open`. Scheme is
+/// restricted to http/https so a stored dev URL can never be turned into an
+/// `open` of an arbitrary file path, app, or custom scheme.
+#[tauri::command]
+fn open_url(url: String) -> Result<(), String> {
+    if !is_web_url(&url) {
+        return Err("Only http(s) URLs can be opened".to_string());
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&url)
+            .status()
+            .map_err(|e| format!("failed to open URL: {e}"))?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Opening URLs is only supported on macOS".to_string())
+    }
+}
+
 /// Builds and runs the OmniBus Tauri application: opens the database (fatal
 /// on failure), starts the hub, records hub activity, and forwards the event
 /// stream to the frontend as `hub-event`.
@@ -596,7 +624,8 @@ pub fn run() {
             approve_pairing,
             deny_pairing,
             hub_port,
-            reveal_in_finder
+            reveal_in_finder,
+            open_url
         ])
         .build(tauri::generate_context!())
         .expect("error while building Rabta");
@@ -622,5 +651,17 @@ mod tests {
     fn reveal_path_rejects_nonexistent_path() {
         let err = reveal_path("/nonexistent/path/xyz").unwrap_err();
         assert!(err.contains("does not exist"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn is_web_url_allows_http_and_https_only() {
+        assert!(is_web_url("http://localhost:5173"));
+        assert!(is_web_url("https://example.com/path"));
+        // Anything that could redirect `open` at a file/app/scheme is rejected.
+        assert!(!is_web_url("file:///etc/passwd"));
+        assert!(!is_web_url("/Applications/Calculator.app"));
+        assert!(!is_web_url("javascript:alert(1)"));
+        assert!(!is_web_url("ftp://example.com"));
+        assert!(!is_web_url(""));
     }
 }

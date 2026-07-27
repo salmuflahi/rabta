@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { Button } from "./components/ui/button";
+import { saveCapsule } from "./lib/capsule";
 import { kindLabel } from "./lib/connectors";
 import { decidePairing } from "./lib/pairing";
 import { toastOk } from "./lib/toast";
@@ -14,7 +15,6 @@ import { ProjectsPage } from "./pages/ProjectsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { AppShell } from "./shell/AppShell";
 import { CommandPalette } from "./shell/CommandPalette";
-import { PageHeader } from "./shell/PageHeader";
 import {
   useStore,
   type ConnectorInfo,
@@ -23,49 +23,6 @@ import {
   type PendingPairing,
   type PersistedEvent,
 } from "./store";
-
-const PLACEHOLDER_COPY: Record<NavKey, { eyebrow: string; title: string; subtitle: string }> = {
-  overview: {
-    eyebrow: "Home",
-    title: "Overview",
-    subtitle: "A dashboard summary of your workspace is coming in a later task.",
-  },
-  capsules: {
-    eyebrow: "Workspace",
-    title: "Capsules",
-    subtitle: "Capsule browsing and detail views are coming in a later task.",
-  },
-  projects: {
-    eyebrow: "Workspace",
-    title: "Projects",
-    subtitle: "The projects list and task board are coming in a later task.",
-  },
-  connectors: {
-    eyebrow: "Workspace",
-    title: "Connectors",
-    subtitle: "Connector management is coming in a later task.",
-  },
-  activity: {
-    eyebrow: "Workspace",
-    title: "Activity",
-    subtitle: "The live activity log is coming in a later task.",
-  },
-  settings: {
-    eyebrow: "Workspace",
-    title: "Settings",
-    subtitle: "Settings are coming in a later task.",
-  },
-};
-
-function PlaceholderPage({ view }: { view: NavKey }) {
-  const { eyebrow, title, subtitle } = PLACEHOLDER_COPY[view];
-  return (
-    <div>
-      <PageHeader eyebrow={eyebrow} title={title} subtitle={subtitle} />
-      <p className="text-sm text-muted-foreground">Coming soon.</p>
-    </div>
-  );
-}
 
 function CurrentPage({ view }: { view: NavKey }) {
   switch (view) {
@@ -81,8 +38,12 @@ function CurrentPage({ view }: { view: NavKey }) {
       return <ActivityPage />;
     case "settings":
       return <SettingsPage />;
-    default:
-      return <PlaceholderPage view={view} />;
+    default: {
+      // NavKey is a closed union — every view is handled above. This keeps
+      // the switch exhaustive so a new view can't silently render nothing.
+      const _exhaustive: never = view;
+      return _exhaustive;
+    }
   }
 }
 
@@ -239,6 +200,15 @@ export default function App() {
       if (key === ",") {
         e.preventDefault();
         setView("settings");
+        return;
+      }
+
+      // ⌘S saves the active capsule from anywhere (heads-down in the editor,
+      // you shouldn't have to come back to the Capsules page to capture).
+      if (key === "s") {
+        e.preventDefault();
+        if (activeTaskId) void saveCapsule(activeTaskId);
+        else toastOk("No active capsule to save");
         return;
       }
 

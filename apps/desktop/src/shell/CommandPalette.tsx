@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Fragment, useEffect, useState } from "react";
-import { FolderGit2, Layers, Play, Plug, Settings, Sun } from "lucide-react";
+import { FolderGit2, Layers, Play, Plug, Save, Settings, Sun } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -8,8 +8,10 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandShortcut,
 } from "@/components/ui/command";
 import { useTheme } from "@/components/theme-provider";
+import { saveCapsule } from "@/lib/capsule";
 import { ProjectIcon } from "@/lib/project-icons";
 import { useStore, type NavKey, type Task } from "@/store";
 import { NAV_ITEMS, SETTINGS_ITEM } from "./nav";
@@ -29,6 +31,9 @@ export function CommandPalette() {
   const projects = useStore((s) => s.projects);
   const connectors = useStore((s) => s.connectors);
   const requestResume = useStore((s) => s.requestResume);
+  const requestNewProject = useStore((s) => s.requestNewProject);
+  const requestNewTask = useStore((s) => s.requestNewTask);
+  const activeTaskId = useStore((s) => s.activeTaskId);
   const { theme, setTheme } = useTheme();
 
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -81,6 +86,7 @@ export function CommandPalette() {
               <CommandItem key={item.key} value={item.label} onSelect={() => go(item.key)}>
                 <Icon />
                 <span>{item.label}</span>
+                <CommandShortcut>{item.shortcut}</CommandShortcut>
               </CommandItem>
             );
           })}
@@ -134,14 +140,41 @@ export function CommandPalette() {
         )}
 
         <CommandGroup heading="Actions">
-          <CommandItem value="Register Project" onSelect={() => go("projects")}>
+          <CommandItem
+            value="Register Project new"
+            onSelect={() => {
+              requestNewProject();
+              go("projects");
+            }}
+          >
             <FolderGit2 />
             <span>Register Project</span>
+            <CommandShortcut>⌘N</CommandShortcut>
           </CommandItem>
-          <CommandItem value="New Task" onSelect={() => go("capsules")}>
+          <CommandItem
+            value="New Task capsule"
+            onSelect={() => {
+              requestNewTask();
+              go("capsules");
+            }}
+          >
             <Layers />
             <span>New Task</span>
+            <CommandShortcut>⌘⇧N</CommandShortcut>
           </CommandItem>
+          {activeTaskId && (
+            <CommandItem
+              value="Save active capsule state"
+              onSelect={() => {
+                void saveCapsule(activeTaskId);
+                setOpen(false);
+              }}
+            >
+              <Save />
+              <span>Save active capsule</span>
+              <CommandShortcut>⌘S</CommandShortcut>
+            </CommandItem>
+          )}
           <CommandItem
             value="Toggle Theme"
             onSelect={() => {
@@ -155,6 +188,7 @@ export function CommandPalette() {
           <CommandItem value="Open Settings privacy" onSelect={() => go("settings")}>
             <Settings />
             <span>Open Settings</span>
+            <CommandShortcut>⌘,</CommandShortcut>
           </CommandItem>
         </CommandGroup>
       </CommandList>

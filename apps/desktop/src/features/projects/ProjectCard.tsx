@@ -5,6 +5,7 @@ import {
   Archive,
   ArrowDown,
   ArrowUp,
+  ExternalLink,
   FolderOpen,
   GitBranch,
   GripVertical,
@@ -159,9 +160,18 @@ export function ProjectCard({
                   {project.repoPath}
                 </p>
                 {project.devUrl && (
-                  <p className="truncate text-meta text-muted-foreground">
-                    {project.devUrl}
-                  </p>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      invoke("open_url", { url: project.devUrl }).catch(toastErr);
+                    }}
+                    title={`Open ${project.devUrl}`}
+                    className="group/url flex max-w-full items-center gap-1 truncate rounded-sm text-meta text-muted-foreground transition-colors duration-fast ease-standard hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <span className="truncate">{project.devUrl}</span>
+                    <ExternalLink className="size-3 shrink-0 opacity-0 transition-opacity group-hover/url:opacity-100" />
+                  </button>
                 )}
                 {project.lastOpenedAt ? (
                   <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-label text-muted-foreground/70">
