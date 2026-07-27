@@ -132,14 +132,14 @@ VSCodium, and Windsurf install from Open VSX.**
 
 **Marketplace (VS Code)**
 - [ ] Create an Azure DevOps org and a **publisher** whose id matches
-      `connectors/vscode/package.json` → `"publisher": "rabta-dev"` (or change
+      `connectors/vscode/package.json` → `"publisher": "rabta-connect"` (or change
       the manifest to a publisher id you own).
 - [ ] Create a Personal Access Token (Azure DevOps → scope **Marketplace →
       Manage**).
 - [ ] Publish with Node ≥ 20:
       ```bash
       cd connectors/vscode && pnpm build
-      npx @vscode/vsce@latest login rabta-dev   # paste the PAT once
+      npx @vscode/vsce@latest login rabta-connect   # paste the PAT once
       npx @vscode/vsce@latest publish            # or: publish -p <PAT>
       ```
       (`package.sh` already handles the Node-≥20 selection when it only
@@ -147,7 +147,7 @@ VSCodium, and Windsurf install from Open VSX.**
 
 **Open VSX (Cursor)**
 - [ ] Create an Open VSX account (open-vsx.org) + access token; create the
-      `rabta-dev` namespace once (`npx ovsx create-namespace rabta-dev -p <token>`).
+      `rabta-connect` namespace once (`npx ovsx create-namespace rabta-connect -p <token>`).
 - [ ] Publish the same `.vsix`:
       `npx ovsx publish dist-artifacts/rabta-vscode-<ver>.vsix -p <token>`.
 
