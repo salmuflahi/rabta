@@ -64,22 +64,16 @@ Repo facts this checklist assumes:
       should become a reverse-domain you actually own. Signing does not require
       it, but it's the identity users and the notary service will see.
 
-**Configure Tauri** — add a `macOS` block to `bundle` in
-`apps/desktop/src-tauri/tauri.conf.json` (targets already `["app","dmg"]`):
-```jsonc
-"bundle": {
-  "active": true,
-  "targets": ["app", "dmg"],
-  "macOS": {
-    "signingIdentity": "Developer ID Application: <Name> (<TEAMID>)",
-    "minimumSystemVersion": "11.0"
-  }
-}
-```
-Hardened runtime is applied automatically when signing. Only add an
-`entitlements` plist if notarization later flags a specific denied capability
-(Rabta shells out to `git`/`gh`/`open`, which is allowed under the default
-hardened runtime — no entitlement needed).
+**Configure Tauri** — already staged. `bundle.macOS.minimumSystemVersion` is
+in `apps/desktop/src-tauri/tauri.conf.json`. Signing is left **env-driven**
+(`APPLE_SIGNING_IDENTITY`) rather than hardcoded in the config, so the
+current unsigned/ad-hoc build path keeps working and turns into a signed build
+purely by setting the env vars below — no config edit at sign time.
+
+Hardened runtime is applied automatically when signing. Only add a
+`bundle.macOS.entitlements` plist if notarization later flags a specific denied
+capability (Rabta shells out to `git`/`gh`/`open`, which is allowed under the
+default hardened runtime — no entitlement needed).
 
 **Build with notarization** (Tauri v2 notarizes during `tauri build` when these
 are set):

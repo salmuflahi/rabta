@@ -36,6 +36,9 @@
     ],
     "category": "DeveloperTool",
     "shortDescription": "Local-first shared brain for dev tools",
-    "longDescription": "Rabta captures the state of a task across your editor, browser, terminal, and git, and restores it on demand. Local-first; no cloud, no telemetry."
+    "longDescription": "Rabta captures the state of a task across your editor, browser, terminal, and git, and restores it on demand. Local-first; no cloud, no telemetry.",
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    }
   }
 }
