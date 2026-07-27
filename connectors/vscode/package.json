@@ -4,6 +4,7 @@
   "description": "Connects this editor to the local Rabta hub.",
   "version": "0.1.0",
   "publisher": "rabta-connect",
+  "license": "MIT",
   "engines": { "vscode": "^1.85.0" },
   "main": "./dist/extension.js",
   "activationEvents": ["onStartupFinished"],
