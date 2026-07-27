@@ -152,13 +152,19 @@ function CapsuleSummary({
     );
   }
 
+  // Each captured tool as a tangible chip — icon in the brand accent, the
+  // honest summary from humanizeCapsule — so a saved capsule reads as a real
+  // captured workspace, not throwaway grey metadata. The popover still holds
+  // the full per-tool breakdown + saved-ago.
   const summary = (
-    <span className="mt-1 inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+    <span className="mt-1.5 inline-flex flex-wrap items-center gap-1.5">
       {items.map(({ r, h, Icon }) => (
-        <span key={r.id} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Icon className="size-3.5 shrink-0" />
-          <span>{h.summary}</span>
-          <span className="text-muted-foreground/70">· {h.savedAgo}</span>
+        <span
+          key={r.id}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-2 py-0.5 text-label text-muted-foreground"
+        >
+          <Icon className="size-3 shrink-0 text-primary/80" />
+          <span className="font-medium text-foreground/90">{h.summary}</span>
         </span>
       ))}
     </span>

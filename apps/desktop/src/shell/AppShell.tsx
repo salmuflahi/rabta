@@ -31,9 +31,20 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="relative grid h-full min-h-0 overflow-hidden" style={shellStyle}>
       <Sidebar />
 
-      <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+      {/* A barely-there light pool near the top of the workspace gives the
+          cards a lit canvas to lift off of instead of a flat fill. Lives on
+          the non-scrolling column so it stays put; the main region is
+          transparent over it. Tuned faint (card tone at low alpha) and
+          theme-safe — reads on ivory and petrol alike. */}
+      <div
+        className="flex min-h-0 min-w-0 flex-col overflow-hidden"
+        style={{
+          background:
+            "radial-gradient(120% 55% at 50% 0%, hsl(var(--card) / 0.55), transparent 60%), hsl(var(--background))",
+        }}
+      >
         <Toolbar />
-        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none bg-background p-9">
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none p-9">
           {/* Only the workspace scrolls / transitions; the frame is fixed. */}
           <div key={view} className="animate-page-in">
             {children}

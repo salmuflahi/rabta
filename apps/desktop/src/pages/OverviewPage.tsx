@@ -61,7 +61,7 @@ function NextStepCard({
 }) {
   return (
     <Card className="card-lift flex flex-col p-4">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
         <Icon className="size-4" />
       </div>
       <CardHeader className="p-0 pt-3">
@@ -173,24 +173,44 @@ function GettingStarted({
   );
 }
 
+/** Command-center stat tile. The numeral is the hero (large, tabular so the
+ * three tiles line up); the label recedes to an uppercase micro-eyebrow. One
+ * tile can lead with the tangerine accent (`accent`) so the eye lands on what
+ * matters (an active workspace) rather than treating all counts equally. */
 function StatCard({
   icon: Icon,
   label,
   value,
+  accent = false,
 }: {
   icon: LucideIcon;
   label: string;
   value: number;
+  accent?: boolean;
 }) {
   return (
-    <Card className="p-4">
+    <Card className="relative overflow-hidden p-4">
+      {/* Hairline top sheen — gives the tile a lit, physical surface. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
+      />
       <div className="flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+        <div
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors",
+            accent ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+          )}
+        >
           <Icon className="size-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-[26px] font-semibold leading-none tracking-tight text-foreground">{value}</p>
-          <p className="mt-1 truncate text-meta text-muted-foreground">{label}</p>
+          <p className="text-[30px] font-semibold leading-none tracking-tight tabular-nums text-foreground">
+            {value}
+          </p>
+          <p className="mt-1.5 truncate text-label font-medium uppercase tracking-wider text-muted-foreground">
+            {label}
+          </p>
         </div>
       </div>
     </Card>
@@ -329,9 +349,9 @@ export function OverviewPage() {
             <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Sparkles className="size-6" />
             </div>
-            <div className="space-y-1">
-              <p className="text-lg font-semibold text-foreground">Welcome to Rabta</p>
-              <p className="text-sm text-muted-foreground">
+            <div className="max-w-xl space-y-1.5">
+              <p className="text-title font-semibold text-foreground">Welcome to Rabta</p>
+              <p className="text-body leading-relaxed text-muted-foreground">
                 One command center for your projects, editors, and browser tabs — switch tasks
                 and Rabta restores the right branch, files, and tabs for you.
               </p>
@@ -377,16 +397,43 @@ export function OverviewPage() {
           )}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
             <StatCard icon={FolderGit2} label={projects.length === 1 ? "Project" : "Projects"} value={projects.length} />
-            <StatCard icon={Plug} label="Connected Apps" value={connectedCount} />
-            <StatCard icon={ListChecks} label={openCount === 1 ? "Open Task" : "Open Tasks"} value={openCount} />
+            <StatCard
+              icon={Plug}
+              label="Connected Apps"
+              value={connectedCount}
+              accent={connectedCount > 0 && openCount === 0}
+            />
+            <StatCard
+              icon={ListChecks}
+              label={openCount === 1 ? "Open Task" : "Open Tasks"}
+              value={openCount}
+              accent={openCount > 0}
+            />
           </div>
 
           {activeTask && (
-            <Card className="border-l-2 border-l-primary p-4">
-              <p className="font-mono text-label font-medium uppercase tracking-widest text-muted-foreground">
-                Active Task
-              </p>
-              <p className="mt-1 text-card font-medium text-foreground">{activeTask.title}</p>
+            <Card className="relative overflow-hidden border-l-2 border-l-primary p-4">
+              {/* Faint tangerine wash so the "you are here" anchor reads as the
+                  emotional centre of the dashboard, not a quiet aside. */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/[0.06] to-transparent"
+              />
+              <div className="relative flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+                  <Play className="size-4 fill-current" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono text-label font-medium uppercase tracking-widest text-muted-foreground">
+                    Active Task
+                  </p>
+                  <p className="mt-0.5 truncate text-card font-semibold text-foreground">{activeTask.title}</p>
+                </div>
+                <Button size="sm" className="shrink-0" onClick={() => resumeTask(activeTask.id)}>
+                  <Play className="size-3.5 fill-current" />
+                  Resume
+                </Button>
+              </div>
             </Card>
           )}
 

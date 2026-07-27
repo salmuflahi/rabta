@@ -41,13 +41,16 @@ function ConnectorCard({ connector }: { connector: ConnectorRow }) {
   return (
     <Card className="card-lift p-4">
       <div className="flex items-start gap-3">
-        <span
-          aria-hidden
-          className={cn(
-            "mt-1.5 size-2.5 shrink-0 rounded-full",
-            connector.connected ? "bg-success ring-4 ring-success/15" : "bg-muted-foreground/40",
-          )}
-        />
+        {connector.connected ? (
+          // A live connection literally breathes — a slow halo behind a solid
+          // dot. Only rendered when actually connected, so it's honest.
+          <span aria-hidden className="relative mt-1.5 flex size-2.5 shrink-0 items-center justify-center">
+            <span className="absolute inline-flex size-full animate-live-ping rounded-full bg-success" />
+            <span className="relative inline-flex size-2.5 rounded-full bg-success ring-4 ring-success/15" />
+          </span>
+        ) : (
+          <span aria-hidden className="mt-1.5 size-2.5 shrink-0 rounded-full bg-muted-foreground/40" />
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="min-w-0 truncate text-card font-medium text-foreground">{connector.name}</p>

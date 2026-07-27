@@ -67,12 +67,21 @@ export default {
         // width/transform movement, no fabricated percentage). See
         // RestoreProgress in src/restore/RestoreExperience.tsx.
         "restore-pulse": { "0%, 100%": { opacity: "0.35" }, "50%": { opacity: "0.6" } },
+        // "Live" halo behind a connected connector's dot — a slow, gentle ring
+        // that expands and fades, so a live connection literally looks alive.
+        // Gated on real connection state at the call site; reduced-motion
+        // neutralizes it via the global index.css rule.
+        "live-ping": {
+          "0%": { transform: "scale(1)", opacity: "0.5" },
+          "75%, 100%": { transform: "scale(2.4)", opacity: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "restore-shimmer": "restore-shimmer 1.1s ease-in-out infinite",
         "restore-pulse": "restore-pulse 1.8s ease-in-out infinite",
+        "live-ping": "live-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite",
         "page-in": "page-in 180ms ease-out both",
         "card-in": "card-in 220ms ease-out both",
       },
