@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
 import { Button } from "./components/ui/button";
+import { kindLabel } from "./lib/connectors";
 import { decidePairing } from "./lib/pairing";
 import { toastOk } from "./lib/toast";
 import { useSessionTracking } from "./lib/useSessionTracking";
@@ -296,19 +297,23 @@ export default function App() {
 
   return (
     <div className="flex h-screen min-w-0 flex-col overflow-hidden">
-      {pairings.map((p) => (
-        <div key={p.pairingId} className="flex items-center gap-3 border-b border-warning/30 bg-warning/10 p-2 text-sm text-foreground">
-          <span className="min-w-0 flex-1">
-            <b>{p.name}</b> ({p.kind}) wants to connect to Rabta
-          </span>
-          <Button size="sm" onClick={() => decide(p, true)}>
-            Approve
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => decide(p, false)}>
-            Deny
-          </Button>
-        </div>
-      ))}
+      {/* Global pairing banner — approve/deny from any page. Suppressed on the
+          Connectors view, which shows its own in-context PairingCard (else the
+          same request appears twice on one screen). */}
+      {view !== "connectors" &&
+        pairings.map((p) => (
+          <div key={p.pairingId} className="flex items-center gap-3 border-b border-warning/30 bg-warning/10 p-2 text-sm text-foreground">
+            <span className="min-w-0 flex-1">
+              <b>{p.name}</b> ({kindLabel(p.kind)}) wants to connect to Rabta
+            </span>
+            <Button size="sm" onClick={() => decide(p, true)}>
+              Approve
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => decide(p, false)}>
+              Deny
+            </Button>
+          </div>
+        ))}
       <div className="min-h-0 flex-1">
         <AppShell>
           <CurrentPage view={view} />
