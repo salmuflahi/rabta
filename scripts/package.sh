@@ -26,7 +26,10 @@ pnpm --filter rabta-chrome build >/dev/null
 STAGE="$(mktemp -d)/rabta-chrome"; mkdir -p "$STAGE/dist"
 cp connectors/chrome/manifest.json connectors/chrome/popup.html "$STAGE"/
 cp connectors/chrome/dist/background.js connectors/chrome/dist/popup.js "$STAGE/dist"/
-( cd "$(dirname "$STAGE")" && zip -qr "$OUT/rabta-chrome-$VER.zip" rabta-chrome )
+cp -r connectors/chrome/icons "$STAGE"/
+# Zip with manifest.json at the ROOT (Chrome Web Store requires this; it also
+# works for "Load unpacked" once extracted).
+( cd "$STAGE" && zip -qr "$OUT/rabta-chrome-$VER.zip" . )
 
 echo "==> vscode .vsix"
 pnpm --filter rabta-vscode build >/dev/null
