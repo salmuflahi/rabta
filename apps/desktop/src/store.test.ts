@@ -35,3 +35,36 @@ describe("connector store carries reported version", () => {
     expect(row?.connected).toBe(false);
   });
 });
+
+describe("connector reconnect doesn't strand a duplicate offline row", () => {
+  beforeEach(() => {
+    useStore.setState({ connectors: [], log: [] });
+  });
+
+  it("a reconnect under a fresh id supersedes the previous session's row", () => {
+    useStore.getState().setConnectors([
+      { id: "sess-1", name: "VS Code", kind: "vscode", capabilities: ["files"] },
+    ]);
+    // The hub mints a new id per accept, so a restart/blip returns the same
+    // tool under a different id.
+    useStore.getState().setConnectors([
+      { id: "sess-2", name: "VS Code", kind: "vscode", capabilities: ["files"] },
+    ]);
+    const vscode = useStore
+      .getState()
+      .connectors.filter((r) => r.name === "VS Code" && r.kind === "vscode");
+    expect(vscode).toHaveLength(1);
+    expect(vscode[0].id).toBe("sess-2");
+    expect(vscode[0].connected).toBe(true);
+  });
+
+  it("a genuinely gone connector stays as a single offline row", () => {
+    useStore.getState().setConnectors([
+      { id: "sess-1", name: "VS Code", kind: "vscode", capabilities: [] },
+    ]);
+    useStore.getState().setConnectors([]);
+    const vscode = useStore.getState().connectors.filter((r) => r.name === "VS Code");
+    expect(vscode).toHaveLength(1);
+    expect(vscode[0].connected).toBe(false);
+  });
+});

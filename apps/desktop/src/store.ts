@@ -332,10 +332,12 @@ export const useStore = create<Store>((set) => ({
       });
       const gone = s.connectors
         .filter((p) => !live.some((c) => c.id === p.id))
-        .filter(
-          (p) =>
-            !(p.id.startsWith("known:") && live.some((c) => c.name === p.name && c.kind === p.kind))
-        )
+        // A live connection supersedes any earlier row of the same tool,
+        // whether that row is a synthetic `known:` seed OR a real previous
+        // session with a now-stale id. The hub mints a fresh id per accept, so
+        // without this a reconnect (VS Code restart, hub blip) would strand a
+        // permanent duplicate "Offline" row for the same (name, kind).
+        .filter((p) => !live.some((c) => c.name === p.name && c.kind === p.kind))
         .map((p) => ({ ...p, connected: false }));
       return { connectors: [...rows, ...gone] };
     }),

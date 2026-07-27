@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { ArchiveRestore, FolderGit2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { LoadError } from "@/components/ui/load-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -92,6 +93,7 @@ export function ProjectsPage() {
   // Pre-first-load window only: true until the initial list_projects fetch
   // settles, then stays false for the life of the page.
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [reorderBusy, setReorderBusy] = useState(false);
   const [renameProject, setRenameProject] = useState<Project | null>(null);
@@ -107,10 +109,28 @@ export function ProjectsPage() {
       .then(setProjects)
       .catch((e) => console.error("list_projects failed:", e));
 
+  // Initial load tracks failure separately so a read error shows a retry
+  // panel, not the "No projects yet" empty state. The post-mutation refresh()
+  // above stays error-swallowing so a transient blip mid-session can't blank
+  // an already-populated page.
+  const loadProjects = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
+    invoke<Project[]>("list_projects")
+      .then((p) => {
+        setProjects(p);
+        setLoadError(false);
+      })
+      .catch((e) => {
+        console.error("list_projects failed:", e);
+        setLoadError(true);
+      })
+      .finally(() => setLoading(false));
+  }, [setProjects]);
+
   useEffect(() => {
-    refresh().finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    loadProjects();
+  }, [loadProjects]);
 
   useEffect(() => {
     invoke<string | null>("active_task").then(setActiveTaskId).catch(() => {});
@@ -303,6 +323,8 @@ export function ProjectsPage() {
 
       {loading ? (
         <ProjectsSkeleton />
+      ) : loadError ? (
+        <LoadError onRetry={loadProjects} entity="your projects" />
       ) : count === 0 ? (
         <EmptyState
           icon={<FolderGit2 />}

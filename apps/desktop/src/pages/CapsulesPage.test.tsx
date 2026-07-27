@@ -590,7 +590,7 @@ describe("CapsulesPage context menu", () => {
     expect(screen.getByRole("dialog", { name: "Rename capsule" })).toBeInTheDocument();
   });
 
-  it("shows a refresh error instead of rename success when the post-rename refresh fails", async () => {
+  it("keeps rename a success when only the post-rename refresh fails", async () => {
     mockCapsulesInvoke({
       activateTask: async () => ({}),
       postMutationRefresh: async () => {
@@ -603,11 +603,14 @@ describe("CapsulesPage context menu", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: "Rename" }));
     fireEvent.click(await screen.findByRole("button", { name: "Rename" }));
 
+    // The rename committed, so success is reported and the dialog closes even
+    // though the follow-up refresh failed — that error is swallowed, never
+    // surfaced as a rename failure for an edit that actually persisted.
+    await waitFor(() => expect(mockedSuccessToast()).toHaveBeenCalledWith("Capsule renamed", undefined));
     await waitFor(() =>
-      expect(mockedErrorToast()).toHaveBeenCalledWith("Error: rename refresh failed")
+      expect(screen.queryByRole("dialog", { name: "Rename capsule" })).not.toBeInTheDocument()
     );
-    expect(mockedSuccessToast()).not.toHaveBeenCalled();
-    expect(screen.getByRole("dialog", { name: "Rename capsule" })).toBeInTheDocument();
+    expect(mockedErrorToast()).not.toHaveBeenCalled();
   });
 
   it("disables rename submission while rename_task is pending", async () => {
@@ -658,7 +661,7 @@ describe("CapsulesPage context menu", () => {
     expect(mockedSuccessToast()).not.toHaveBeenCalled();
   });
 
-  it("shows a refresh error instead of duplicate success when the post-duplicate refresh fails", async () => {
+  it("keeps duplicate a success when only the post-duplicate refresh fails", async () => {
     mockCapsulesInvoke({
       activateTask: async () => ({}),
       postMutationRefresh: async () => {
@@ -670,10 +673,14 @@ describe("CapsulesPage context menu", () => {
     fireEvent.contextMenu(await screen.findByText(FAKE_TASK.title));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
 
+    // The duplicate committed, so success is reported even though the refresh
+    // failed afterwards (swallowed, not shown as a duplicate failure).
     await waitFor(() =>
-      expect(mockedErrorToast()).toHaveBeenCalledWith("Error: duplicate refresh failed")
+      expect(mockedSuccessToast()).toHaveBeenCalledWith("Capsule duplicated", {
+        description: `${FAKE_TASK.title} copy`,
+      })
     );
-    expect(mockedSuccessToast()).not.toHaveBeenCalled();
+    expect(mockedErrorToast()).not.toHaveBeenCalled();
   });
 
   it("disables capsule actions while duplicate_task is pending", async () => {

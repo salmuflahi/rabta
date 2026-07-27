@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
+import { LoadError } from "@/components/ui/load-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -228,6 +229,7 @@ export function CapsulesPage() {
   // then stays false (subsequent refreshes — activationNonce bumps, post-
   // action reloads — don't re-show the skeleton).
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   // Keyed by project id so the ⌘⇧N shortcut can focus a specific project's
   // new-task input (there's one per project group on this page).
   const newTaskInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -269,16 +271,38 @@ export function CapsulesPage() {
     }
   };
 
+  // Initial load tracks failure so a read error shows a retry panel instead of
+  // the "No capsules yet" empty state.
+  async function loadCapsules() {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      await refreshOrThrow();
+      setLoadError(false);
+    } catch (e) {
+      console.error("capsules load failed:", e);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    refresh().finally(() => setLoading(false));
+    void loadCapsules();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Refetch (not remount) when any project's task activation bumps the
-  // global nonce, so cross-project capsule summaries stay fresh without
-  // discarding this page's local state (drafts, delete-confirm dialog, or
-  // an in-flight pendingAction).
+  // Refetch (not remount) when any project's task activation bumps the global
+  // nonce, so cross-project capsule summaries stay fresh without discarding
+  // this page's local state (drafts, delete-confirm dialog, in-flight action).
+  // Skips its own mount run so it doesn't double the initial load above
+  // (activationNonce starts at 0, so this effect fires on mount too).
+  const nonceReady = useRef(false);
   useEffect(() => {
+    if (!nonceReady.current) {
+      nonceReady.current = true;
+      return;
+    }
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activationNonce]);
@@ -361,9 +385,13 @@ export function CapsulesPage() {
     setBusy(true);
     try {
       await invoke<Task>("rename_task", { id, title: title.trim() });
-      await refreshOrThrow();
+      // Rename committed — report success and close the dialog BEFORE the
+      // reload, then use the error-swallowing refresh(), so a transient
+      // refresh failure can't surface as an error toast + stuck-open dialog
+      // for an edit that actually persisted.
       toastOk("Capsule renamed");
       setRenameTarget(null);
+      await refresh();
     } catch (error) {
       toastErr(error);
     } finally {
@@ -375,8 +403,10 @@ export function CapsulesPage() {
     setBusy(true);
     try {
       const copy = await invoke<Task>("duplicate_task", { id: task.id });
-      await refreshOrThrow();
+      // Duplicate committed — success first, then the error-swallowing reload
+      // (a refresh blip must not read as a duplicate failure).
       toastOk("Capsule duplicated", copy.title);
+      await refresh();
     } catch (error) {
       toastErr(error);
     } finally {
@@ -476,6 +506,8 @@ export function CapsulesPage() {
 
       {loading ? (
         <CapsulesSkeleton />
+      ) : loadError ? (
+        <LoadError onRetry={() => void loadCapsules()} entity="your capsules" />
       ) : projects.length === 0 ? (
         <EmptyState
           icon={<Layers />}

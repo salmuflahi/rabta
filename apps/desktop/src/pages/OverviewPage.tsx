@@ -9,10 +9,11 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadError } from "@/components/ui/load-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/shell/PageHeader";
 import { kindLabel } from "@/lib/connectors";
@@ -143,14 +144,27 @@ export function OverviewPage() {
   // Pre-first-load window only: true until the initial list_projects fetch
   // settles (the fetch that decides welcome-vs-dashboard), then stays false.
   const [loading, setLoading] = useState(true);
+  // A failed load is distinct from an empty workspace — see LoadError.
+  const [loadError, setLoadError] = useState(false);
+
+  const loadProjects = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
+    invoke<Project[]>("list_projects")
+      .then((p) => {
+        setProjects(p);
+        setLoadError(false);
+      })
+      .catch((e) => {
+        console.error("list_projects failed:", e);
+        setLoadError(true);
+      })
+      .finally(() => setLoading(false));
+  }, [setProjects]);
 
   useEffect(() => {
-    invoke<Project[]>("list_projects")
-      .then(setProjects)
-      .catch((e) => console.error("list_projects failed:", e))
-      .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    loadProjects();
+  }, [loadProjects]);
 
   useEffect(() => {
     invoke<string | null>("active_task").then(setActiveTaskId).catch(() => {});
@@ -158,15 +172,22 @@ export function OverviewPage() {
   }, []);
 
   // Aggregate open-task count from the same list_tasks invoke CapsulesPage
-  // already uses — no new backend, just reused across pages.
+  // already uses — no new backend, just reused across pages. Guarded so a
+  // slow earlier fetch can't overwrite a newer one after `projects` changes.
   useEffect(() => {
     if (projects.length === 0) {
       setTasks([]);
       return;
     }
+    let cancelled = false;
     Promise.all(projects.map((p) => invoke<Task[]>("list_tasks", { projectId: p.id })))
-      .then((lists) => setTasks(lists.flat()))
+      .then((lists) => {
+        if (!cancelled) setTasks(lists.flat());
+      })
       .catch((e) => console.error("list_tasks failed:", e));
+    return () => {
+      cancelled = true;
+    };
   }, [projects]);
 
   const connectedCount = connectors.filter((c) => c.connected).length;
@@ -201,6 +222,8 @@ export function OverviewPage() {
 
       {loading ? (
         <OverviewSkeleton />
+      ) : loadError ? (
+        <LoadError onRetry={loadProjects} />
       ) : projects.length === 0 ? (
         <div className="flex flex-col gap-6">
           <Card className="flex flex-col items-center gap-3 border-dashed p-8 text-center">
