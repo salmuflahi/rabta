@@ -49,6 +49,11 @@ else
 fi
 
 if [ -n "${OVSX_TOKEN:-}" ]; then
+  PUBLISHER="$("$NODE_BIN" -e 'console.log(require("./connectors/vscode/package.json").publisher)')"
+  echo "==> ensuring Open VSX namespace '$PUBLISHER' (ok if it already exists)"
+  # Idempotent: errors (already exists) are non-fatal so publish still runs.
+  # Requires the Eclipse Open VSX Publisher Agreement to be signed first.
+  "$NODE_BIN" "$TOOL/node_modules/.bin/ovsx" create-namespace "$PUBLISHER" -p "$OVSX_TOKEN" || true
   echo "==> publishing to Open VSX (Cursor)"
   "$NODE_BIN" "$TOOL/node_modules/.bin/ovsx" publish "$VSIX" -p "$OVSX_TOKEN"
 else
