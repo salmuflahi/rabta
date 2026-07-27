@@ -3,19 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { kindLabel } from "@/lib/connectors";
 import { relativeTime } from "@/lib/humanize";
 import { decidePairing } from "@/lib/pairing";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type ConnectorRow, type PendingPairing } from "@/store";
-
-// Friendly display names for the raw connector kind.
-const KIND_LABEL: Record<string, string> = {
-  vscode: "VS Code",
-  cursor: "Cursor",
-  chrome: "Chrome",
-  fake: "Fake",
-};
 
 function PairingCard({
   pairing,
@@ -29,7 +22,7 @@ function PairingCard({
       <div className="flex items-center justify-between gap-3">
         <p className="min-w-0 truncate text-sm text-foreground">
           <span className="font-medium">{pairing.name}</span>{" "}
-          <span className="text-muted-foreground">({KIND_LABEL[pairing.kind] ?? pairing.kind})</span> wants to connect
+          <span className="text-muted-foreground">({kindLabel(pairing.kind)})</span> wants to connect
         </p>
         <div className="flex shrink-0 items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => onDecide(pairing, false)}>
@@ -45,7 +38,6 @@ function PairingCard({
 }
 
 function ConnectorCard({ connector }: { connector: ConnectorRow }) {
-  const kindLabel = KIND_LABEL[connector.kind] ?? connector.kind;
   return (
     <Card className="card-lift p-4">
       <div className="flex items-start gap-3">
@@ -60,7 +52,7 @@ function ConnectorCard({ connector }: { connector: ConnectorRow }) {
           <div className="flex items-center gap-2">
             <p className="min-w-0 truncate text-card font-medium text-foreground">{connector.name}</p>
             <Badge variant="outline" className="shrink-0 text-label">
-              {kindLabel}
+              {kindLabel(connector.kind)}
             </Badge>
             {connector.version && (
               <span className="shrink-0 rounded-full bg-muted/60 px-1.5 py-0.5 font-mono text-label text-muted-foreground">
@@ -87,7 +79,6 @@ function ConnectorCard({ connector }: { connector: ConnectorRow }) {
           ) : (
             <p className="mt-2 text-label text-muted-foreground/70">No capabilities reported</p>
           )}
-          <p className="mt-2 truncate font-mono text-label text-muted-foreground/60">{connector.id}</p>
         </div>
       </div>
     </Card>

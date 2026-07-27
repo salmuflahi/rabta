@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/shell/PageHeader";
+import { kindLabel } from "@/lib/connectors";
 import { describeEvent, formatDuration, relativeTime } from "@/lib/humanize";
 import { ProjectIcon } from "@/lib/project-icons";
 import { cn } from "@/lib/utils";
@@ -325,7 +326,7 @@ export function OverviewPage() {
                       />
                       <span className="min-w-0 flex-1 truncate text-foreground">{c.name}</span>
                       <Badge variant="outline" className="shrink-0 text-label">
-                        {c.kind}
+                        {kindLabel(c.kind)}
                       </Badge>
                       <span className="shrink-0 text-label text-muted-foreground">
                         {c.connected ? "Connected" : "Offline"}
