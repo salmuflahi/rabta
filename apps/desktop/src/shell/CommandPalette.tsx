@@ -152,9 +152,9 @@ export function CommandPalette() {
             <Sun />
             <span>Toggle Theme</span>
           </CommandItem>
-          <CommandItem value="Open Privacy / Settings" onSelect={() => go("settings")}>
+          <CommandItem value="Open Settings privacy" onSelect={() => go("settings")}>
             <Settings />
-            <span>Open Privacy / Settings</span>
+            <span>Open Settings</span>
           </CommandItem>
         </CommandGroup>
       </CommandList>
