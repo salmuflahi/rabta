@@ -4,6 +4,7 @@ import {
   MessageSquare,
   Plug,
   PlugZap,
+  Search,
   Send,
   Zap,
   type LucideIcon,
@@ -12,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -102,28 +104,47 @@ export function ActivityPage() {
   const connectors = useStore((s) => s.connectors);
   const [kindFilter, setKindFilter] = useState("all");
   const [connFilter, setConnFilter] = useState("all");
+  const [query, setQuery] = useState("");
   const scroller = useRef<HTMLDivElement>(null);
 
   const resolveName = (id: string) => connectors.find((c) => c.id === id)?.name;
 
-  const shown = log.filter(
-    (e) =>
-      (kindFilter === "all" || e.type === kindFilter) &&
-      (connFilter === "all" || entryConnectorId(e) === connFilter)
-  );
+  const q = query.trim().toLowerCase();
+  const shown = log.filter((e) => {
+    if (kindFilter !== "all" && e.type !== kindFilter) return false;
+    if (connFilter !== "all" && entryConnectorId(e) !== connFilter) return false;
+    if (q) {
+      // Match the humanized sentence a user actually reads, plus the raw
+      // payload (branch names, paths, error strings) they might be hunting for.
+      const hay = `${describeEvent(e, resolveName).sentence} ${JSON.stringify(e)}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
 
   useEffect(() => {
     if (!paused) scroller.current?.scrollTo(0, scroller.current.scrollHeight);
   }, [log, paused]);
 
   const subtitle = `${log.length} ${log.length === 1 ? "event" : "events"}`;
-  const isFiltered = kindFilter !== "all" || connFilter !== "all";
+  const isFiltered = kindFilter !== "all" || connFilter !== "all" || q !== "";
 
   return (
     <div className="flex h-full flex-col">
       <PageHeader eyebrow="HISTORY" title="Activity" subtitle={subtitle} />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search activity…"
+            aria-label="Search activity"
+            className="w-56 pl-8"
+          />
+        </div>
+
         <Select value={connFilter} onValueChange={setConnFilter}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="All Connectors" />
