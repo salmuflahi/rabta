@@ -41,6 +41,14 @@ manifests (see `docs/RELEASE.md` §0).
 **Privacy:** single purpose — "Capture and restore browser tabs as part of a
 local task workspace for the Rabta desktop app." No remote data collection.
 
+**Privacy policy URL** (required by the Web Store form, and by the Open VSX /
+Marketplace listings where a field exists):
+<https://rabta.build/privacy/>
+
+> This replaces the old externally-hosted policy. If the Chrome Web Store item
+> still points at the previous URL, update it in the developer dashboard — the
+> page it referenced is no longer the canonical policy.
+
 ---
 
 ## VS Code Marketplace / Open VSX — "Rabta Connector"
@@ -85,7 +93,7 @@ serves **Cursor / VSCodium / Windsurf**.
   connector), so the new id needs no code change.
 - **VS Code Marketplace (Microsoft):** not yet published (Azure DevOps PAT
   blocker). Don't claim Marketplace publication anywhere until it's live.
-- **Website / download:** <https://salmuflahi.github.io/rabta/> · DMG
+- **Website / download:** <https://rabta.build/> · DMG
   <https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg>
   (SHA-256 `3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655`).
 - `connectors/vscode/package.json` still lacks `repository`/`icon` — Marketplace

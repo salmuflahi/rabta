@@ -85,7 +85,11 @@ function handle(cmd: string, args: Args): unknown {
       return EVENTS.slice(0, limit);
     }
     case "pending_pairings":
-      return PENDING_PAIRINGS;
+      // The app surfaces a pending pairing as a global banner on every
+      // view. That belongs in the Connectors capture, where the approval
+      // gate is the story — everywhere else it would read as a permanent
+      // alert the product doesn't actually have.
+      return /capture=connectors/.test(window.location.hash) ? PENDING_PAIRINGS : [];
     case "hub_port":
       return HUB_PORT;
     case "git_status": {

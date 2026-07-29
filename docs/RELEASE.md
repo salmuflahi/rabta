@@ -17,7 +17,7 @@ channel is the Microsoft VS Code Marketplace.
 | Trader / account verification (Google) | ⏳ Pending |
 
 **Public downloads**
-- Website: <https://salmuflahi.github.io/rabta/>
+- Website: <https://rabta.build/>
 - Direct DMG: <https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg>
 - SHA-256: `3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655`
 
@@ -231,7 +231,7 @@ may be used later, as with Chrome.
 - [ ] Commit the version bumps + any config/doc changes; tag `vX.Y.Z`.
 - [x] Publish the signed DMG — hosted as a GitHub Release asset at
       <https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg>,
-      linked from the website <https://salmuflahi.github.io/rabta/>. The store
+      linked from the website <https://rabta.build/>. The store
       listings (Chrome / Marketplace / Open VSX) are the extension delivery.
 - [x] `docs/INSTALL.md` now describes the real signed install path + store links.
 

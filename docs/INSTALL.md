@@ -3,7 +3,7 @@
 Rabta ships as three artifacts: the desktop app, and one extension per
 browser/editor you want to connect.
 
-**Get it from the website:** <https://salmuflahi.github.io/rabta/>
+**Get it from the website:** <https://rabta.build/>
 
 | Artifact | What it is | Where to get it |
 |---|---|---|
@@ -102,7 +102,7 @@ structurally unable to read page contents.
 
 Everything runs locally: no accounts, no cloud, no telemetry. Connectors talk
 only to the Rabta app on `127.0.0.1`. Full policy:
-<https://rabta-privacy.n0bodyy.chatgpt.site/>.
+<https://rabta.build/privacy/>.
 
 ## Distribution status
 
