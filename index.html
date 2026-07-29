@@ -37,8 +37,7 @@
     --muted-2:    #8a9b98;  /* tertiary / captions (AA on ink + surface)  */
     --orange:     #ff6b2c;  /* primary action                            */
     --orange-hi:  #ff824d;
-    --blue:       #3ba9f5;  /* connection / orbit / links                */
-    --blue-dim:   rgba(59,169,245,.28);
+    --link:       #66d6c2;  /* links / secondary accent (brand teal)     */
     --teal:       #66d6c2;  /* verified / integrity                      */
     --ink-on-accent: #1d120d;
 
@@ -71,13 +70,13 @@
        blue (connection) mid-left — over the teal-black. */
     background-image:
       radial-gradient(58rem 40rem at 82% -8%, rgba(255,107,44,.10), transparent 60%),
-      radial-gradient(50rem 44rem at -6% 34%, rgba(59,169,245,.08), transparent 60%);
+      radial-gradient(50rem 44rem at -6% 34%, rgba(102,214,194,.07), transparent 60%);
     background-attachment: fixed;
     background-repeat: no-repeat;
     overflow-x: hidden;
   }
 
-  a { color: var(--blue); text-decoration: none; }
+  a { color: var(--link); text-decoration: none; }
   a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
   h1, h2, h3 { margin: 0; line-height: 1.08; letter-spacing: -0.025em; font-weight: 700; }
@@ -200,7 +199,7 @@
   }
   .orbit .glow {
     position: absolute; inset: 8%; border-radius: 50%;
-    background: radial-gradient(circle at 50% 50%, rgba(59,169,245,.16), transparent 62%);
+    background: radial-gradient(circle at 50% 50%, rgba(255,107,44,.15), transparent 62%);
     filter: blur(6px);
   }
   /* radial connector lines + rings drawn as SVG that fills the box */
@@ -213,13 +212,11 @@
   }
   /* the Rabta core */
   .core {
-    position: relative; z-index: 3; width: 30%; aspect-ratio: 1; border-radius: 26%;
-    background: #0a1524;
-    border: 1px solid rgba(59,169,245,.4);
+    position: relative; z-index: 3; width: 30%; aspect-ratio: 1; border-radius: 24%;
     display: grid; place-items: center;
-    box-shadow: 0 0 0 6px rgba(8,23,24,.9), 0 0 40px -6px rgba(59,169,245,.5);
+    box-shadow: 0 0 0 8px rgba(8,23,24,.92), 0 0 46px -8px rgba(255,107,44,.4);
   }
-  .core svg { width: 74%; height: 74%; }
+  .core svg { width: 100%; height: 100%; border-radius: 24%; display: block; }
   /* orbiting surface chips */
   .node {
     position: absolute; z-index: 2;
@@ -230,7 +227,7 @@
     box-shadow: 0 8px 20px -12px rgba(0,0,0,.8);
     transform: translate(-50%, -50%);
   }
-  .node .nd { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--blue); box-shadow: 0 0 8px rgba(59,169,245,.7); }
+  .node .nd { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--orange); box-shadow: 0 0 8px rgba(255,107,44,.6); }
   .node.n { top: 6%;  left: 50%; }
   .node.e { top: 50%; left: 94%; }
   .node.s { top: 94%; left: 50%; }
@@ -256,14 +253,14 @@
   }
   .capsule-def::before {
     content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-    background: linear-gradient(var(--orange), var(--blue));
+    background: linear-gradient(var(--orange), var(--link));
   }
   .capsule-def .k { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--orange); }
   .capsule-def h3 { font-size: 22px; margin: 10px 0 10px; }
   .capsule-def p { margin: 0; color: var(--muted); font-size: 16px; }
   .capsule-flow { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
   .capsule-flow .step { padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.02); }
-  .capsule-flow .arrow { color: var(--blue); }
+  .capsule-flow .arrow { color: var(--orange); }
 
   .capture-list { display: grid; gap: 12px; }
   .capture {
@@ -274,8 +271,8 @@
   .capture:hover { border-color: var(--line); transform: translateX(2px); background: var(--surface-2); }
   .capture .ic {
     flex: none; width: 38px; height: 38px; border-radius: 10px;
-    display: grid; place-items: center; background: rgba(59,169,245,.10); color: var(--blue);
-    border: 1px solid rgba(59,169,245,.18);
+    display: grid; place-items: center; background: rgba(102,214,194,.10); color: var(--link);
+    border: 1px solid rgba(102,214,194,.18);
   }
   .capture .ic svg { width: 19px; height: 19px; }
   .capture h3 { margin: 0 0 3px; font-size: 16px; font-weight: 650; letter-spacing: -.01em; }
@@ -305,7 +302,7 @@
    *  PRIVACY / LOCAL-FIRST
    * ================================================================== */
   .privacy { background:
-      linear-gradient(180deg, transparent, rgba(59,169,245,.03) 40%, transparent),
+      linear-gradient(180deg, transparent, rgba(102,214,194,.03) 40%, transparent),
       var(--ink-2);
     border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
   .priv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
@@ -436,7 +433,7 @@
     <a class="brand" href="#top" aria-label="Rabta home">
       <span class="mark" aria-hidden="true">
         <!-- orbit mark -->
-        <svg viewBox="0 0 100 100" width="26" height="26"><rect width="100" height="100" rx="24" fill="#0a1524"/><circle cx="50" cy="50" r="26" fill="none" stroke="#3ba9f5" stroke-width="8"/><circle cx="50" cy="50" r="9" fill="#3ba9f5"/><circle cx="50" cy="12" r="6" fill="#6fc4fb"/><circle cx="50" cy="88" r="6" fill="#6fc4fb"/><circle cx="12" cy="50" r="6" fill="#6fc4fb"/><circle cx="88" cy="50" r="6" fill="#6fc4fb"/></svg>
+        <svg viewBox="0 0 64 64" width="26" height="26"><rect width="64" height="64" rx="14" fill="#102526"/><path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/><path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/></svg>
       </span>
       <span class="word">Rabta</span>
     </a>
@@ -487,13 +484,13 @@
             <line x1="200" y1="200" x2="40"  y2="200"/>
           </g>
           <!-- slow rotating orbit rings -->
-          <circle class="ring-spin" cx="200" cy="200" r="150" fill="none" stroke="#3ba9f5" stroke-opacity=".30" stroke-width="1.25" stroke-dasharray="3 9" stroke-linecap="round"/>
-          <circle class="ring-spin-rev" cx="200" cy="200" r="110" fill="none" stroke="#3ba9f5" stroke-opacity=".14" stroke-width="1" stroke-dasharray="2 12" stroke-linecap="round"/>
+          <circle class="ring-spin" cx="200" cy="200" r="150" fill="none" stroke="#FF6B2C" stroke-opacity=".22" stroke-width="1.25" stroke-dasharray="3 9" stroke-linecap="round"/>
+          <circle class="ring-spin-rev" cx="200" cy="200" r="110" fill="none" stroke="#FF6B2C" stroke-opacity=".12" stroke-width="1" stroke-dasharray="2 12" stroke-linecap="round"/>
           <circle cx="200" cy="200" r="150" fill="none" stroke="#244548" stroke-width="1" stroke-opacity=".5"/>
         </svg>
 
         <div class="core" aria-hidden="true">
-          <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="none" stroke="#3ba9f5" stroke-width="8"/><circle cx="50" cy="50" r="11" fill="#3ba9f5"/><circle cx="50" cy="8" r="6" fill="#6fc4fb"/><circle cx="50" cy="92" r="6" fill="#6fc4fb"/><circle cx="8" cy="50" r="6" fill="#6fc4fb"/><circle cx="92" cy="50" r="6" fill="#6fc4fb"/></svg>
+          <svg viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#102526"/><path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/><path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/></svg>
         </div>
 
         <span class="node n" aria-hidden="true"><i class="nd"></i>Cursor / VS&nbsp;Code</span>
@@ -745,7 +742,7 @@ shasum -a 256 Rabta_0.1.0_aarch64.dmg
     <div>
       <div class="foot-brand">
         <span class="mark" aria-hidden="true">
-          <svg viewBox="0 0 100 100" width="30" height="30"><rect width="100" height="100" rx="24" fill="#0a1524"/><circle cx="50" cy="50" r="26" fill="none" stroke="#3ba9f5" stroke-width="8"/><circle cx="50" cy="50" r="9" fill="#3ba9f5"/><circle cx="50" cy="12" r="6" fill="#6fc4fb"/><circle cx="50" cy="88" r="6" fill="#6fc4fb"/><circle cx="12" cy="50" r="6" fill="#6fc4fb"/><circle cx="88" cy="50" r="6" fill="#6fc4fb"/></svg>
+          <svg viewBox="0 0 64 64" width="30" height="30"><rect width="64" height="64" rx="14" fill="#102526"/><path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/><path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/></svg>
         </span>
         <div>
           <div class="word">Rabta</div>
