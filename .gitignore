@@ -7,3 +7,9 @@ dist-artifacts/
 .claude/
 .hardening/
 .worktrees/
+
+# signing keys / cert request — private, never commit
+/signing/
+
+# macOS
+.DS_Store

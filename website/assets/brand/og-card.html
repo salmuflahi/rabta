@@ -1,0 +1,143 @@
+<!doctype html>
+<!--
+  Source for the 1200x630 social card. Rendered to og-cover.png by
+  scripts/generate-brand-assets.py (headless Chrome at 2x, downsampled).
+
+  Rules this card follows:
+    - composed, never a raw screenshot dropped in whole
+    - >=60px safe padding on every edge, so platform crops never clip content
+    - no platform or availability claim that could age badly
+    - the current Rabta mark only
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face {
+    font-family: "Inter Variable";
+    src: url("../fonts/inter-latin-variable.woff2") format("woff2");
+    font-weight: 100 900;
+    font-display: block;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { width: 1200px; height: 630px; }
+
+  body {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(52rem 34rem at 88% -12%, rgba(255, 107, 44, 0.16), transparent 60%),
+      radial-gradient(44rem 38rem at -8% 108%, rgba(102, 214, 194, 0.10), transparent 62%),
+      #081718;
+    color: #f4f1e9;
+    font-family: "Inter Variable", -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Safe area: nothing meaningful crosses this inset. */
+  .card {
+    position: absolute;
+    inset: 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .brand { display: flex; align-items: center; gap: 16px; }
+  .brand svg { width: 52px; height: 52px; display: block; }
+  .brand .word { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
+
+  h1 {
+    font-size: 62px;
+    font-weight: 700;
+    line-height: 1.06;
+    letter-spacing: -0.035em;
+    max-width: 15ch;
+  }
+  h1 .accent { color: #ff6b2c; }
+
+  .sub {
+    margin-top: 22px;
+    font-size: 25px;
+    line-height: 1.4;
+    color: #9ba8a6;
+    max-width: 24ch;
+  }
+
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 19px;
+    color: #8a9b98;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    letter-spacing: 0.02em;
+  }
+  .meta .dot { width: 5px; height: 5px; border-radius: 50%; background: #66d6c2; }
+  .meta .sep { color: #244548; }
+
+  /* A framed fragment of the real app, angled and bleeding off the right
+     edge — enough to read as product, never enough to need legible text. */
+  .shot {
+    position: absolute;
+    top: 96px;
+    left: 664px;
+    width: 760px;
+    height: 476px;
+    border: 1px solid #2a4e51;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #102526;
+    box-shadow: 0 50px 90px -40px rgba(0, 0, 0, 0.9);
+    transform: perspective(1800px) rotateY(-15deg) rotateX(3deg);
+    transform-origin: left center;
+  }
+  .shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    /* Frame the workspace pane, away from the window's top chrome. */
+    margin-top: -34px;
+  }
+  /* Fade the far edge into the background so the crop reads as intentional. */
+  .shot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 52%, rgba(8, 23, 24, 0.85) 100%);
+  }
+</style>
+</head>
+<body>
+  <div class="shot">
+    <img src="../shots/src/overview.png" alt="" />
+  </div>
+
+  <div class="card">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <rect width="64" height="64" rx="14" fill="#102526"/>
+        <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
+        <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
+      </svg>
+      <span class="word">Rabta</span>
+    </div>
+
+    <div>
+      <h1>Save a task's whole workspace.<br /><span class="accent">Reopen it exactly.</span></h1>
+      <p class="sub">Files, terminals, tabs and branch — captured into a capsule, restored on demand.</p>
+    </div>
+
+    <div class="meta">
+      <span class="dot"></span>
+      <span>Local-first</span>
+      <span class="sep">/</span>
+      <span>No account</span>
+      <span class="sep">/</span>
+      <span>No telemetry</span>
+    </div>
+  </div>
+</body>
+</html>
