@@ -162,6 +162,7 @@ ol {
 
 a {
   color: var(--teal);
+  text-decoration-color: rgba(102, 214, 194, 0.4);
   text-decoration-color: color-mix(in srgb, var(--teal) 40%, transparent);
   text-underline-offset: 3px;
 }

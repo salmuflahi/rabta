@@ -46,7 +46,9 @@
 <script>
   document.documentElement.className = "js";
   setTimeout(function () {
-    if (!window.__rabta) document.documentElement.className = "";
+    // Restore `no-js`, not an empty string: the FAQ's open-by-default
+    // fallback and other no-JS states are keyed off that class.
+    if (!window.__rabta) document.documentElement.className = "no-js";
   }, 2500);
 </script>
 

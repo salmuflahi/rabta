@@ -11,6 +11,10 @@
   position: sticky;
   top: 0;
   z-index: 60;
+  /* Literal rgba first: without a fallback, a browser that lacks color-mix
+     (Safari < 16.2, Firefox < 113) drops the declaration entirely and the
+     sticky nav becomes transparent with content scrolling behind it. */
+  background: rgba(8, 23, 24, 0.72);
   background: color-mix(in srgb, var(--ink) 72%, transparent);
   border-bottom: 1px solid transparent;
   transition:
@@ -27,6 +31,7 @@
 
 /* Scroll-aware: the bar tightens and separates once content is behind it. */
 .nav.is-stuck {
+  background: rgba(8, 23, 24, 0.88);
   background: color-mix(in srgb, var(--ink) 88%, transparent);
   border-bottom-color: var(--line-soft);
 }

@@ -31,7 +31,9 @@
 <script>
   document.documentElement.className = "js";
   setTimeout(function () {
-    if (!window.__rabta) document.documentElement.className = "";
+    // Restore `no-js`, not an empty string: the FAQ's open-by-default
+    // fallback and other no-JS states are keyed off that class.
+    if (!window.__rabta) document.documentElement.className = "no-js";
   }, 2500);
 </script>
 </head>
@@ -60,8 +62,9 @@
 </header>
 
 <main id="main">
-  <div class="wrap page-head">
-    <span class="marker">Privacy</span>
+  <div class="wrap railed page-head">
+    <div class="rail"><span class="marker">Privacy</span></div>
+    <div>
     <h1>Privacy policy</h1>
     <p class="lede">
       Rabta is a local-first desktop tool. There is no Rabta server, no account
@@ -71,9 +74,12 @@
     <p class="mono muted" style="margin-top: 1.25rem">
       Effective 29 July 2026 · Applies to Rabta 0.1.0 and rabta.build
     </p>
+    </div>
   </div>
 
-  <div class="wrap prose">
+  <div class="wrap railed">
+    <div class="rail" aria-hidden="true"></div>
+    <div class="prose">
 
     <nav class="toc" aria-labelledby="toc-title">
       <h2 id="toc-title">On this page</h2>
@@ -353,6 +359,7 @@
       <a href="https://github.com/salmuflahi/rabta/issues" target="_blank" rel="noopener">GitHub issues</a>.
     </p>
 
+    </div>
   </div>
 </main>
 

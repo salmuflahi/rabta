@@ -31,7 +31,9 @@
 <script>
   document.documentElement.className = "js";
   setTimeout(function () {
-    if (!window.__rabta) document.documentElement.className = "";
+    // Restore `no-js`, not an empty string: the FAQ's open-by-default
+    // fallback and other no-JS states are keyed off that class.
+    if (!window.__rabta) document.documentElement.className = "no-js";
   }, 2500);
 </script>
 </head>
@@ -60,16 +62,20 @@
 </header>
 
 <main id="main">
-  <div class="wrap page-head">
-    <span class="marker">Setup</span>
+  <div class="wrap railed page-head">
+    <div class="rail"><span class="marker">Setup</span></div>
+    <div>
     <h1>Install Rabta and save your first capsule.</h1>
     <p class="lede">
       Everything here applies to Rabta 0.1.0 on macOS. It takes a few minutes,
       and none of it involves creating an account.
     </p>
+    </div>
   </div>
 
-  <div class="wrap prose">
+  <div class="wrap railed">
+    <div class="rail" aria-hidden="true"></div>
+    <div class="prose">
 
     <nav class="toc" aria-labelledby="toc-title">
       <h2 id="toc-title">On this page</h2>
@@ -496,6 +502,7 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
       </p>
     </div>
 
+    </div>
   </div>
 </main>
 
