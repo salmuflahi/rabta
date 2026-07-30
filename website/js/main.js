@@ -6,6 +6,7 @@
    ========================================================================== */
 
 import { initHero } from "./hero.js";
+import { initStory } from "./story.js";
 import { observeVisibility } from "./motion.js";
 
 /** The nav separates itself only once content has passed behind it. */
@@ -33,6 +34,7 @@ function boot() {
   document.documentElement.classList.add("js");
   safely("nav", initNav);
   safely("hero", () => initHero(document.querySelector("[data-hero]")));
+  safely("story", () => initStory(document.querySelector("[data-story]")));
 }
 
 if (document.readyState === "loading") {

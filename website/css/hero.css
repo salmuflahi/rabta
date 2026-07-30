@@ -531,6 +531,16 @@
     .ctx {
       transform: none !important;
     }
+
+    /* The context objects are positioned relative to a frame that sits in a
+       two-column composition. Once the layout stacks, the frame spans the full
+       width and the negative offsets push these off the left edge — clipped by
+       overflow-x, so no scrollbar, but a half-visible chip reads as broken.
+       They belong to the desktop composition only. */
+    .ctx--at-branch,
+    .ctx--at-file {
+      display: none;
+    }
   }
 
   @media (max-width: 767px) {
@@ -539,8 +549,6 @@
     }
 
     /* Only the objects that carry meaning survive. */
-    .ctx--at-branch,
-    .ctx--at-file,
     .ctx--at-terminal {
       display: none;
     }

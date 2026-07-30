@@ -36,6 +36,7 @@
 <link rel="stylesheet" href="/css/foundation.css" />
 <link rel="stylesheet" href="/css/appframe.css" />
 <link rel="stylesheet" href="/css/hero.css" />
+<link rel="stylesheet" href="/css/story.css" />
 
 <script type="module" src="/js/main.js"></script>
 <script type="application/ld+json">
@@ -300,6 +301,115 @@
         </button>
       </div>
       <p class="visually-hidden" data-live role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ===================== CHAPTER 2 — THE CONTEXT SWITCH =====================
+     Full-width cinematic stage. One centred statement over a product field
+     that spans the viewport — deliberately NOT the hero's asymmetric grammar.
+     Pinned above 900px; stacked below, under reduced motion, and with no JS. -->
+<section class="story" data-story data-env="ink" aria-labelledby="story-title">
+  <h2 class="visually-hidden" id="story-title">What happens to your context when the task changes</h2>
+
+  <div class="story__track" data-story-track>
+    <div class="story__pin" data-story-pin>
+
+      <div class="story__copy">
+        <p class="story__line" data-story-line>The task changes.</p>
+        <p class="story__line" data-story-line >Your place usually disappears with it.</p>
+        <p class="story__line" data-story-line >Rabta keeps the context together.</p>
+        <p class="story__line" data-story-line >The next task returns around you.</p>
+        <p class="story__line" data-story-line >Come back without rebuilding. <em>Context, kept.</em></p>
+      </div>
+
+      <div class="story__stage" data-story-stage aria-hidden="true">
+        <div class="story__frame" data-story-frame>
+          <div class="app app--still" data-env="product">
+            <div class="app__rail">
+              <div class="app__titlebar">
+                <i class="app__light"></i><i class="app__light"></i><i class="app__light"></i>
+              </div>
+              <div class="app__hairline"></div>
+              <div class="app__brand">
+                <svg viewBox="0 0 64 64">
+                  <rect width="64" height="64" rx="14" fill="#173234"/>
+                  <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
+                  <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
+                </svg>
+                <b>Rabta</b>
+              </div>
+              <div class="app__nav">
+                <div class="app__sel" style="--sel: 1"></div>
+                <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg><span>Overview</span><kbd>&#8984;1</kbd></div>
+                <div class="app__row is-active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 4.5-9 4.5-9-4.5Z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 17 9 4.5 9-4.5"/></svg><span>Capsules</span><kbd>&#8984;2</kbd></div>
+                <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v3"/><circle cx="17" cy="17" r="3"/><path d="M20.2 20.2 22 22"/></svg><span>Projects</span><kbd>&#8984;3</kbd></div>
+                <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v3a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg><span>Connectors</span><kbd>&#8984;4</kbd></div>
+              </div>
+              <div class="app__railfoot">
+                <div class="app__hairline"></div>
+                <div class="app__assure"><i></i><span>Data stored locally</span></div>
+              </div>
+            </div>
+            <div class="app__main">
+              <div class="app__toolbar">
+                <span class="app__search"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search or jump to&#8230;</span><kbd>&#8984;K</kbd></span>
+                <span class="app__conn"><i></i>2 connected</span>
+              </div>
+              <div class="app__content">
+                <p class="app__eyebrow">Tasks</p>
+                <p class="app__title">Reconnect browser session</p>
+                <div class="app__meta">
+                  <span class="app__pill app__pill--branch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg> feat/reconnect</span>
+                  <span class="app__pill">rabta</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="story__layer story__layer--editor" data-story-layer data-i="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg><span>src/hub.rs · 4 files</span></div>
+        <div class="story__layer story__layer--browser" data-story-layer data-i="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/></svg><span>5 browser tabs</span></div>
+        <div class="story__layer story__layer--terminal" data-story-layer data-i="2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 3 3-3 3"/><path d="M12 15h5"/><rect width="20" height="16" x="2" y="4" rx="2"/></svg><span>3 terminal sessions</span></div>
+        <div class="story__layer story__layer--branch" data-story-layer data-i="3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg><span>feat/reconnect</span></div>
+
+        <figure class="capsule story__capsule" data-story-capsule data-cap-state="saving">
+            <figcaption class="capsule__head">
+              <span class="capsule__label">capsule · rabta</span>
+              <span class="capsule__state">Saved</span>
+            </figcaption>
+            <p class="capsule__title">Reconnect browser session</p>
+            <div class="capsule__lines">
+              <p class="capsule__line"><span>branch</span><b>feat/reconnect</b></p>
+              <p class="capsule__line"><span>editor</span><b>4 files · 3 terminals</b></p>
+              <p class="capsule__line"><span>browser</span><b>5 tabs</b></p>
+            </div>
+            <p class="capsule__foot">pointers, not contents</p>
+          </figure>
+      </div>
+
+      <!-- The stacked rendering: reduced motion, no JS, and every narrow
+           viewport get the complete five-scene story. -->
+      <div class="story__still">
+        <div class="story__layer story__layer--editor" data-story-layer data-i="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg><span>src/hub.rs · 4 files</span></div>
+        <div class="story__layer story__layer--browser" data-story-layer data-i="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/></svg><span>5 browser tabs</span></div>
+        <div class="story__layer story__layer--terminal" data-story-layer data-i="2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 3 3-3 3"/><path d="M12 15h5"/><rect width="20" height="16" x="2" y="4" rx="2"/></svg><span>3 terminal sessions</span></div>
+        <div class="story__layer story__layer--branch" data-story-layer data-i="3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg><span>feat/reconnect</span></div>
+        <figure class="capsule story__capsule" data-story-capsule data-cap-state="saving">
+            <figcaption class="capsule__head">
+              <span class="capsule__label">capsule · rabta</span>
+              <span class="capsule__state">Saved</span>
+            </figcaption>
+            <p class="capsule__title">Reconnect browser session</p>
+            <div class="capsule__lines">
+              <p class="capsule__line"><span>branch</span><b>feat/reconnect</b></p>
+              <p class="capsule__line"><span>editor</span><b>4 files · 3 terminals</b></p>
+              <p class="capsule__line"><span>browser</span><b>5 tabs</b></p>
+            </div>
+            <p class="capsule__foot">pointers, not contents</p>
+          </figure>
+      </div>
     </div>
   </div>
 </section>
