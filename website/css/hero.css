@@ -30,7 +30,10 @@
     padding-block: var(--space-6) var(--space-9);
     /* How far the product runs past the container's right edge. Viewport-
        relative so the crop is proportional rather than a fixed pixel guess. */
-    --stage-bleed: clamp(48px, 9vw, 140px);
+    --stage-bleed: clamp(48px, 10.5vw, 165px);
+    /* How far the product reaches back into the copy grid. Bounded by the
+       headline's trailing edge — see --text-display-hero. */
+    --stage-intrude: clamp(0px, 6.5vw, 96px);
   }
 
   /* ---- layer 1: environmental light + fold planes -------------------- */
@@ -173,7 +176,10 @@
     z-index: var(--z-product);
     /* Pulled left into the copy's gutter and pushed right past the container
        so the frame genuinely crops on the viewport edge. */
-    margin-left: -6%;
+    /* Reaches back across the gutter INTO the copy grid, past the lede and
+       CTA — which are far narrower than the headline — so copy and product
+       read as one composition rather than adjacent columns. */
+    margin-left: calc(-1 * var(--stage-intrude));
     /* Crops on the viewport edge. The app reserves a matching right safe-zone
        (appframe.css --safe-right) so the crop only ever eats padding — cutting
        "RESTORED" mid-word reads as broken, not as deliberate cropping. */
@@ -186,8 +192,14 @@
   .hero__frame {
     position: relative;
     z-index: var(--z-product);
-    transform: rotateY(-5deg) rotateX(1.5deg) rotateZ(0.4deg);
+    /* Fixed pose plus a ±2.2° pointer response. Not a mockup that tilts
+       forever — --px/--py return to 0 on pointerleave and are frozen while a
+       transformation owns the composition. */
+    transform: rotateY(calc(-5deg + var(--px, 0deg)))
+      rotateX(calc(1.5deg + var(--py, 0deg))) rotateZ(0.4deg) scale(var(--fs, 1))
+      translateX(var(--ftx, 0));
     transform-style: preserve-3d;
+    transition: transform var(--duration-large) var(--ease-rabta);
   }
 
   /* Match the frame's internal safe zone to the crop, plus headroom, so the
@@ -198,12 +210,17 @@
 
   /* ---- layer 7: the capsule, the only element spanning both regions -- */
 
+  /* The hinge. It straddles the frame's lower-left edge — physically attached
+     to the workspace, not floating in front of it — and sits on the 45° axis
+     between the active task (inside the frame) and the saved task (outside).
+     During capture it becomes the destination for every context object, and
+     during the hero-to-story handoff it is the shared element that travels. */
   .hero__capsule {
     position: absolute;
     z-index: var(--z-product-front);
-    left: 2%;
-    bottom: -7%;
-    width: clamp(268px, 30%, 340px);
+    left: -7%;
+    bottom: -3%;
+    width: clamp(268px, 31%, 344px);
     transform: translateZ(60px);
   }
 
@@ -282,9 +299,13 @@
     transform: translateZ(48px);
   }
 
+  /* Above the frame's leading edge. Once the frame intrudes into the copy grid
+     the gutter is only ~47px wide — too narrow for a 150px object without
+     landing either on the headline or on the sidebar's nav labels, both of
+     which are live content. The frame's top edge is the honest place for it. */
   .ctx--at-file {
-    left: -14%;
-    top: 30%;
+    left: 7%;
+    top: -7%;
     z-index: var(--z-product-front);
     transform: translateZ(44px);
   }
@@ -301,19 +322,113 @@
   }
 
   .ctx--at-terminal {
-    right: 17%;
-    bottom: 4%;
+    right: 19%;
+    bottom: 9%;
     z-index: var(--z-product-front);
     transform: translateZ(52px);
   }
 
+  /* Tucked under the frame's leading edge, clear of the connector rail. */
+  .hero__provenance {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    margin-top: var(--space-7);
+    margin-left: var(--stage-intrude);
+  }
+
+  .hero__replay {
+    font-family: var(--font-mono);
+    font-size: var(--text-technical);
+    color: var(--fg-3);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color var(--duration-fast) var(--ease-rabta);
+  }
+
+  .hero__replay:hover:not(:disabled) {
+    color: var(--fg);
+  }
+
+  .hero__replay:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  /* ==========================================================================
+     THE TRANSFORMATION
+     While capture/restore owns the scene the two-column split dissolves: the
+     copy recedes, the frame gives ground, and the capsule becomes the
+     dominant central object. It settles back afterwards — the resting
+     composition is the one that was approved.
+     ========================================================================== */
+
+  .hero__copy {
+    transition: opacity var(--duration-large) var(--ease-rabta);
+  }
+
+  .hero.is-transforming .hero__copy {
+    opacity: 0.42;
+  }
+
+  .hero.is-transforming .hero__frame {
+    --fs: 0.955;
+    --ftx: -2.5%;
+  }
+
+  .hero__capsule {
+    transition: transform var(--duration-large) var(--ease-rabta),
+      box-shadow var(--duration-large) var(--ease-rabta);
+  }
+
+  /* Toward the centre of the viewport, and larger than anything else. */
+  .hero.is-transforming .hero__capsule {
+    z-index: var(--z-controls);
+    transform: translateZ(120px) translate(-30%, -26%) scale(1.16);
+  }
+
+  /* The pointer response is frozen mid-transformation. */
+  .hero.is-transforming .hero__frame {
+    --px: 0deg;
+    --py: 0deg;
+  }
+
+  /* Objects that only exist once the interaction can run. */
+  html:not(.js) [data-needs-js] {
+    display: none !important;
+  }
+
+  html.js [data-no-js] {
+    display: none !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* A deliberate alternate, not disabled animation: the composition never
+       dissolves, states change in place, and every label still updates. */
+    .hero.is-transforming .hero__copy {
+      opacity: 1;
+    }
+    .hero.is-transforming .hero__capsule {
+      transform: translateZ(60px);
+    }
+    .hero.is-transforming .hero__frame {
+      --fs: 1;
+      --ftx: 0;
+    }
+  }
+
   /* ---- the connector rail, aligned beside the product ---------------- */
 
+  /* Continues the 45° path down-right from the capsule, so the terminal chip
+     and the connector rail read as one trajectory through the workspace
+     rather than labels scattered to balance a screenshot. */
   .hero__conn {
     position: absolute;
     z-index: var(--z-product-front);
-    right: 20%;
-    bottom: -9%;
+    right: 11%;
+    bottom: -8%;
     display: flex;
     gap: var(--space-2);
     transform: translateZ(56px);

@@ -358,6 +358,67 @@
     font-weight: 600;
   }
 
+  /* An app-native control, not a marketing button pasted over the product.
+     Same geometry the real app uses for Resume / Save State. */
+  .app__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding-inline: 10px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--petrol-line) 95%, transparent);
+    background: color-mix(in srgb, var(--cream) 4%, transparent);
+    color: color-mix(in srgb, var(--cream) 86%, transparent);
+    font-size: 11.5px;
+    font-weight: 550;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-rabta),
+      border-color var(--duration-fast) var(--ease-rabta),
+      color var(--duration-fast) var(--ease-rabta);
+  }
+
+  .app__btn svg {
+    width: 12px;
+    height: 12px;
+    flex: none;
+  }
+
+  .app__btn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--cream) 9%, transparent);
+    border-color: var(--petrol-line);
+    color: var(--cream);
+  }
+
+  .app__btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  /* ---- capsule states ------------------------------------------------- */
+
+  /* Saving: the fold edge asserts in tangerine — Rabta is intervening. */
+  .capsule[data-cap-state="saving"] {
+    border-color: color-mix(in srgb, var(--tangerine) 62%, transparent);
+    box-shadow: var(--shadow-product),
+      0 0 0 1px color-mix(in srgb, var(--tangerine) 34%, transparent);
+  }
+
+  .capsule[data-cap-state="saving"] .capsule__state {
+    color: var(--tangerine);
+    border-color: color-mix(in srgb, var(--tangerine) 42%, transparent);
+    background: color-mix(in srgb, var(--tangerine) 12%, transparent);
+  }
+
+  .capsule__state,
+  .capsule {
+    transition: color var(--duration-standard) var(--ease-rabta),
+      border-color var(--duration-standard) var(--ease-rabta),
+      background-color var(--duration-standard) var(--ease-rabta),
+      box-shadow var(--duration-standard) var(--ease-rabta);
+  }
+
   .app__rows {
     border-top: 1px solid color-mix(in srgb, var(--petrol-line) 60%, transparent);
   }

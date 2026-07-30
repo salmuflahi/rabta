@@ -37,6 +37,7 @@
 <link rel="stylesheet" href="/css/appframe.css" />
 <link rel="stylesheet" href="/css/hero.css" />
 
+<script type="module" src="/js/main.js"></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -86,7 +87,7 @@
      Compositional axis: the mark's 45° fold hinge. Copy in columns 1–6,
      product stage in 7–12 pulled left into the gutter and cropped off the
      right viewport edge. The capsule is the only element spanning both. -->
-<section class="hero" data-env="paper" aria-labelledby="hero-title">
+<section class="hero" data-hero data-env="paper" aria-labelledby="hero-title">
 
   <!-- Layer 1 — environment. Almost invisible; discovered, not noticed. -->
   <div class="hero__env" aria-hidden="true"></div>
@@ -123,8 +124,8 @@
     </div>
 
     <!-- Layers 3–7 — the product stage -->
-    <div class="hero__stage">
-      <div class="hero__frame">
+    <div class="hero__stage" data-stage>
+      <div class="hero__frame" data-frame>
 
         <div class="app" data-env="product" role="img"
              aria-label="The Rabta desktop app on its Overview screen. The active task ‘Reconnect browser session’ is on branch feat/reconnect, with VS Code holding four files and three terminals, Chrome holding five tabs, and the git branch — all restored.">
@@ -187,44 +188,48 @@
 
             <div class="app__content">
               <p class="app__eyebrow">Workspace</p>
-              <p class="app__title">Reconnect browser session</p>
+              <p class="app__title" data-app-title>Reconnect browser session</p>
 
               <div class="app__meta">
-                <span class="app__pill app__pill--branch">
+                <span class="app__pill app__pill--branch" data-o="branch">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
-                  feat/reconnect
+                  <span data-app-branch>feat/reconnect</span>
                 </span>
                 <span class="app__pill">rabta</span>
               </div>
 
               <div class="app__panel">
                 <div class="app__panelhead">
-                  <b>Workspace restored</b>
-                  <span class="app__eyebrow">capsule</span>
+                  <b data-app-heading>Workspace restored</b>
+                  <button type="button" class="app__btn" data-switch data-needs-js>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>
+                    <span data-switch-label>Switch task</span>
+                  </button>
+                  <span class="app__eyebrow" data-no-js>capsule</span>
                 </div>
 
                 <div class="app__rows">
-                  <div class="app__resource">
+                  <div class="app__resource" data-row data-o="editor">
                     <span class="app__icon app__icon--editor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg></span>
                     <span class="app__rtext">
                       <span class="app__rname">VS Code</span>
-                      <span class="app__rdetail">src/hub.rs · 4 files · 3 terminals</span>
+                      <span class="app__rdetail" data-detail>src/hub.rs · 4 files · 3 terminals</span>
                     </span>
                     <span class="app__status" data-status="applied">Restored</span>
                   </div>
-                  <div class="app__resource">
+                  <div class="app__resource" data-row data-o="browser">
                     <span class="app__icon app__icon--browser"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/></svg></span>
                     <span class="app__rtext">
                       <span class="app__rname">Chrome</span>
-                      <span class="app__rdetail">5 tabs</span>
+                      <span class="app__rdetail" data-detail>5 tabs</span>
                     </span>
                     <span class="app__status" data-status="applied">Restored</span>
                   </div>
-                  <div class="app__resource">
+                  <div class="app__resource" data-row data-o="git">
                     <span class="app__icon app__icon--git"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></span>
                     <span class="app__rtext">
                       <span class="app__rname">Git</span>
-                      <span class="app__rdetail">feat/reconnect</span>
+                      <span class="app__rdetail" data-detail>feat/reconnect</span>
                     </span>
                     <span class="app__status" data-status="applied">Restored</span>
                   </div>
@@ -236,38 +241,42 @@
 
         <!-- Context objects. Each names a real thing at a real location
              inside the frame, and each carries its meaning-colour. -->
-        <span class="ctx ctx--branch ctx--at-branch" aria-hidden="true">
+        <span class="ctx ctx--branch ctx--at-branch" aria-hidden="true"
+              data-ctx="branch" data-origin='[data-o="branch"]' data-depth="48">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
-          feat/reconnect
+          <span data-text>feat/reconnect</span>
         </span>
 
-        <span class="ctx ctx--file ctx--at-file" aria-hidden="true">
+        <span class="ctx ctx--file ctx--at-file" aria-hidden="true"
+              data-ctx="file" data-origin='[data-o="editor"]' data-depth="44">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v5h5"/><path d="M15 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6Z"/></svg>
-          src/hub.rs
+          <span data-text>src/hub.rs</span>
         </span>
 
-        <span class="ctx ctx--tabs ctx--at-tabs" aria-hidden="true">
+        <span class="ctx ctx--tabs ctx--at-tabs" aria-hidden="true"
+              data-ctx="tabs" data-origin='[data-o="browser"]' data-depth="-40">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="14" x="3" y="7" rx="2"/><path d="M7 7V5a2 2 0 0 1 2-2h2"/></svg>
-          5 browser tabs
+          <span data-text>5 browser tabs</span>
         </span>
 
-        <span class="ctx ctx--terminal ctx--at-terminal" aria-hidden="true">
-          <i></i>3 terminals
+        <span class="ctx ctx--terminal ctx--at-terminal" aria-hidden="true"
+              data-ctx="terminals" data-origin='[data-o="editor"]' data-depth="52">
+          <i></i><span data-text>3 terminals</span>
         </span>
 
         <!-- Layer 7 — the capsule. Spans copy and product because it is the
              only thing that belongs to both. Shows the PRESERVED task: the
              one you are not in is the one being kept. -->
-        <figure class="capsule hero__capsule">
+        <figure class="capsule hero__capsule" data-capsule data-cap-state="saved">
           <figcaption class="capsule__head">
             <span class="capsule__label">capsule · rabta</span>
-            <span class="capsule__state">Saved</span>
+            <span class="capsule__state" data-cap-badge>Saved</span>
           </figcaption>
-          <p class="capsule__title">Fix restore timeout</p>
+          <p class="capsule__title" data-cap-title>Fix restore timeout</p>
           <div class="capsule__lines">
-            <p class="capsule__line"><span>branch</span><b>fix/restore-timeout</b></p>
-            <p class="capsule__line"><span>editor</span><b>6 files · 1 terminal</b></p>
-            <p class="capsule__line"><span>browser</span><b>3 tabs</b></p>
+            <p class="capsule__line" data-slot="branch"><span>branch</span><b>fix/restore-timeout</b></p>
+            <p class="capsule__line" data-slot="editor"><span>editor</span><b>6 files · 1 terminal</b></p>
+            <p class="capsule__line" data-slot="browser"><span>browser</span><b>3 tabs</b></p>
           </div>
           <p class="capsule__foot">pointers, not contents</p>
         </figure>
@@ -280,9 +289,17 @@
 
       </div>
 
-      <p class="demo-label" style="margin-top: var(--space-9)">
-        Interactive product demo · Representative Rabta v0.1.0 data
-      </p>
+      <!-- Provenance sits with the product it describes, not adrift at the
+           bottom of the composition. -->
+      <div class="hero__provenance">
+        <p class="demo-label">
+          Interactive product demo · Representative Rabta v0.1.0 data
+        </p>
+        <button type="button" class="hero__replay" data-replay data-needs-js>
+          Replay
+        </button>
+      </div>
+      <p class="visually-hidden" data-live role="status" aria-live="polite"></p>
     </div>
   </div>
 </section>

@@ -99,10 +99,14 @@
     --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco,
       Consolas, "Liberation Mono", monospace;
 
-    /* Capped at 5rem so "Keep your place." holds ONE line inside a 6-column
-       copy well at 1440 (~650px). Larger and it breaks after "your", which
-       reads as an accident rather than a decision. */
-    --text-display-hero: clamp(2.75rem, 1.1rem + 4.2vw, 5rem);
+    /* Capped at 4.5rem, and the cap is load-bearing twice over:
+       - "Keep your place." must hold ONE line inside the 6-column copy well
+         (~610px at 1440). Wrapping after "your" reads as an accident.
+       - the second line must END far enough left that the product frame can
+         intrude ~65px into the copy grid without covering live glyphs.
+       At 5rem the line ends at x=639 and the frame can only reach x=655,
+       which buys no intrusion at all. */
+    --text-display-hero: clamp(2.625rem, 1rem + 3.8vw, 4.5rem);
     --text-display-section: clamp(2.5rem, 1rem + 4.1vw, 5rem);
     --text-display-statement: clamp(2.25rem, 1rem + 3.6vw, 4.25rem);
     --text-heading-large: clamp(1.75rem, 1.1rem + 1.9vw, 2.75rem);
