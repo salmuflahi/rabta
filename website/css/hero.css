@@ -1,0 +1,437 @@
+/* ==========================================================================
+   Rabta — chapter 1, the hero
+
+   COMPOSITIONAL AXIS: the mark's own fold hinge.
+
+   The Rabta mark's flap hypotenuse runs (41.5,8) -> (56,22.5) in its 64-unit
+   canvas — an exact 45 degree diagonal. That diagonal is the hero's structural
+   axis: the environmental planes are chamfered along it, the context objects
+   are distributed along it, and the capsule sits at the point where it crosses
+   the boundary between the copy and the product. Nothing here is a
+   left-column / right-column layout.
+
+   The copy occupies grid columns 1-6; the product stage occupies 7-12 and is
+   pulled LEFT into the copy's gutter and pushed RIGHT past the container, so
+   it crops off the viewport edge. The capsule is the only element that spans
+   both regions, because it is the only thing that belongs to both.
+
+   Z is scoped: .hero sets `isolation: isolate`, so the nine layers are local
+   to this chapter and cannot collide with the nav or anything downstream.
+   ========================================================================== */
+
+@layer chapter {
+  .hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-height: min(96vh, 940px);
+    display: flex;
+    align-items: center;
+    padding-block: var(--space-6) var(--space-9);
+    /* How far the product runs past the container's right edge. Viewport-
+       relative so the crop is proportional rather than a fixed pixel guess. */
+    --stage-bleed: clamp(48px, 9vw, 140px);
+  }
+
+  /* ---- layer 1: environmental light + fold planes -------------------- */
+  /* Almost invisible by design — discovered, not noticed. Alphas sit in the
+     0.03-0.09 band the brief specifies. */
+
+  .hero__env {
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-environment);
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  /* A large cropped fold plane entering from the right, its leading edge cut
+     at the mark's own 45 degrees. */
+  .hero__env::before {
+    content: "";
+    position: absolute;
+    right: -8%;
+    top: -24%;
+    width: 66%;
+    height: 132%;
+    background: color-mix(in srgb, var(--mist-blue) 14%, transparent);
+    clip-path: polygon(34% 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  /* A second, smaller plane folded the other way, low and left. */
+  .hero__env::after {
+    content: "";
+    position: absolute;
+    left: -12%;
+    bottom: -34%;
+    width: 44%;
+    height: 76%;
+    background: color-mix(in srgb, var(--warm-sand) 30%, transparent);
+    clip-path: polygon(0 0, 100% 44%, 100% 100%, 0 100%);
+  }
+
+  /* Elliptical, pushed off-canvas so it reads as light in the room rather
+     than as a decorative blob. Ellipses, not circles — that is the whole
+     difference. */
+  .hero__light {
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-environment);
+    pointer-events: none;
+    background:
+      radial-gradient(
+        58rem 30rem at 78% 30%,
+        color-mix(in srgb, var(--mist-blue) 30%, transparent),
+        transparent 62%
+      ),
+      radial-gradient(
+        44rem 26rem at 62% 78%,
+        color-mix(in srgb, var(--sea-glass) 16%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        40rem 22rem at 8% 12%,
+        color-mix(in srgb, var(--tangerine) 9%, transparent),
+        transparent 64%
+      );
+  }
+
+  /* Locally generated grain. Kills banding across the large washes without a
+     single network request. Static — never animated. */
+  .hero__grain {
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-environment);
+    pointer-events: none;
+    opacity: 0.028;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---- the 12-column editorial grid ---------------------------------- */
+
+  .hero__grid {
+    position: relative;
+    z-index: var(--z-copy);
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--grid-gap);
+    align-items: center;
+  }
+
+  /* ---- layer 2: copy, columns 1-6 ------------------------------------ */
+
+  .hero__copy {
+    grid-column: 1 / span 6;
+    grid-row: 1;
+    position: relative;
+    z-index: var(--z-copy);
+  }
+
+  .hero__slogan {
+    margin-bottom: var(--space-5);
+  }
+
+  /* Held to 9ch narrower than its column so the product's leading edge never
+     crosses live glyphs — the overlap is the capsule's job, not the type's. */
+  .hero__headline {
+    max-width: 11.5em;
+    color: var(--fg);
+  }
+
+  /* The payoff line takes the accent. The whole headline in colour would be
+     shouting; one line of it is a point of view. */
+  .hero__headline em {
+    font-style: normal;
+    display: block;
+    color: var(--sem-action);
+  }
+
+  .hero__lede {
+    margin-top: var(--space-6);
+    max-width: 30ch;
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-7);
+  }
+
+  .hero__trust {
+    margin-top: var(--space-5);
+    color: var(--fg-3);
+  }
+
+  /* ---- layers 3-6: the product stage, columns 7-12 ------------------- */
+
+  .hero__stage {
+    grid-column: 7 / -1;
+    grid-row: 1;
+    position: relative;
+    z-index: var(--z-product);
+    /* Pulled left into the copy's gutter and pushed right past the container
+       so the frame genuinely crops on the viewport edge. */
+    margin-left: -6%;
+    /* Crops on the viewport edge. The app reserves a matching right safe-zone
+       (appframe.css --safe-right) so the crop only ever eats padding — cutting
+       "RESTORED" mid-word reads as broken, not as deliberate cropping. */
+    margin-right: calc(-1 * var(--stage-bleed));
+    perspective: 1600px;
+    perspective-origin: 42% 40%;
+  }
+
+  /* Restrained: a fixed pose, not a mockup that tilts forever. */
+  .hero__frame {
+    position: relative;
+    z-index: var(--z-product);
+    transform: rotateY(-5deg) rotateX(1.5deg) rotateZ(0.4deg);
+    transform-style: preserve-3d;
+  }
+
+  /* Match the frame's internal safe zone to the crop, plus headroom, so the
+     status column always lands inside the viewport. */
+  .hero__frame .app {
+    --safe-right: calc(var(--stage-bleed) + 28px);
+  }
+
+  /* ---- layer 7: the capsule, the only element spanning both regions -- */
+
+  .hero__capsule {
+    position: absolute;
+    z-index: var(--z-product-front);
+    left: 2%;
+    bottom: -7%;
+    width: clamp(268px, 30%, 340px);
+    transform: translateZ(60px);
+  }
+
+  /* ---- context objects ----------------------------------------------- */
+  /* Distributed along the 45 degree axis. Each one names a real thing that
+     lives at a real location inside the frame. */
+
+  .ctx {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 11px;
+    border-radius: 10px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    box-shadow: var(--shadow-medium);
+    background: var(--paper);
+    color: #102526;
+    border: 1px solid rgba(8, 23, 24, 0.1);
+  }
+
+  .ctx svg {
+    width: 13px;
+    height: 13px;
+    flex: none;
+  }
+
+  .ctx b {
+    font-weight: 600;
+  }
+
+  /* Semantic tinting: each context type carries its own meaning-colour. */
+  .ctx--file {
+    background: color-mix(in srgb, var(--mist-blue) 22%, var(--paper));
+    color: var(--mist-blue-deep);
+    border-color: color-mix(in srgb, var(--mist-blue-deep) 26%, transparent);
+  }
+
+  .ctx--branch {
+    background: color-mix(in srgb, var(--preserved-gold) 22%, var(--paper));
+    color: var(--preserved-gold-deep);
+    border-color: color-mix(in srgb, var(--preserved-gold-deep) 26%, transparent);
+    border-radius: 999px;
+  }
+
+  .ctx--terminal {
+    background: var(--ink);
+    color: var(--cream);
+    border-color: var(--petrol-line);
+  }
+
+  .ctx--terminal i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--restore-mint);
+    flex: none;
+  }
+
+  .ctx--tabs {
+    background: color-mix(in srgb, var(--switch-coral) 16%, var(--paper));
+    color: var(--switch-coral-deep);
+    border-color: color-mix(in srgb, var(--switch-coral-deep) 22%, transparent);
+  }
+
+  /* Positions. Distributed along the 45° axis, crossing the frame's LEFT
+     edge into the gutter between copy and product — never landing on the
+     rail, whose nav labels are real product content and must stay legible. */
+  .ctx--at-branch {
+    left: -21%;
+    top: 12%;
+    z-index: var(--z-product-front);
+    transform: translateZ(48px);
+  }
+
+  .ctx--at-file {
+    left: -14%;
+    top: 30%;
+    z-index: var(--z-product-front);
+    transform: translateZ(44px);
+  }
+
+  /* Behind the frame's top edge, peeking out — kept inside the viewport so
+     the crop never eats a whole object. */
+  .ctx--at-tabs {
+    right: 26%;
+    /* Far enough above the frame's top edge that a readable majority of the
+       object clears it — behind the product plane, but not swallowed by it. */
+    top: -8%;
+    z-index: var(--z-product-back);
+    transform: translateZ(-40px);
+  }
+
+  .ctx--at-terminal {
+    right: 17%;
+    bottom: 4%;
+    z-index: var(--z-product-front);
+    transform: translateZ(52px);
+  }
+
+  /* ---- the connector rail, aligned beside the product ---------------- */
+
+  .hero__conn {
+    position: absolute;
+    z-index: var(--z-product-front);
+    right: 20%;
+    bottom: -9%;
+    display: flex;
+    gap: var(--space-2);
+    transform: translateZ(56px);
+  }
+
+  .conn-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--paper);
+    border: 1px solid rgba(8, 23, 24, 0.1);
+    box-shadow: var(--shadow-small);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: #57625f;
+    white-space: nowrap;
+  }
+
+  .conn-chip i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--sea-glass-deep);
+    flex: none;
+  }
+
+  /* ==========================================================================
+     RESPONSIVE
+     Not a shrunken desktop. Below 1024 the composition reflows to a stacked
+     narrative; below 768 the context objects reduce to the three that carry
+     meaning and the frame stops cropping.
+     ========================================================================== */
+
+  @media (max-width: 1279px) {
+    .hero__stage {
+      margin-left: -3%;
+      margin-right: calc(-1 * var(--page-gutter) - 2vw);
+    }
+
+    /* Fewer objects at narrower widths, per the brief's context-object budget. */
+    .ctx--at-tabs {
+      display: none;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    .hero {
+      min-height: 0;
+      padding-block: var(--space-7) var(--space-8);
+    }
+
+    .hero__grid {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: var(--space-9);
+    }
+
+    .hero__copy,
+    .hero__stage {
+      grid-column: 1 / -1;
+      grid-row: auto;
+    }
+
+    .hero__headline {
+      max-width: 14em;
+    }
+
+    .hero__lede {
+      max-width: 42ch;
+    }
+
+    .hero__stage {
+      margin-left: 0;
+      margin-right: calc(-1 * var(--page-gutter));
+      perspective: none;
+    }
+
+    .hero__frame {
+      transform: none;
+    }
+
+    .hero__capsule {
+      position: relative;
+      left: auto;
+      bottom: auto;
+      width: min(340px, 100%);
+      margin-top: var(--space-6);
+      transform: none;
+    }
+
+    .hero__conn {
+      position: relative;
+      right: auto;
+      bottom: auto;
+      margin-top: var(--space-4);
+      transform: none;
+    }
+
+    .ctx {
+      transform: none !important;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .hero__stage {
+      margin-right: 0;
+    }
+
+    /* Only the objects that carry meaning survive. */
+    .ctx--at-branch,
+    .ctx--at-file,
+    .ctx--at-terminal {
+      display: none;
+    }
+
+    .hero__conn {
+      flex-wrap: wrap;
+    }
+  }
+}

@@ -1,17 +1,17 @@
 <!doctype html>
-<html lang="en" class="no-js">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<title>Rabta — Save a task's whole workspace. Reopen it exactly.</title>
-<meta name="description" content="Rabta is a local-first macOS tool for developers. It captures a task's files, terminals, browser tabs and git branch into a capsule, then puts them back when you return. No account, no cloud, no telemetry." />
+<title>Rabta — Leave the task. Keep your place.</title>
+<meta name="description" content="Rabta preserves the working context around your code and restores it when you return. Local-first for macOS." />
 <link rel="canonical" href="https://rabta.build/" />
-<meta name="theme-color" content="#081718" />
-<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#faf8f2" />
+<meta name="color-scheme" content="light" />
 
-<!-- Icons. Every raster here is generated from assets/brand/rabta-mark.svg
-     by scripts/generate-brand-assets.py. -->
+<!-- Every raster is generated from assets/brand/rabta-mark.svg by
+     scripts/generate-brand-assets.py. Never hand-edited. -->
 <link rel="icon" href="/favicon.ico" sizes="32x32" />
 <link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png" />
@@ -20,37 +20,22 @@
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Rabta" />
 <meta property="og:url" content="https://rabta.build/" />
-<meta property="og:title" content="Rabta — Save a task's whole workspace. Reopen it exactly." />
-<meta property="og:description" content="A local-first macOS tool that captures a task's files, terminals, tabs and git branch into a capsule — and restores them on demand." />
+<meta property="og:title" content="Rabta — Leave the task. Keep your place." />
+<meta property="og:description" content="Rabta preserves the working context around your code and restores it when you return." />
 <meta property="og:image" content="https://rabta.build/assets/brand/og-cover.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:image:alt" content="Rabta — save a task's whole workspace, reopen it exactly. Shown beside the Rabta desktop app." />
+<meta property="og:image:alt" content="Rabta — leave the task, keep your place." />
 <meta name="twitter:card" content="summary_large_image" />
 
-<!-- Self-hosted font, preloaded so the headline never reflows. -->
+<!-- Absolute, byte-identical to the @font-face src, so the font is fetched
+     exactly once. -->
 <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-latin-variable.woff2" crossorigin />
-<!-- The hero screenshot is the only image preloaded; everything else is
-     lazy or deferred until its panel is opened. -->
-<link rel="preload" as="image" type="image/avif" href="/assets/shots/overview-1024.avif"
-      imagesrcset="/assets/shots/overview-640.avif 640w, /assets/shots/overview-1024.avif 1024w, /assets/shots/overview-1600.avif 1600w"
-      imagesizes="(max-width: 980px) 92vw, 46vw" />
 
-<link rel="stylesheet" href="/css/base.css" />
-<link rel="stylesheet" href="/css/site.css" />
-
-<!-- Marks the page as JS-capable so reveal animations can start hidden without
-     a flash. The timeout is a safety net: if site.js never boots (blocked,
-     failed, cached badly), the class is dropped and every section falls back
-     to plain visible content rather than staying at opacity 0 forever. -->
-<script>
-  document.documentElement.className = "js";
-  setTimeout(function () {
-    // Restore `no-js`, not an empty string: the FAQ's open-by-default
-    // fallback and other no-JS states are keyed off that class.
-    if (!window.__rabta) document.documentElement.className = "no-js";
-  }, 2500);
-</script>
+<link rel="stylesheet" href="/css/tokens.css" />
+<link rel="stylesheet" href="/css/foundation.css" />
+<link rel="stylesheet" href="/css/appframe.css" />
+<link rel="stylesheet" href="/css/hero.css" />
 
 <script type="application/ld+json">
 {
@@ -65,18 +50,17 @@
   "downloadUrl": "https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg",
   "url": "https://rabta.build/",
   "license": "https://opensource.org/licenses/MIT",
-  "description": "A local-first macOS tool that captures a task's whole workspace — editor files, terminals, browser tabs and git branch — into a capsule, and restores it on demand.",
+  "description": "A local-first macOS tool that preserves the working context around a task — editor files, terminals, browser tabs and git branch — and restores it on demand.",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
   "author": { "@type": "Person", "name": "Sammy Almuflahi" }
 }
 </script>
 </head>
 
-<body>
+<body data-env="paper">
 <a class="skip-link" href="#main">Skip to content</a>
 
-<!-- ========================== NAV ========================== -->
-<header class="nav">
+<header class="nav" data-nav>
   <div class="wrap nav__inner">
     <a class="brand" href="/" aria-label="Rabta — home">
       <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
@@ -84,849 +68,225 @@
         <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
         <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
       </svg>
-      <span class="brand__word">Rabta</span>
+      <b>Rabta</b>
     </a>
 
     <nav class="nav__links" aria-label="Primary">
-      <a href="#demo">Product</a>
-      <a href="#how">How it works</a>
-      <a href="#connectors">Connectors</a>
+      <a href="#product">Product</a>
       <a href="/setup/">Setup</a>
-      <a href="#faq">FAQ</a>
-      <a class="btn btn--primary" href="#download">Download</a>
+      <a href="/privacy/">Privacy</a>
+      <a class="btn btn--primary btn--compact" href="#download">Download</a>
     </nav>
   </div>
 </header>
 
 <main id="main">
 
-<!-- ========================== HERO ========================== -->
-<section class="hero wrap" aria-labelledby="hero-title">
-  <div class="hero__grid">
-    <div>
-      <a class="hero__status" href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener">
-        <span class="dot" aria-hidden="true"></span>
-        v0.1.0 — out now for macOS
-      </a>
+<!-- ========================== CHAPTER 1 — HERO ==========================
+     Compositional axis: the mark's 45° fold hinge. Copy in columns 1–6,
+     product stage in 7–12 pulled left into the gutter and cropped off the
+     right viewport edge. The capsule is the only element spanning both. -->
+<section class="hero" data-env="paper" aria-labelledby="hero-title">
 
-      <h1 class="display" id="hero-title">
-        Save a task's whole workspace.
-        <span class="accent">Reopen it exactly.</span>
+  <!-- Layer 1 — environment. Almost invisible; discovered, not noticed. -->
+  <div class="hero__env" aria-hidden="true"></div>
+  <div class="hero__light" aria-hidden="true"></div>
+  <div class="hero__grain" aria-hidden="true"></div>
+
+  <div class="wrap hero__grid">
+
+    <!-- Layer 2 — copy -->
+    <div class="hero__copy">
+      <p class="t-slogan hero__slogan">Context, kept.</p>
+
+      <h1 class="t-hero hero__headline" id="hero-title">
+        Leave the task.
+        <em>Keep your place.</em>
       </h1>
 
-      <p class="lede">
-        Rabta captures the files and terminals open in your editor, the browser
-        tabs you had up, and the branch you were on — into one capsule. Switch
-        to something else, come back, and it all opens again.
+      <p class="t-body-large hero__lede">
+        Rabta remembers the working context around your code—and restores it
+        when you return.
       </p>
 
-      <div class="hero__cta">
-        <a class="btn btn--primary btn--lg" href="#download">
+      <div class="hero__actions">
+        <a class="btn btn--primary" href="#download">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Download for macOS
         </a>
-        <a class="btn btn--ghost btn--lg" href="#demo">See it work</a>
+        <a class="btn btn--secondary" href="#product">Try the demo</a>
       </div>
 
-      <ul class="hero__facts">
-        <li>macOS 11+</li>
-        <li>Apple Silicon</li>
-        <li>5.5 MB</li>
-        <li>Signed &amp; notarized</li>
-      </ul>
-
-      <p class="mono muted" style="margin-top: 1rem">
-        No account. No telemetry. No Rabta server to send anything to.
+      <p class="t-technical hero__trust">
+        Local-first · No Rabta account · No telemetry by default
       </p>
     </div>
 
-    <!-- The stage: the real app behind, a capsule in front. The capsule is
-         the product's actual data model — a manifest of pointers, not a
-         copy of your work. -->
-    <div class="stage">
-      <div class="stage__shot">
-        <div class="frame__bar" aria-hidden="true">
-          <i></i><i></i><i></i><span>Rabta</span>
+    <!-- Layers 3–7 — the product stage -->
+    <div class="hero__stage">
+      <div class="hero__frame">
+
+        <div class="app" data-env="product" role="img"
+             aria-label="The Rabta desktop app on its Overview screen. The active task ‘Reconnect browser session’ is on branch feat/reconnect, with VS Code holding four files and three terminals, Chrome holding five tabs, and the git branch — all restored.">
+
+          <!-- the rail -->
+          <div class="app__rail">
+            <div class="app__titlebar">
+              <i class="app__light"></i><i class="app__light"></i><i class="app__light"></i>
+            </div>
+            <div class="app__hairline"></div>
+
+            <div class="app__brand">
+              <svg viewBox="0 0 64 64">
+                <rect width="64" height="64" rx="14" fill="#173234"/>
+                <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
+                <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
+              </svg>
+              <b>Rabta</b>
+            </div>
+
+            <div class="app__nav">
+              <div class="app__sel" style="--sel: 0"></div>
+              <div class="app__row is-active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                <span>Overview</span><kbd>⌘1</kbd>
+              </div>
+              <div class="app__row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 4.5-9 4.5-9-4.5Z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 17 9 4.5 9-4.5"/></svg>
+                <span>Capsules</span><kbd>⌘2</kbd>
+              </div>
+              <div class="app__row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v3"/><circle cx="17" cy="17" r="3"/><path d="M20.2 20.2 22 22"/></svg>
+                <span>Projects</span><kbd>⌘3</kbd>
+              </div>
+              <div class="app__row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v3a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg>
+                <span>Connectors</span><kbd>⌘4</kbd>
+              </div>
+              <div class="app__row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                <span>Activity</span><kbd>⌘5</kbd>
+              </div>
+            </div>
+
+            <div class="app__railfoot">
+              <div class="app__hairline"></div>
+              <div class="app__assure"><i></i><span>Data stored locally</span></div>
+            </div>
+          </div>
+
+          <!-- the workspace -->
+          <div class="app__main">
+            <div class="app__toolbar">
+              <span class="app__search">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <span>Search or jump to…</span><kbd>⌘K</kbd>
+              </span>
+              <span class="app__conn"><i></i>2 connected</span>
+            </div>
+
+            <div class="app__content">
+              <p class="app__eyebrow">Workspace</p>
+              <p class="app__title">Reconnect browser session</p>
+
+              <div class="app__meta">
+                <span class="app__pill app__pill--branch">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+                  feat/reconnect
+                </span>
+                <span class="app__pill">rabta</span>
+              </div>
+
+              <div class="app__panel">
+                <div class="app__panelhead">
+                  <b>Workspace restored</b>
+                  <span class="app__eyebrow">capsule</span>
+                </div>
+
+                <div class="app__rows">
+                  <div class="app__resource">
+                    <span class="app__icon app__icon--editor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg></span>
+                    <span class="app__rtext">
+                      <span class="app__rname">VS Code</span>
+                      <span class="app__rdetail">src/hub.rs · 4 files · 3 terminals</span>
+                    </span>
+                    <span class="app__status" data-status="applied">Restored</span>
+                  </div>
+                  <div class="app__resource">
+                    <span class="app__icon app__icon--browser"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/></svg></span>
+                    <span class="app__rtext">
+                      <span class="app__rname">Chrome</span>
+                      <span class="app__rdetail">5 tabs</span>
+                    </span>
+                    <span class="app__status" data-status="applied">Restored</span>
+                  </div>
+                  <div class="app__resource">
+                    <span class="app__icon app__icon--git"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></span>
+                    <span class="app__rtext">
+                      <span class="app__rname">Git</span>
+                      <span class="app__rdetail">feat/reconnect</span>
+                    </span>
+                    <span class="app__status" data-status="applied">Restored</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <picture>
-          <source type="image/avif" sizes="(max-width: 980px) 92vw, 46vw"
-                  srcset="/assets/shots/overview-640.avif 640w, /assets/shots/overview-1024.avif 1024w, /assets/shots/overview-1600.avif 1600w" />
-          <source type="image/webp" sizes="(max-width: 980px) 92vw, 46vw"
-                  srcset="/assets/shots/overview-640.webp 640w, /assets/shots/overview-1024.webp 1024w, /assets/shots/overview-1600.webp 1600w" />
-          <img src="/assets/shots/overview-1024.png" width="2560" height="1600"
-               fetchpriority="high" decoding="async"
-               alt="The Rabta desktop app on its Overview screen: a sidebar listing Overview, Capsules, Projects, Connectors and Activity, and a main pane showing three registered projects, one connected app, the active task with a Resume button, and recent activity." />
-        </picture>
-      </div>
 
-      <figure class="capsule" data-capsule>
-        <figcaption class="capsule__head">
-          <span class="capsule__eyebrow">
-            <span>capsule · atlas-api</span>
-            <span class="capsule__state" data-capsule-state>Restored</span>
-          </span>
-          <b class="capsule__title">Wire the connector SDK reconnect</b>
-        </figcaption>
-
-        <ol class="capsule__lines">
-          <li class="capsule__line" style="--i:0">
-            <span class="capsule__n" aria-hidden="true">1</span>
-            <span class="capsule__k">vscode.workspace <b>4 files · 3 terminals</b></span>
-            <span class="capsule__tick" aria-hidden="true">✓</span>
-          </li>
-          <li class="capsule__line" style="--i:1">
-            <span class="capsule__n" aria-hidden="true">2</span>
-            <span class="capsule__k">chrome.tabs <b>5 tabs</b></span>
-            <span class="capsule__tick" aria-hidden="true">✓</span>
-          </li>
-          <li class="capsule__line" style="--i:2">
-            <span class="capsule__n" aria-hidden="true">3</span>
-            <span class="capsule__k">git.branch <b>feat/connector-reconnect</b></span>
-            <span class="capsule__tick" aria-hidden="true">✓</span>
-          </li>
-        </ol>
-
-        <div class="capsule__foot">
-          <span>pointers, not contents</span>
-          <button type="button" class="capsule__replay" data-replay>
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Replay
-          </button>
-        </div>
-      </figure>
-    </div>
-  </div>
-</section>
-
-<!-- ========================== DEMO ========================== -->
-<section class="section" id="demo" aria-labelledby="demo-title">
-  <div class="wrap railed">
-    <div class="rail"><span class="marker">Product</span></div>
-    <div class="section-head reveal">
-      <h2 class="h2" id="demo-title">The whole app, screen by screen.</h2>
-      <p class="lede">
-        Six views, one job: know what you were doing, and get back into it.
-      </p>
-    </div>
-  </div>
-
-  <div class="wrap wrap--wide" style="margin-top: 2.5rem">
-    <div class="reveal">
-      <div class="demo__tabs" role="tablist" aria-label="Rabta screens" data-tablist>
-        <button class="demo__tab" role="tab" id="tab-overview" aria-controls="panel-overview" aria-selected="true" tabindex="0" type="button">Overview</button>
-        <button class="demo__tab" role="tab" id="tab-capsules" aria-controls="panel-capsules" aria-selected="false" tabindex="-1" type="button">Capsules</button>
-        <button class="demo__tab" role="tab" id="tab-restore" aria-controls="panel-restore" aria-selected="false" tabindex="-1" type="button">Restore</button>
-        <button class="demo__tab" role="tab" id="tab-projects" aria-controls="panel-projects" aria-selected="false" tabindex="-1" type="button">Projects</button>
-        <button class="demo__tab" role="tab" id="tab-connectors" aria-controls="panel-connectors" aria-selected="false" tabindex="-1" type="button">Connectors</button>
-        <button class="demo__tab" role="tab" id="tab-activity" aria-controls="panel-activity" aria-selected="false" tabindex="-1" type="button">Activity</button>
-      </div>
-
-      <!-- Overview -->
-      <div class="demo__panel" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview" tabindex="0">
-        <div class="demo__layout">
-          <figure class="demo__figure">
-            <picture>
-              <source type="image/avif" sizes="(max-width: 900px) 92vw, 60vw" srcset="/assets/shots/overview-640.avif 640w, /assets/shots/overview-1024.avif 1024w, /assets/shots/overview-1600.avif 1600w" />
-              <source type="image/webp" sizes="(max-width: 900px) 92vw, 60vw" srcset="/assets/shots/overview-640.webp 640w, /assets/shots/overview-1024.webp 1024w, /assets/shots/overview-1600.webp 1600w" />
-              <img src="/assets/shots/overview-1024.png" width="2560" height="1600" loading="lazy" decoding="async"
-                   alt="Rabta's Overview screen showing three registered projects, one connected app, two open tasks, the active task with a Resume button, and a Continue Working list." />
-            </picture>
-            <span class="demo__pin" style="left:23%;top:46%" aria-hidden="true">1</span>
-            <span class="demo__pin" style="left:23%;top:62%" aria-hidden="true">2</span>
-            <span class="demo__pin" style="left:23%;top:79%" aria-hidden="true">3</span>
-          </figure>
-          <ol class="demo__notes">
-            <li class="demo__note"><span class="n">1</span><span><b>The task you're on.</b> One click puts its workspace back.</span></li>
-            <li class="demo__note"><span class="n">2</span><span><b>Where you left each project.</b> When you last worked on it, and on what.</span></li>
-            <li class="demo__note"><span class="n">3</span><span><b>What's connected right now.</b> Rabta only restores what it can currently reach.</span></li>
-          </ol>
-        </div>
-      </div>
-
-      <!-- Capsules -->
-      <div class="demo__panel" role="tabpanel" id="panel-capsules" aria-labelledby="tab-capsules" tabindex="0" hidden>
-        <div class="demo__layout">
-          <figure class="demo__figure">
-            <picture>
-              <source type="image/avif" sizes="(max-width: 900px) 92vw, 60vw" srcset="/assets/shots/capsules-640.avif 640w, /assets/shots/capsules-1024.avif 1024w, /assets/shots/capsules-1600.avif 1600w" />
-              <source type="image/webp" sizes="(max-width: 900px) 92vw, 60vw" srcset="/assets/shots/capsules-640.webp 640w, /assets/shots/capsules-1024.webp 1024w, /assets/shots/capsules-1600.webp 1600w" />
-              <img src="/assets/shots/capsules-1024.png" width="2560" height="1600" loading="lazy" decoding="async"
-                   alt="Rabta's Capsules screen: tasks grouped by project, each showing what its capsule holds — files, terminals, browser tabs and git branch — with Resume and Save State buttons." />
-            </picture>
-            <span class="demo__pin" style="left:23%;top:29%" aria-hidden="true">1</span>
-            <span class="demo__pin" style="left:23%;top:39%" aria-hidden="true">2</span>
-            <span class="demo__pin" style="left:23%;top:77%" aria-hidden="true">3</span>
-          </figure>
-          <ol class="demo__notes">
-            <li class="demo__note"><span class="n">1</span><span><b>Tasks live under a project.</b> Grouped by repository, not scattered through one flat list.</span></li>
-            <li class="demo__note"><span class="n">2</span><span><b>You can see what a capsule holds</b> before you resume it — file and terminal counts, tab count, branch name.</span></li>
-            <li class="demo__note"><span class="n">3</span><span><b>Finished work stays put.</b> A completed task keeps its capsule, so you can reopen that workspace months later.</span></li>
-          </ol>
-        </div>
-      </div>
-
-      <!-- Restore -->
-      <div class="demo__panel" role="tabpanel" id="panel-restore" aria-labelledby="tab-restore" tabindex="0" hidden>
-        <div class="demo__layout">
-          <figure class="demo__figure">
-            <picture>
-              <source type="image/avif" sizes="(max-width: 900px) 92vw, 60vw" srcset="/assets/shots/restore-640.avif 640w, /assets/shots/restore-1024.avif 1024w, /assets/shots/restore-1600.avif 1600w" />
-              <source type="image/webp" sizes="(max-width: 900px) 92vw, 60vw" srcset="/assets/shots/restore-640.webp 640w, /assets/shots/restore-1024.webp 1024w, /assets/shots/restore-1600.webp 1600w" />
-              <img src="/assets/shots/restore-1024.png" width="2560" height="1600" loading="lazy" decoding="async"
-                   alt="Rabta restoring a capsule: a summary sheet reading Workspace partially restored, with VS Code marked Restored, Git marked Restored, and Chrome marked On next reload." />
-            </picture>
-            <span class="demo__pin" style="left:23%;top:55%" aria-hidden="true">1</span>
-            <span class="demo__pin" style="left:23%;top:62%" aria-hidden="true">2</span>
-            <span class="demo__pin" style="left:23%;top:67%" aria-hidden="true">3</span>
-          </figure>
-          <ol class="demo__notes">
-            <li class="demo__note"><span class="n">1</span><span><b>It tells you the truth.</b> "Partially restored" is a real outcome, reported per tool — never a success message it didn't earn.</span></li>
-            <li class="demo__note"><span class="n">2</span><span><b>Restored means confirmed.</b> VS Code reopened the workspace, its files and its terminals, and said so.</span></li>
-            <li class="demo__note"><span class="n">3</span><span><b>An offline tool is queued, not failed.</b> Chrome wasn't connected here, so its tabs apply on next reload.</span></li>
-          </ol>
-        </div>
-      </div>
-
-      <!-- Projects -->
-      <div class="demo__panel" role="tabpanel" id="panel-projects" aria-labelledby="tab-projects" tabindex="0" hidden>
-        <div class="demo__layout">
-          <figure class="demo__figure">
-            <picture>
-              <source type="image/avif" sizes="(max-width: 900px) 92vw, 60vw" srcset="/assets/shots/projects-640.avif 640w, /assets/shots/projects-1024.avif 1024w, /assets/shots/projects-1600.avif 1600w" />
-              <source type="image/webp" sizes="(max-width: 900px) 92vw, 60vw" srcset="/assets/shots/projects-640.webp 640w, /assets/shots/projects-1024.webp 1024w, /assets/shots/projects-1600.webp 1600w" />
-              <img src="/assets/shots/projects-1024.png" width="2560" height="1600" loading="lazy" decoding="async"
-                   alt="Rabta's Projects screen listing three registered repositories with their paths, dev URLs, last-opened times and live git status." />
-            </picture>
-            <span class="demo__pin" style="left:23%;top:31%" aria-hidden="true">1</span>
-            <span class="demo__pin" style="left:23%;top:46%" aria-hidden="true">2</span>
-            <span class="demo__pin" style="left:23%;top:85%" aria-hidden="true">3</span>
-          </figure>
-          <ol class="demo__notes">
-            <li class="demo__note"><span class="n">1</span><span><b>Register a repo once.</b> Rabta reads its path and default branch — it doesn't move or modify anything.</span></li>
-            <li class="demo__note"><span class="n">2</span><span><b>Live git status</b> — branch, changed files, ahead and behind. Restores put you back on the right branch, never by forcing a checkout.</span></li>
-            <li class="demo__note"><span class="n">3</span><span><b>Time you actually spent</b>, measured on your own machine and stored there.</span></li>
-          </ol>
-        </div>
-      </div>
-
-      <!-- Connectors -->
-      <div class="demo__panel" role="tabpanel" id="panel-connectors" aria-labelledby="tab-connectors" tabindex="0" hidden>
-        <div class="demo__layout">
-          <figure class="demo__figure">
-            <picture>
-              <source type="image/avif" sizes="(max-width: 900px) 92vw, 60vw" srcset="/assets/shots/connectors-640.avif 640w, /assets/shots/connectors-1024.avif 1024w, /assets/shots/connectors-1600.avif 1600w" />
-              <source type="image/webp" sizes="(max-width: 900px) 92vw, 60vw" srcset="/assets/shots/connectors-640.webp 640w, /assets/shots/connectors-1024.webp 1024w, /assets/shots/connectors-1600.webp 1600w" />
-              <img src="/assets/shots/connectors-1024.png" width="2560" height="1600" loading="lazy" decoding="async"
-                   alt="Rabta's Connectors screen: a pairing request from Chrome awaiting Approve or Deny, above cards for VS Code (connected) and Chrome (offline) listing each connector's declared capabilities." />
-            </picture>
-            <span class="demo__pin" style="left:23%;top:31%" aria-hidden="true">1</span>
-            <span class="demo__pin" style="left:23%;top:46%" aria-hidden="true">2</span>
-            <span class="demo__pin" style="left:60%;top:46%" aria-hidden="true">3</span>
-          </figure>
-          <ol class="demo__notes">
-            <li class="demo__note"><span class="n">1</span><span><b>Nothing connects until you approve it.</b> A connector sits at this prompt until you say yes, in the app.</span></li>
-            <li class="demo__note"><span class="n">2</span><span><b>Each connector declares its capabilities</b> — and can only do those things.</span></li>
-            <li class="demo__note"><span class="n">3</span><span><b>Tools you've used before stay listed</b> when they go offline, so you can see what's missing rather than wondering.</span></li>
-          </ol>
-        </div>
-      </div>
-
-      <!-- Activity -->
-      <div class="demo__panel" role="tabpanel" id="panel-activity" aria-labelledby="tab-activity" tabindex="0" hidden>
-        <div class="demo__layout">
-          <figure class="demo__figure">
-            <picture>
-              <source type="image/avif" sizes="(max-width: 900px) 92vw, 60vw" srcset="/assets/shots/activity-640.avif 640w, /assets/shots/activity-1024.avif 1024w, /assets/shots/activity-1600.avif 1600w" />
-              <source type="image/webp" sizes="(max-width: 900px) 92vw, 60vw" srcset="/assets/shots/activity-640.webp 640w, /assets/shots/activity-1024.webp 1024w, /assets/shots/activity-1600.webp 1600w" />
-              <img src="/assets/shots/activity-1024.png" width="2560" height="1600" loading="lazy" decoding="async"
-                   alt="Rabta's Activity screen: a filterable log of commands sent to connectors and the responses received, each row timestamped and expandable for details." />
-            </picture>
-            <span class="demo__pin" style="left:23%;top:30%" aria-hidden="true">1</span>
-            <span class="demo__pin" style="left:23%;top:38%" aria-hidden="true">2</span>
-            <span class="demo__pin" style="left:23%;top:84%" aria-hidden="true">3</span>
-          </figure>
-          <ol class="demo__notes">
-            <li class="demo__note"><span class="n">1</span><span><b>Filter by connector or event kind</b> when you're working out why something didn't come back.</span></li>
-            <li class="demo__note"><span class="n">2</span><span><b>Every command and response</b> between the app and your tools, in plain English rather than raw wire traffic.</span></li>
-            <li class="demo__note"><span class="n">3</span><span><b>History survives a restart.</b> It's read back from the local database — and goes nowhere else.</span></li>
-          </ol>
-        </div>
-      </div>
-
-      <p class="demo__caption">
-        Rabta v0.1.0, running with demo data. Real app, representative workspace.
-      </p>
-    </div>
-  </div>
-</section>
-
-<!-- ======================= HOW IT WORKS ======================= -->
-<section class="section wrap" id="how" aria-labelledby="how-title">
-  <div class="railed">
-    <div class="rail"><span class="marker">Capsule</span></div>
-    <div class="section-head reveal">
-      <h2 class="h2" id="how-title">Four steps, then it's a habit.</h2>
-      <p class="lede">
-        You work in tasks. Rabta watches the tools you connected and remembers
-        what each task was using.
-      </p>
-    </div>
-  </div>
-
-  <div class="railed" style="margin-top: 2.5rem">
-    <div class="rail" aria-hidden="true"></div>
-    <ol class="steps" data-stagger>
-      <li class="step fold fold--quiet reveal">
-        <span class="step__n">Step 1</span>
-        <h3>Connect your tools</h3>
-        <p>Install the editor connector. It finds the app on your machine and pairs itself — no sign-in.</p>
-      </li>
-      <li class="step fold fold--quiet reveal">
-        <span class="step__n">Step 2</span>
-        <h3>Register a project</h3>
-        <p>Point Rabta at a repo. It reads the path and branch, and leaves your files alone.</p>
-      </li>
-      <li class="step fold fold--quiet reveal">
-        <span class="step__n">Step 3</span>
-        <h3>Work in tasks</h3>
-        <p>Give the thing you're doing a name. Save its state when you step away — or just switch, which saves it for you.</p>
-      </li>
-      <li class="step fold fold--quiet reveal">
-        <span class="step__n">Step 4</span>
-        <h3>Resume</h3>
-        <p>Pick the task back up. Your files, terminals, tabs and branch come back, and Rabta tells you what it restored.</p>
-      </li>
-    </ol>
-  </div>
-</section>
-
-<hr class="divider" />
-
-<!-- ========================= FEATURES ========================= -->
-<section class="section wrap" aria-labelledby="features-title">
-  <div class="railed">
-    <div class="rail"><span class="marker">Built in</span></div>
-    <div class="section-head reveal">
-      <h2 class="h2" id="features-title">Small tool. Specific job.</h2>
-      <p class="lede">
-        Rabta is not a task manager, a note app or a time tracker. It restores
-        working context, and it tries to do that one thing properly.
-      </p>
-    </div>
-  </div>
-
-  <div class="railed" style="margin-top: 2.5rem">
-    <div class="rail" aria-hidden="true"></div>
-    <ul class="features" data-stagger>
-      <li class="feature fold reveal">
-        <span class="feature__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="1.7"/><path d="M9 5v14M4 9h5" stroke="currentColor" stroke-width="1.7"/></svg></span>
-        <h3>Editor files and terminals</h3>
-        <p>The files you had open, the workspace folder, and the terminals you were using — reopened together.</p>
-      </li>
-      <li class="feature fold reveal">
-        <span class="feature__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18" stroke="currentColor" stroke-width="1.4"/></svg></span>
-        <h3>Browser tabs</h3>
-        <p>The tabs that belonged to the task, by <code>URL</code> and title. Page contents are never read.</p>
-      </li>
-      <li class="feature fold reveal">
-        <span class="feature__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="6" cy="6" r="2.4" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="18" r="2.4" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="8" r="2.4" stroke="currentColor" stroke-width="1.7"/><path d="M6 8.5v7M8 6.5h4a3 3 0 0 1 3 3v.5" stroke="currentColor" stroke-width="1.7"/></svg></span>
-        <h3>Git branch, safely</h3>
-        <p>Restores put you back on the task's branch — and stop rather than force a checkout over your changes.</p>
-      </li>
-      <li class="feature fold reveal">
-        <span class="feature__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <h3>Approval before access</h3>
-        <p>A connector can't talk to the hub until you approve it in the app, and it can only use the capabilities it declared.</p>
-      </li>
-      <li class="feature fold reveal">
-        <span class="feature__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3Z" stroke="currentColor" stroke-width="1.7"/><path d="M4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" stroke="currentColor" stroke-width="1.7"/></svg></span>
-        <h3>Your data, on your disk</h3>
-        <p>Capsules are rows in a local database you can open in Finder. Uninstalling takes them with it.</p>
-      </li>
-      <li class="feature fold reveal">
-        <span class="feature__ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 18 9 9l4 6 2.5-3.5L20 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 21h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
-        <h3>An honest activity log</h3>
-        <p>Every command sent and every reply received, so a restore that didn't work is something you can actually diagnose.</p>
-      </li>
-    </ul>
-  </div>
-</section>
-
-<!-- ========================= USE CASES ========================= -->
-<section class="section wrap" aria-labelledby="cases-title">
-  <div class="railed">
-    <div class="rail"><span class="marker">When</span></div>
-    <div class="section-head reveal">
-      <h2 class="h2" id="cases-title">The moments this pays for itself.</h2>
-    </div>
-  </div>
-
-  <div class="railed" style="margin-top: 2.25rem">
-    <div class="rail" aria-hidden="true"></div>
-    <ul class="cases" data-stagger>
-      <li class="case reveal">
-        <span class="case__when">A prod bug lands</span>
-        <span class="case__what">
-          <b>You drop everything mid-feature</b>
-          <p>Save the feature task as it stands, fix the bug on its own branch, then resume — instead of trying to remember which six files you had open.</p>
+        <!-- Context objects. Each names a real thing at a real location
+             inside the frame, and each carries its meaning-colour. -->
+        <span class="ctx ctx--branch ctx--at-branch" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+          feat/reconnect
         </span>
-      </li>
-      <li class="case reveal">
-        <span class="case__when">Monday morning</span>
-        <span class="case__what">
-          <b>Friday's context is gone</b>
-          <p>Open the task you were on and get the same files, terminals, tabs and branch back, without reconstructing them from your commit log.</p>
-        </span>
-      </li>
-      <li class="case reveal">
-        <span class="case__when">Two repos, one afternoon</span>
-        <span class="case__what">
-          <b>Switching projects, not just branches</b>
-          <p>Each project keeps its own tasks. Moving between them swaps the whole workspace, not just the working directory.</p>
-        </span>
-      </li>
-      <li class="case reveal">
-        <span class="case__when">A review request</span>
-        <span class="case__what">
-          <b>A ten-minute interruption that costs an hour</b>
-          <p>The cost of an interruption is mostly the rebuild afterwards. Save before you go, resume when you're back.</p>
-        </span>
-      </li>
-      <li class="case reveal">
-        <span class="case__when">Research-heavy work</span>
-        <span class="case__what">
-          <b>The tabs are the work</b>
-          <p>Twelve reference tabs are part of the task. They come back with it instead of being closed and hunted down again.</p>
-        </span>
-      </li>
-    </ul>
-  </div>
-</section>
 
-<!-- ========================== PRIVACY ========================== -->
-<section class="band" id="privacy" aria-labelledby="privacy-title">
-  <div class="section wrap">
-    <div class="railed">
-      <div class="rail"><span class="marker">Local-first</span></div>
-      <div class="section-head reveal">
-        <h2 class="h2" id="privacy-title">There is no Rabta server.</h2>
-        <p class="lede">
-          Not "we don't look at your data" — there is nowhere for it to go. The
-          app and its connectors run on your machine and talk to each other over
-          a loopback port that is never exposed to your network.
-        </p>
+        <span class="ctx ctx--file ctx--at-file" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v5h5"/><path d="M15 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6Z"/></svg>
+          src/hub.rs
+        </span>
+
+        <span class="ctx ctx--tabs ctx--at-tabs" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="14" x="3" y="7" rx="2"/><path d="M7 7V5a2 2 0 0 1 2-2h2"/></svg>
+          5 browser tabs
+        </span>
+
+        <span class="ctx ctx--terminal ctx--at-terminal" aria-hidden="true">
+          <i></i>3 terminals
+        </span>
+
+        <!-- Layer 7 — the capsule. Spans copy and product because it is the
+             only thing that belongs to both. Shows the PRESERVED task: the
+             one you are not in is the one being kept. -->
+        <figure class="capsule hero__capsule">
+          <figcaption class="capsule__head">
+            <span class="capsule__label">capsule · rabta</span>
+            <span class="capsule__state">Saved</span>
+          </figcaption>
+          <p class="capsule__title">Fix restore timeout</p>
+          <div class="capsule__lines">
+            <p class="capsule__line"><span>branch</span><b>fix/restore-timeout</b></p>
+            <p class="capsule__line"><span>editor</span><b>6 files · 1 terminal</b></p>
+            <p class="capsule__line"><span>browser</span><b>3 tabs</b></p>
+          </div>
+          <p class="capsule__foot">pointers, not contents</p>
+        </figure>
+
+        <!-- The connector rail, aligned beside the product. -->
+        <div class="hero__conn" aria-hidden="true">
+          <span class="conn-chip"><i></i>VS Code</span>
+          <span class="conn-chip"><i></i>Chrome</span>
+        </div>
+
       </div>
-    </div>
 
-    <div class="railed">
-      <div class="rail" aria-hidden="true"></div>
-      <ul class="privacy__grid" data-stagger>
-        <li class="privacy__item fold fold--quiet reveal">
-          <span class="privacy__key"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5l14 14M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z" stroke="currentColor" stroke-width="1.8"/></svg>No account</span>
-          <h3>Nothing to sign into</h3>
-          <p>No login, no email, no profile. Open the app and use it.</p>
-        </li>
-        <li class="privacy__item fold fold--quiet reveal">
-          <span class="privacy__key"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5l14 14M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z" stroke="currentColor" stroke-width="1.8"/></svg>No cloud</span>
-          <h3>No sync, no backend</h3>
-          <p>Capsules are rows in a database file on your disk. Nothing is uploaded.</p>
-        </li>
-        <li class="privacy__item fold fold--quiet reveal">
-          <span class="privacy__key"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5l14 14M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z" stroke="currentColor" stroke-width="1.8"/></svg>No telemetry</span>
-          <h3>Nothing is measured</h3>
-          <p>No analytics, no usage pings, no crash reporting service, no ads.</p>
-        </li>
-        <li class="privacy__item fold fold--quiet reveal">
-          <span class="privacy__key"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>Pointers only</span>
-          <h3>Your code is not copied</h3>
-          <p>Rabta stores file <em>paths</em>, branch <em>names</em> and tab <em>URLs</em> — never file contents, terminal output or page data.</p>
-        </li>
-        <li class="privacy__item fold fold--quiet reveal">
-          <span class="privacy__key"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>Localhost</span>
-          <h3>Bound to 127.0.0.1</h3>
-          <p>The hub isn't exposed to your network, and connectors authenticate against a secret written locally per run.</p>
-        </li>
-        <li class="privacy__item fold fold--quiet reveal">
-          <span class="privacy__key"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>This site</span>
-          <h3>No third-party requests</h3>
-          <p>This page loads no analytics, no hosted fonts and no tracking scripts. Only links you click go anywhere else.</p>
-        </li>
-      </ul>
-
-      <p class="small muted reveal" style="margin-top: 1.75rem">
-        The full <a href="/privacy/">privacy policy</a> spells out exactly what is
-        stored, where, and what the connectors can reach.
+      <p class="demo-label" style="margin-top: var(--space-9)">
+        Interactive product demo · Representative Rabta v0.1.0 data
       </p>
     </div>
-  </div>
-</section>
-
-<!-- ========================== INSTALL ========================== -->
-<section class="section wrap" id="install" aria-labelledby="install-title">
-  <div class="railed">
-    <div class="rail"><span class="marker">Install</span></div>
-    <div class="section-head reveal">
-      <h2 class="h2" id="install-title">Running in about two minutes.</h2>
-      <p class="lede">
-        The app is signed with an Apple Developer ID and notarized, so it opens
-        with a normal double-click — no right-click trick, no Gatekeeper warning.
-      </p>
-    </div>
-  </div>
-
-  <div class="railed" style="margin-top: 2.5rem">
-    <div class="rail" aria-hidden="true"></div>
-    <div>
-      <ol class="install" data-stagger>
-        <li class="install__step reveal">
-          <span class="install__n">1</span>
-          <div class="install__body">
-            <h3>Install the app</h3>
-            <p>Open <span class="mono-inline">Rabta_0.1.0_aarch64.dmg</span> and drag Rabta into Applications. Launch it — the local hub starts with the window.</p>
-          </div>
-        </li>
-        <li class="install__step reveal">
-          <span class="install__n">2</span>
-          <div class="install__body">
-            <h3>Add the editor connector</h3>
-            <p>In Cursor, VSCodium or Windsurf, search the Extensions panel for <b>Rabta Connector</b>. In VS Code, install the signed <span class="mono-inline">.vsix</span> — see the <a href="/setup/#editor">setup guide</a>. It pairs itself; there's nothing to sign into.</p>
-          </div>
-        </li>
-        <li class="install__step reveal">
-          <span class="install__n">3</span>
-          <div class="install__body">
-            <h3>Register a project</h3>
-            <p>Point Rabta at a git repository. It reads the path and default branch and doesn't touch anything else.</p>
-          </div>
-        </li>
-        <li class="install__step reveal">
-          <span class="install__n">4</span>
-          <div class="install__body">
-            <h3>Save your first capsule</h3>
-            <p>Name the task you're on, then press <b>Save State</b>. Switch away and resume it to see the workspace come back.</p>
-          </div>
-        </li>
-      </ol>
-
-      <p class="small reveal" style="margin-top: 0.5rem">
-        <a href="/setup/">Read the full setup guide</a> — verification, pairing,
-        troubleshooting and uninstall.
-      </p>
-    </div>
-  </div>
-</section>
-
-<!-- ========================= DOWNLOAD ========================= -->
-<section class="band" id="download" aria-labelledby="download-title">
-  <div class="section wrap">
-    <div class="railed">
-      <div class="rail"><span class="marker">Download</span></div>
-      <div class="section-head reveal">
-        <h2 class="h2" id="download-title">Get Rabta 0.1.0</h2>
-        <p class="lede">Free, MIT-licensed, and verifiable before you run it.</p>
-      </div>
-    </div>
-
-    <div class="railed" style="margin-top: 2.5rem">
-      <div class="rail" aria-hidden="true"></div>
-      <div class="dl">
-        <div class="dl__primary fold reveal">
-          <span class="dl__file">Rabta_0.1.0_aarch64.dmg</span>
-          <h3>Rabta for macOS</h3>
-          <p>Apple Silicon (arm64), macOS 11.0 Big Sur or later. There is no Intel or universal build.</p>
-
-          <div class="dl__actions">
-            <a class="btn btn--primary btn--lg" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Download the DMG
-            </a>
-          </div>
-
-          <div class="dl__chips">
-            <span class="chip"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l5 5L20 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Signed</span>
-            <span class="chip"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l5 5L20 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Notarized</span>
-            <span class="chip"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12l5 5L20 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Free · MIT</span>
-          </div>
-
-          <p class="dl__links">
-            <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener">Release notes</a>
-            <a href="/setup/">Setup guide</a>
-            <a href="https://github.com/salmuflahi/rabta/issues" target="_blank" rel="noopener">Report a problem</a>
-          </p>
-        </div>
-
-        <div class="dl__integrity fold fold--quiet reveal">
-          <h3>Check it before you run it</h3>
-          <p>Everything below is verifiable from the file itself.</p>
-
-          <dl class="facts">
-            <dt>Version</dt><dd>0.1.0</dd>
-            <dt>Released</dt><dd>29 July 2026</dd>
-            <dt>Type</dt><dd>Apple Disk Image (.dmg)</dd>
-            <dt>Size</dt><dd>5,495,778 bytes (5.5 MB)</dd>
-            <dt>Arch</dt><dd>macOS arm64 (Apple Silicon)</dd>
-            <dt>Min OS</dt><dd>macOS 11.0</dd>
-            <dt>Team ID</dt><dd>86M2X6MUA3</dd>
-          </dl>
-
-          <p class="small muted">SHA-256</p>
-          <div class="sha">
-            <code>3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655</code>
-            <button class="copy" type="button" data-copy="3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655">Copy</button>
-          </div>
-
-          <pre class="code" style="margin-top: 1rem"><span class="cmt"># from wherever you saved it</span>
-shasum -a 256 Rabta_0.1.0_aarch64.dmg</pre>
-
-          <p class="small muted" style="margin-top: 0.875rem">
-            The <a href="/setup/#verify">setup guide</a> also shows how to confirm
-            Apple's notarization with <code>stapler</code> and <code>spctl</code>.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ========================= CONNECTORS ========================= -->
-<section class="section wrap" id="connectors" aria-labelledby="conn-title">
-  <div class="railed">
-    <div class="rail"><span class="marker">Connectors</span></div>
-    <div class="section-head reveal">
-      <h2 class="h2" id="conn-title">The app captures. Connectors reach.</h2>
-      <p class="lede">
-        The desktop app can't see inside your editor or browser on its own. Each
-        connector is a small bridge that talks only to the hub on your machine.
-      </p>
-    </div>
-  </div>
-
-  <div class="railed" style="margin-top: 2.5rem">
-    <div class="rail" aria-hidden="true"></div>
-    <ul class="conns" data-stagger>
-      <li class="conn fold reveal">
-        <div class="conn__top">
-          <h3>Editor</h3>
-          <span class="badge badge--live"><span class="dot" aria-hidden="true"></span>Available now</span>
-        </div>
-        <p>
-          Snapshots and reopens your open files, workspace folder and terminals.
-          Published on Open VSX, which <b>Cursor, VSCodium and Windsurf</b>
-          install from directly — search "Rabta Connector" in the Extensions
-          panel. For stock <b>VS Code</b>, install the signed
-          <span class="mono-inline">.vsix</span>; it is not on the Microsoft
-          Marketplace yet.
-        </p>
-        <span class="conn__id">rabta-connect.rabta-vscode · 0.1.0</span>
-        <div class="conn__foot">
-          <a class="btn btn--primary" href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener">
-            Get it on Open VSX
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </a>
-        </div>
-      </li>
-
-      <li class="conn fold fold--quiet reveal">
-        <div class="conn__top">
-          <h3>Browser</h3>
-          <span class="badge badge--pending">Pending review</span>
-        </div>
-        <p>
-          Captures the tab URLs and titles belonging to a task and reopens them
-          on restore. It requests no host permissions and runs no content
-          scripts, so it is structurally unable to read page contents — and it
-          pairs only after you approve it in the app.
-        </p>
-        <span class="conn__id">Chrome Web Store · in review</span>
-        <div class="conn__foot">
-          <span class="state-chip">Not installable yet</span>
-        </div>
-      </li>
-    </ul>
-
-    <p class="small muted reveal" style="margin-top: 1.5rem">
-      Rabta works without the browser connector — you just get editor,
-      terminal and git state until it lands.
-    </p>
-  </div>
-</section>
-
-<hr class="divider" />
-
-<!-- ============================ FAQ ============================ -->
-<section class="section wrap" id="faq" aria-labelledby="faq-title">
-  <div class="railed">
-    <div class="rail"><span class="marker">FAQ</span></div>
-    <div class="section-head reveal">
-      <h2 class="h2" id="faq-title">Questions worth asking first.</h2>
-    </div>
-  </div>
-
-  <div class="railed" style="margin-top: 2.25rem">
-    <div class="rail" aria-hidden="true"></div>
-    <div class="faq" data-faq>
-
-      <div class="faq__item">
-        <h3><button class="faq__q" type="button" id="q1" aria-expanded="false" aria-controls="a1">
-          How is this different from a task manager?<span class="faq__sign" aria-hidden="true"></span>
-        </button></h3>
-        <div class="faq__a" id="a1" role="region" aria-labelledby="q1"><div>
-          <p>A task manager remembers that the work exists. Rabta remembers the workspace the work needed — which files were open, which terminals, which tabs, which branch — and puts those back. There's no due date, no assignee and no board, because that isn't the problem it's solving.</p>
-        </div></div>
-      </div>
-
-      <div class="faq__item">
-        <h3><button class="faq__q" type="button" id="q2" aria-expanded="false" aria-controls="a2">
-          Does Rabta upload or read my source code?<span class="faq__sign" aria-hidden="true"></span>
-        </button></h3>
-        <div class="faq__a" id="a2" role="region" aria-labelledby="q2"><div>
-          <p>No. A capsule stores pointers, not contents: file paths, a branch name, tab URLs and titles. It never stores file contents, terminal output or page data — and there is no server to upload anything to even if it did.</p>
-        </div></div>
-      </div>
-
-      <div class="faq__item">
-        <h3><button class="faq__q" type="button" id="q3" aria-expanded="false" aria-controls="a3">
-          Do I need an account?<span class="faq__sign" aria-hidden="true"></span>
-        </button></h3>
-        <div class="faq__a" id="a3" role="region" aria-labelledby="q3"><div>
-          <p>No. There's no sign-up, no email and no licence key. The editor connector authenticates against a secret the app writes locally each run, so pairing needs no credentials either.</p>
-        </div></div>
-      </div>
-
-      <div class="faq__item">
-        <h3><button class="faq__q" type="button" id="q4" aria-expanded="false" aria-controls="a4">
-          Which editors and browsers work today?<span class="faq__sign" aria-hidden="true"></span>
-        </button></h3>
-        <div class="faq__a" id="a4" role="region" aria-labelledby="q4"><div>
-          <p>The editor connector is live on Open VSX, so Cursor, VSCodium and Windsurf install it from their Extensions panel. VS Code can install the same signed <code>.vsix</code> manually — it is not on the Microsoft Marketplace yet.</p>
-          <p>The Chrome connector is in Web Store review and is not installable from the store yet. Until it lands, Rabta captures editor, terminal and git state, and simply reports the browser as unavailable rather than failing.</p>
-        </div></div>
-      </div>
-
-      <div class="faq__item">
-        <h3><button class="faq__q" type="button" id="q5" aria-expanded="false" aria-controls="a5">
-          What platforms are supported?<span class="faq__sign" aria-hidden="true"></span>
-        </button></h3>
-        <div class="faq__a" id="a5" role="region" aria-labelledby="q5"><div>
-          <p>macOS 11.0 or later on Apple Silicon. There is no Intel build, no universal build, and no Windows or Linux build — 0.1.0 ships only what has actually been built and tested.</p>
-        </div></div>
-      </div>
-
-      <div class="faq__item">
-        <h3><button class="faq__q" type="button" id="q6" aria-expanded="false" aria-controls="a6">
-          Where is my data stored, and how do I delete it?<span class="faq__sign" aria-hidden="true"></span>
-        </button></h3>
-        <div class="faq__a" id="a6" role="region" aria-labelledby="q6"><div>
-          <p>In a database file in Rabta's application-support folder on your Mac. You can open that folder from <b>Settings → Privacy &amp; data → Reveal in Finder</b>. Deleting a capsule removes it; deleting the folder removes everything; uninstalling the app takes it all with it.</p>
-        </div></div>
-      </div>
-
-      <div class="faq__item">
-        <h3><button class="faq__q" type="button" id="q7" aria-expanded="false" aria-controls="a7">
-          Will it check out branches over my uncommitted work?<span class="faq__sign" aria-hidden="true"></span>
-        </button></h3>
-        <div class="faq__a" id="a7" role="region" aria-labelledby="q7"><div>
-          <p>No. A restore puts you back on the task's branch when it safely can, and stops and tells you when it can't. It will not force a checkout across a dirty working tree.</p>
-        </div></div>
-      </div>
-
-      <div class="faq__item">
-        <h3><button class="faq__q" type="button" id="q8" aria-expanded="false" aria-controls="a8">
-          Is Rabta free? Is it open source?<span class="faq__sign" aria-hidden="true"></span>
-        </button></h3>
-        <div class="faq__a" id="a8" role="region" aria-labelledby="q8"><div>
-          <p>Free, with no paid tier at 0.1.0, and MIT-licensed. The licence ships inside the app bundle and the extension.</p>
-        </div></div>
-      </div>
-
-      <div class="faq__item">
-        <h3><button class="faq__q" type="button" id="q9" aria-expanded="false" aria-controls="a9">
-          Does the app phone home or auto-update?<span class="faq__sign" aria-hidden="true"></span>
-        </button></h3>
-        <div class="faq__a" id="a9" role="region" aria-labelledby="q9"><div>
-          <p>No. Rabta 0.1.0 has no update checker and no analytics, so it makes no outbound requests of its own. New versions are something you come back and download. This website behaves the same way: it makes no background requests to third-party services.</p>
-        </div></div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ========================== FINAL CTA ========================== -->
-<section class="cta wrap" aria-labelledby="cta-title">
-  <div class="reveal">
-    <h2 class="h2" id="cta-title">Stop rebuilding your workspace from memory.</h2>
-    <p class="lede">
-      Install it, connect your editor, and save one capsule. You'll know within a
-      day whether it belongs in your setup.
-    </p>
-    <div class="cta__actions">
-      <a class="btn btn--primary btn--lg" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Download for macOS
-      </a>
-      <a class="btn btn--ghost btn--lg" href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener">Get the editor connector</a>
-      <a class="btn btn--ghost btn--lg" href="/setup/">Read the setup guide</a>
-    </div>
-    <p class="cta__fine">v0.1.0 · macOS 11+ · Apple Silicon · 5.5 MB · free &amp; MIT</p>
   </div>
 </section>
 
 </main>
-
-<!-- ============================ FOOTER ============================ -->
-<footer class="footer">
-  <div class="wrap">
-    <div class="footer__top">
-      <div class="footer__brand">
-        <a class="brand" href="/" aria-label="Rabta — home">
-          <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-            <rect width="64" height="64" rx="14" fill="#102526"/>
-            <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
-            <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
-          </svg>
-          <span class="brand__word">Rabta</span>
-        </a>
-        <p>A local-first tool that gives a task its workspace back.</p>
-      </div>
-
-      <nav aria-labelledby="foot-get">
-        <h2 id="foot-get">Get Rabta</h2>
-        <ul>
-          <li><a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download for macOS</a></li>
-          <li><a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener">Editor connector</a></li>
-          <li><a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener">Release notes</a></li>
-        </ul>
-      </nav>
-
-      <nav aria-labelledby="foot-learn">
-        <h2 id="foot-learn">Learn</h2>
-        <ul>
-          <li><a href="/setup/">Setup guide</a></li>
-          <li><a href="/setup/#troubleshooting">Troubleshooting</a></li>
-          <li><a href="/privacy/">Privacy policy</a></li>
-          <li><a href="#faq">FAQ</a></li>
-        </ul>
-      </nav>
-
-      <nav aria-labelledby="foot-status">
-        <h2 id="foot-status">Availability</h2>
-        <ul>
-          <li><span class="footer__status"><span class="dot dot--live" aria-hidden="true"></span>macOS · Apple Silicon</span></li>
-          <li><span class="footer__status"><span class="dot dot--live" aria-hidden="true"></span>Editor · Open VSX</span></li>
-          <li><span class="footer__status"><span class="dot dot--pending" aria-hidden="true"></span>Browser · in review</span></li>
-          <li><a href="https://github.com/salmuflahi/rabta/issues" target="_blank" rel="noopener">Report an issue</a></li>
-        </ul>
-      </nav>
-    </div>
-
-    <div class="footer__legal">
-      <span>Rabta v0.1.0 · MIT · Built by Sammy Almuflahi</span>
-      <span><a href="/privacy/">Privacy</a> · <a href="mailto:sammyalmuflahi1@gmail.com">sammyalmuflahi1@gmail.com</a></span>
-    </div>
-  </div>
-</footer>
-
-<script src="/js/site.js" defer></script>
 </body>
 </html>

@@ -1,39 +1,62 @@
 /* ==========================================================================
-   Rabta — components & sections
-   Depends on base.css for tokens.
+   Rabta — chapters & chrome
+   Depends on base.css for tokens and environments, product.css for the
+   miniature app UI.
+
+   Five chapters, each with its own environment, density and job:
+
+     A  hero        paper   interactive        demonstrate the switch
+     B  story       ink     scroll-scrubbed    make the loss felt
+     C  demo        canvas  state machine      teach through use
+     D  trust       ivory   static, quiet      earn belief
+     E  download    ink     one brand moment   convert
+
+   Petrol never backs a chapter. It is a product surface only.
    ========================================================================== */
 
 /* ==========================================================================
-   NAV
+   grain — zero-request material; kills gradient banding on the big washes
+   ========================================================================== */
+
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ==========================================================================
+   nav — visually quiet at rest, compact after scrolling
+   Four items. Not a floating pill.
    ========================================================================== */
 
 .nav {
   position: sticky;
   top: 0;
   z-index: 60;
-  /* Literal rgba first: without a fallback, a browser that lacks color-mix
-     (Safari < 16.2, Firefox < 113) drops the declaration entirely and the
-     sticky nav becomes transparent with content scrolling behind it. */
-  background: rgba(8, 23, 24, 0.72);
-  background: color-mix(in srgb, var(--ink) 72%, transparent);
+  /* Literal rgba first: a browser without color-mix (Safari < 16.2,
+     Firefox < 113) would otherwise drop the declaration entirely and let
+     content scroll behind a transparent bar. */
+  background: rgba(250, 248, 242, 0.86);
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
   border-bottom: 1px solid transparent;
-  transition:
-    background-color var(--base) var(--ease),
-    border-color var(--base) var(--ease),
-    backdrop-filter var(--base) var(--ease);
+  transition: background-color var(--sidebar) var(--ease),
+    border-color var(--sidebar) var(--ease);
 }
 
 @supports (backdrop-filter: blur(1px)) {
   .nav {
-    backdrop-filter: saturate(1.3) blur(14px);
+    backdrop-filter: saturate(1.4) blur(14px);
   }
 }
 
-/* Scroll-aware: the bar tightens and separates once content is behind it. */
 .nav.is-stuck {
-  background: rgba(8, 23, 24, 0.88);
-  background: color-mix(in srgb, var(--ink) 88%, transparent);
-  border-bottom-color: var(--line-soft);
+  background: rgba(250, 248, 242, 0.94);
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
+  border-bottom-color: #ddd8cc;
 }
 
 .nav__inner {
@@ -41,29 +64,39 @@
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  height: 68px;
-  transition: height var(--base) var(--ease);
+  height: 76px;
+  transition: height var(--sidebar) var(--ease);
 }
 
 .nav.is-stuck .nav__inner {
-  height: 58px;
+  height: 62px;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.6875rem;
-  color: var(--cream);
+  gap: 0.625rem;
+  color: #102526;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   text-decoration: none;
   flex: none;
 }
 
-.brand svg {
-  width: 28px;
-  height: 28px;
+.brand svg,
+.brand img {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
   flex: none;
+  transition: width var(--sidebar) var(--ease),
+    height var(--sidebar) var(--ease);
+}
+
+.nav.is-stuck .brand svg,
+.nav.is-stuck .brand img {
+  width: 26px;
+  height: 26px;
 }
 
 .brand__word {
@@ -73,13 +106,13 @@
 .nav__links {
   display: flex;
   align-items: center;
-  gap: clamp(1rem, 2vw, 1.75rem);
+  gap: clamp(0.75rem, 2vw, 1.75rem);
   margin-left: auto;
 }
 
 .nav__links a:not(.btn) {
-  color: var(--muted);
-  font-size: var(--step-small);
+  color: #47524f;
+  font-size: 0.9375rem;
   font-weight: 500;
   text-decoration: none;
   padding: 0.375rem 0;
@@ -87,1018 +120,972 @@
 }
 
 .nav__links a:not(.btn):hover {
-  color: var(--cream);
+  color: #102526;
 }
 
 .nav .btn {
-  padding: 0.5rem 0.9375rem;
-  font-size: 0.90625rem;
+  padding: 0.5625rem 1rem;
+  font-size: 0.9375rem;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 700px) {
   .nav__links a:not(.btn) {
     display: none;
   }
 }
 
 /* ==========================================================================
-   HERO
+   CHAPTER A — hero
+   Asymmetric editorial. The product crosses the content grid on the right.
    ========================================================================== */
 
 .hero {
-  padding-top: clamp(2.5rem, 6vw, 5rem);
-  padding-bottom: clamp(3rem, 7vw, 6rem);
+  position: relative;
+  overflow: hidden;
+  padding-block: clamp(2rem, 4vw, 3.5rem) clamp(3.5rem, 7vw, 6rem);
+  min-height: min(92vh, 920px);
+  display: flex;
+  align-items: center;
 }
 
-/* The hero runs wider than the rest of the page: the product shot needs the
-   room, and a launch page should open with more air than it sustains. */
-.hero.wrap {
-  max-width: 1240px;
+/* Warm light in the room. Elliptical and pushed off-canvas so it reads as
+   light rather than as a decorative blob. */
+.hero::before {
+  content: "";
+  position: absolute;
+  width: 54rem;
+  height: 30rem;
+  right: -16rem;
+  top: -13rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 107, 44, 0.15),
+    transparent
+  );
+  filter: blur(30px);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .hero__grid {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.06fr);
-  gap: clamp(2rem, 5vw, 4rem);
+  gap: clamp(2.5rem, 5vw, 3.5rem);
+  width: 100%;
   align-items: center;
 }
 
-.hero h1 {
-  max-width: 14ch;
-}
-
-@media (max-width: 980px) {
+@media (min-width: 1024px) {
   .hero__grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 2.75rem;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: clamp(2rem, 4vw, 3.25rem);
   }
 }
 
-.hero__status {
+.hero__copy {
+  position: relative;
+  z-index: 2;
+}
+
+.hero__eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.5rem;
   font-family: var(--mono);
   font-size: var(--step-mono);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted-2);
-  border: 1px solid var(--line-soft);
-  background: rgba(255, 255, 255, 0.02);
-  padding: 0.4375rem 0.75rem;
-  border-radius: 999px;
-  margin-bottom: 1.5rem;
+  color: #5f6a68;
   text-decoration: none;
+  margin-bottom: clamp(1.25rem, 2.5vw, 1.75rem);
 }
 
-a.hero__status:hover {
-  border-color: var(--line);
-  color: var(--muted);
+a.hero__eyebrow:hover {
+  color: #102526;
 }
 
-.hero__status .dot {
+.hero__eyebrow .dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--teal);
+  background: var(--teal-deep);
   flex: none;
+  box-shadow: 0 0 0 4px rgba(15, 122, 103, 0.13);
 }
 
-.hero h1 .accent {
-  color: var(--tangerine);
+.hero__copy h1 {
+  color: #102526;
+  max-width: 17ch;
 }
 
-.hero .lede {
-  margin-top: 1.5rem;
-  max-width: 42ch;
+/* The payoff sentence carries the accent, not the whole headline. */
+.hero__keep {
+  display: block;
+  color: var(--tangerine-deep);
+}
+
+/* Held short of the capsule, which hangs into the right of this column. */
+.hero__lede {
+  margin-top: clamp(1.25rem, 2.5vw, 1.75rem);
+  max-width: 34ch;
+  font-size: var(--step-lede);
+  color: #4b5653;
+  line-height: 1.5;
 }
 
 .hero__cta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.875rem;
-  margin-top: 2rem;
+  gap: 0.75rem;
+  margin-top: clamp(1.75rem, 3vw, 2.25rem);
 }
 
-.hero__facts {
-  margin-top: 1.5rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
+.hero__trust {
+  margin-top: 1.375rem;
   font-family: var(--mono);
   font-size: var(--step-mono);
-  color: var(--muted-2);
-  list-style: none;
+  letter-spacing: 0.02em;
+  color: #6b7673;
 }
 
-.hero__facts li {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+/* ---- the stage ---------------------------------------------------------- */
 
-.hero__facts li::before {
-  content: "";
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--line);
-  flex: none;
-}
-
-/* ---- the stage: real product behind, capsule artifact in front --------- */
-
-.stage {
+.hero__stage {
   position: relative;
-  min-height: 0;
+  z-index: 1;
+  /* A fixed perspective the product sits inside — not a mockup that tilts
+     forever. */
+  perspective: 1600px;
+  perspective-origin: 50% 30%;
 }
 
-.stage__shot {
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  background: var(--surface);
-  box-shadow: 0 40px 90px -50px rgba(0, 0, 0, 0.95);
-  transform: perspective(1600px) rotateY(-9deg) rotateX(3deg) translateZ(0);
-  transform-origin: right center;
+/* Cross the content grid: the product runs past the container's right edge.
+   Tied to the gutter so it always keeps roughly half the gutter as breathing
+   room — crossing the grid should read as deliberate, not as clipping. */
+@media (min-width: 1024px) {
+  .hero__stage {
+    margin-right: calc(-0.55 * var(--gutter));
+  }
 }
 
-@media (max-width: 980px) {
-  .stage__shot {
+/* Cursor-responsive, but only ±2.2°. It should read as material, not as a
+   gimmick. */
+.hero__tilt {
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 700ms var(--ease);
+  will-change: transform;
+}
+
+.hero__frame {
+  position: relative;
+}
+
+/* The capsule sits in FRONT of the app frame, overlapping it — content
+   passing before and behind the product plane. */
+/* Hangs off the bottom-left corner so it reads as an object in front of the
+   app. Sized and offset to land over the RAIL, never over the workspace
+   column — the rows and task list it describes must stay legible. */
+.hero__capsule {
+  position: absolute;
+  left: clamp(-8rem, -9vw, -2.5rem);
+  bottom: clamp(-4rem, -4.5vw, -2rem);
+  width: min(214px, 46%);
+  z-index: 3;
+  transform: translateZ(46px);
+  transition: opacity var(--base) var(--ease),
+    transform var(--slow) var(--ease);
+}
+
+/* While a switch is in flight the outgoing capsule is what the eye should
+   follow, so it lifts slightly. */
+.hero__capsule[data-folding="true"] {
+  transform: translateZ(70px) translateY(-6px) scale(1.02);
+}
+
+@media (max-width: 760px) {
+  .hero__capsule {
+    position: static;
+    width: 100%;
+    margin-top: 1rem;
+    transform: none;
+  }
+  .hero__capsule[data-folding="true"] {
     transform: none;
   }
 }
 
-.frame__bar {
-  height: 34px;
+/* Clears the capsule, which now hangs below the frame's bottom-left. */
+.hero__controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding-inline: 0.875rem;
-  background: #0c1f20;
-  border-bottom: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-top: clamp(4rem, 6vw, 5.5rem);
 }
 
-.frame__bar i {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #2b4a4c;
-  flex: none;
-}
-
-.frame__bar span {
-  margin-left: 0.5rem;
-  font-family: var(--mono);
-  font-size: 0.6875rem;
-  color: var(--muted-2);
-}
-
-/* ---- the signature: a capsule as a manifest ---------------------------- */
-
-.capsule {
-  position: absolute;
-  /* Hangs off the bottom-left corner so it reads as an object in front of
-     the app, without covering the screen it is describing. */
-  left: -7%;
-  bottom: -14%;
-  width: min(318px, 62%);
-  margin: 0;
-  padding: 0;
-  background: linear-gradient(180deg, var(--raised), var(--surface));
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-lift), 0 0 0 1px rgba(8, 23, 24, 0.6);
-  border-radius: var(--r);
-  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
-  z-index: 2;
-}
-
-.capsule::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 18px;
-  height: 18px;
-  background: linear-gradient(225deg, var(--tangerine) 0 50%, transparent 50%);
-  transition: opacity var(--base) var(--ease);
-}
-
-@media (max-width: 980px) {
-  .capsule {
-    position: relative;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    max-width: 420px;
-    margin: -2rem auto 0;
+@media (max-width: 760px) {
+  .hero__controls {
+    margin-top: 1.25rem;
   }
 }
 
-.capsule__head {
-  padding: 0.9375rem 1rem 0.75rem;
-  border-bottom: 1px solid var(--line-soft);
-}
-
-.capsule__eyebrow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+/* A live region: the hint narrates what just happened, for screen readers
+   as well as sighted visitors. */
+.hero__hint {
   font-family: var(--mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted-2);
-}
-
-.capsule__state {
-  color: var(--teal);
-  transition: color var(--base) var(--ease);
-}
-
-.capsule__title {
-  display: block;
-  margin-top: 0.4375rem;
-  font-size: 0.9375rem;
-  font-weight: 650;
-  letter-spacing: -0.015em;
-  color: var(--cream);
-}
-
-.capsule__lines {
-  list-style: none;
-  padding: 0.5rem 0;
-  margin: 0;
-}
-
-.capsule__line {
-  display: grid;
-  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
-  align-items: baseline;
-  gap: 0.5rem;
-  padding: 0.375rem 1rem;
-  font-family: var(--mono);
-  font-size: 0.71875rem;
-  line-height: 1.5;
-}
-
-.capsule__n {
-  color: #395f61;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.capsule__k {
-  color: var(--muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.capsule__k b {
-  color: var(--cream);
-  font-weight: 500;
-}
-
-/* The tick: present in the settled state, which is also the no-JS state. */
-.capsule__tick {
-  color: var(--teal);
-  opacity: 1;
-  transition:
-    opacity var(--base) var(--ease),
-    transform var(--base) var(--ease);
-}
-
-.capsule__foot {
-  border-top: 1px solid var(--line-soft);
-  padding: 0.625rem 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  font-family: var(--mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted-2);
-}
-
-.capsule__replay {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  background: none;
-  border: 0;
-  padding: 0.125rem 0.25rem;
-  margin: -0.125rem -0.25rem;
-  border-radius: 4px;
-  color: var(--muted-2);
-  font-family: var(--mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color var(--fast) var(--ease);
-}
-
-.capsule__replay:hover {
-  color: var(--cream);
-}
-
-.capsule__replay svg {
-  width: 11px;
-  height: 11px;
-}
-
-/* Replay is a JS affordance; it must not appear when it cannot work, and
-   it is meaningless when motion is suppressed. */
-.capsule__replay {
-  display: none;
-}
-
-.js .capsule__replay {
-  display: inline-flex;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .js .capsule__replay {
-    display: none;
-  }
-}
-
-/* ---- the four beats ---------------------------------------------------
-   Default (no data-beat) is the settled, restored state: every line
-   present with its tick. The animation only ever departs from that and
-   returns to it, so the meaningful frame is what the page rests on. */
-
-.js [data-beat] .capsule__line {
-  transition:
-    opacity var(--base) var(--ease),
-    transform var(--base) var(--ease);
-  transition-delay: calc(var(--i) * 55ms);
-}
-
-/* capture — lines draw inward, nothing confirmed yet */
-.js [data-beat="capture"] .capsule__line {
-  opacity: 0;
-  transform: translateX(-10px);
-}
-.js [data-beat="capture"] .capsule__tick {
-  opacity: 0;
-}
-
-/* sealed — the manifest is closed; contents recede, the fold asserts */
-.js [data-beat="sealed"] .capsule__line {
-  opacity: 0.45;
-  transform: none;
-}
-.js [data-beat="sealed"] .capsule__tick {
-  opacity: 0;
-}
-.js [data-beat="sealed"] .capsule__k b {
-  color: var(--muted);
-}
-
-/* restored — each line confirms in sequence */
-.js [data-beat="restored"] .capsule__line {
-  opacity: 1;
-  transform: none;
-}
-.js [data-beat="restored"] .capsule__tick {
-  opacity: 1;
-}
-
-.js [data-beat="capture"] .capsule__state {
-  color: var(--tangerine);
-}
-.js [data-beat="sealed"] .capsule__state {
-  color: var(--muted);
+  font-size: var(--step-mono);
+  color: #6b7673;
+  min-height: 1.3em;
 }
 
 /* ==========================================================================
-   DEMO SHOWCASE
+   CHAPTER B — the pinned context-switch story
    ========================================================================== */
 
-/* The showcase breaks out wider than the reading column: it is the section
-   that has to carry the product, and a screenshot squeezed into a text
-   measure cannot. */
-.wrap--wide {
-  max-width: 1360px;
-}
-
-.demo__tabs {
-  display: flex;
-  gap: 0.25rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding-bottom: 2px;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--line-soft);
-  scroll-snap-type: x proximity;
-}
-
-.demo__tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.demo__tab {
+.story {
   position: relative;
-  flex: none;
-  scroll-snap-align: start;
-  background: none;
-  border: 0;
-  padding: 0.6875rem 0.9375rem;
-  font-size: var(--step-small);
-  font-weight: 550;
-  color: var(--muted);
-  cursor: pointer;
-  white-space: nowrap;
-  border-radius: var(--r-sm) var(--r-sm) 0 0;
-  transition: color var(--fast) var(--ease);
-}
-
-.demo__tab:hover {
+  background: var(--ink);
   color: var(--cream);
 }
 
-.demo__tab[aria-selected="true"] {
-  color: var(--cream);
+/* The scroll track gives the pin something to scrub against. Shorter on
+   narrow screens — the brief asks for a shorter story there. */
+.story__track {
+  height: 400vh;
 }
 
-/* The moving underline. */
-.demo__tab::after {
-  content: "";
+@media (max-width: 780px) {
+  .story__track {
+    height: 280vh;
+  }
+}
+
+.story__pin {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.story__inner {
+  position: relative;
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+  display: grid;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .story__inner {
+    grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
+  }
+}
+
+/* ---- the copy column: one line per scene, cross-faded ------------------ */
+
+/* The lines are absolutely stacked so they can cross-fade, so this reserves
+   room for the TALLEST of them. "Your place usually disappears with it."
+   runs to four lines at display size, and the pin clips its overflow — too
+   little height here silently cuts the copy in half. */
+.story__copy {
+  position: relative;
+  min-height: 19rem;
+}
+
+.story__marker {
+  font-family: var(--mono);
+  font-size: var(--step-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7f8d8b;
+  margin-bottom: 1rem;
+}
+
+.story__line {
   position: absolute;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: -1px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--tangerine);
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: transform var(--base) var(--ease);
+  inset-inline: 0;
+  top: 2.25rem;
+  margin: 0;
+  font-size: var(--step-display);
+  font-weight: 800;
+  letter-spacing: -0.042em;
+  line-height: 1.02;
+  color: var(--cream);
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 320ms var(--ease), transform 320ms var(--ease);
 }
 
-.demo__tab[aria-selected="true"]::after {
-  transform: scaleX(1);
+.story__line.is-on {
+  opacity: 1;
+  transform: none;
 }
 
-.demo__panel[hidden] {
-  display: none;
+.story__line em {
+  font-style: normal;
+  color: var(--tangerine);
+}
+
+.story__line b {
+  font-weight: 800;
+  color: var(--teal);
+}
+
+/* ---- the stage: three real pieces, one capsule ------------------------- */
+
+.story__stage {
+  position: relative;
+  height: min(56vh, 440px);
+  perspective: 1400px;
+}
+
+/* Each piece is a real capsule resource row, not an abstract particle. */
+.story__piece {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(296px, 74%);
+  padding: 10px 12px;
+  border-radius: var(--r);
+  border: 1px solid var(--petrol-line);
+  background: var(--petrol);
+  color: var(--cream);
+  box-shadow: 0 20px 44px -26px rgba(0, 0, 0, 0.85);
+  /* JS writes --tx/--ty/--rot/--sc/--op each frame; CSS applies them. The
+     scrub stays genuinely continuous while the maths stays readable. */
+  transform: translate3d(
+      calc(-50% + var(--tx, 0px)),
+      calc(-50% + var(--ty, 0px)),
+      0
+    )
+    rotate(var(--rot, 0deg)) scale(var(--sc, 1));
+  opacity: var(--op, 1);
+  will-change: transform, opacity;
+}
+
+.story__piecetop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.story__piece .app__rowicon {
+  width: 22px;
+  height: 22px;
+}
+
+.story__piece .app__rowicon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.story__piecename {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.story__piecedetail {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: #9ba8a6;
+  margin-top: 1px;
+}
+
+/* The capsule the pieces fold into. */
+.story__capsule {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(264px, 70%);
+  transform: translate3d(-50%, -50%, 0) scale(var(--csc, 0.9));
+  opacity: var(--cop, 0);
+  will-change: transform, opacity;
+}
+
+/* Narrow screens get a deliberately shorter story: less copy height, a
+   smaller stage, fewer pixels of travel. Everything must still fit inside
+   one 100vh pin on a phone, because the pin clips. */
+@media (max-width: 780px) {
+  .story__copy {
+    min-height: 14rem;
+  }
+
+  .story__stage {
+    height: min(38vh, 300px);
+  }
+}
+
+/* Reduced motion / no-JS: five stacked static scenes, each readable, no
+   pin and no scrub. */
+.story--static .story__track {
+  height: auto;
+}
+
+.story--static .story__pin {
+  position: static;
+  height: auto;
+  overflow: visible;
+  padding-block: clamp(3rem, 7vw, 5rem);
+}
+
+.story--static .story__copy {
+  min-height: 0;
+}
+
+.story--static .story__line {
+  position: static;
+  opacity: 1;
+  transform: none;
+  margin-bottom: 1.25rem;
+}
+
+.story--static .story__stage {
+  height: auto;
+  display: grid;
+  gap: 0.625rem;
+}
+
+.story--static .story__piece,
+.story--static .story__capsule {
+  position: static;
+  left: auto;
+  top: auto;
+  width: 100%;
+  transform: none;
+  opacity: 1;
+}
+
+/* ==========================================================================
+   CHAPTER C — the playable demo
+   ========================================================================== */
+
+.demo {
+  position: relative;
+  overflow: hidden;
+}
+
+.demo__head {
+  display: grid;
+  gap: 0.875rem;
+  max-width: 52ch;
+  margin-bottom: clamp(2rem, 4vw, 3rem);
 }
 
 .demo__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.62fr) minmax(0, 1fr);
-  gap: clamp(1.25rem, 3vw, 2.25rem);
+  gap: clamp(1.5rem, 3vw, 2.5rem);
   align-items: start;
 }
 
-@media (max-width: 900px) {
+@media (min-width: 980px) {
   .demo__layout {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.32fr) minmax(0, 0.68fr);
   }
 }
 
-.js .demo__panel:not([hidden]) .demo__layout {
-  animation: panel-in var(--slow) var(--ease) both;
-}
-
-@keyframes panel-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.demo__figure {
+.demo__stage {
   position: relative;
-  margin: 0;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  background: var(--surface);
-  box-shadow: 0 30px 70px -45px rgba(0, 0, 0, 0.9);
+  min-width: 0;
 }
 
-.demo__figure img {
-  width: 100%;
-}
-
-/* Numbered pins map 1:1 onto the numbered notes beside the image. The
-   numbering is the correspondence, not decoration — so it earns its place. */
-.demo__pin {
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+.demo__aside {
+  position: relative;
   display: grid;
-  place-items: center;
-  font-family: var(--mono);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--on-accent);
-  background: var(--tangerine);
-  box-shadow:
-    0 0 0 4px rgba(8, 23, 24, 0.75),
-    0 6px 16px -6px rgba(0, 0, 0, 0.9);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-@media (max-width: 900px) {
-  /* Never overlay pins on a screenshot too small to read them against. */
-  .demo__pin {
-    display: none;
-  }
-}
-
-.demo__notes {
-  list-style: none;
-  display: grid;
-  gap: 0.75rem;
+  gap: 1.25rem;
   align-content: start;
 }
 
-.demo__note {
-  display: grid;
-  grid-template-columns: 1.375rem minmax(0, 1fr);
-  gap: 0.75rem;
+/* The contextual line — it changes at the moment it means something. */
+.demo__say {
+  font-size: clamp(1.25rem, 1rem + 1.1vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.032em;
+  line-height: 1.16;
+  color: var(--fg);
+  min-height: 2.4em;
+  transition: opacity var(--base) var(--ease);
+}
+
+.demo__saysub {
+  margin-top: 0.625rem;
   font-size: var(--step-small);
-  color: var(--muted);
-  line-height: 1.5;
+  color: var(--fg-2);
+  min-height: 3.2em;
 }
 
-.demo__note b {
-  color: var(--cream);
-  font-weight: 600;
+.demo__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  align-items: center;
 }
 
-.demo__note .n {
-  font-family: var(--mono);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--tangerine);
-  border: 1px solid rgba(255, 107, 44, 0.3);
-  background: rgba(255, 107, 44, 0.08);
-  border-radius: 5px;
-  height: 1.375rem;
-  display: grid;
-  place-items: center;
-}
-
-.demo__caption {
-  margin-top: 1.25rem;
-  font-family: var(--mono);
-  font-size: var(--step-mono);
-  color: var(--muted-2);
-  letter-spacing: 0.02em;
-}
-
-/* ==========================================================================
-   STEPS — how it works
-   ========================================================================== */
-
-.steps {
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
-  counter-reset: step;
-}
-
-@media (max-width: 1000px) {
-  .steps {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .steps {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.step {
-  padding: 1.375rem;
-  position: relative;
-}
-
-.step__n {
-  font-family: var(--mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.1em;
-  color: var(--tangerine);
-  display: block;
-  margin-bottom: 0.75rem;
-}
-
-.step h3 {
-  font-size: var(--step-h3);
-  font-weight: 650;
-  letter-spacing: -0.018em;
-  margin-bottom: 0.4375rem;
-}
-
-.step p {
-  font-size: var(--step-small);
-  color: var(--muted);
-  line-height: 1.55;
-}
-
-/* ==========================================================================
-   FEATURE GRID
-   ========================================================================== */
-
-.features {
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-@media (max-width: 940px) {
-  .features {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 600px) {
-  .features {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.feature {
-  padding: 1.5rem;
-  transition:
-    transform var(--base) var(--ease),
-    border-color var(--base) var(--ease),
-    box-shadow var(--base) var(--ease);
-}
-
-.feature:hover {
-  transform: translateY(-2px);
-  border-color: var(--line);
-  box-shadow: var(--shadow-card);
-}
-
-.feature:hover::after {
-  opacity: 1;
-}
-
-.feature__ic {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 9px;
-  display: grid;
-  place-items: center;
-  background: rgba(102, 214, 194, 0.1);
-  border: 1px solid rgba(102, 214, 194, 0.18);
-  color: var(--teal);
-  margin-bottom: 1rem;
-}
-
-.feature__ic svg {
-  width: 1.125rem;
-  height: 1.125rem;
-}
-
-.feature h3 {
-  font-size: var(--step-h3);
-  font-weight: 650;
-  letter-spacing: -0.018em;
-  margin-bottom: 0.4375rem;
-}
-
-.feature p {
-  font-size: var(--step-small);
-  color: var(--muted);
-  line-height: 1.55;
-}
-
-.feature code {
-  color: var(--teal);
-  background: rgba(102, 214, 194, 0.08);
-  padding: 0.0625rem 0.3125rem;
-  border-radius: 4px;
-}
-
-/* ==========================================================================
-   USE CASES
-   ========================================================================== */
-
-.cases {
-  list-style: none;
-  display: grid;
-  gap: 0;
-  border-top: 1px solid var(--line-soft);
-}
-
-.case {
-  display: grid;
-  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
-  gap: clamp(1rem, 3vw, 2.5rem);
-  padding-block: 1.5rem;
-  border-bottom: 1px solid var(--line-soft);
-  transition: background-color var(--base) var(--ease);
-}
-
-.case:hover {
-  background: rgba(255, 255, 255, 0.012);
-}
-
-@media (max-width: 760px) {
-  .case {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.5rem;
-  }
-}
-
-.case__when {
+.demo__reset {
   font-family: var(--mono);
   font-size: var(--step-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted-2);
-  padding-top: 0.25rem;
+  color: var(--fg-3);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.case__what b {
-  display: block;
-  font-size: 1.0625rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-  margin-bottom: 0.3125rem;
+.demo__reset:hover {
+  color: var(--fg);
 }
 
-.case__what p {
-  font-size: var(--step-small);
-  color: var(--muted);
+/* The timeline of preserved contexts. */
+.demo__timeline {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
 }
 
-/* ==========================================================================
-   PRIVACY BAND
-   ========================================================================== */
-
-.band {
-  background:
-    linear-gradient(180deg, transparent, rgba(102, 214, 194, 0.028) 45%, transparent),
-    var(--ink-2);
-  border-block: 1px solid var(--line-soft);
-}
-
-.privacy__grid {
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-  margin-top: 2.5rem;
-}
-
-@media (max-width: 940px) {
-  .privacy__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 600px) {
-  .privacy__grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.privacy__item {
-  padding: 1.25rem;
-}
-
-.privacy__key {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4375rem;
+.demo__tlhead {
   font-family: var(--mono);
   font-size: var(--step-mono);
-  letter-spacing: 0.08em;
-  color: var(--teal);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  color: var(--fg-3);
+  margin-bottom: 0.75rem;
 }
 
-.privacy__key svg {
-  width: 0.875rem;
-  height: 0.875rem;
+.demo__tllist {
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
 }
 
-.privacy__item h3 {
-  font-size: 1.0625rem;
-  font-weight: 650;
-  letter-spacing: -0.018em;
-  margin: 0.75rem 0 0.3125rem;
-}
-
-.privacy__item p {
+.demo__tlitem {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--r-md);
+  border: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--fg) 2%, transparent);
   font-size: var(--step-small);
-  color: var(--muted);
-  line-height: 1.55;
+  transition: border-color var(--base) var(--ease),
+    background-color var(--base) var(--ease);
+}
+
+.demo__tlitem[data-state="active"] {
+  border-color: color-mix(in srgb, var(--tangerine) 45%, transparent);
+  background: color-mix(in srgb, var(--tangerine) 8%, transparent);
+}
+
+.demo__tlitem i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--fg-3);
+  transition: background-color var(--base) var(--ease);
+}
+
+.demo__tlitem[data-state="active"] i {
+  background: var(--tangerine);
+}
+
+.demo__tlitem[data-state="saved"] i {
+  background: var(--ok-text);
+}
+
+.demo__tlitem span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.demo__tlitem em {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-style: normal;
+  color: var(--fg-3);
+  flex: none;
+}
+
+/* ---- secondary proof: the screenshots, demoted to what they are -------- */
+
+.proof {
+  margin-top: clamp(3rem, 6vw, 4.5rem);
+  padding-top: clamp(2rem, 4vw, 2.75rem);
+  border-top: 1px solid var(--rule);
+}
+
+.proof__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.proof__head h3 {
+  font-size: var(--step-h3);
+}
+
+.proof__strip {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(216px, 1fr));
+  gap: clamp(0.75rem, 2vw, 1.25rem);
+}
+
+.proof__shot {
+  margin: 0;
+  min-width: 0;
+}
+
+.proof__shot img {
+  width: 100%;
+  border-radius: var(--r);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow-card);
+  background: var(--petrol);
+}
+
+.proof__shot figcaption {
+  margin-top: 0.5rem;
+  font-family: var(--mono);
+  font-size: var(--step-mono);
+  letter-spacing: 0.04em;
+  color: var(--fg-3);
 }
 
 /* ==========================================================================
-   INSTALL
+   CHAPTER D — trust. The quiet one: one thought per viewport.
    ========================================================================== */
 
-.install {
-  list-style: none;
-  display: grid;
-  gap: 0;
-  counter-reset: install;
-}
-
-.install__step {
-  display: grid;
-  grid-template-columns: 2.25rem minmax(0, 1fr);
-  gap: 1.25rem;
-  padding-bottom: 1.75rem;
+.trust {
   position: relative;
 }
 
-.install__step:not(:last-child)::before {
-  content: "";
-  position: absolute;
-  left: 1.125rem;
-  top: 2.5rem;
-  bottom: 0;
-  width: 1px;
-  background: var(--line-soft);
+.trust__inner {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 4.5rem);
+  align-items: center;
 }
 
-.install__n {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-family: var(--mono);
-  font-size: 0.8125rem;
+@media (min-width: 900px) {
+  .trust__inner {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  }
+}
+
+.trust h2 {
+  font-size: var(--step-display);
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  max-width: 19ch;
+}
+
+.trust__lede {
+  margin-top: clamp(1.25rem, 2.5vw, 1.625rem);
+  font-size: var(--step-lede);
+  color: var(--fg-2);
+  max-width: 42ch;
+}
+
+/* Three short labels. Rule-separated, not cards — the chapter stays almost
+   empty on purpose. */
+.trust__facts {
+  list-style: none;
+  margin-top: clamp(1.75rem, 3vw, 2.25rem);
+  max-width: 44ch;
+}
+
+.trust__facts li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding-block: 0.875rem;
+  border-top: 1px solid var(--rule);
+  font-size: var(--step-small);
+}
+
+.trust__facts li:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Wide enough for the longest label ("Pointers, not contents") so all three
+   descriptions share one left edge. */
+.trust__facts b {
   font-weight: 600;
-  color: var(--tangerine);
-  border: 1px solid rgba(255, 107, 44, 0.28);
-  background: var(--ink);
+  color: var(--fg);
+  flex: none;
+  min-width: 11.5rem;
+}
+
+@media (max-width: 560px) {
+  .trust__facts li {
+    display: block;
+  }
+  .trust__facts b {
+    display: block;
+    min-width: 0;
+    margin-bottom: 0.25rem;
+  }
+}
+
+.trust__facts span {
+  color: var(--fg-2);
+}
+
+/* The one visual: the capsule opened, showing what it actually holds. */
+.trust__vis {
+  position: relative;
+  min-width: 0;
+}
+
+.trust__manifest {
+  border-radius: var(--r-lg);
+  border: 1px solid var(--petrol-line);
+  background: var(--petrol);
+  /* Sits inside the ivory chapter — must carry its own foreground. */
+  color: var(--cream);
+  box-shadow: var(--shadow-stage);
+  overflow: hidden;
+}
+
+.trust__mhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9375rem;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--petrol-line) 60%, transparent);
+  font-family: var(--mono);
+  font-size: var(--step-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--cream) 50%, transparent);
+}
+
+.trust__mlist {
+  list-style: none;
+  padding: 0.375rem 0;
+}
+
+.trust__mlist li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.4375rem 0.9375rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--cream);
+}
+
+.trust__mkey {
+  color: color-mix(in srgb, var(--cream) 45%, transparent);
+  flex: none;
+  min-width: 7rem;
+}
+
+.trust__mval {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* What it never holds. The negative list is the persuasive half. */
+.trust__mnever {
+  padding: 0.8125rem 0.9375rem;
+  border-top: 1px solid color-mix(in srgb, var(--petrol-line) 60%, transparent);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  line-height: 1.95;
+  /* Struck-through, but still real content — kept above 4.5:1 on petrol. */
+  color: color-mix(in srgb, var(--cream) 62%, transparent);
+}
+
+.trust__mnever s {
+  text-decoration-color: rgba(231, 107, 93, 0.7);
+  text-decoration-thickness: 1px;
+}
+
+/* ==========================================================================
+   CHAPTER E — download
+   ========================================================================== */
+
+.close {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+
+.close::before {
+  content: "";
+  position: absolute;
+  inset-inline: -10%;
+  top: -26%;
+  height: 62%;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 107, 44, 0.13),
+    transparent
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.close__inner {
   position: relative;
   z-index: 1;
 }
 
-.install__body h3 {
-  font-size: var(--step-h3);
-  font-weight: 650;
-  letter-spacing: -0.018em;
-  margin-bottom: 0.375rem;
-  padding-top: 0.3125rem;
+/* ---- the mark, unfolding: fold appearance #4 --------------------------- */
+
+.close__mark {
+  width: clamp(80px, 11vw, 124px);
+  height: clamp(80px, 11vw, 124px);
+  margin-inline: auto;
+  perspective: 600px;
 }
 
-.install__body p {
-  font-size: var(--step-small);
-  color: var(--muted);
-  line-height: 1.55;
+.close__mark svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
-.install__body .mono-inline,
-.mono-inline {
-  font-family: var(--mono);
-  font-size: 0.8125rem;
-  color: var(--cream);
-  background: rgba(255, 255, 255, 0.05);
-  padding: 0.0625rem 0.375rem;
-  border-radius: 5px;
+/* The flap rotates about the mark's real hinge — the 45° diagonal through
+   (48.75, 15.25), which is the flap's own hypotenuse, so `fill-box` + centre
+   origin IS the hinge. Direction (1,1)/root-2; at 180° the triangle lands
+   exactly in the void. The mark's resting state is FOLDED, so the sequence
+   runs unfolded -> folded and settles closed.
+
+   Gated on `.js`, exactly like `.reveal`: the baseline is the finished mark.
+   Without this gate a blocked or failed script leaves the logo permanently
+   missing its flap — a broken brand, not a missing animation. */
+.close__flap {
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
-/* ==========================================================================
-   CODE BLOCK
-   ========================================================================== */
-
-.code {
-  background: #06110f;
-  border: 1px solid var(--line);
-  border-radius: var(--r);
-  font-family: var(--mono);
-  font-size: 0.8125rem;
-  line-height: 1.7;
-  color: var(--cream);
-  padding: 1rem;
-  overflow-x: auto;
-  margin: 0;
-  -webkit-overflow-scrolling: touch;
+.js .close__flap {
+  transform: rotate3d(1, 1, 0, 180deg);
+  opacity: 0;
+  transition: transform 760ms var(--ease), opacity 320ms var(--ease) 120ms;
 }
 
-.code .cmt {
-  color: var(--muted-2);
+.js .close.is-in .close__flap {
+  transform: rotate3d(1, 1, 0, 0deg);
+  opacity: 1;
 }
 
-.code .out {
-  color: var(--teal);
-  word-break: break-all;
+.close h2 {
+  margin-top: clamp(1.5rem, 3vw, 2rem);
+  font-size: var(--step-display);
+  letter-spacing: -0.045em;
+  line-height: 1;
 }
 
-/* ==========================================================================
-   DOWNLOAD
-   ========================================================================== */
-
-.dl {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
-  gap: clamp(1.5rem, 4vw, 3rem);
-  align-items: start;
+.close__lede {
+  margin-top: 1.125rem;
+  margin-inline: auto;
+  max-width: 44ch;
+  font-size: var(--step-lede);
+  color: var(--fg-2);
 }
 
-@media (max-width: 900px) {
-  .dl {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.close__cta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: clamp(1.75rem, 3vw, 2.25rem);
 }
 
-.dl__primary {
-  padding: clamp(1.5rem, 3vw, 2rem);
-}
-
-.dl__file {
+.close__file {
+  margin-top: 1.125rem;
   font-family: var(--mono);
   font-size: var(--step-mono);
-  color: var(--muted-2);
-  letter-spacing: 0.03em;
+  color: var(--fg-3);
   word-break: break-all;
 }
 
-.dl__primary h3 {
-  font-size: clamp(1.375rem, 1.1rem + 1vw, 1.75rem);
-  letter-spacing: -0.028em;
-  margin: 0.625rem 0 0.75rem;
+.close__slogan {
+  margin-top: clamp(3.5rem, 7vw, 5.5rem);
+  font-size: clamp(1.5rem, 1rem + 2.4vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: var(--cream);
 }
 
-.dl__primary > p {
-  font-size: var(--step-small);
-  color: var(--muted);
+.close__slogan span {
+  color: var(--tangerine);
 }
 
-.dl__actions {
+/* ---- integrity: present and findable, visually secondary --------------- */
+
+.integrity {
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+  text-align: left;
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+.integrity > summary {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 1.5rem 0 1.25rem;
-}
-
-.dl__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.chip {
-  display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.5rem;
+  cursor: pointer;
   font-family: var(--mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.04em;
-  color: var(--teal);
-  border: 1px solid rgba(102, 214, 194, 0.28);
-  background: rgba(102, 214, 194, 0.07);
-  padding: 0.3125rem 0.625rem;
-  border-radius: 999px;
+  font-size: var(--step-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+  padding-block: 0.875rem;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  list-style: none;
 }
 
-.chip svg {
-  width: 0.75rem;
-  height: 0.75rem;
+.integrity > summary::-webkit-details-marker {
+  display: none;
 }
 
-/* Integrity: present, adjacent, deliberately quieter than the button. */
-.dl__integrity {
-  padding: clamp(1.25rem, 3vw, 1.75rem);
-  min-width: 0;
+.integrity > summary::after {
+  content: "+";
+  margin-left: auto;
+  font-size: 1rem;
 }
 
-.dl__integrity h3 {
-  font-size: 1.0625rem;
-  font-weight: 650;
-  letter-spacing: -0.018em;
-  margin-bottom: 0.25rem;
+.integrity[open] > summary::after {
+  content: "\2212";
 }
 
-.dl__integrity > p {
-  font-size: var(--step-small);
-  color: var(--muted);
-  margin-bottom: 1rem;
+.integrity > summary:hover {
+  color: var(--fg);
+}
+
+.integrity__body {
+  padding-top: 1.25rem;
 }
 
 .facts {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.5rem 1rem;
-  margin: 0 0 1.25rem;
+  gap: 0.5rem 1.25rem;
+  margin: 0;
   font-size: var(--step-small);
 }
 
@@ -1107,89 +1094,86 @@ a.hero__status:hover {
   font-size: 0.6875rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted-2);
+  color: var(--fg-3);
   align-self: center;
 }
 
 .facts dd {
   margin: 0;
   font-family: var(--mono);
-  font-size: 0.75rem;
-  color: var(--cream);
+  font-size: 0.78125rem;
+  color: var(--fg);
   word-break: break-word;
 }
 
 .sha {
   display: flex;
-  align-items: stretch;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
+  align-items: center;
+  gap: 0.625rem;
   flex-wrap: wrap;
+  margin-top: 1.25rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--r-md);
+  border: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--fg) 3%, transparent);
 }
 
 .sha code {
-  flex: 1;
-  min-width: 12rem;
   font-size: 0.6875rem;
-  color: var(--teal);
-  background: rgba(102, 214, 194, 0.07);
-  border: 1px solid rgba(102, 214, 194, 0.22);
-  border-radius: var(--r-sm);
-  padding: 0.625rem 0.75rem;
   word-break: break-all;
-  line-height: 1.5;
+  flex: 1;
+  min-width: 10rem;
+  color: var(--fg-2);
+  line-height: 1.6;
 }
 
 .copy {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--cream);
-  background: var(--raised);
-  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.4375rem 0.6875rem;
   border-radius: var(--r-sm);
-  padding: 0.5rem 0.8125rem;
+  border: 1px solid var(--rule);
+  color: var(--fg-2);
   cursor: pointer;
+  flex: none;
   white-space: nowrap;
-  transition:
-    border-color var(--fast) var(--ease),
-    background-color var(--fast) var(--ease);
+  transition: color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
 }
 
 .copy:hover {
-  border-color: #2f5658;
-  background: #1a3839;
+  color: var(--fg);
+  border-color: color-mix(in srgb, var(--fg) 30%, transparent);
 }
 
-.dl__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
-  margin-top: 1.25rem;
-  font-size: var(--step-small);
-}
-
-/* ==========================================================================
-   CONNECTORS
-   ========================================================================== */
+/* ---- connectors: two honest states, compressed ------------------------- */
 
 .conns {
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+  text-align: left;
+  max-width: 720px;
+  margin-inline: auto;
 }
 
-@media (max-width: 800px) {
+@media (min-width: 720px) {
   .conns {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 1fr 1fr;
   }
 }
 
 .conn {
-  padding: 1.5rem;
+  padding: 1.125rem 1.25rem;
+  border-radius: var(--r);
+  border: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--fg) 2%, transparent);
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
+  gap: 0.625rem;
 }
 
 .conn__top {
@@ -1199,179 +1183,112 @@ a.hero__status:hover {
   gap: 0.75rem;
 }
 
-.conn h3 {
-  font-size: 1.1875rem;
-  letter-spacing: -0.022em;
+.conn__top h3 {
+  font-size: var(--step-h3);
 }
 
 .conn p {
   font-size: var(--step-small);
-  color: var(--muted);
-  line-height: 1.55;
+  color: var(--fg-2);
   flex: 1;
 }
 
 .conn__id {
   font-family: var(--mono);
   font-size: 0.6875rem;
-  color: var(--muted-2);
+  color: var(--fg-3);
   word-break: break-all;
 }
 
 .conn__foot {
-  margin-top: 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
 }
 
-/* ==========================================================================
-   FAQ
-   ========================================================================== */
+.conn__foot .btn {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+}
+
+/* ---- compact FAQ: three questions, not padding ------------------------- */
 
 .faq {
-  display: grid;
-  gap: 0.5rem;
-  max-width: 52rem;
+  max-width: 720px;
+  margin: clamp(3rem, 6vw, 4rem) auto 0;
+  text-align: left;
 }
 
 .faq__item {
-  border: 1px solid var(--line-soft);
-  border-radius: var(--r);
-  background: var(--surface);
-  overflow: hidden;
-  transition: border-color var(--base) var(--ease);
+  border-bottom: 1px solid var(--rule);
 }
 
-.faq__item:hover {
-  border-color: var(--line);
+.faq__item:first-of-type {
+  border-top: 1px solid var(--rule);
 }
 
-.faq__q {
-  width: 100%;
+.faq__item > summary {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
-  text-align: left;
-  background: none;
-  border: 0;
-  padding: 1.0625rem 1.25rem;
-  font-size: 1.0625rem;
-  font-weight: 600;
-  letter-spacing: -0.018em;
-  color: var(--cream);
   cursor: pointer;
+  padding-block: 1.125rem;
+  font-size: var(--step-h3);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  list-style: none;
 }
 
-.faq__sign {
+.faq__item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq__item > summary::after {
+  content: "+";
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 1.125rem;
+  color: var(--fg-3);
   flex: none;
-  width: 1.125rem;
-  height: 1.125rem;
-  position: relative;
-  color: var(--muted);
-  transition: color var(--fast) var(--ease);
 }
 
-.faq__q:hover .faq__sign {
-  color: var(--tangerine);
+.faq__item[open] > summary::after {
+  content: "\2212";
 }
 
-.faq__sign::before,
-.faq__sign::after {
-  content: "";
-  position: absolute;
-  inset: 50% 0 auto 0;
-  height: 1.5px;
-  background: currentColor;
-  border-radius: 2px;
-  transition: transform var(--base) var(--ease);
+.faq__item[open] > summary {
+  color: var(--fg);
 }
 
-.faq__sign::after {
-  transform: rotate(90deg);
-}
-
-.faq__q[aria-expanded="true"] .faq__sign::after {
-  transform: rotate(0deg);
-}
-
-.faq__q[aria-expanded="true"] .faq__sign {
-  color: var(--tangerine);
-}
-
-/* Height-free accordion: grid rows animate cleanly with no JS measurement,
-   so content of any length works and nothing jumps. */
-.faq__a {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows var(--base) var(--ease);
-}
-
-.faq__a[data-open="true"] {
-  grid-template-rows: 1fr;
-}
-
-.faq__a > div {
-  overflow: hidden;
-}
-
-.faq__a p {
-  padding: 0 1.25rem 1.1875rem;
+.faq__item p {
+  padding-bottom: 1.25rem;
+  color: var(--fg-2);
   font-size: var(--step-small);
-  color: var(--muted);
-  line-height: 1.6;
   max-width: 62ch;
 }
 
-.faq__a p + p {
-  padding-top: 0.625rem;
-}
-
-/* Without JS the answers are simply open — a FAQ that cannot be read is
-   worse than one that is long. */
-.no-js .faq__a {
-  grid-template-rows: 1fr;
+.faq__item p + p {
+  padding-bottom: 1.25rem;
+  margin-top: -0.5rem;
 }
 
 /* ==========================================================================
-   FINAL CTA
-   ========================================================================== */
-
-.cta {
-  text-align: center;
-  padding-block: clamp(4rem, 9vw, 8rem);
-}
-
-.cta .h2 {
-  max-width: 20ch;
-  margin-inline: auto;
-}
-
-.cta .lede {
-  max-width: 46ch;
-  margin: 1.125rem auto 0;
-}
-
-.cta__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.875rem;
-  justify-content: center;
-  margin-top: 2rem;
-}
-
-.cta__fine {
-  margin-top: 1.25rem;
-  font-family: var(--mono);
-  font-size: var(--step-mono);
-  color: var(--muted-2);
-}
-
-/* ==========================================================================
-   FOOTER
+   footer
    ========================================================================== */
 
 .footer {
-  border-top: 1px solid var(--line-soft);
-  padding-block: 3rem 2.5rem;
+  background: var(--ink-2);
+  color: var(--cream);
+  border-top: 1px solid var(--petrol-line-soft);
+  padding-block: clamp(3rem, 5vw, 3.75rem) 2.5rem;
+  /* The footer is its own dark environment regardless of the page above. */
+  --fg: var(--cream);
+  --fg-2: #9ba8a6;
+  --fg-3: #7f8d8b;
+  --rule: var(--petrol-line-soft);
+  --accent-text: var(--tangerine);
+  --ok-text: var(--teal);
 }
 
 .footer__top {
@@ -1392,11 +1309,15 @@ a.hero__status:hover {
   }
 }
 
+.footer .brand {
+  color: var(--cream);
+}
+
 .footer__brand p {
   margin-top: 0.875rem;
   font-size: var(--step-small);
-  color: var(--muted);
-  max-width: 28ch;
+  color: var(--fg-2);
+  max-width: 30ch;
 }
 
 .footer h2 {
@@ -1404,7 +1325,7 @@ a.hero__status:hover {
   font-size: var(--step-mono);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted-2);
+  color: var(--fg-3);
   font-weight: 500;
   margin-bottom: 0.875rem;
 }
@@ -1416,7 +1337,7 @@ a.hero__status:hover {
 }
 
 .footer ul a {
-  color: var(--muted);
+  color: #c8d1cf;
   font-size: var(--step-small);
   text-decoration: none;
   transition: color var(--fast) var(--ease);
@@ -1434,7 +1355,7 @@ a.hero__status:hover {
   font-size: 0.625rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--muted-2);
+  color: var(--fg-3);
 }
 
 .footer__status .dot {
@@ -1449,13 +1370,13 @@ a.hero__status:hover {
 }
 
 .footer__status .dot--pending {
-  background: var(--muted-2);
+  background: var(--fg-3);
 }
 
 .footer__legal {
   margin-top: 2.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid var(--line-soft);
+  border-top: 1px solid var(--petrol-line-soft);
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
@@ -1463,23 +1384,28 @@ a.hero__status:hover {
   justify-content: space-between;
   font-family: var(--mono);
   font-size: var(--step-mono);
-  color: var(--muted-2);
+  color: var(--fg-3);
 }
 
 .footer__legal a {
-  color: var(--muted-2);
+  color: var(--fg-3);
+  text-decoration: none;
 }
 
 .footer__legal a:hover {
-  color: var(--muted);
+  color: var(--fg-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* ==========================================================================
-   PROSE — setup & privacy pages
+   /setup/ and /privacy/ — clarity first, same voice
+   These pages share the nav, footer, tokens, type and buttons but keep
+   stable layouts and prose readability. No pinned scroll, no scrubbing.
    ========================================================================== */
 
 .page-head {
-  padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(1.5rem, 3vw, 2.5rem);
+  padding-block: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 3vw, 2.25rem);
 }
 
 .page-head h1 {
@@ -1493,9 +1419,35 @@ a.hero__status:hover {
   max-width: 54ch;
 }
 
+/* An asymmetric rail echoing the app's sidebar. Collapses before it can
+   squeeze the reading measure. */
+.railed {
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+@media (min-width: 1060px) {
+  .railed {
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 0 clamp(2rem, 4vw, 3.5rem);
+    align-items: start;
+  }
+  .railed > .rail {
+    grid-column: 1;
+  }
+  .railed > *:not(.rail) {
+    grid-column: 2;
+  }
+}
+
+.rail .marker {
+  position: sticky;
+  top: 100px;
+}
+
 .prose {
   max-width: 68ch;
-  padding-bottom: clamp(3rem, 7vw, 6rem);
+  padding-bottom: clamp(3rem, 7vw, 5rem);
 }
 
 .prose > * + * {
@@ -1507,8 +1459,8 @@ a.hero__status:hover {
   letter-spacing: -0.028em;
   margin-top: 3rem;
   padding-top: 1.75rem;
-  border-top: 1px solid var(--line-soft);
-  scroll-margin-top: 90px;
+  border-top: 1px solid var(--rule);
+  scroll-margin-top: 96px;
 }
 
 .prose h3 {
@@ -1516,16 +1468,17 @@ a.hero__status:hover {
   font-weight: 650;
   letter-spacing: -0.02em;
   margin-top: 2rem;
+  scroll-margin-top: 96px;
 }
 
 .prose p,
 .prose li {
-  color: var(--muted);
+  color: var(--fg-2);
   line-height: 1.65;
 }
 
 .prose strong {
-  color: var(--cream);
+  color: var(--fg);
   font-weight: 600;
 }
 
@@ -1545,33 +1498,71 @@ a.hero__status:hover {
 }
 
 .prose li::marker {
-  color: var(--line);
+  color: var(--fg-3);
 }
 
 .prose code:not(.code code) {
   font-family: var(--mono);
   font-size: 0.8125rem;
-  color: var(--cream);
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 7%, transparent);
+  border: 1px solid var(--rule);
   padding: 0.0625rem 0.375rem;
   border-radius: 5px;
   word-break: break-word;
+}
+
+.mono-inline {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 7%, transparent);
+  padding: 0.0625rem 0.375rem;
+  border-radius: 5px;
 }
 
 .prose .code {
   margin-top: 0.875rem;
 }
 
-.prose .note {
-  border-left: 2px solid var(--tangerine);
-  background: rgba(255, 107, 44, 0.04);
+.code {
+  border: 1px solid var(--rule);
+  border-radius: var(--r-md);
+  background: var(--petrol);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  color: var(--cream);
+  padding: 0.9375rem 1.0625rem;
+  overflow-x: auto;
+  margin: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.code .cmt {
+  color: #7f8d8b;
+}
+
+.code .out {
+  color: var(--teal);
+  word-break: break-all;
+}
+
+.prose .note,
+.note {
+  border-left: 2px solid var(--accent-text);
+  background: color-mix(in srgb, var(--accent-text) 5%, transparent);
   padding: 0.875rem 1.125rem;
   border-radius: 0 var(--r-sm) var(--r-sm) 0;
 }
 
-.prose .note p {
-  color: var(--muted);
+.note p {
+  color: var(--fg-2);
   font-size: var(--step-small);
+}
+
+.note strong {
+  color: var(--fg);
 }
 
 .prose table {
@@ -1587,8 +1578,8 @@ a.hero__status:hover {
 .prose td {
   text-align: left;
   padding: 0.625rem 1rem 0.625rem 0;
-  border-bottom: 1px solid var(--line-soft);
-  color: var(--muted);
+  border-bottom: 1px solid var(--rule);
+  color: var(--fg-2);
 }
 
 .prose th {
@@ -1596,24 +1587,27 @@ a.hero__status:hover {
   font-size: 0.6875rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--muted-2);
+  color: var(--fg-3);
   font-weight: 500;
 }
 
 /* On-page contents for long documents. */
 .toc {
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--rule);
   border-radius: var(--r);
-  background: var(--surface);
+  background: color-mix(in srgb, var(--fg) 3%, transparent);
   padding: 1.125rem 1.25rem;
 }
+
+/* NOT sticky: the contents block sits inside the prose flow, not in a
+   sidebar, so sticking it would drag it down over the body copy. */
 
 .toc h2 {
   font-family: var(--mono);
   font-size: var(--step-mono);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted-2);
+  color: var(--fg-3);
   font-weight: 500;
   margin: 0 0 0.75rem;
   border: 0;
@@ -1625,17 +1619,17 @@ a.hero__status:hover {
   padding: 0;
   display: grid;
   gap: 0.4375rem;
-  counter-reset: toc;
 }
 
 .toc a {
   font-size: var(--step-small);
   text-decoration: none;
-  color: var(--muted);
+  color: var(--fg-2);
+  display: block;
 }
 
 .toc a:hover {
-  color: var(--cream);
+  color: var(--fg);
 }
 
 /* ==========================================================================
@@ -1643,7 +1637,7 @@ a.hero__status:hover {
    ========================================================================== */
 
 .notfound {
-  min-height: 68vh;
+  min-height: 66vh;
   display: grid;
   place-items: center;
   text-align: center;
@@ -1655,7 +1649,7 @@ a.hero__status:hover {
   font-size: var(--step-mono);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--tangerine);
+  color: var(--accent-text);
 }
 
 .notfound h1 {
@@ -1665,7 +1659,29 @@ a.hero__status:hover {
 }
 
 .notfound p {
-  color: var(--muted);
+  color: var(--fg-2);
   max-width: 42ch;
   margin-inline: auto;
+}
+
+.cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+/* ==========================================================================
+   progressive enhancement
+   The interactive chapters must still say something true and complete
+   without JS.
+   ========================================================================== */
+
+.no-js [data-needs-js] {
+  display: none !important;
+}
+
+.js [data-no-js] {
+  display: none !important;
 }

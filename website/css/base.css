@@ -1,10 +1,23 @@
 /* ==========================================================================
    Rabta — foundations
-   Tokens, reset, type scale, motion primitives.
+   Tokens, reset, type scale, motion primitives, environments.
 
-   The palette and radii are lifted from the app's own design tokens
-   (apps/desktop/src/index.css) so the site and the product read as one
-   object rather than a marketing skin over a different-looking tool.
+   The palette, radii and easing are lifted from the app's own design tokens
+   (apps/desktop/src/index.css, tailwind.config.js) so the site and the
+   product read as one object rather than a marketing skin over a
+   different-looking tool.
+
+   TWO LAYERS, deliberately separate:
+
+   1. PALETTE (:root) — absolute colour values. Never overridden.
+   2. ENVIRONMENT (.env-*) — semantic roles a chapter resolves to. Components
+      only ever reference these, so the same button, badge or rule works on
+      cream and on ink without being rewritten per chapter.
+
+   Petrol is a PRODUCT surface, not a page background. The miniature app UI
+   stays petrol in every chapter because the shipped app's sidebar is
+   theme-invariant petrol — that is what makes the product read as the same
+   object in a light room and a dark one.
    ========================================================================== */
 
 /* Inter, self-hosted. No third-party font request, ever — the product's
@@ -23,24 +36,30 @@
 }
 
 :root {
-  /* ---- surface ---------------------------------------------------- */
+  /* ---- palette: petrol family (product surfaces) ------------------- */
   --ink: #081718;
   --ink-2: #0b1e1f;
-  --surface: #102526;
-  --raised: #173234;
-  --line: #244548;
-  --line-soft: #1a3536;
+  --petrol: #102526; /* app --sidebar, app dark --card */
+  --petrol-raised: #173234; /* app dark --muted */
+  --petrol-accent: #1c3a3c; /* app --sidebar-accent */
+  --petrol-line: #244548; /* app --border (dark) */
+  --petrol-line-soft: #1a3536;
 
-  /* ---- ink -------------------------------------------------------- */
-  --cream: #f4f1e9;
-  --muted: #9ba8a6;
-  --muted-2: #8a9b98;
+  /* ---- palette: warm light family (page environments) -------------- */
+  --paper: #faf8f2; /* lightest — hero */
+  --canvas: #f3f0e8; /* mid — playable demo */
+  --ivory: #e9e5dc; /* deepest warm neutral — trust */
+  --cream: #f4f1e9; /* app dark --foreground; text on petrol */
 
-  /* ---- accent ----------------------------------------------------- */
-  --tangerine: #ff6b2c;
+  /* ---- palette: accents ------------------------------------------- */
+  --tangerine: #ff6b2c; /* app --primary, both themes */
   --tangerine-hi: #ff824d;
-  --teal: #66d6c2;
-  --on-accent: #1d120d;
+  --tangerine-deep: #c94f1f; /* text-safe tangerine on light surfaces */
+  --teal: #66d6c2; /* app dark --success */
+  --teal-deep: #0f7a67; /* app light --success; text-safe on light */
+  --on-accent: #1d120d; /* app --primary-foreground */
+  --warning: #d9a441; /* app dark --warning */
+  --warning-deep: #8a5e0f; /* app light --warning */
 
   /* ---- type ------------------------------------------------------- */
   --sans: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -48,7 +67,13 @@
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
 
-  --step-display: clamp(2.25rem, 1.35rem + 3.4vw, 3.625rem);
+  /* Editorial scale. --step-hero is deliberately larger than anything in
+     v1: the headline is the loudest object on the page, not a heading.
+     Capped so both sentences hold two clean lines and the CTAs stay above
+     the fold at 900px — a headline that pushes the download button off
+     screen is a loud headline that costs conversions. */
+  --step-hero: clamp(2.5rem, 1.05rem + 5vw, 4.25rem);
+  --step-display: clamp(2.25rem, 1.35rem + 3.4vw, 4rem);
   --step-h2: clamp(1.75rem, 1.25rem + 2.1vw, 2.75rem);
   --step-h3: clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem);
   --step-lede: clamp(1.0625rem, 1rem + 0.55vw, 1.3125rem);
@@ -58,27 +83,135 @@
 
   /* ---- space ------------------------------------------------------ */
   --gutter: clamp(1.25rem, 4vw, 3rem);
-  --maxw: 1200px;
-  --rail: 132px; /* left marker column on wide screens */
+  --maxw: 1320px;
+  --maxw-wide: 1440px;
 
   /* ---- shape ------------------------------------------------------ */
-  --r-sm: 8px;
-  --r: 12px;
-  --r-lg: 18px;
+  /* The app's radius scale: --radius 10px, md 8, sm 6. */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r: 10px;
+  --r-lg: 14px;
   --fold: 16px; /* the mark's clipped corner, as a card treatment */
-
-  /* ---- depth ------------------------------------------------------ */
-  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset,
-    0 18px 48px -28px rgba(0, 0, 0, 0.8);
-  --shadow-lift: 0 1px 0 rgba(255, 255, 255, 0.05) inset,
-    0 28px 60px -30px rgba(0, 0, 0, 0.9);
 
   /* ---- motion ----------------------------------------------------- */
   /* One easing for the whole site — the app's own --ease-standard. */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --fast: 130ms;
-  --base: 220ms;
+  --ease-brand: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* The app's three durations, verbatim. */
+  --fast: 120ms;
+  --base: 180ms;
+  --sidebar: 280ms;
   --slow: 420ms;
+}
+
+/* ==========================================================================
+   environments
+   A chapter declares one of these; everything inside resolves against it.
+
+   The paper environment is ALSO the document default, declared on :root
+   below. Without that, any page that does not wrap itself in an .env-*
+   class — /setup/, /privacy/, 404 — would resolve --fg, --rule and friends
+   to nothing and lose most of its styling. A nested .env-* still wins,
+   because custom properties resolve from the nearest ancestor that sets
+   them.
+   ========================================================================== */
+
+:root,
+.env-paper {
+  --bg: var(--paper);
+  --fg: #102526;
+  --fg-2: #5f6a68; /* app light --muted-foreground */
+  --fg-3: #7d8886;
+  --rule: #ddd8cc; /* app light --border */
+  --rule-soft: #e7e2d6;
+  --well: #eceae1; /* app light --muted */
+  --accent-text: var(--tangerine-deep);
+  --ok-text: var(--teal-deep);
+  --warn-text: var(--warning-deep);
+  --shadow-card: 0 1px 2px rgba(16, 37, 38, 0.05),
+    0 3px 10px rgba(16, 37, 38, 0.045), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --shadow-lift: 0 6px 20px rgba(16, 37, 38, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --shadow-stage: 0 40px 80px -32px rgba(16, 37, 38, 0.28),
+    0 8px 24px -12px rgba(16, 37, 38, 0.12);
+  color-scheme: light;
+}
+
+.env-canvas {
+  --bg: var(--canvas);
+  --fg: #102526;
+  --fg-2: #5f6a68;
+  --fg-3: #7d8886;
+  --rule: #d8d2c4;
+  --rule-soft: #e2dccf;
+  --well: #e7e3d8;
+  --accent-text: var(--tangerine-deep);
+  --ok-text: var(--teal-deep);
+  --warn-text: var(--warning-deep);
+  --shadow-card: 0 1px 2px rgba(16, 37, 38, 0.05),
+    0 3px 10px rgba(16, 37, 38, 0.045), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --shadow-lift: 0 6px 20px rgba(16, 37, 38, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --shadow-stage: 0 40px 80px -32px rgba(16, 37, 38, 0.26),
+    0 8px 24px -12px rgba(16, 37, 38, 0.1);
+  color-scheme: light;
+}
+
+.env-ivory {
+  --bg: var(--ivory);
+  --fg: #102526;
+  --fg-2: #57625f;
+  --fg-3: #737e7b;
+  --rule: #d2cbbb;
+  --rule-soft: #ded8c9;
+  --well: #ded8cb;
+  --accent-text: var(--tangerine-deep);
+  --ok-text: var(--teal-deep);
+  --warn-text: var(--warning-deep);
+  --shadow-card: 0 1px 2px rgba(16, 37, 38, 0.05),
+    0 3px 10px rgba(16, 37, 38, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  --shadow-lift: 0 6px 20px rgba(16, 37, 38, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  --shadow-stage: 0 40px 80px -32px rgba(16, 37, 38, 0.24),
+    0 8px 24px -12px rgba(16, 37, 38, 0.1);
+  color-scheme: light;
+}
+
+.env-ink {
+  --bg: var(--ink);
+  --fg: var(--cream);
+  --fg-2: #9ba8a6; /* app dark --muted-foreground */
+  --fg-3: #7f8d8b;
+  --rule: var(--petrol-line);
+  --rule-soft: var(--petrol-line-soft);
+  --well: var(--petrol-raised);
+  --accent-text: var(--tangerine);
+  --ok-text: var(--teal);
+  --warn-text: var(--warning);
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 18px 48px -28px rgba(0, 0, 0, 0.8);
+  --shadow-lift: inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 28px 60px -30px rgba(0, 0, 0, 0.9);
+  --shadow-stage: 0 50px 100px -40px rgba(0, 0, 0, 0.9),
+    0 12px 32px -16px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+
+/* The petrol product environment. Used inside the miniature app UI in every
+   chapter, light or dark, because the app's rail is theme-invariant. */
+.env-product {
+  --bg: var(--petrol);
+  --fg: var(--cream);
+  --fg-2: #9ba8a6;
+  --fg-3: #7f8d8b;
+  --rule: var(--petrol-line);
+  --rule-soft: var(--petrol-line-soft);
+  --well: var(--petrol-raised);
+  --accent-text: var(--tangerine);
+  --ok-text: var(--teal);
+  --warn-text: var(--warning);
+  color-scheme: dark;
 }
 
 /* ==========================================================================
@@ -100,21 +233,14 @@ html {
 
 body {
   margin: 0;
-  background: var(--ink);
-  color: var(--cream);
+  /* The page opens on the hero's environment. */
+  background: var(--paper);
+  color: #102526;
   font-family: var(--sans);
   font-size: var(--step-body);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  /* Ambient depth: tangerine where the action is, teal where the trust
-     story is. Fixed so it reads as light in the room, not a texture that
-     scrolls with the content. */
-  background-image:
-    radial-gradient(58rem 40rem at 84% -10%, rgba(255, 107, 44, 0.1), transparent 62%),
-    radial-gradient(50rem 44rem at -8% 38%, rgba(102, 214, 194, 0.06), transparent 60%);
-  background-attachment: fixed;
-  background-repeat: no-repeat;
   /* Nothing may scroll the page sideways. */
   overflow-x: hidden;
 }
@@ -136,6 +262,12 @@ select,
 textarea {
   font: inherit;
   color: inherit;
+}
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
 }
 
 h1,
@@ -160,10 +292,21 @@ ol {
   padding: 0;
 }
 
+/* figure carries a UA default of `margin: 1em 40px`. Left unreset it shifts
+   every capsule 40px right of its container and overflows the viewport on
+   narrow screens. dl/dd/blockquote have the same class of default. */
+figure,
+figcaption,
+dl,
+dd,
+blockquote {
+  margin: 0;
+}
+
 a {
-  color: var(--teal);
-  text-decoration-color: rgba(102, 214, 194, 0.4);
-  text-decoration-color: color-mix(in srgb, var(--teal) 40%, transparent);
+  color: var(--accent-text, var(--tangerine-deep));
+  text-decoration-color: rgba(201, 79, 31, 0.4);
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
   text-underline-offset: 3px;
 }
 
@@ -174,6 +317,15 @@ a:hover {
 /* ==========================================================================
    type roles
    ========================================================================== */
+
+/* The hero headline. Tighter tracking than anything else on the page — at
+   this size normal tracking reads as loose. */
+.hero-type {
+  font-size: var(--step-hero);
+  line-height: 0.94;
+  letter-spacing: -0.05em;
+  font-weight: 800;
+}
 
 .display {
   font-size: var(--step-display);
@@ -188,7 +340,7 @@ a:hover {
 
 .lede {
   font-size: var(--step-lede);
-  color: var(--muted);
+  color: var(--fg-2);
   line-height: 1.5;
 }
 
@@ -197,18 +349,18 @@ a:hover {
 }
 
 .muted {
-  color: var(--muted);
+  color: var(--fg-2);
 }
 
-/* The structural voice. Section markers are the product's own namespaced
-   connector capabilities, not decorative numbering — they name what the
-   section is actually about. */
+/* The structural voice. Section markers name what the section is actually
+   about — they are not decorative numbering. Matches the app's canonical
+   eyebrow: font-mono, uppercase, tracking-widest, muted. */
 .marker {
   font-family: var(--mono);
   font-size: var(--step-mono);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--muted-2);
+  color: var(--fg-3);
   font-weight: 500;
   display: block;
 }
@@ -235,65 +387,39 @@ code {
   padding-inline: var(--gutter);
 }
 
-.section {
-  padding-block: clamp(4rem, 8vw, 7.5rem);
+.wrap--wide {
+  max-width: var(--maxw-wide);
+}
+
+/* Chapters carry their own environment and their own vertical weight.
+   Padding is NOT uniform across the page — the quiet chapter breathes more
+   than the dense ones. */
+.chapter {
   position: relative;
+  background: var(--bg);
+  color: var(--fg);
+  padding-block: clamp(5rem, 10vw, 9rem);
 }
 
-/* Asymmetric grid: a narrow marker rail echoing the app's sidebar, with
-   content in the main column. Collapses to a single column before it can
-   squeeze the reading measure. */
-.railed {
-  display: grid;
-  gap: clamp(1.5rem, 3vw, 2.5rem);
+.chapter--tight {
+  padding-block: clamp(3.5rem, 6vw, 5.5rem);
 }
 
-@media (min-width: 1100px) {
-  .railed {
-    grid-template-columns: var(--rail) minmax(0, 1fr);
-    gap: 0 clamp(2rem, 4vw, 3.5rem);
-  }
-  .railed > .rail {
-    grid-column: 1;
-    padding-top: 0.6rem;
-  }
-  .railed > .rail .marker {
-    position: sticky;
-    top: 96px;
-  }
-  .railed > * {
-    grid-column: 2;
-  }
-}
-
-.section-head {
-  max-width: 46ch;
-}
-
-.section-head .h2 {
-  margin-top: 0.75rem;
-}
-
-.section-head .lede {
-  margin-top: 1rem;
-}
-
-.divider {
-  border: 0;
-  border-top: 1px solid var(--line-soft);
-  margin: 0;
+.chapter--tall {
+  padding-block: clamp(7rem, 14vw, 13rem);
 }
 
 /* ==========================================================================
    the fold — the mark's clipped corner, as a surface treatment
+
+   RESTRAINT RULE: this class marks preservation or restoration. It is not a
+   Rabta-shaped rectangle for arbitrary cards. Five uses sitewide.
    ========================================================================== */
 
 .fold {
   position: relative;
-  background: var(--surface);
-  border: 1px solid var(--line-soft);
   border-radius: var(--r);
-  /* Clip the top-right corner so the card is the same shape as the mark. */
+  /* Clip the top-right corner so the surface is the same shape as the mark. */
   clip-path: polygon(
     0 0,
     calc(100% - var(--fold)) 0,
@@ -303,7 +429,9 @@ code {
   );
 }
 
-/* The fold itself: a tangerine triangle filling the clipped corner. */
+/* The fold itself: a tangerine triangle filling the clipped corner. The
+   app draws this as clip-path: polygon(100% 0, 0 0, 100% 100%) — same
+   shape, expressed as a gradient so it needs no extra element. */
 .fold::after {
   content: "";
   position: absolute;
@@ -311,20 +439,11 @@ code {
   right: 0;
   width: var(--fold);
   height: var(--fold);
-  background: linear-gradient(
-    225deg,
-    var(--tangerine) 0 50%,
-    transparent 50%
-  );
-  opacity: 0.85;
-  transition: opacity var(--base) var(--ease);
+  background: linear-gradient(225deg, var(--tangerine) 0 50%, transparent 50%);
+  /* The app's own fold depth. */
+  filter: drop-shadow(-0.5px 0.5px 0.5px rgb(0 0 0 / 0.3));
+  transition: width var(--base) var(--ease), height var(--base) var(--ease);
   pointer-events: none;
-}
-
-/* A quieter fold for cards where the accent would be noise at volume. */
-.fold--quiet::after {
-  background: linear-gradient(225deg, var(--line) 0 50%, transparent 50%);
-  opacity: 1;
 }
 
 /* ==========================================================================
@@ -340,16 +459,15 @@ code {
   font-weight: 600;
   letter-spacing: -0.005em;
   padding: 0.8125rem 1.25rem;
-  border-radius: var(--r-sm);
+  border-radius: var(--r);
   border: 1px solid transparent;
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
-  transition:
-    transform var(--fast) var(--ease),
-    background-color var(--fast) var(--ease),
-    border-color var(--fast) var(--ease),
-    box-shadow var(--fast) var(--ease);
+  transition: transform var(--fast) var(--ease-brand),
+    background-color var(--fast) var(--ease-brand),
+    border-color var(--fast) var(--ease-brand),
+    box-shadow var(--fast) var(--ease-brand);
 }
 
 .btn svg {
@@ -358,27 +476,42 @@ code {
   flex: none;
 }
 
+/* Tangerine with the app's own primary-foreground. Passes AA on the
+   accent in both environments because the text is near-black, not white. */
 .btn--primary {
   background: var(--tangerine);
   color: var(--on-accent);
-  box-shadow: 0 10px 26px -12px rgba(255, 107, 44, 0.85);
+  box-shadow: 0 10px 26px -14px rgba(255, 107, 44, 0.9);
 }
 
 .btn--primary:hover {
   background: var(--tangerine-hi);
   transform: translateY(-1px);
-  box-shadow: 0 14px 32px -12px rgba(255, 107, 44, 0.95);
+  box-shadow: 0 14px 32px -14px rgba(255, 107, 44, 0.95);
+}
+
+/* The one CTA fold detail: the primary action carries the mark's corner at
+   small scale. Appearance #5 of the fold motif. */
+.btn--fold {
+  border-radius: var(--r);
+  clip-path: polygon(
+    0 0,
+    calc(100% - 7px) 0,
+    100% 7px,
+    100% 100%,
+    0 100%
+  );
 }
 
 .btn--ghost {
-  background: rgba(244, 241, 233, 0.03);
-  color: var(--cream);
-  border-color: var(--line);
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--rule);
 }
 
 .btn--ghost:hover {
-  background: rgba(244, 241, 233, 0.07);
-  border-color: #2f5658;
+  background: color-mix(in srgb, var(--fg) 5%, transparent);
+  border-color: color-mix(in srgb, var(--fg) 24%, transparent);
   transform: translateY(-1px);
 }
 
@@ -403,9 +536,9 @@ code {
   text-transform: uppercase;
   padding: 0.5rem 0.75rem;
   border-radius: 999px;
-  border: 1px dashed var(--line);
-  color: var(--muted-2);
-  background: rgba(255, 255, 255, 0.015);
+  border: 1px dashed var(--rule);
+  color: var(--fg-3);
+  background: color-mix(in srgb, var(--fg) 3%, transparent);
 }
 
 /* ==========================================================================
@@ -421,20 +554,21 @@ code {
   letter-spacing: 0.07em;
   text-transform: uppercase;
   padding: 0.3125rem 0.625rem;
-  border-radius: 999px;
-  border: 1px solid var(--line);
+  /* The app makes every Badge rounded-md; only the branch pill is a pill. */
+  border-radius: var(--r-md);
+  border: 1px solid var(--rule);
   white-space: nowrap;
 }
 
 .badge--live {
-  color: var(--teal);
-  border-color: rgba(102, 214, 194, 0.35);
-  background: rgba(102, 214, 194, 0.08);
+  color: var(--ok-text);
+  border-color: color-mix(in srgb, var(--ok-text) 35%, transparent);
+  background: color-mix(in srgb, var(--ok-text) 9%, transparent);
 }
 
 .badge--pending {
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.02);
+  color: var(--fg-2);
+  background: color-mix(in srgb, var(--fg) 3%, transparent);
 }
 
 .badge .dot {
@@ -443,6 +577,21 @@ code {
   border-radius: 50%;
   background: currentColor;
   flex: none;
+}
+
+/* The app's branch pill — the only rounded-full pill in the system. */
+.branch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--well) 50%, transparent);
+  color: var(--fg-2);
+  white-space: nowrap;
 }
 
 /* ==========================================================================
@@ -460,11 +609,11 @@ code {
   left: 12px;
   top: -60px;
   z-index: 100;
-  background: var(--raised);
+  background: var(--petrol-raised);
   color: var(--cream);
-  border: 1px solid var(--line);
+  border: 1px solid var(--petrol-line);
   padding: 0.625rem 1rem;
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
   font-size: var(--step-small);
   font-weight: 600;
   text-decoration: none;
@@ -496,9 +645,7 @@ code {
 .js .reveal {
   opacity: 0;
   transform: translateY(12px);
-  transition:
-    opacity var(--slow) var(--ease),
-    transform var(--slow) var(--ease);
+  transition: opacity var(--slow) var(--ease), transform var(--slow) var(--ease);
   transition-delay: var(--reveal-delay, 0ms);
 }
 
@@ -506,6 +653,11 @@ code {
   opacity: 1;
   transform: none;
 }
+
+/* ==========================================================================
+   reduced motion
+   Every chapter must render in its completed state, fully readable.
+   ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
   html {

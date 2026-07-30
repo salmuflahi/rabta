@@ -1,0 +1,90 @@
+name: Deploy website
+
+# Publishes website/ to GitHub Pages.
+#
+# ONE-TIME SETUP (repo settings, not automatable from here):
+#   1. Settings → Pages → Build and deployment → Source: "GitHub Actions".
+#   2. Settings → Pages → Custom domain: rabta.build  (website/CNAME already
+#      carries it, and this workflow ships CNAME to the published root).
+#   3. Wait for the certificate to be issued, then tick "Enforce HTTPS".
+#      Until that is done, https://rabta.build fails certificate validation
+#      because Pages still serves CN=*.github.io — which also breaks the
+#      privacy-policy URL the Chrome Web Store and Open VSX listings point at.
+#
+# There is no build step: the site is hand-authored static HTML/CSS/JS with
+# zero dependencies and zero third-party runtime requests. This workflow
+# uploads website/ verbatim.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race; let an in-flight one finish rather than
+# publishing a half-uploaded site.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Cheap guards against the two mistakes that would actually break the
+      # live site: losing the custom domain, or shipping a third-party request
+      # that contradicts the product's own privacy claim.
+      - name: CNAME present
+        run: test -f website/CNAME && grep -qx "rabta.build" website/CNAME
+
+      - name: No third-party subresources
+        run: |
+          if grep -rnoE '(src|href)="https?://[^"]+"' \
+               website --include='*.html' --include='*.css' --include='*.js' \
+             | grep -vE 'rabta\.build|schema\.org|opensource\.org' \
+             | grep -E '\.(js|css|woff2?|png|jpe?g|avif|webp|svg)"'; then
+            echo "::error::A third-party subresource was found. The site must serve every byte itself."
+            exit 1
+          fi
+
+      - name: Referenced local assets exist
+        run: |
+          missing=0
+          # Collect root-relative asset refs and check each one is on disk.
+          grep -rhoE '(src|href)="/[^"]+\.(css|js|woff2|png|svg|avif|webp|ico|webmanifest)"' \
+            website --include='*.html' \
+            | sed -E 's/.*"(\/[^"]+)".*/\1/' | sort -u \
+            | while read -r p; do
+                if [ ! -f "website$p" ]; then
+                  echo "::error::missing asset: $p"
+                  missing=1
+                fi
+              done
+          exit $missing
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: website
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

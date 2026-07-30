@@ -53,10 +53,9 @@
     </a>
     <nav class="nav__links" aria-label="Primary">
       <a href="/#demo">Product</a>
-      <a href="/#connectors">Connectors</a>
+      <a href="/setup/" aria-current="page">Setup</a>
       <a href="/privacy/">Privacy</a>
-      <a href="/#faq">FAQ</a>
-      <a class="btn btn--primary" href="/#download">Download</a>
+      <a class="btn btn--primary btn--fold" href="/#download">Download</a>
     </nav>
   </div>
 </header>
@@ -190,7 +189,10 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
     <p>
       The extension is published as <strong>Rabta Connector</strong>
       (<code>rabta-connect.rabta-vscode</code>, version 0.1.0) on
-      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener">Open VSX</a>.
+      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener">Open VSX</a>
+      and on the
+      <a href="https://marketplace.visualstudio.com/items?itemName=rabta-connect.rabta-vscode" target="_blank" rel="noopener">VS&nbsp;Code Marketplace</a>.
+      Both registries serve the identical build.
     </p>
 
     <h3>Cursor, VSCodium and Windsurf</h3>
@@ -208,11 +210,22 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
 
     <h3>VS Code</h3>
 
+    <p>Stock VS Code installs from the Marketplace, so it's in the Extensions panel:</p>
+
+    <ol>
+      <li>Open the Extensions panel (<code>⇧⌘X</code>).</li>
+      <li>Search for <strong>Rabta Connector</strong>.</li>
+      <li>Install it, then reload the window.</li>
+    </ol>
+
+    <p>Or from a terminal:</p>
+    <pre class="code">code --install-extension rabta-connect.rabta-vscode</pre>
+
+    <h3>Installing the file directly</h3>
+
     <p>
-      Rabta Connector is <strong>not on the Microsoft Marketplace yet</strong>,
-      so searching the Extensions panel in stock VS Code will not find it.
-      Install the same signed extension file manually — it is the identical
-      build the other editors get:
+      If you'd rather not use a registry, the packaged extension is the
+      identical build:
     </p>
 
     <ol>
@@ -225,6 +238,15 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
       </li>
       <li>Reload the window.</li>
     </ol>
+
+    <div class="note">
+      <p>
+        The <code>.vsix</code> itself carries no code signature — VS Code
+        extensions are not signed artefacts the way the macOS app is. Verify it
+        by downloading from Open VSX or the Marketplace rather than from a
+        third party.
+      </p>
+    </div>
 
     <h3>What happens next</h3>
 
