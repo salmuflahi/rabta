@@ -38,6 +38,7 @@
 <link rel="stylesheet" href="/css/hero.css" />
 <link rel="stylesheet" href="/css/story.css" />
 <link rel="stylesheet" href="/css/demo.css" />
+<link rel="stylesheet" href="/css/connectors.css" />
 
 <script type="module" src="/js/main.js"></script>
 <script type="application/ld+json">
@@ -524,6 +525,110 @@
     </div>
 
     <p class="visually-hidden" data-demo-live role="status" aria-live="polite"></p>
+  </div>
+</section>
+
+
+<!-- ==================== CHAPTER 4 — CONNECTOR ASSEMBLY ====================
+     Symmetric constellation: the capsule at the centre, tool contexts on a
+     cross axis. Terminals live inside the editor context — there is no
+     terminal connector on the wire. Availability is stated separately and
+     kept visually secondary. -->
+<section class="conn" id="connectors" data-conn data-env="ink" aria-labelledby="conn-title">
+  <div class="wrap conn__inner">
+
+    <div class="conn__head">
+      <h2 class="conn__title" id="conn-title">Your tools return with the task.</h2>
+      <p class="conn__lede">
+        Editor, browser and branch reconnect around the work you chose.
+      </p>
+    </div>
+
+    <div class="conn__grid">
+      <div class="conn__slot conn__slot--branch">
+        <div class="conn__panel conn__panel--branch" data-conn-panel="branch">
+            <div class="conn__top">
+              <span class="conn__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></span>
+              <span>
+                <span class="conn__name">Branch</span>
+                <span class="conn__detail">feat/reconnect</span>
+              </span>
+            </div>
+            <p class="conn__status" data-conn-status data-status="applied">
+              <i aria-hidden="true"></i><span data-conn-statustext>Restored</span>
+            </p>
+          </div>
+      </div>
+
+      <div class="conn__slot conn__slot--editor">
+        <div class="conn__panel conn__panel--editor" data-conn-panel="editor">
+            <div class="conn__top">
+              <span class="conn__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg></span>
+              <span>
+                <span class="conn__name">VS Code</span>
+                <span class="conn__detail">src/hub.rs &#183; 4 files &#183; 3 terminals</span>
+              </span>
+            </div>
+            <p class="conn__status" data-conn-status data-status="applied">
+              <i aria-hidden="true"></i><span data-conn-statustext>Restored</span>
+            </p>
+          </div>
+      </div>
+
+      <div class="conn__slot conn__slot--centre">
+        <figure class="capsule conn__capsule" data-cap-state="saved">
+          <figcaption class="capsule__head">
+            <span class="capsule__label">capsule &#183; rabta</span>
+            <span class="capsule__state">Saved</span>
+          </figcaption>
+          <p class="capsule__title">Reconnect browser session</p>
+          <div class="capsule__lines">
+            <p class="capsule__line"><span>branch</span><b>feat/reconnect</b></p>
+            <p class="capsule__line"><span>editor</span><b>4 files &#183; 3 terminals</b></p>
+            <p class="capsule__line"><span>browser</span><b>5 tabs</b></p>
+          </div>
+          <p class="capsule__foot">pointers, not contents</p>
+        </figure>
+      </div>
+
+      <div class="conn__slot conn__slot--browser">
+        <div class="conn__panel conn__panel--browser" data-conn-panel="browser">
+            <div class="conn__top">
+              <span class="conn__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/></svg></span>
+              <span>
+                <span class="conn__name">Chrome</span>
+                <span class="conn__detail">5 tabs</span>
+              </span>
+            </div>
+            <p class="conn__status" data-conn-status data-status="applied">
+              <i aria-hidden="true"></i><span data-conn-statustext>Restored</span>
+            </p>
+          </div>
+      </div>
+    </div>
+
+    <!-- Product capability and public availability are separate facts. -->
+    <div class="conn__avail">
+      <div class="conn__availrow">
+        <span class="conn__availname">Editor connector</span>
+        <span class="conn__availwhere">
+          <a href="https://marketplace.visualstudio.com/items?itemName=rabta-connect.rabta-vscode" target="_blank" rel="noopener noreferrer">VS&#160;Code Marketplace</a>
+          &#183;
+          <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener noreferrer">Open&#160;VSX</a>
+          &#183; for Cursor, VSCodium and Windsurf
+        </span>
+      </div>
+      <div class="conn__availrow">
+        <span class="conn__availname">Browser connector</span>
+        <span class="conn__pending">Chrome Web Store &#183; review pending</span>
+      </div>
+      <p class="t-technical t-muted">
+        Rabta works without the browser connector &#8212; you get editor,
+        terminal and git state until it lands.
+      </p>
+    </div>
+
+    <p class="visually-hidden" data-conn-live role="status" aria-live="polite"></p>
   </div>
 </section>
 

@@ -8,6 +8,7 @@
 import { initHero } from "./hero.js";
 import { initStory } from "./story.js";
 import { initDemo } from "./demo.js";
+import { initConnectors } from "./connectors.js";
 import { observeVisibility } from "./motion.js";
 
 /** The nav separates itself only once content has passed behind it. */
@@ -37,6 +38,7 @@ function boot() {
   safely("hero", () => initHero(document.querySelector("[data-hero]")));
   safely("story", () => initStory(document.querySelector("[data-story]")));
   safely("demo", () => initDemo(document.querySelector("[data-demo]")));
+  safely("connectors", () => initConnectors(document.querySelector("[data-conn]")));
 }
 
 if (document.readyState === "loading") {
