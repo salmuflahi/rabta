@@ -213,6 +213,13 @@
     padding-block: clamp(3rem, 8vw, 5rem);
   }
 
+  /* The chamfered plane is positioned outside the pin's box and only stays
+     contained because the pinned version clips. Once stacked turns clipping
+     off it escapes and widens the page. */
+  .story--stacked .story__pin::after {
+    display: none;
+  }
+
   .story--stacked .story__copy {
     min-height: 0;
     text-align: left;

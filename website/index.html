@@ -37,6 +37,7 @@
 <link rel="stylesheet" href="/css/appframe.css" />
 <link rel="stylesheet" href="/css/hero.css" />
 <link rel="stylesheet" href="/css/story.css" />
+<link rel="stylesheet" href="/css/demo.css" />
 
 <script type="module" src="/js/main.js"></script>
 <script type="application/ld+json">
@@ -276,7 +277,7 @@
           <p class="capsule__title" data-cap-title>Fix restore timeout</p>
           <div class="capsule__lines">
             <p class="capsule__line" data-slot="branch"><span>branch</span><b>fix/restore-timeout</b></p>
-            <p class="capsule__line" data-slot="editor"><span>editor</span><b>6 files · 1 terminal</b></p>
+            <p class="capsule__line" data-slot="editor"><span>editor</span><b>6 files · 2 terminals</b></p>
             <p class="capsule__line" data-slot="browser"><span>browser</span><b>3 tabs</b></p>
           </div>
           <p class="capsule__foot">pointers, not contents</p>
@@ -411,6 +412,118 @@
           </figure>
       </div>
     </div>
+  </div>
+</section>
+
+
+<!-- ====================== CHAPTER 3 — THE PLAYABLE DEMO ======================
+     Split header over one immersive product surface. Everything inside the
+     frame is the real Capsules screen; the marketing layer is the room around
+     it and one contextual line. -->
+<section class="demo" id="product" data-demo data-env="canvas" aria-labelledby="demo-title">
+  <div class="wrap demo__inner">
+
+    <div class="demo__head">
+      <h2 class="demo__title" id="demo-title">
+        Switch tasks.
+        <em>Not environments.</em>
+      </h2>
+      <div class="demo__say">
+        <p class="demo__saytext" data-demo-say>
+          Pick the task you are not in. Rabta saves the one you are leaving
+          before it restores the one you chose.
+        </p>
+        <p class="demo-label demo__label">Interactive product demo &#183; Representative Rabta v0.1.0 data</p>
+      </div>
+    </div>
+
+    <div class="demo__surface">
+      <div class="app" data-env="product">
+        <div class="app__rail">
+          <div class="app__titlebar">
+            <i class="app__light"></i><i class="app__light"></i><i class="app__light"></i>
+          </div>
+          <div class="app__hairline"></div>
+          <div class="app__brand">
+            <svg viewBox="0 0 64 64" aria-hidden="true">
+              <rect width="64" height="64" rx="14" fill="#173234"/>
+              <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
+              <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
+            </svg>
+            <b>Rabta</b>
+          </div>
+          <div class="app__nav">
+            <div class="app__sel" style="--sel: 1"></div>
+            <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg><span>Overview</span><kbd>&#8984;1</kbd></div>
+              <div class="app__row is-active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 9 4.5-9 4.5-9-4.5Z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 17 9 4.5 9-4.5"/></svg><span>Capsules</span><kbd>&#8984;2</kbd></div>
+              <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v3"/><circle cx="17" cy="17" r="3"/><path d="M20.2 20.2 22 22"/></svg><span>Projects</span><kbd>&#8984;3</kbd></div>
+              <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v3a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg><span>Connectors</span><kbd>&#8984;4</kbd></div>
+              <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>Activity</span><kbd>&#8984;5</kbd></div>
+          </div>
+          <div class="app__railfoot">
+            <div class="app__hairline"></div>
+            <div class="app__assure"><i></i><span>Data stored locally</span></div>
+          </div>
+        </div>
+
+        <div class="app__main">
+          <div class="app__toolbar">
+            <span class="app__search">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <span>Search or jump to&#8230;</span><kbd>&#8984;K</kbd>
+            </span>
+            <span class="app__conn"><i></i>2 connected</span>
+          </div>
+
+          <div class="app__content">
+            <p class="app__eyebrow">Tasks</p>
+            <p class="app__title">Capsules</p>
+
+            <div class="demo__split">
+              <div class="demo__tasks" role="group" aria-label="Tasks in this project">
+                <button type="button" class="demo__task" data-demo-task="reconnect" aria-current="true" data-state="active"><span class="demo__taskname">Reconnect browser session</span><span class="demo__taskmeta"><i></i><span data-demo-taskstate>Active</span> &#183; feat/reconnect</span></button>
+                  <button type="button" class="demo__task" data-demo-task="timeout" aria-current="false" data-state="saved"><span class="demo__taskname">Fix restore timeout</span><span class="demo__taskmeta"><i></i><span data-demo-taskstate>Saved</span> &#183; fix/restore-timeout</span></button>
+              </div>
+
+              <div class="demo__detail">
+                <div class="demo__detailhead">
+                  <div>
+                    <p class="demo__detailtitle" data-demo-title>Reconnect browser session</p>
+                    <div class="demo__detailmeta">
+                      <span class="app__pill app__pill--branch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg> <span data-demo-branch>feat/reconnect</span></span>
+                      <span class="app__pill" data-demo-project>rabta</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="demo__rail" data-demo-rail aria-hidden="true"></div>
+
+                <div class="app__rows">
+                  <div class="app__resource" data-demo-row><span class="app__icon app__icon--editor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg></span><span class="app__rtext"><span class="app__rname" data-demo-name>VS Code</span><span class="app__rdetail" data-demo-detail>src/hub.rs &#183; 4 files &#183; 3 terminals</span></span><span class="app__status" data-demo-status-cell data-status="applied">Restored</span></div>
+                  <div class="app__resource" data-demo-row><span class="app__icon app__icon--browser"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/></svg></span><span class="app__rtext"><span class="app__rname" data-demo-name>Chrome</span><span class="app__rdetail" data-demo-detail>5 tabs</span></span><span class="app__status" data-demo-status-cell data-status="applied">Restored</span></div>
+                  <div class="app__resource" data-demo-row><span class="app__icon app__icon--git"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></span><span class="app__rtext"><span class="app__rname" data-demo-name>Git</span><span class="app__rdetail" data-demo-detail>feat/reconnect</span></span><span class="app__status" data-demo-status-cell data-status="applied">Restored</span></div>
+                </div>
+
+                <p class="demo__status" data-demo-status data-tone="ready">
+                  <i aria-hidden="true"></i><span data-demo-statustext>Workspace ready</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo__foot">
+      <div class="demo__history">
+        <p class="demo__histhead">Task history</p>
+        <p class="demo__histrow"><span class="demo__histwhen">Now</span><b data-demo-now>Reconnect browser session</b></p>
+        <p class="demo__histrow"><span class="demo__histwhen">Before</span><span data-demo-before>Fix restore timeout</span> &#183; Saved</p>
+      </div>
+      <button type="button" class="demo__reset" data-demo-reset data-needs-js hidden>Reset demo</button>
+    </div>
+
+    <p class="visually-hidden" data-demo-live role="status" aria-live="polite"></p>
   </div>
 </section>
 

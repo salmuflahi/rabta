@@ -470,9 +470,19 @@
     border-color: color-mix(in srgb, var(--preserved-gold) 24%, transparent);
   }
 
+  /* Explicit gap rather than relying on collapsed source whitespace — the
+     demo's markup is generated with no newline between these spans, which
+     silently rendered "VS Codesrc/hub.rs". */
   .app__rtext {
     min-width: 0;
     flex: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+  }
+
+  .app__rname {
+    flex: none;
   }
 
   .app__rname {

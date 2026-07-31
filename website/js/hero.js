@@ -55,10 +55,10 @@ const TASKS = {
     branch: "fix/restore-timeout",
     file: "src/restore.rs",
     files: 6,
-    terminals: 1,
+    terminals: 2,
     tabs: 3,
     rows: [
-      { kind: "vscode", detail: "src/restore.rs · 6 files · 1 terminal", status: "applied" },
+      { kind: "vscode", detail: "src/restore.rs · 6 files · 2 terminals", status: "applied" },
       { kind: "chrome", detail: "3 tabs", status: "applied" },
       { kind: "git", detail: "fix/restore-timeout", status: "applied" },
     ],

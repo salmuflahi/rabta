@@ -15,6 +15,13 @@
     /* Deliberately NOT scroll-behavior: smooth — it fights anchor jumps into
        a pinned scroll track. JS-initiated scrolls opt in explicitly. */
     scroll-padding-top: calc(var(--nav-height) + 16px);
+    /* `clip`, not `hidden`, and on html rather than body:
+       - overflow-x:hidden on BODY alone does not reliably clip; the page
+         still scrolled 81px sideways.
+       - overflow:hidden on HTML would make it a scroll container, which
+         breaks the story chapter's `position: sticky` pin.
+       `clip` clips without creating a scroll container, so sticky survives. */
+    overflow-x: clip;
   }
 
   body {
