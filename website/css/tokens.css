@@ -18,7 +18,12 @@
    brings with it, mirroring the shipped app's theme-invariant petrol rail.
    ========================================================================== */
 
-@layer reset, tokens, env, type, chrome, chapter, component, state, utility;
+/* Component BEFORE chapter: components define what a thing is, chapters place
+   it. With the old order (chapter then component) `.capsule { position:
+   relative }` silently beat `.hero__capsule { position: absolute }` no matter
+   the specificity, so the hero capsule was never actually absolutely
+   positioned — it only looked right by coincidence in the two-column layout. */
+@layer reset, tokens, env, type, chrome, component, chapter, state, utility;
 
 @layer tokens {
   /* Registered so an undeclared role falls back to a KNOWN value rather than

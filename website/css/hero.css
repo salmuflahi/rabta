@@ -24,10 +24,11 @@
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    min-height: min(96vh, 940px);
-    display: flex;
-    align-items: center;
-    padding-block: var(--space-6) var(--space-9);
+    /* No min-height and no vertical centring: the composition is stacked, and
+       the product is deliberately cropped by the fold rather than fitted
+       above it. */
+    display: block;
+    padding-block: clamp(2rem, 5vw, 4rem) 0;
     /* How far the product runs past the container's right edge. Viewport-
        relative so the crop is proportional rather than a fixed pixel guess. */
     --stage-bleed: clamp(48px, 10.5vw, 165px);
@@ -112,6 +113,12 @@
 
   /* ---- the 12-column editorial grid ---------------------------------- */
 
+  /* ---- STACKED COMPOSITION -------------------------------------------
+     Headline first, product underneath. NOT a centred screenshot in a box:
+     the headline is oversized and flush left, and the product runs full
+     bleed, cropped on BOTH edges and continuing below the fold, so it reads
+     as a window onto something larger rather than a picture of it. */
+
   .hero__grid {
     position: relative;
     z-index: var(--z-copy);
@@ -119,109 +126,139 @@
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     column-gap: var(--grid-gap);
-    align-items: center;
+    row-gap: clamp(2.5rem, 5vw, 4rem);
   }
 
-  /* ---- layer 2: copy, columns 1-6 ------------------------------------ */
-
   .hero__copy {
-    grid-column: 1 / span 6;
-    grid-row: 1;
+    grid-column: 1 / span 9;
     position: relative;
     z-index: var(--z-copy);
+  }
+
+  @media (max-width: 899px) {
+    .hero__copy {
+      grid-column: 1 / -1;
+    }
   }
 
   .hero__slogan {
     margin-bottom: var(--space-5);
   }
 
-  /* Held to 9ch narrower than its column so the product's leading edge never
-     crosses live glyphs — the overlap is the capsule's job, not the type's. */
   .hero__headline {
-    max-width: 11.5em;
     color: var(--fg);
+    max-width: 16ch;
   }
 
-  /* The payoff line takes the accent. The whole headline in colour would be
-     shouting; one line of it is a point of view. */
   .hero__headline em {
     font-style: normal;
     display: block;
     color: var(--sem-action);
   }
 
+  /* Lede and actions sit side by side under the headline, so the copy block
+     stays wide and shallow instead of becoming a tall centred stack. */
+  .hero__under {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--grid-gap);
+    row-gap: var(--space-5);
+    align-items: end;
+    margin-top: calc(-1 * clamp(0.5rem, 2vw, 1.5rem));
+  }
+
   .hero__lede {
-    margin-top: var(--space-6);
-    max-width: 30ch;
+    grid-column: 1 / span 5;
+    max-width: 34ch;
+  }
+
+  .hero__cta {
+    grid-column: 7 / span 6;
+    display: grid;
+    gap: var(--space-4);
+    justify-items: start;
   }
 
   .hero__actions {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: var(--space-3);
-    margin-top: var(--space-7);
   }
 
   .hero__trust {
-    margin-top: var(--space-5);
     color: var(--fg-3);
   }
 
-  /* ---- layers 3-6: the product stage, columns 7-12 ------------------- */
-
-  .hero__stage {
-    grid-column: 7 / -1;
-    grid-row: 1;
-    position: relative;
-    z-index: var(--z-product);
-    /* Pulled left into the copy's gutter and pushed right past the container
-       so the frame genuinely crops on the viewport edge. */
-    /* Reaches back across the gutter INTO the copy grid, past the lede and
-       CTA — which are far narrower than the headline — so copy and product
-       read as one composition rather than adjacent columns. */
-    margin-left: calc(-1 * var(--stage-intrude));
-    /* Crops on the viewport edge. The app reserves a matching right safe-zone
-       (appframe.css --safe-right) so the crop only ever eats padding — cutting
-       "RESTORED" mid-word reads as broken, not as deliberate cropping. */
-    margin-right: calc(-1 * var(--stage-bleed));
-    perspective: 1600px;
-    perspective-origin: 42% 40%;
+  @media (max-width: 899px) {
+    .hero__lede,
+    .hero__cta {
+      grid-column: 1 / -1;
+    }
   }
 
-  /* Restrained: a fixed pose, not a mockup that tilts forever. */
+  /* ---- the product, full bleed underneath ---------------------------- */
+
+  .hero__stage {
+    grid-column: 1 / -1;
+    position: relative;
+    z-index: var(--z-product);
+    /* Escapes the container on BOTH sides — the composition continues past
+       the viewport rather than being framed by it. */
+    margin-inline: calc(50% - 50vw);
+    padding-inline: clamp(1rem, 4vw, 4rem);
+    perspective: 2000px;
+    perspective-origin: 50% 0%;
+  }
+
   .hero__frame {
     position: relative;
     z-index: var(--z-product);
-    /* Fixed pose plus a ±2.2° pointer response. Not a mockup that tilts
-       forever — --px/--py return to 0 on pointerleave and are frozen while a
-       transformation owns the composition. */
-    transform: rotateY(calc(-5deg + var(--px, 0deg)))
-      rotateX(calc(1.5deg + var(--py, 0deg))) rotateZ(0.4deg) scale(var(--fs, 1))
-      translateX(var(--ftx, 0));
+    width: min(1440px, 104vw);
+    margin-inline: auto;
+    /* Leans back very slightly, as if set into the page. */
+    transform: rotateX(calc(1.6deg + var(--py, 0deg)))
+      rotateY(var(--px, 0deg)) scale(var(--fs, 1));
     transform-style: preserve-3d;
     transition: transform var(--duration-large) var(--ease-rabta);
   }
 
-  /* Match the frame's internal safe zone to the crop, plus headroom, so the
-     status column always lands inside the viewport. */
   .hero__frame .app {
-    --safe-right: calc(var(--stage-bleed) + 28px);
+    /* Matches the overhang so the crop only ever eats padding. */
+    --safe-right: 72px;
+    /* Cropped at the bottom: the workspace continues below the fold. */
+    max-height: 62vh;
+    overflow: hidden;
   }
 
-  /* ---- layer 7: the capsule, the only element spanning both regions -- */
-
-  /* The hinge. It straddles the frame's lower-left edge — physically attached
-     to the workspace, not floating in front of it — and sits on the 45° axis
-     between the active task (inside the frame) and the saved task (outside).
-     During capture it becomes the destination for every context object, and
-     during the hero-to-story handoff it is the shared element that travels. */
+  /* The capsule sits in the band BETWEEN the copy and the product, aligned
+     right so it reads as handed from one to the other. It deliberately does
+     not overlap the app: every attempt to float it over the frame covered
+     live product content — nav labels, the workspace title, or the status
+     column — and obscuring the product to decorate it is the wrong trade. */
   .hero__capsule {
-    position: absolute;
+    position: relative;
     z-index: var(--z-product-front);
-    left: -7%;
-    bottom: -3%;
-    width: clamp(268px, 31%, 344px);
-    transform: translateZ(60px);
+    width: clamp(258px, 24%, 320px);
+    margin: 0 clamp(1rem, 6vw, 6rem) calc(-1 * clamp(1.5rem, 3vw, 2.5rem)) auto;
+    transition: transform var(--duration-large) var(--ease-rabta);
+  }
+
+  @media (max-width: 899px) {
+    .hero__frame {
+      width: 100%;
+      transform: none;
+    }
+    .hero__frame .app {
+      max-height: none;
+    }
+    .hero__capsule {
+      position: static;
+      width: 100%;
+      margin-bottom: var(--space-5);
+      transform: none;
+    }
   }
 
   /* ---- context objects ----------------------------------------------- */
@@ -289,133 +326,43 @@
     border-color: color-mix(in srgb, var(--switch-coral-deep) 22%, transparent);
   }
 
-  /* Positions. Distributed along the 45° axis, crossing the frame's LEFT
-     edge into the gutter between copy and product — never landing on the
-     rail, whose nav labels are real product content and must stay legible. */
+  /* Positions. They ride the product's top edge and cross UP into the copy
+     band, so the boundary between the two is stitched rather than drawn. */
   .ctx--at-branch {
-    left: -21%;
-    top: 12%;
+    left: 30%;
+    top: -1.75rem;
     z-index: var(--z-product-front);
     transform: translateZ(48px);
   }
 
-  /* Above the frame's leading edge. Once the frame intrudes into the copy grid
-     the gutter is only ~47px wide — too narrow for a 150px object without
-     landing either on the headline or on the sidebar's nav labels, both of
-     which are live content. The frame's top edge is the honest place for it. */
   .ctx--at-file {
-    left: 7%;
-    top: -7%;
+    left: 48%;
+    top: -2.5rem;
     z-index: var(--z-product-front);
     transform: translateZ(44px);
   }
 
-  /* Behind the frame's top edge, peeking out — kept inside the viewport so
-     the crop never eats a whole object. */
+  /* Behind the product plane, peeking above its edge. */
   .ctx--at-tabs {
-    right: 26%;
-    /* Far enough above the frame's top edge that a readable majority of the
-       object clears it — behind the product plane, but not swallowed by it. */
-    top: -8%;
+    right: 24%;
+    top: -2.25rem;
     z-index: var(--z-product-back);
     transform: translateZ(-40px);
   }
 
   .ctx--at-terminal {
-    right: 19%;
-    bottom: 9%;
+    right: 8%;
+    top: 4.5rem;
     z-index: var(--z-product-front);
     transform: translateZ(52px);
   }
 
-  /* Tucked under the frame's leading edge, clear of the connector rail. */
-  .hero__provenance {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    flex-wrap: wrap;
-    margin-top: var(--space-7);
-    margin-left: var(--stage-intrude);
-  }
-
-  .hero__replay {
-    font-family: var(--font-mono);
-    font-size: var(--text-technical);
-    color: var(--fg-3);
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    transition: color var(--duration-fast) var(--ease-rabta);
-  }
-
-  .hero__replay:hover:not(:disabled) {
-    color: var(--fg);
-  }
-
-  .hero__replay:disabled {
-    opacity: 0.45;
-    cursor: default;
-  }
-
-  /* ==========================================================================
-     THE TRANSFORMATION
-     While capture/restore owns the scene the two-column split dissolves: the
-     copy recedes, the frame gives ground, and the capsule becomes the
-     dominant central object. It settles back afterwards — the resting
-     composition is the one that was approved.
-     ========================================================================== */
-
-  .hero__copy {
-    transition: opacity var(--duration-large) var(--ease-rabta);
-  }
-
-  .hero.is-transforming .hero__copy {
-    opacity: 0.42;
-  }
-
-  .hero.is-transforming .hero__frame {
-    --fs: 0.955;
-    --ftx: -2.5%;
-  }
-
-  .hero__capsule {
-    transition: transform var(--duration-large) var(--ease-rabta),
-      box-shadow var(--duration-large) var(--ease-rabta);
-  }
-
-  /* Toward the centre of the viewport, and larger than anything else. */
-  .hero.is-transforming .hero__capsule {
-    z-index: var(--z-controls);
-    transform: translateZ(120px) translate(-30%, -26%) scale(1.16);
-  }
-
-  /* The pointer response is frozen mid-transformation. */
-  .hero.is-transforming .hero__frame {
-    --px: 0deg;
-    --py: 0deg;
-  }
-
-  /* Objects that only exist once the interaction can run. */
-  html:not(.js) [data-needs-js] {
-    display: none !important;
-  }
-
-  html.js [data-no-js] {
-    display: none !important;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    /* A deliberate alternate, not disabled animation: the composition never
-       dissolves, states change in place, and every label still updates. */
-    .hero.is-transforming .hero__copy {
-      opacity: 1;
-    }
-    .hero.is-transforming .hero__capsule {
-      transform: translateZ(60px);
-    }
-    .hero.is-transforming .hero__frame {
-      --fs: 1;
-      --ftx: 0;
+  @media (max-width: 899px) {
+    .ctx--at-branch,
+    .ctx--at-file,
+    .ctx--at-tabs,
+    .ctx--at-terminal {
+      display: none;
     }
   }
 
@@ -427,11 +374,19 @@
   .hero__conn {
     position: absolute;
     z-index: var(--z-product-front);
-    right: 11%;
-    bottom: -8%;
+    right: 8%;
+    top: 1.25rem;
     display: flex;
     gap: var(--space-2);
     transform: translateZ(56px);
+  }
+
+  @media (max-width: 899px) {
+    .hero__conn {
+      position: static;
+      transform: none;
+      margin-top: var(--space-4);
+    }
   }
 
   .conn-chip {
@@ -459,102 +414,107 @@
 
   /* ==========================================================================
      RESPONSIVE
-     Not a shrunken desktop. Below 1024 the composition reflows to a stacked
-     narrative; below 768 the context objects reduce to the three that carry
-     meaning and the frame stops cropping.
+     The stacked composition already reflows: copy spans full width, the
+     product goes full bleed. Below 900px the context objects and the pointer
+     tilt drop away (see the per-block rules above) and the frame stops being
+     cropped, so what remains here is the narrow-screen product crop.
      ========================================================================== */
 
-  @media (max-width: 1279px) {
-    .hero__stage {
-      margin-left: -3%;
-      margin-right: calc(-1 * var(--page-gutter) - 2vw);
-    }
-
-    /* Fewer objects at narrower widths, per the brief's context-object budget. */
-    .ctx--at-tabs {
-      display: none;
-    }
-  }
-
-  @media (max-width: 1023px) {
-    .hero {
-      min-height: 0;
-      padding-block: var(--space-7) var(--space-8);
-    }
-
-    .hero__grid {
-      grid-template-columns: minmax(0, 1fr);
-      row-gap: var(--space-9);
-    }
-
-    .hero__copy,
-    .hero__stage {
-      grid-column: 1 / -1;
-      grid-row: auto;
-    }
-
-    .hero__headline {
-      max-width: 14em;
-    }
-
-    .hero__lede {
-      max-width: 42ch;
-    }
-
-    .hero__stage {
-      margin-left: 0;
-      margin-right: calc(-1 * var(--page-gutter));
-      perspective: none;
-    }
-
-    .hero__frame {
-      transform: none;
-    }
-
-    .hero__capsule {
-      position: relative;
-      left: auto;
-      bottom: auto;
-      width: min(340px, 100%);
-      margin-top: var(--space-6);
-      transform: none;
-    }
-
-    .hero__conn {
-      position: relative;
-      right: auto;
-      bottom: auto;
-      margin-top: var(--space-4);
-      transform: none;
-    }
-
-    .ctx {
-      transform: none !important;
-    }
-
-    /* The context objects are positioned relative to a frame that sits in a
-       two-column composition. Once the layout stacks, the frame spans the full
-       width and the negative offsets push these off the left edge — clipped by
-       overflow-x, so no scrollbar, but a half-visible chip reads as broken.
-       They belong to the desktop composition only. */
-    .ctx--at-branch,
-    .ctx--at-file {
-      display: none;
-    }
-  }
-
   @media (max-width: 767px) {
-    .hero__stage {
-      margin-right: 0;
+    .hero {
+      padding-block: var(--space-6) 0;
     }
 
-    /* Only the objects that carry meaning survive. */
-    .ctx--at-terminal {
-      display: none;
+    .hero__stage {
+      padding-inline: 0;
     }
 
     .hero__conn {
       flex-wrap: wrap;
+    }
+  }
+
+  /* ---- provenance + replay ------------------------------------------- */
+
+  .hero__provenance {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    margin-top: var(--space-5);
+    padding-inline: clamp(1rem, 4vw, 4rem);
+  }
+
+  .hero__replay {
+    font-family: var(--font-mono);
+    font-size: var(--text-technical);
+    color: var(--fg-3);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color var(--duration-fast) var(--ease-rabta);
+  }
+
+  .hero__replay:hover:not(:disabled) {
+    color: var(--fg);
+  }
+
+  .hero__replay:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  /* ==========================================================================
+     THE TRANSFORMATION
+     While capture/restore owns the scene the composition gives way: the copy
+     recedes, the product settles back, and the capsule becomes the dominant
+     object. It returns to the resting composition afterwards.
+     ========================================================================== */
+
+  .hero__copy,
+  .hero__under {
+    transition: opacity var(--duration-large) var(--ease-rabta);
+  }
+
+  .hero.is-transforming .hero__copy,
+  .hero.is-transforming .hero__under {
+    opacity: 0.42;
+  }
+
+  .hero.is-transforming .hero__frame {
+    --fs: 0.975;
+    --px: 0deg;
+    --py: 0deg;
+  }
+
+  /* Lifts toward the viewer and grows — the object being preserved is the
+     one the eye should follow. */
+  .hero.is-transforming .hero__capsule {
+    z-index: var(--z-controls);
+    transform: translateZ(130px) scale(1.14);
+  }
+
+  /* Objects that only exist once the interaction can run. */
+  html:not(.js) [data-needs-js] {
+    display: none !important;
+  }
+
+  html.js [data-no-js] {
+    display: none !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* A deliberate alternate, not disabled animation: the composition never
+       gives way, states change in place, and every label still updates. */
+    .hero.is-transforming .hero__copy,
+    .hero.is-transforming .hero__under {
+      opacity: 1;
+    }
+    .hero.is-transforming .hero__capsule {
+      transform: translateZ(60px);
+    }
+    .hero.is-transforming .hero__frame {
+      --fs: 1;
     }
   }
 }

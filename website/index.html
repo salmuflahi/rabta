@@ -109,26 +109,44 @@
         <em>Keep your place.</em>
       </h1>
 
+    </div>
+
+    <div class="hero__under">
       <p class="t-body-large hero__lede">
         Rabta remembers the working context around your code—and restores it
         when you return.
       </p>
 
-      <div class="hero__actions">
-        <a class="btn btn--primary" href="#download">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Download for macOS
-        </a>
-        <a class="btn btn--secondary" href="#product">Try the demo</a>
+      <div class="hero__cta">
+        <div class="hero__actions">
+          <a class="btn btn--primary" href="#download">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Download for macOS
+          </a>
+          <a class="btn btn--secondary" href="#product">Try the demo</a>
+        </div>
+        <p class="t-technical hero__trust">
+          Local-first · No Rabta account · No telemetry by default
+        </p>
       </div>
-
-      <p class="t-technical hero__trust">
-        Local-first · No Rabta account · No telemetry by default
-      </p>
     </div>
 
     <!-- Layers 3–7 — the product stage -->
     <div class="hero__stage" data-stage>
+      <figure class="capsule hero__capsule" data-capsule data-cap-state="saved">
+          <figcaption class="capsule__head">
+            <span class="capsule__label">capsule · rabta</span>
+            <span class="capsule__state" data-cap-badge>Saved</span>
+          </figcaption>
+          <p class="capsule__title" data-cap-title>Fix restore timeout</p>
+          <div class="capsule__lines">
+            <p class="capsule__line" data-slot="branch"><span>branch</span><b>fix/restore-timeout</b></p>
+            <p class="capsule__line" data-slot="editor"><span>editor</span><b>6 files · 2 terminals</b></p>
+            <p class="capsule__line" data-slot="browser"><span>browser</span><b>3 tabs</b></p>
+          </div>
+          <p class="capsule__foot">pointers, not contents</p>
+        </figure>
+
       <div class="hero__frame" data-frame>
 
         <div class="app" data-env="product" role="img"
@@ -271,19 +289,7 @@
         <!-- Layer 7 — the capsule. Spans copy and product because it is the
              only thing that belongs to both. Shows the PRESERVED task: the
              one you are not in is the one being kept. -->
-        <figure class="capsule hero__capsule" data-capsule data-cap-state="saved">
-          <figcaption class="capsule__head">
-            <span class="capsule__label">capsule · rabta</span>
-            <span class="capsule__state" data-cap-badge>Saved</span>
-          </figcaption>
-          <p class="capsule__title" data-cap-title>Fix restore timeout</p>
-          <div class="capsule__lines">
-            <p class="capsule__line" data-slot="branch"><span>branch</span><b>fix/restore-timeout</b></p>
-            <p class="capsule__line" data-slot="editor"><span>editor</span><b>6 files · 2 terminals</b></p>
-            <p class="capsule__line" data-slot="browser"><span>browser</span><b>3 tabs</b></p>
-          </div>
-          <p class="capsule__foot">pointers, not contents</p>
-        </figure>
+        
 
         <!-- The connector rail, aligned beside the product. -->
         <div class="hero__conn" aria-hidden="true">
