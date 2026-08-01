@@ -1,0 +1,216 @@
+/* ==========================================================================
+   Rabta — chapter 5, local-first
+
+   FIFTH SPATIAL GRAMMAR, and the quietest thing on the page. Four dense
+   chapters precede it; this one deliberately drops the density: one very
+   large statement, three short proof lines, one product-native visual, and a
+   great deal of nothing.
+
+   Almost no motion by design. The only movement is the containment line
+   settling once — because the point of this chapter is that nothing leaves.
+
+   No shield icons, no padlocks, no cloud-with-a-slash, no card grid. The
+   visual is the product's own capsule sitting inside a device boundary that
+   its context lines stop at.
+   ========================================================================== */
+
+@layer chapter {
+  .local {
+    position: relative;
+    overflow: hidden;
+    /* The most vertical breathing room of any chapter. */
+    padding-block: clamp(6rem, 15vw, 14rem);
+    min-height: min(90vh, 900px);
+    display: flex;
+    align-items: center;
+  }
+
+  .local__grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--grid-gap);
+    row-gap: clamp(3rem, 7vw, 5.5rem);
+    width: 100%;
+    align-items: center;
+  }
+
+  /* Columns 1–7: nothing competes with the statement. */
+  .local__copy {
+    grid-column: 1 / span 7;
+  }
+
+  .local__title {
+    font-size: clamp(2.75rem, 1.2rem + 4.6vw, 5.5rem);
+    line-height: 0.96;
+    letter-spacing: -0.045em;
+    font-weight: 640;
+    color: var(--fg);
+    max-width: 14ch;
+  }
+
+  /* Three lines, rule-separated. Not cards — this chapter must stay empty. */
+  .local__proof {
+    margin-top: clamp(2.5rem, 5vw, 3.75rem);
+    max-width: 42ch;
+  }
+
+  .local__proof li {
+    padding-block: clamp(0.875rem, 1.6vw, 1.125rem);
+    border-top: 1px solid var(--rule);
+    font-size: var(--text-body-large);
+    color: var(--fg-2);
+  }
+
+  .local__proof li:last-child {
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* The technical proof, quiet and factual. */
+  .local__facts {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.5rem 1.75rem;
+    margin-top: clamp(2rem, 4vw, 2.75rem);
+    font-family: var(--font-mono);
+    font-size: var(--text-body-small);
+  }
+
+  .local__facts dt {
+    color: var(--fg-3);
+  }
+
+  .local__facts dd {
+    color: var(--fg);
+    word-break: break-word;
+  }
+
+  .local__note {
+    margin-top: var(--space-5);
+    max-width: 46ch;
+    color: var(--fg-3);
+  }
+
+  /* ---- the device --------------------------------------------------- */
+
+  .local__vis {
+    grid-column: 9 / -1;
+    justify-self: center;
+  }
+
+  @media (max-width: 1023px) {
+    .local__copy,
+    .local__vis {
+      grid-column: 1 / -1;
+    }
+
+    .local__vis {
+      justify-self: start;
+    }
+  }
+
+  /* A simplified Mac, not an illustration of one. Its only job is to be an
+     edge that the context lines stop at. */
+  .local__device {
+    position: relative;
+    width: min(340px, 100%);
+    padding: 18px 18px 22px;
+    border-radius: 18px;
+    border: 1px solid color-mix(in srgb, var(--fg) 22%, transparent);
+    background: color-mix(in srgb, var(--fg) 4%, transparent);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* The stand — three strokes, no more. */
+  .local__device::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -13px;
+    width: 42%;
+    height: 12px;
+    transform: translateX(-50%);
+    border: 1px solid color-mix(in srgb, var(--fg) 18%, transparent);
+    border-top: 0;
+    border-radius: 0 0 8px 8px;
+    background: color-mix(in srgb, var(--fg) 3%, transparent);
+  }
+
+  .local__devicelabel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+  }
+
+  /* The capsule sits INSIDE the boundary. Same component as everywhere else. */
+  .local__device .capsule {
+    width: 100%;
+  }
+
+  /* Context lines that stop at the edge. Three short rules leaving the
+     capsule and terminating at the device's inner wall — the whole argument
+     of the chapter in one piece of geometry. */
+  .local__stops {
+    display: grid;
+    gap: 9px;
+    margin-top: 14px;
+  }
+
+  .local__stop {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 14px;
+    font-family: var(--font-mono);
+    font-size: var(--text-label);
+    color: var(--fg-3);
+  }
+
+  .local__stopline {
+    position: relative;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--fg) 10%, transparent),
+      color-mix(in srgb, var(--fg) 42%, transparent)
+    );
+    /* Settles once, and only once. */
+    transform-origin: left center;
+    transform: scaleX(var(--stop-x, 1));
+    transition: transform var(--duration-cinematic) var(--ease-rabta);
+  }
+
+  .local--armed .local__stopline {
+    --stop-x: 0.05;
+  }
+
+  /* The terminator: context reaches the boundary and goes no further. */
+  /* The stop. Context reaches the wall and goes no further — this dot is
+     the whole argument of the chapter, so it has to be legible. */
+  .local__stopline::after {
+    content: "";
+    position: absolute;
+    right: -1px;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    transform: translate(50%, -50%);
+    background: var(--ok-text);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok-text) 18%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .local__stopline,
+    .local--armed .local__stopline {
+      --stop-x: 1;
+      transition: none;
+    }
+  }
+}

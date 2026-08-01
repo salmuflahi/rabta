@@ -9,7 +9,7 @@ import { initHero } from "./hero.js";
 import { initStory } from "./story.js";
 import { initDemo } from "./demo.js";
 import { initConnectors } from "./connectors.js";
-import { observeVisibility } from "./motion.js";
+import { observeVisibility, prefersReducedMotion } from "./motion.js";
 
 /** The nav separates itself only once content has passed behind it. */
 function initNav() {
@@ -32,6 +32,25 @@ function safely(name, fn) {
   }
 }
 
+/** The containment lines settle once. Armed only if we will actually run. */
+function initLocal() {
+  const root = document.querySelector("[data-local]");
+  if (!root || prefersReducedMotion()) return;
+  root.classList.add("local--armed");
+  const stop = observeVisibility(
+    root,
+    (isIn) => {
+      if (!isIn) return;
+      root.classList.remove("local--armed");
+      stop();
+    },
+    { threshold: 0.4 }
+  );
+  /* If the observer never delivers — a hidden document suspends it — the
+     lines must not stay collapsed. */
+  window.setTimeout(() => root.classList.remove("local--armed"), 4000);
+}
+
 function boot() {
   document.documentElement.classList.add("js");
   safely("nav", initNav);
@@ -39,6 +58,7 @@ function boot() {
   safely("story", () => initStory(document.querySelector("[data-story]")));
   safely("demo", () => initDemo(document.querySelector("[data-demo]")));
   safely("connectors", () => initConnectors(document.querySelector("[data-conn]")));
+  safely("local", initLocal);
 }
 
 if (document.readyState === "loading") {

@@ -39,6 +39,7 @@
 <link rel="stylesheet" href="/css/story.css" />
 <link rel="stylesheet" href="/css/demo.css" />
 <link rel="stylesheet" href="/css/connectors.css" />
+<link rel="stylesheet" href="/css/local.css" />
 
 <script type="module" src="/js/main.js"></script>
 <script type="application/ld+json">
@@ -629,6 +630,69 @@
     </div>
 
     <p class="visually-hidden" data-conn-live role="status" aria-live="polite"></p>
+  </div>
+</section>
+
+
+<!-- ====================== CHAPTER 5 — LOCAL-FIRST ======================
+     The quietest chapter, and the fifth spatial grammar: one very large
+     statement, three proof lines, one product-native visual, and a lot of
+     nothing. Every claim below is verified against the shipped build. -->
+<section class="local" data-local data-env="ivory" aria-labelledby="local-title">
+  <div class="wrap local__grid">
+
+    <div class="local__copy">
+      <h2 class="local__title" id="local-title">Your workspace stays on your Mac.</h2>
+
+      <ul class="local__proof">
+        <li>No Rabta account required.</li>
+        <li>Workspace data is stored on this Mac.</li>
+        <li>Rabta does not upload your project code.</li>
+      </ul>
+
+      <dl class="local__facts">
+        <dt>Data mode</dt><dd>Local</dd>
+        <dt>Account</dt><dd>Not required</dd>
+        <dt>Project upload</dt><dd>None</dd>
+        <dt>Stored at</dt><dd>~/Library/Application&#160;Support/com.omnibus.dev</dd>
+      </dl>
+
+      <p class="t-technical local__note">
+        The <code>com.omnibus.dev</code> identifier predates the rename and is
+        kept so existing installs keep their data.
+      </p>
+
+      <p style="margin-top: var(--space-6)">
+        <a class="btn btn--secondary btn--compact" href="/privacy/">Read the privacy policy</a>
+      </p>
+    </div>
+
+    <div class="local__vis">
+      <div class="local__device" aria-hidden="true">
+        <p class="local__devicelabel"><span>This Mac</span><span>local</span></p>
+
+        <figure class="capsule" data-cap-state="saved">
+          <figcaption class="capsule__head">
+            <span class="capsule__label">capsule &#183; rabta</span>
+            <span class="capsule__state">Saved</span>
+          </figcaption>
+          <p class="capsule__title">Reconnect browser session</p>
+          <div class="capsule__lines">
+            <p class="capsule__line"><span>branch</span><b>feat/reconnect</b></p>
+            <p class="capsule__line"><span>editor</span><b>4 files &#183; 3 terminals</b></p>
+            <p class="capsule__line"><span>browser</span><b>5 tabs</b></p>
+          </div>
+          <p class="capsule__foot">pointers, not contents</p>
+        </figure>
+
+        <!-- Context reaches the boundary and goes no further. -->
+        <div class="local__stops">
+          <p class="local__stop"><span class="local__stopline"></span><span>paths</span></p>
+          <p class="local__stop"><span class="local__stopline"></span><span>branch</span></p>
+          <p class="local__stop"><span class="local__stopline"></span><span>tab urls</span></p>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
