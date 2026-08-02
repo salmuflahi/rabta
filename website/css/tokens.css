@@ -1,12 +1,4 @@
-/* ==========================================================================
-   Rabta — tokens
-   docs/site-design-plan.md §4. These are the only values on the site.
-   A number that is not in this file does not go in the CSS.
-
-   Every hue is lifted verbatim from assets/brand/rabta-mark.svg, which
-   contains exactly three colours: #102526, #F3F0E8, #FF6B2C. Nothing here was
-   picked to look nice; it was picked because it was already in the logo.
-   ========================================================================== */
+/* Rabta — Living Instrument tokens. */
 
 @layer tokens, reset, type, layout, component, section, state;
 
@@ -27,26 +19,26 @@
   }
 
   :root {
-    /* ---- colour: twelve tokens, no thirteenth --------------------------- */
-    --ground: #0a1314;
-    --panel: #102526;
-    --field-bone: #eae4d5;
+    --petrol: #102526;
+    --orange: #ff6b2c;
+    --ivory: #f3f0e8;
+    --cool-panel: #173239;
+    --cool-mid: #66858c;
+    --cool-soft: #a9bec2;
+    --cool-field: #d9e3e3;
+    --ink-on-orange: #102526;
 
-    --text-1: #f3f0e8; /* 17.5:1 on ground · 13.4:1 on panel */
-    --text-2: #a9bcba; /*  9.5:1 on ground ·  7.2:1 on panel */
-    --text-3: #7c8f8e; /*  5.6:1 on ground ·  4.7:1 on panel — never below 13px */
-
-    /* Hard cap of FIVE painted instances per document: nav pill, hero anchor,
-       hero fold underside, active switcher underline, install anchor.
-       NOT counted: the focus ring and ::selection (system affordances), and
-       the ember triangle inside rabta-mark.svg — that is the logo, not an
-       instance, and it appears wherever the mark does. */
-    --accent: #ff6b2c; /* 6.6:1 on ground */
-    /* The one derived hue on the site — the hover fill for the three accent
-       anchors. Never a resting colour, never text, never a border. */
+    /* Compatibility aliases while the supporting routes move to the new
+       visual system. They all resolve to canonical Living Instrument hues. */
+    --ground: var(--petrol);
+    --panel: var(--cool-panel);
+    --field-bone: var(--cool-field);
+    --text-1: var(--ivory);
+    --text-2: var(--cool-soft);
+    --text-3: var(--cool-mid);
+    --accent: var(--orange);
     --accent-hi: #ff8452;
-    --ink-on-accent: #102526; /* 5.6:1 on accent. White on accent is 3.34:1
-                                 and is forbidden outright, at any size. */
+    --ink-on-accent: var(--ink-on-orange);
 
     --hairline: rgba(243, 240, 232, 0.08);
     --hairline-strong: rgba(243, 240, 232, 0.14);
@@ -91,8 +83,8 @@
     --section-y: 128px;
 
     /* ---- layout --------------------------------------------------------- */
-    --shell: 1320px; /* hero field and full-shell rules ONLY */
-    --rail: 1120px; /* everything below the hero */
+    --shell: 1320px;
+    --rail: 1180px;
     /* 96, not 64: the longest chapter mark ("connectors") measures ~71px at
        13px and overflowed a 64px track straight into the heading. 96 is the
        next step on the spacing scale and clears every mark. */
@@ -100,6 +92,10 @@
     --gutter: 40px;
     --gap: 24px;
     --locked: 960px; /* the Return Pair. Both frames. Identically. */
+
+    --section-wide: 160px;
+    --section-standard: 128px;
+    --section-close: 96px;
 
     /* ---- shape ---------------------------------------------------------- */
     --r1: 4px;
@@ -113,10 +109,15 @@
     --fold-sm: 12px;
     --fold: 18px;
     --fold-lg: 56px;
+    --fold-size: 56px;
+    --fold-half: 28px;
 
     /* ---- motion --------------------------------------------------------- */
     --dur: 120ms;
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --fold-duration: 520ms;
+    --fold-delay: 100ms;
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   @media (max-width: 899px) {
@@ -124,12 +125,21 @@
       --section-y: 96px;
       --gutter: 24px;
       --fold-lg: 36px;
+      --section-wide: 112px;
+      --section-standard: 92px;
+      --section-close: 72px;
     }
   }
 
   @media (max-width: 599px) {
     :root {
       --section-y: 72px;
+      --gutter: 18px;
+      --section-wide: 88px;
+      --section-standard: 72px;
+      --section-close: 56px;
+      --fold-size: 40px;
+      --fold-half: 20px;
     }
   }
 }

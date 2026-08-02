@@ -2,7 +2,9 @@
   "name": "rabta",
   "private": true,
   "scripts": {
-    "test": "pnpm -r --if-present test",
+    "test": "pnpm -r --if-present test && pnpm test:site",
+    "test:site": "node --test tests/site/*.test.mjs",
+    "verify:media": "node scripts/verify-media.mjs",
     "build": "pnpm -r --if-present build"
   }
 }
