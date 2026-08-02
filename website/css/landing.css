@@ -1,752 +1,614 @@
-/* Rabta — homepage compositions. */
-
-/* ==========================================================================
-   Rabta — components
-   docs/site-design-plan.md §4.4 (the fold), §7 (components), §8 (sections).
-
-   THE FOLD IS THE ONE SHAPE THAT IS OURS. rabta-mark.svg is a square with its
-   top-right corner cut at 45°, and on this site that cut means exactly one
-   thing: THIS HOLDS CONTEXT. The hero field, the capsule tags, the two Return
-   Pair boxes and the screens frame carry it. Ledgers, tables, status rows,
-   buttons and the nav do not — they carry facts *about* context, not context
-   itself, and a chamfer on everything is a texture rather than a system.
-   ========================================================================== */
-
-@layer component {
-  /* ---- the fold ------------------------------------------------------- */
-
-  /* A clipped element cannot also carry a border — the clip cuts it — so the
-     hairline is drawn as an inset ring by ::before instead. */
-  .fold {
-    position: relative;
-    clip-path: polygon(
-      0 0,
-      calc(100% - var(--f, var(--fold))) 0,
-      100% var(--f, var(--fold)),
-      100% 100%,
-      0 100%
-    );
-  }
-
-  .fold--sm {
-    --f: var(--fold-sm);
-  }
-
-  .fold--lg {
-    --f: var(--fold-lg);
-  }
-
-  /* ---- panel ----------------------------------------------------------- */
-
-  /* The single elevation device below the fold. Exactly two levels exist
-     sitewide (ground, panel). No third, and no panel nested in a panel. */
-  .panel {
-    background: var(--panel);
-    border-radius: var(--r3);
-  }
-
-  .panel--bordered {
-    border: 1px solid var(--hairline);
-  }
-
-  /* ---- frame — the screenshot bed (§7.2) ------------------------------- */
-
-  .frame {
-    background: var(--panel);
-    border-radius: var(--r3);
-    padding: var(--s5);
-  }
-
-  .frame__img {
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: var(--r2);
-    border: 1px solid var(--hairline);
-    background: var(--ground);
-  }
-
-  @media (max-width: 767px) {
-    .frame {
-      padding: var(--s4);
-    }
-
-    /* CROP, DO NOT SHRINK (§7.4). A 1024px app UI scaled to 350px is
-       unreadable and makes the product look like a toy. Cropping keeps the
-       left ~70% at full fidelity, which is where the sidebar and the list
-       are — the parts that carry the meaning. */
-    .frame--crop {
-      overflow: hidden;
-    }
-
-    .frame--crop .frame__img {
-      width: auto;
-      max-width: none;
-      min-width: 720px;
-    }
-  }
-
-  /* ---- locked box — the Return Pair unit (§7.3) ------------------------ */
-
-  /* THE SIGNATURE. Both instances share this one class and differ ONLY in
-     <img> and label. If a later change makes them differ in width, padding or
-     radius, the argument is gone and the two sections are pointless. */
-  .locked {
-    width: 100%;
-    max-width: var(--locked);
-    margin-inline: auto;
-  }
-
-  .locked__label {
-    display: block;
-    margin-bottom: var(--s3);
-  }
-
-  .locked__manifest {
-    margin-top: var(--s3);
-  }
-
-  /* ---- manifest — the mono data line (§7.5) ---------------------------- */
-
-  /* Always the literal contents of the thing pictured above it. Never a
-     summary, never a claim. */
-  .manifest {
-    color: var(--text-3);
-  }
-
-  .manifest b {
-    font-weight: 400;
-    color: var(--text-1);
-  }
-
-  /* ---- status row (§7.6) ----------------------------------------------- */
-
-  /* No colour is used, so a partial state cannot read as a warning. */
-  .status {
-    display: grid;
-    grid-template-columns: 12px minmax(0, 1fr) auto;
-    align-items: baseline;
-    gap: var(--s3);
-    padding-block: 20px;
-    border-top: 1px solid var(--hairline);
-  }
-
-  .status__dot {
-    width: 8px;
-    height: 8px;
-    margin-top: 8px;
-    border-radius: 50%;
-    background: var(--text-1);
-  }
-
-  .status__dot--hollow {
-    background: none;
-    border: 1px solid var(--text-3);
-  }
-
-  .status__name {
-    color: var(--text-1);
-    font-weight: 500;
-  }
-
-  .status__note {
-    display: block;
-    color: var(--text-3);
-    font-weight: 400;
-  }
-
-  .status__state {
-    /* 13, not 14: the locked scale has no 14px step and this is the label
-       register, which is 13/18/500. */
-    font-size: 13px;
-    line-height: 18px;
-    letter-spacing: var(--track-13);
-    font-weight: 500;
-    color: var(--text-3);
-    white-space: nowrap;
-  }
-
-  @media (max-width: 599px) {
-    .status {
-      grid-template-columns: 12px minmax(0, 1fr);
-    }
-    .status__state {
-      grid-column: 2;
-    }
-  }
-
-  /* ---- chapter (§7.7) --------------------------------------------------- */
-
-  .chapter__mark {
-    position: sticky;
-    top: 80px;
-    align-self: start;
-    /* Optical alignment to the heading's cap line: the display block carries
-       6px of internal padding plus 1px of half-leading, and the 13px label
-       carries 3.5px of its own. */
-    padding-top: 11px;
-    color: var(--text-3);
-    text-transform: lowercase;
-  }
-
-  .chapter__head {
-    margin-bottom: var(--s8);
-  }
-
-  .chapter__lede {
-    margin-top: 0;
-  }
-
-  .chapter__visual {
-    margin-top: var(--s8);
-  }
-
-  @media (max-width: 899px) {
-    .chapter__mark {
-      position: static;
-    }
-    .chapter__head {
-      margin-bottom: var(--s7);
-    }
-  }
-
-  /* ---- capsule tag — the rack (§8.5) ----------------------------------- */
-
-  /* Replaces the decimal index. Rabta has one recurring object and it is the
-     capsule, so the capsule is what carries navigation. */
-  .rack {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--s4);
-  }
-
-  .tag {
-    position: relative; /* the inset ring is absolute against this */
-    display: grid;
-    align-content: start;
-    gap: var(--s2);
-    padding: var(--s5);
-    background: var(--panel);
-    border-radius: var(--r3);
-    text-decoration: none;
-    transition: background-color var(--dur) var(--ease);
-  }
-
-  /* The ring. A clipped box cannot carry a border — the clip cuts it — so the
-     hairline is a border on a full-size overlay child, which the clip then
-     cuts along the fold exactly as it cuts the surface. Not a box-shadow:
-     shadows are banned sitewide and this is a border, not elevation. */
-  .tag::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    border: 1px solid var(--hairline);
-    border-radius: inherit;
-    transition: border-color var(--dur) var(--ease);
-  }
-
-  .tag:hover::before {
-    border-color: var(--hairline-strong);
-  }
-
-  /* An outline is painted outside the border box, and .fold's clip-path cuts
-     away everything outside it — so the default focus ring was invisible on
-     all six tags. The ring becomes the inset border, which the clip follows
-     along the fold instead of erasing. */
-  .tag:focus-visible {
-    outline: none;
-  }
-
-  .tag:focus-visible::before {
-    border: 2px solid var(--accent);
-  }
-
-  .tag__name {
-    color: var(--text-1);
-    font-weight: 500;
-  }
-
-  .tag__what {
-    color: var(--text-3);
-  }
-
-  .tag__data {
-    margin-top: var(--s2);
-    color: var(--text-3);
-  }
-
-  .tag:hover .tag__data {
-    color: var(--text-2);
-  }
-
-  @media (max-width: 1023px) {
-    .rack {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 599px) {
-    .rack {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
-  /* ---- ledger — a list of rows of facts -------------------------------- */
-
-  .ledger {
-    display: grid;
-    grid-template-columns: 200px minmax(0, 1fr);
-    align-items: baseline;
-  }
-
-  .ledger dt {
-    padding-block: var(--s4);
-    border-top: 1px solid var(--hairline);
-    font-size: 13px;
-    line-height: 18px;
-    letter-spacing: var(--track-13);
-    font-weight: 500;
-    color: var(--text-3);
-  }
-
-  .ledger dd {
-    padding-block: var(--s4);
-    border-top: 1px solid var(--hairline);
-    color: var(--text-1);
-  }
-
-  /* @layer component beats @layer type, so setting a size on every dd silently
-     beat .t-mono on the rows that carry it -- the checksum and the version
-     were rendering at 15px sans. Only the prose rows get the prose size. */
-  .ledger dd:not(.t-mono) {
-    font-size: 15px;
-    line-height: 24px;
-    letter-spacing: var(--track-15);
-  }
-
-  @media (max-width: 599px) {
-    .ledger {
-      grid-template-columns: minmax(0, 1fr);
-    }
-    .ledger dt {
-      padding-bottom: 0;
-    }
-    .ledger dd {
-      padding-top: 2px;
-      border-top: 0;
-    }
-  }
-}
-/* ==========================================================================
-   Rabta — sections
-   docs/site-design-plan.md §8. One block per section, in page order.
-   ========================================================================== */
+/* Rabta — Living Instrument homepage compositions. */
 
 @layer section {
-  /* ---- 8.2 hero -------------------------------------------------------- */
+  main {
+    overflow: clip;
+  }
 
   .hero {
-    padding-top: var(--s9);
-    padding-bottom: var(--s8);
+    padding-top: 140px;
+    padding-bottom: 44px;
   }
 
-  .hero__h {
-    max-width: 640px;
+  .hero .eyebrow {
+    margin-bottom: 22px;
   }
 
-  /* The hero's base. The release line used to sit on the headline's last
-     baseline, 411px to its right, anchored to nothing — a lone object in an
-     empty quadrant. Paired with the requirement strip under one hairline it
-     has a partner, and the hero gets a floor instead of trailing off. */
-  .hero__spec {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--s5);
-    flex-wrap: wrap;
-    margin-top: var(--s7);
-    padding-top: var(--s4);
-    border-top: 1px solid var(--hairline);
+  .hero h1 {
+    max-width: 980px;
+    color: var(--ivory);
+    font-size: 72px;
+    font-weight: 600;
+    line-height: 0.98;
+    letter-spacing: -0.055em;
+    text-wrap: balance;
   }
 
-  /* The release line. NOT a chip: a bordered pill with a hollow dot, a
-     version, a vertical hairline and a muted date is linear.app's "New |
-     Coding Sessions" component reproduced part-for-part. Borrowing their
-     grid is fair; reproducing a component is not. This is one unboxed line
-     in the page's own machine-data register. */
-  .release {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 10px;
-    text-decoration: none;
-    white-space: nowrap;
-    padding-bottom: 2px;
-    border-bottom: 1px solid var(--hairline);
-    transition: border-color var(--dur) var(--ease);
-  }
-
-  .release:hover {
-    border-bottom-color: var(--text-3);
+  .hero h1 span,
+  .thesis h2 span,
+  .download h2 span {
+    color: var(--cool-mid);
   }
 
   .hero__lede {
-    margin-top: var(--s6);
+    max-width: 680px;
+    margin-top: 32px;
+    color: var(--cool-soft);
+    font-size: 20px;
+    line-height: 1.55;
+    letter-spacing: -0.015em;
   }
 
-  .hero__cta {
-    margin-top: var(--s7);
+  .hero__actions {
     display: flex;
     align-items: center;
-    gap: var(--s4);
-    flex-wrap: wrap;
+    gap: 24px;
+    margin-top: 36px;
   }
 
-  @media (max-width: 767px) {
-    .hero__cta .btn {
-      width: 100%;
-    }
+  .requirement {
+    margin-top: 18px;
+    color: var(--cool-mid);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+    letter-spacing: 0.015em;
   }
 
-  /* ---- 8.3 the hero plate ---------------------------------------------- */
-
-  /* The widest element on the page. Nothing after it is ever this wide, which
-     is what makes the page settle down after the fold. */
-  .plate {
-    padding-bottom: var(--section-y);
-  }
-
-  /* The underside must be positioned against the SHELL, not the page: the
-     shell is capped at 1320 and centred, so `right: gutter` off the page put
-     the fold in open space beside the field. */
-  .plate > .shell {
+  .return-field {
     position: relative;
+    margin-top: 20px;
+    padding: clamp(28px, 4.5vw, 68px);
+    padding-bottom: 22px;
+    background: transparent;
+    color: var(--petrol);
   }
 
-  /* Accent instance #3 — the fold's underside, and the document's one
-     literal branding moment. */
-  .plate__underside {
+  .return-field::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--cool-field);
+    clip-path: polygon(0 0, calc(100% - 72px) 0, 100% 72px, 100% 100%, 0 100%);
+  }
+
+  .return-field::after {
+    content: "";
     position: absolute;
     top: 0;
-    right: var(--gutter);
-    width: var(--fold-lg);
-    height: var(--fold-lg);
-    background: var(--accent);
-    clip-path: polygon(0 0, 100% 0, 100% 100%);
+    right: 0;
+    width: 72px;
+    height: 72px;
+    background: var(--orange);
+    clip-path: polygon(0 0, 100% 100%, 100% 0);
+    z-index: 2;
     pointer-events: none;
   }
 
-  .plate__field {
-    background: var(--field-bone);
-    border-radius: var(--r5);
-    padding: var(--s6) var(--s8) 0;
+  .return-field__stage {
+    position: relative;
+    z-index: 1;
     overflow: hidden;
+    border: 1px solid rgba(16, 37, 38, 0.16);
+    border-radius: 12px;
+    background: var(--cool-panel);
   }
 
-  /* Bleeds off the field's bottom edge so the app reads as continuing. */
-  .plate__img {
-    display: block;
+  .return-field__stage img {
     width: 100%;
-    max-width: 1024px;
     height: auto;
-    margin-inline: auto;
-    margin-bottom: calc(-1 * var(--s7));
-    border-radius: var(--r2);
-    border: 1px solid var(--hairline-dark);
   }
 
-  /* No text is ever set on the bone field. The caption sits below it, on
-     ground. */
-  .plate__cap {
-    margin-top: var(--s4);
+  .return-field figcaption {
+    position: relative;
+    z-index: 1;
+    margin-top: 14px;
+    color: rgba(16, 37, 38, 0.66);
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.5;
+    letter-spacing: 0.025em;
   }
 
-  @media (max-width: 767px) {
-    .plate__field {
-      padding: var(--s5) var(--s5) 0;
-      border-radius: var(--r4);
+  .release-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    padding-top: 24px;
+    color: var(--cool-mid);
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.5;
+    letter-spacing: 0.02em;
+  }
+
+  .release-strip span:nth-child(2) {
+    text-align: center;
+  }
+
+  .release-strip span:last-child {
+    text-align: right;
+  }
+
+  .thesis {
+    padding-block: 160px;
+  }
+
+  .thesis h2,
+  .download h2 {
+    max-width: 980px;
+    color: var(--ivory);
+    font-size: clamp(48px, 5vw, 60px);
+    font-weight: 560;
+    line-height: 1.03;
+    letter-spacing: -0.048em;
+    text-wrap: balance;
+  }
+
+  .thesis > p:last-child {
+    max-width: 600px;
+    margin-top: 32px;
+    margin-left: min(34vw, 400px);
+    color: var(--cool-soft);
+    font-size: 19px;
+    line-height: 1.6;
+  }
+
+  .chapter-heading {
+    display: grid;
+    grid-template-columns: minmax(160px, 0.35fr) minmax(0, 1fr);
+    gap: 40px;
+    align-items: start;
+  }
+
+  .chapter-heading h2,
+  .chapter-copy h2,
+  .local h2 {
+    max-width: 760px;
+    color: var(--ivory);
+    font-size: clamp(38px, 4vw, 48px);
+    font-weight: 560;
+    line-height: 1.06;
+    letter-spacing: -0.042em;
+    text-wrap: balance;
+  }
+
+  .pieces {
+    padding-block: 128px 160px;
+    border-top: 1px solid rgba(169, 190, 194, 0.14);
+  }
+
+  .pieces__composition {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
+    gap: clamp(44px, 7vw, 92px);
+    align-items: center;
+    margin-top: 76px;
+  }
+
+  .pieces__manifest {
+    border-top: 1px solid rgba(169, 190, 194, 0.2);
+  }
+
+  .pieces__manifest > div {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 20px;
+    padding-block: 22px;
+    border-bottom: 1px solid rgba(169, 190, 194, 0.2);
+  }
+
+  .pieces__manifest dt {
+    color: var(--ivory);
+    font-size: 15px;
+    font-weight: 520;
+  }
+
+  .pieces__manifest dd {
+    color: var(--cool-soft);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  .product-crop {
+    overflow: hidden;
+    padding: 20px;
+    border-radius: 14px;
+    background: var(--cool-panel);
+  }
+
+  .product-crop picture {
+    overflow: hidden;
+    border: 1px solid rgba(217, 227, 227, 0.12);
+    border-radius: 9px;
+  }
+
+  .product-crop img {
+    width: 100%;
+    height: auto;
+  }
+
+  .product-crop figcaption {
+    margin-top: 14px;
+    color: var(--cool-mid);
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .honest-return {
+    background: var(--cool-panel);
+  }
+
+  .honest-return__inner {
+    display: grid;
+    grid-template-columns: minmax(250px, 0.65fr) minmax(0, 1.35fr);
+    gap: clamp(48px, 8vw, 108px);
+    align-items: center;
+    padding-block: 144px;
+  }
+
+  .chapter-copy .eyebrow {
+    margin-bottom: 18px;
+  }
+
+  .chapter-copy > p:last-child {
+    margin-top: 26px;
+    color: var(--cool-soft);
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  .return-demo {
+    min-width: 0;
+  }
+
+  .return-demo picture {
+    overflow: hidden;
+    border: 1px solid rgba(217, 227, 227, 0.13);
+    border-radius: 12px;
+    background: var(--petrol);
+  }
+
+  .return-demo img {
+    width: 100%;
+    height: auto;
+  }
+
+  .return-demo figcaption {
+    display: grid;
+    grid-template-columns: 1.45fr 1fr 1fr 1fr;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(169, 190, 194, 0.18);
+    color: var(--cool-mid);
+    font-family: var(--mono);
+    font-size: 10px;
+    line-height: 1.45;
+  }
+
+  .return-demo figcaption strong {
+    color: var(--ivory);
+    font-weight: 520;
+  }
+
+  .local {
+    padding-block: 96px;
+    background: var(--ivory);
+    color: var(--petrol);
+  }
+
+  .local__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: clamp(48px, 9vw, 120px);
+  }
+
+  .local .eyebrow {
+    color: var(--cool-mid);
+  }
+
+  .local h2 {
+    color: var(--petrol);
+  }
+
+  .local__copy {
+    padding-top: 34px;
+  }
+
+  .local__copy > p:first-child {
+    max-width: 590px;
+    color: #274348;
+    font-size: 19px;
+    line-height: 1.62;
+  }
+
+  .local code {
+    font-family: var(--mono);
+    font-size: 0.84em;
+  }
+
+  .availability {
+    margin-top: 28px;
+    color: var(--cool-mid);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .local .text-link {
+    margin-top: 24px;
+  }
+
+  .download {
+    padding-block: 160px;
+  }
+
+  .download > .eyebrow {
+    margin-bottom: 20px;
+  }
+
+  .download__actions {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 440px);
+    gap: 28px 40px;
+    align-items: center;
+    margin-top: 44px;
+  }
+
+  .download__actions p {
+    color: var(--cool-soft);
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .download__links {
+    display: flex;
+    gap: 24px;
+    margin-top: 34px;
+    color: var(--cool-mid);
+    font-size: 13px;
+  }
+
+  .download__links a {
+    text-underline-offset: 4px;
+  }
+
+  .download__links a:hover {
+    color: var(--ivory);
+  }
+
+  @media (max-width: 899px) {
+    .hero {
+      padding-top: 112px;
     }
-    .plate__img {
-      width: auto;
-      max-width: none;
-      min-width: 720px;
-      margin-inline: 0;
+
+    .hero h1 {
+      font-size: 46px;
     }
-  }
 
-  /* ---- 8.4 evidence band ----------------------------------------------- */
-
-  /* The logo-wall slot. Nothing here implies adoption, popularity, endorsement
-     or scale — because none of those exist yet. */
-  /* The rules sit on the RAIL, not the section: every other rule on the site
-     is rail-width, and two full-bleed ones under a railed band read as a
-     mistake rather than as emphasis. */
-  .evidence > .rail {
-    padding-block: var(--s7);
-    border-top: 1px solid var(--hairline);
-    border-bottom: 1px solid var(--hairline);
-  }
-
-  .evidence__cell {
-    padding-left: var(--s5);
-    border-left: 1px solid var(--hairline);
-    align-self: start;
-  }
-
-  .evidence__cell:first-child {
-    padding-left: 0;
-    border-left: 0;
-  }
-
-  /* No key line above the value. An eyebrow plus a value in a bordered cell
-     is a card, and four cards in a row under the hero is the logo wall with
-     facts poured into it. Each cell is one statement. */
-  .evidence__cell b {
-    font-weight: 400;
-    color: var(--text-1);
-  }
-
-  @media (max-width: 1023px) {
-    .evidence__cell:nth-child(3) {
-      padding-left: 0;
-      border-left: 0;
+    .thesis {
+      padding-block: 112px;
     }
-    .evidence__cell:nth-child(n + 3) {
-      padding-top: var(--s5);
-      margin-top: var(--s5);
-      border-top: 1px solid var(--hairline);
+
+    .thesis > p:last-child {
+      margin-left: 18vw;
+    }
+
+    .pieces {
+      padding-block: 92px 112px;
+    }
+
+    .chapter-heading,
+    .pieces__composition,
+    .honest-return__inner,
+    .local__inner {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .chapter-heading {
+      gap: 20px;
+    }
+
+    .pieces__composition {
+      gap: 48px;
+      margin-top: 56px;
+    }
+
+    .honest-return__inner {
+      gap: 56px;
+      padding-block: 112px;
+    }
+
+    .local {
+      padding-block: 72px;
+    }
+
+    .local__copy {
+      padding-top: 0;
+    }
+
+    .download {
+      padding-block: 112px;
     }
   }
 
   @media (max-width: 599px) {
-    .evidence__cell {
-      padding-left: 0;
-      border-left: 0;
+    .hero {
+      padding-top: 88px;
+      padding-bottom: 32px;
     }
-    .evidence__cell + .evidence__cell {
-      padding-top: var(--s4);
-      margin-top: var(--s4);
-      border-top: 1px solid var(--hairline);
+
+    .hero h1 {
+      font-size: 36px;
+      letter-spacing: -0.045em;
+    }
+
+    .hero__lede {
+      margin-top: 24px;
+      font-size: 17px;
+    }
+
+    .hero__actions {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 18px;
+      margin-top: 28px;
+    }
+
+    .hero__actions .button {
+      width: 100%;
+    }
+
+    .return-field {
+      width: auto;
+      margin-inline: 12px;
+      padding: 24px 0 16px 16px;
+    }
+
+    .return-field::before {
+      clip-path: polygon(0 0, calc(100% - 42px) 0, 100% 42px, 100% 100%, 0 100%);
+    }
+
+    .return-field::after {
+      width: 42px;
+      height: 42px;
+    }
+
+    .return-field__stage {
+      border-radius: 8px 0 0 8px;
+    }
+
+    .return-field__stage picture {
+      display: block;
+      width: 760px;
+    }
+
+    .return-field__stage img {
+      width: 760px;
+      max-width: none;
+      transform: translateX(-146px);
+    }
+
+    .return-field figcaption {
+      padding-right: 20px;
+    }
+
+    .release-strip {
+      grid-template-columns: 1fr;
+      gap: 6px;
+      padding-top: 18px;
+    }
+
+    .release-strip span:nth-child(2),
+    .release-strip span:last-child {
+      text-align: left;
+    }
+
+    .thesis {
+      padding-block: 88px;
+    }
+
+    .thesis h2,
+    .download h2 {
+      font-size: 38px;
+    }
+
+    .thesis > p:last-child {
+      margin-top: 28px;
+      margin-left: 0;
+      font-size: 17px;
+    }
+
+    .pieces {
+      padding-block: 72px 88px;
+    }
+
+    .pieces__composition {
+      margin-top: 44px;
+    }
+
+    .pieces__manifest > div {
+      grid-template-columns: 1fr;
+      gap: 7px;
+      padding-block: 18px;
+    }
+
+    .product-crop {
+      padding: 14px 0 14px 14px;
+      border-radius: 10px;
+    }
+
+    .product-crop picture {
+      display: block;
+      overflow: hidden;
+      border-radius: 7px 0 0 7px;
+    }
+
+    .product-crop picture img {
+      width: 720px;
+      max-width: none;
+      transform: translateX(-98px);
+    }
+
+    .product-crop figcaption {
+      padding-right: 14px;
+    }
+
+    .honest-return__inner {
+      gap: 44px;
+      padding-block: 88px;
+    }
+
+    .chapter-heading h2,
+    .chapter-copy h2,
+    .local h2 {
+      font-size: 36px;
+    }
+
+    .return-demo picture {
+      display: block;
+      overflow: hidden;
+    }
+
+    .return-demo picture img {
+      width: 720px;
+      max-width: none;
+      transform: translateX(-178px);
+    }
+
+    .return-demo figcaption {
+      grid-template-columns: 1fr;
+      gap: 7px;
+      font-size: 11px;
+    }
+
+    .local {
+      padding-block: 56px;
+    }
+
+    .local__copy > p:first-child {
+      font-size: 17px;
+    }
+
+    .download {
+      padding-block: 88px;
+    }
+
+    .download__actions {
+      grid-template-columns: 1fr;
+      margin-top: 34px;
+    }
+
+    .download__actions .button {
+      width: 100%;
+    }
+
+    .download__links {
+      flex-wrap: wrap;
+      gap: 12px 20px;
     }
   }
-
-  /* ---- 8.7 the loop ---------------------------------------------------- */
-
-  /* Four words, unnumbered. A single hairline SPANS the strip rather than
-     dividing it — the four are one motion, not four items. */
-  .loop {
-    padding-top: var(--s7);
-    border-top: 1px solid var(--hairline);
-  }
-
-  .loop__item {
-    display: grid;
-    gap: var(--s2);
-    align-content: start;
-  }
-
-  .loop__word {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    color: var(--text-1);
-    font-weight: 500;
-  }
-
-  /* No connecting arrows. Four cells with an arrow between each is the
-     generic "how it works" strip, and U+2192 is not in the Inter subset so it
-     was falling back to a system face mid-word. The spanning hairline and the
-     reading order carry the sequence. */
-
-  /* ---- 8.10 the screens switcher --------------------------------------- */
-
-  /* CSS ONLY. Three visually-hidden radios and three labels. Works with
-     scripting disabled, arrow keys move between radios natively, and the
-     panel change is a 120ms opacity change and nothing else. */
-  .switch > input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .switch__bar {
-    display: flex;
-    gap: var(--s5);
-    flex-wrap: wrap;
-    margin-bottom: var(--s5);
-  }
-
-  .switch__bar label {
-    padding-bottom: var(--s2);
-    border-bottom: 1px solid transparent;
-    color: var(--text-3);
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: -0.17px;
-    cursor: pointer;
-    transition: color var(--dur) var(--ease),
-      border-color var(--dur) var(--ease);
-  }
-
-  .switch__bar label:hover {
-    color: var(--text-2);
-  }
-
-  /* Grid stacking: every panel occupies the same cell, so the stage is as
-     tall as the tallest and the swap cannot shift layout.
-
-     The explicit minmax(0, 1fr) track is load-bearing. An implicit `auto`
-     track sizes to its widest content, and at <=767px the crop rule gives the
-     image a 720px min-width — so the track grew to 754px, the panels grew
-     with it, and the whole document scrolled sideways on a phone. The frame's
-     own `overflow: hidden` was clipping the image but could not shrink a
-     track that had already been sized around it. */
-  .switch__stage {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .switch__panel {
-    grid-area: 1 / 1;
-    min-width: 0;
-    max-width: 100%;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity var(--dur) var(--ease),
-      visibility 0s linear var(--dur);
-  }
-
-  .switch__cap {
-    margin-top: var(--s3);
-    max-width: 560px;
-  }
-
-  /* Accent instance #4 — the only accent below the fold. */
-  #sc-projects:checked ~ .switch__bar label[for="sc-projects"],
-  #sc-connectors:checked ~ .switch__bar label[for="sc-connectors"],
-  #sc-activity:checked ~ .switch__bar label[for="sc-activity"] {
-    color: var(--text-1);
-    border-bottom-color: var(--accent);
-  }
-
-  #sc-projects:checked ~ .switch__stage [data-panel="projects"],
-  #sc-connectors:checked ~ .switch__stage [data-panel="connectors"],
-  #sc-activity:checked ~ .switch__stage [data-panel="activity"] {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity var(--dur) var(--ease);
-  }
-
-  #sc-projects:focus-visible ~ .switch__bar label[for="sc-projects"],
-  #sc-connectors:focus-visible ~ .switch__bar label[for="sc-connectors"],
-  #sc-activity:focus-visible ~ .switch__bar label[for="sc-activity"] {
-    outline: 2px solid var(--accent);
-    outline-offset: 4px;
-    border-radius: 2px;
-  }
-
-  /* ---- 8.11 privacy ledger --------------------------------------------- */
-
-  /* List the absences as absences and never convert one into a feature.
-     No green ticks, no shield icons, no seals. */
-  .absences {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px var(--s5);
-  }
-
-  .absences li {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    color: var(--text-1);
-    font-size: 17px;
-    line-height: 26px;
-    letter-spacing: var(--track-17);
-  }
-
-  .absences li::before {
-    content: "—";
-    color: var(--text-3);
-    font-size: 12px;
-    flex: none;
-  }
-
-  @media (max-width: 767px) {
-    .absences {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 429px) {
-    .absences {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
-  /* The privacy claims panel: the list of absences, a rule, then the three
-     sentences that qualify them. */
-  .claims {
-    padding: var(--s7);
-    max-width: 900px;
-  }
-
-  .claims__more {
-    margin-top: var(--s6);
-    padding-top: var(--s6);
-    border-top: 1px solid var(--hairline);
-  }
-
-  /* ---- 8.12 install ---------------------------------------------------- */
-
-  .sha {
-    margin-top: var(--s4);
-    padding: var(--s4);
-    background: var(--ground);
-    border: 1px solid var(--hairline);
-    border-radius: var(--r3);
-  }
-
-  .sha__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--s4);
-    margin-bottom: var(--s3);
-  }
-
-  .sha code {
-    display: block;
-    font-family: var(--mono);
-    font-size: 12px;
-    line-height: 20px;
-    letter-spacing: var(--track-mono);
-    font-variant-numeric: tabular-nums;
-    color: var(--text-1);
-    overflow-wrap: anywhere;
-    user-select: all;
-  }
-
-  .copy {
-    height: 28px;
-    padding-inline: 10px;
-    letter-spacing: var(--track-mono);
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--r1);
-    color: var(--text-3);
-    font-family: var(--mono);
-    font-size: 12px;
-    cursor: pointer;
-    transition: color var(--dur) var(--ease),
-      border-color var(--dur) var(--ease);
-  }
-
-  .copy:hover {
-    color: var(--text-1);
-    border-color: var(--text-3);
-  }
-
 }

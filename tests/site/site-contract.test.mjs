@@ -60,3 +60,62 @@ test("no third-party subresource is loaded", async () => {
     assert.deepEqual(subresources, [], route);
   }
 });
+
+test("homepage has the approved narrative and removes the stale architecture", async () => {
+  const html = await readRoute("/");
+
+  for (const copy of [
+    "Workspace memory for macOS",
+    "Pick up the task.",
+    "Not the pieces.",
+    "A task is more than a folder.",
+    "The pieces you usually reconstruct by hand.",
+    "The return, shown honestly.",
+    "Local is not a privacy setting.",
+    "Come back to the work.",
+  ]) {
+    assert.ok(html.includes(copy), copy);
+  }
+
+  for (const id of ["how-it-works", "pieces", "return", "local", "download"]) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+
+  for (const removed of [
+    'class="rack',
+    'class="evidence',
+    'class="switch',
+    'class="ledger',
+  ]) {
+    assert.doesNotMatch(html, new RegExp(removed));
+  }
+
+  assert.ok(html.includes("no Intel build"));
+  assert.ok(html.includes("Workspace partially restored"));
+  assert.ok(html.includes("On next reload"));
+});
+
+test("mobile Return Field offsets fit inside the viewport", async () => {
+  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
+  const mobile = css.match(
+    /@media \(max-width: 599px\) \{[\s\S]*?\.return-field \{([\s\S]*?)\n\s*\}/,
+  )?.[1];
+
+  assert.ok(mobile, "mobile Return Field rule exists");
+  assert.match(mobile, /width:\s*auto/);
+  assert.match(mobile, /margin-inline:\s*12px/);
+});
+
+test("Return Field paints the orange fold outside the clipped cool sheet", async () => {
+  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
+  const field = css.match(/\.return-field \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+  const sheet =
+    css.match(/\.return-field::before \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+  const fold =
+    css.match(/\.return-field::after \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+
+  assert.doesNotMatch(field, /clip-path/);
+  assert.match(sheet, /background:\s*var\(--cool-field\)/);
+  assert.match(sheet, /clip-path/);
+  assert.match(fold, /background:\s*var\(--orange\)/);
+});
