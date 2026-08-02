@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <title>Rabta — Leave the task. Keep your place.</title>
-<meta name="description" content="Rabta preserves the working context around your code and restores it when you return. Local-first for macOS." />
+<meta name="description" content="Rabta saves the files, terminals, browser tabs and git branch a task had open, and puts them back when you return to it. Local-first, for macOS." />
 <link rel="canonical" href="https://rabta.build/" />
-<meta name="theme-color" content="#faf8f2" />
-<meta name="color-scheme" content="light" />
+<meta name="theme-color" content="#0a1314" />
+<meta name="color-scheme" content="dark" />
 
 <!-- Every raster is generated from assets/brand/rabta-mark.svg by
      scripts/generate-brand-assets.py. Never hand-edited. -->
@@ -21,25 +21,19 @@
 <meta property="og:site_name" content="Rabta" />
 <meta property="og:url" content="https://rabta.build/" />
 <meta property="og:title" content="Rabta — Leave the task. Keep your place." />
-<meta property="og:description" content="Rabta preserves the working context around your code and restores it when you return." />
+<meta property="og:description" content="Rabta saves the files, terminals, browser tabs and git branch a task had open, and puts them back when you return to it." />
 <meta property="og:image" content="https://rabta.build/assets/brand/og-cover.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="Rabta — leave the task, keep your place." />
 <meta name="twitter:card" content="summary_large_image" />
 
-<!-- Absolute, byte-identical to the @font-face src, so the font is fetched
-     exactly once. -->
 <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-latin-variable.woff2" crossorigin />
 
 <link rel="stylesheet" href="/css/tokens.css" />
-<link rel="stylesheet" href="/css/foundation.css" />
-<link rel="stylesheet" href="/css/appframe.css" />
-<link rel="stylesheet" href="/css/hero.css" />
-<link rel="stylesheet" href="/css/story.css" />
-<link rel="stylesheet" href="/css/demo.css" />
-<link rel="stylesheet" href="/css/connectors.css" />
-<link rel="stylesheet" href="/css/local.css" />
+<link rel="stylesheet" href="/css/shell.css" />
+<link rel="stylesheet" href="/css/components.css" />
+<link rel="stylesheet" href="/css/sections.css" />
 
 <script type="module" src="/js/main.js"></script>
 <script type="application/ld+json">
@@ -55,653 +49,591 @@
   "downloadUrl": "https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg",
   "url": "https://rabta.build/",
   "license": "https://opensource.org/licenses/MIT",
-  "description": "A local-first macOS tool that preserves the working context around a task — editor files, terminals, browser tabs and git branch — and restores it on demand.",
+  "description": "A local-first macOS tool that saves the working context around a task — editor files, terminals, browser tabs and git branch — and restores it on demand.",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
   "author": { "@type": "Person", "name": "Sammy Almuflahi" }
 }
 </script>
 </head>
 
-<body data-env="paper">
-<a class="skip-link" href="#main">Skip to content</a>
+<body>
+<a class="skip" href="#main">Skip to content</a>
 
-<header class="nav" data-nav>
-  <div class="wrap nav__inner">
+<!-- ============================ 8.1 — NAV ============================
+     Solid ground from the first pixel, no backdrop blur, no scroll state:
+     identical with JS off because there is nothing for it to lose. -->
+<header class="nav">
+  <div class="rail nav__inner">
     <a class="brand" href="/" aria-label="Rabta — home">
       <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
         <rect width="64" height="64" rx="14" fill="#102526"/>
         <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
         <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
       </svg>
-      <b>Rabta</b>
+      Rabta
     </a>
 
-    <nav class="nav__links" aria-label="Primary">
-      <a href="#product">Product</a>
-      <a href="/setup/">Setup</a>
+    <nav class="nav__mid" aria-label="Primary">
+      <a href="#capture">Capture</a>
+      <a href="#connectors">Connectors</a>
       <a href="/privacy/">Privacy</a>
-      <a class="btn btn--primary btn--compact" href="#download">Download</a>
     </nav>
+
+    <div class="nav__end">
+      <a href="/setup/">Setup</a>
+      <!-- accent instance 1 of 5 -->
+      <a class="btn btn--accent btn--sm" href="#install">Download for macOS</a>
+    </div>
   </div>
 </header>
 
-<main id="main">
+<main id="main" tabindex="-1">
 
-<!-- ========================== CHAPTER 1 — HERO ==========================
-     Compositional axis: the mark's 45° fold hinge. Copy in columns 1–6,
-     product stage in 7–12 pulled left into the gutter and cropped off the
-     right viewport edge. The capsule is the only element spanning both. -->
-<section class="hero" data-hero data-env="paper" aria-labelledby="hero-title">
+<!-- ============================ 8.2 — HERO ===========================
+     The product sentence and the mechanism, and nothing else. Static from
+     first paint: no entrance sequence, no stagger, no reveal. -->
+<section class="hero rail" aria-labelledby="hero-h">
+  <h1 class="t-56 hero__h" id="hero-h">Leave the task. <br />Keep your place.</h1>
 
-  <!-- Layer 1 — environment. Almost invisible; discovered, not noticed. -->
-  <div class="hero__env" aria-hidden="true"></div>
-  <div class="hero__light" aria-hidden="true"></div>
-  <div class="hero__grain" aria-hidden="true"></div>
+  <p class="t-21 hero__lede m-560">
+    Rabta saves the files, terminals, browser tabs and git branch a task had
+    open, and puts them back when you return to it. It runs locally on macOS.
+  </p>
 
-  <div class="wrap hero__grid">
+  <div class="hero__cta">
+    <!-- accent instance 2 of 5 -->
+    <a class="btn btn--accent" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Download for macOS
+    </a>
+    <a class="btn btn--quiet" href="#capture">See how it works</a>
+  </div>
 
-    <!-- Layer 2 — copy -->
-    <div class="hero__copy">
-      <p class="t-slogan hero__slogan">Context, kept.</p>
+  <!-- The hero's base: what it needs on the left, what it is on the right, one
+       hairline under both. The requirement strip states the exclusion rather
+       than hiding it — finding out you are on an Intel Mac after downloading
+       is worse than not downloading. -->
+  <div class="hero__spec">
+    <p class="t-mono t-3">macOS 11.0 or later · Apple Silicon (arm64) · no Intel build · 5.5 MB</p>
+    <a class="release" href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">
+      <span class="t-mono">0.1.0</span>
+      <span class="t-13">published 29 July 2026</span>
+    </a>
+  </div>
+</section>
 
-      <h1 class="t-hero hero__headline" id="hero-title">
-        Leave the task.
-        <em>Keep your place.</em>
-      </h1>
 
+<!-- ======================== 8.3 — THE HERO PLATE ======================
+     The widest element on the page. The mark's own 45° cut, at page scale,
+     with the accent underneath: the document's one literal branding moment.
+     Nothing after this is ever this wide. -->
+<div class="plate">
+  <div class="shell">
+    <span class="plate__underside" aria-hidden="true"></span>
+    <div class="plate__field fold fold--lg">
+      <picture>
+        <source type="image/avif" srcset="/assets/shots/overview-640.avif 640w, /assets/shots/overview-1024.avif 1024w, /assets/shots/overview-1600.avif 1600w" sizes="(max-width: 767px) 720px, min(1024px, calc(100vw - 200px))" />
+        <source type="image/webp" srcset="/assets/shots/overview-640.webp 640w, /assets/shots/overview-1024.webp 1024w, /assets/shots/overview-1600.webp 1600w" sizes="(max-width: 767px) 720px, min(1024px, calc(100vw - 200px))" />
+        <img class="plate__img" src="/assets/shots/overview-1024.png" width="1024" height="640"
+             fetchpriority="high" decoding="async"
+             alt="The Rabta Overview screen: three registered projects, one connected app and four open tasks, with the active task “Wire the connector SDK reconnect” and a Resume button." />
+      </picture>
     </div>
+    <p class="t-13 plate__cap">The Overview screen. Representative demo data from the shipped v0.1.0 build.</p>
+  </div>
+</div>
 
-    <div class="hero__under">
-      <p class="t-body-large hero__lede">
-        Rabta remembers the working context around your code—and restores it
-        when you return.
+
+<!-- ======================= 8.4 — EVIDENCE BAND ========================
+     Where the reference sites put a logo wall. Rabta has no customers, so
+     this slot carries the only proof that exists: things you can check. -->
+<section class="evidence" aria-labelledby="ev-h">
+  <h2 class="visually-hidden" id="ev-h">Release evidence</h2>
+  <div class="rail g-3-3-3-3">
+    <p class="t-15 evidence__cell"><b class="t-mono">0.1.0</b>, published 29 July 2026</p>
+    <p class="t-15 evidence__cell">Signed with a <b>Developer ID</b> and notarized by Apple</p>
+    <p class="t-15 evidence__cell">Runs on <b>macOS 11.0+</b>, Apple Silicon only</p>
+    <p class="t-15 evidence__cell"><b>MIT</b> — the source is on GitHub</p>
+  </div>
+</section>
+
+
+<!-- ====================== 8.5 — THE CAPSULE RACK ======================
+     This replaces a numbered index. Rabta has exactly one recurring object
+     — the capsule — so the capsule is what carries navigation, and every
+     tag wears the mark's fold because a capsule is a thing that holds
+     context. -->
+<section class="section rail" aria-labelledby="rack-h">
+  <p class="t-13" id="rack-h">On this page</p>
+  <div class="rack mt-5">
+    <a class="tag fold fold--sm" href="#capture">
+      <span class="t-17 tag__name">Capture</span>
+      <span class="t-15 tag__what">What a capsule holds</span>
+      <span class="t-mono tag__data">4 files · 3 terminals · 5 tabs</span>
+    </a>
+    <a class="tag fold fold--sm" href="#restore">
+      <span class="t-17 tag__name">Restore</span>
+      <span class="t-15 tag__what">And how much comes back</span>
+      <span class="t-mono tag__data">vs code · chrome · git</span>
+    </a>
+    <a class="tag fold fold--sm" href="#connectors">
+      <span class="t-17 tag__name">Connectors</span>
+      <span class="t-15 tag__what">What attaches, and what cannot</span>
+      <span class="t-mono tag__data">5 capabilities · 127.0.0.1</span>
+    </a>
+    <a class="tag fold fold--sm" href="#screens">
+      <span class="t-17 tag__name">Screens</span>
+      <span class="t-15 tag__what">The rest of the app</span>
+      <span class="t-mono tag__data">projects · connectors · activity</span>
+    </a>
+    <a class="tag fold fold--sm" href="#privacy">
+      <span class="t-17 tag__name">Privacy</span>
+      <span class="t-15 tag__what">Everything it does not do</span>
+      <span class="t-mono tag__data">no account · no telemetry</span>
+    </a>
+    <a class="tag fold fold--sm" href="#install">
+      <span class="t-17 tag__name">Install</span>
+      <span class="t-15 tag__what">The artefact and its checksum</span>
+      <span class="t-mono tag__data">5.5 MB · sha-256</span>
+    </a>
+  </div>
+</section>
+
+
+<!-- ========================= 8.6 — CAPTURE ===========================
+     Closes with RETURN PAIR FRAME ONE. -->
+<section class="section rail rule-top" id="capture" aria-labelledby="cap-h">
+  <div class="axis">
+    <p class="t-13 chapter__mark">capture</p>
+    <div>
+      <div class="chapter__head g-6-6">
+        <h2 class="t-40" id="cap-h">Save the task <br />you&rsquo;re leaving.</h2>
+        <div>
+          <p class="t-21 m-440 chapter__lede">
+            Rabta records what a task had open — the files and cursor position,
+            the terminal sessions, the browser tabs, the git branch — and keeps
+            it as a capsule.
+          </p>
+          <p class="t-15 m-440 mt-5">
+            It stores pointers, not contents: paths and names, never your code.
+          </p>
+        </div>
+      </div>
+
+      <!-- Frame one. Shares .locked with frame two and differs only in the
+           image and the label. If these two ever stop being the same box,
+           the argument this page makes is gone. -->
+      <div class="locked chapter__visual">
+        <span class="t-13 locked__label">The task as you left it</span>
+        <div class="frame frame--crop fold">
+          <picture>
+            <source type="image/avif" srcset="/assets/shots/capsules-640.avif 640w, /assets/shots/capsules-1024.avif 1024w, /assets/shots/capsules-1600.avif 1600w" sizes="(max-width: 767px) 720px, (max-width: 899px) calc(100vw - 128px), (max-width: 1023px) calc(100vw - 224px), 896px" />
+            <source type="image/webp" srcset="/assets/shots/capsules-640.webp 640w, /assets/shots/capsules-1024.webp 1024w, /assets/shots/capsules-1600.webp 1600w" sizes="(max-width: 767px) 720px, (max-width: 899px) calc(100vw - 128px), (max-width: 1023px) calc(100vw - 224px), 896px" />
+            <img class="frame__img" src="/assets/shots/capsules-1024.png" width="1024" height="640" loading="lazy" decoding="async"
+                 alt="The Capsules screen listing four open tasks across the atlas-api and mercury-web projects, each showing its file, terminal, tab and branch counts beside Resume and Save State buttons." />
+          </picture>
+        </div>
+        <p class="t-mono manifest locked__manifest">
+          Wire the connector SDK reconnect &nbsp;·&nbsp;
+          <b>4 files</b> · <b>3 terminals</b> · <b>5 tabs</b> · <b>feat/connector-reconnect</b>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ========================== 8.7 — THE LOOP =========================
+     The interruption, narrated. The only thing standing between the two
+     frames. Four words, deliberately unnumbered. -->
+<section class="section rail" aria-labelledby="loop-h">
+  <h2 class="visually-hidden" id="loop-h">What happens between leaving and returning</h2>
+  <div class="axis">
+    <p class="t-13 chapter__mark">between</p>
+    <div class="loop g-3-3-3-3">
+    <div class="loop__item">
+      <span class="t-17 loop__word">capture</span>
+      <span class="t-15">Rabta writes down what the task had open.</span>
+    </div>
+    <div class="loop__item">
+      <span class="t-17 loop__word">leave</span>
+      <span class="t-15">Something else needs doing. The windows close.</span>
+    </div>
+    <div class="loop__item">
+      <span class="t-17 loop__word">return</span>
+      <span class="t-15">You come back to the task, days later.</span>
+    </div>
+      <div class="loop__item">
+        <span class="t-17 loop__word">restore</span>
+        <span class="t-15">The workspace is put back around it.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ========================= 8.8 — RESTORE ===========================
+     Opens with RETURN PAIR FRAME TWO — the same screen, the same box — and
+     then admits exactly how much came back. -->
+<section class="section rail rule-top" id="restore" aria-labelledby="res-h">
+  <div class="axis">
+    <p class="t-13 chapter__mark">restore</p>
+    <div>
+      <div class="chapter__head g-6-6">
+        <h2 class="t-40" id="res-h">Pick it up exactly <br />where it was.</h2>
+        <div>
+          <p class="t-21 m-440 chapter__lede">
+            Choose a task and Rabta puts the workspace back around it. Git goes
+            first, because switching a branch changes files on disk.
+          </p>
+          <p class="t-15 m-440 mt-5">
+            Some things return immediately. Some, like browser tabs, come back
+            on the next reload — and it tells you which is which.
+          </p>
+        </div>
+      </div>
+
+      <div class="locked chapter__visual">
+        <span class="t-13 locked__label">As it came back</span>
+        <div class="frame frame--crop fold">
+          <picture>
+            <source type="image/avif" srcset="/assets/shots/restore-640.avif 640w, /assets/shots/restore-1024.avif 1024w, /assets/shots/restore-1600.avif 1600w" sizes="(max-width: 767px) 720px, (max-width: 899px) calc(100vw - 128px), (max-width: 1023px) calc(100vw - 224px), 896px" />
+            <source type="image/webp" srcset="/assets/shots/restore-640.webp 640w, /assets/shots/restore-1024.webp 1024w, /assets/shots/restore-1600.webp 1600w" sizes="(max-width: 767px) 720px, (max-width: 899px) calc(100vw - 128px), (max-width: 1023px) calc(100vw - 224px), 896px" />
+            <img class="frame__img" src="/assets/shots/restore-1024.png" width="1024" height="640" loading="lazy" decoding="async"
+                 alt="The same Capsules screen with a restore sheet open, reading “Workspace partially restored — Wire the connector SDK reconnect”, with VS Code restored, Chrome coming back on the next reload, and Git restored." />
+          </picture>
+        </div>
+        <p class="t-mono manifest locked__manifest">Workspace partially restored · Wire the connector SDK reconnect</p>
+
+        <!-- Quoted verbatim from the shipped restore panel, including the
+             part it could not do. No colour is used, so a partial restore
+             cannot read as a warning. -->
+        <div class="mt-5">
+          <div class="status">
+            <span class="status__dot" aria-hidden="true"></span>
+            <span class="t-17 status__name">VS&nbsp;Code<span class="t-15 status__note">Files and terminals reopened in place</span></span>
+            <span class="status__state">Restored</span>
+          </div>
+          <div class="status">
+            <span class="status__dot status__dot--hollow" aria-hidden="true"></span>
+            <span class="t-17 status__name">Chrome<span class="t-15 status__note">Tabs are queued for the next browser reload</span></span>
+            <span class="status__state">On next reload</span>
+          </div>
+          <div class="status">
+            <span class="status__dot" aria-hidden="true"></span>
+            <span class="t-17 status__name">Git<span class="t-15 status__note">Branch checked out before anything else ran</span></span>
+            <span class="status__state">Restored</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ======================== 8.9 — CONNECTORS =========================
+     No product image and no mock drawn to fill the hole. The capability
+     line IS the privacy argument, expressed as data instead of a promise. -->
+<section class="section rail rule-top" id="connectors" aria-labelledby="con-h">
+  <div class="axis">
+    <p class="t-13 chapter__mark">connectors</p>
+    <div>
+      <div class="chapter__head g-6-6">
+        <h2 class="t-40" id="con-h">Your tools reconnect <br />to the task.</h2>
+        <div>
+          <p class="t-21 m-440 chapter__lede">
+            Rabta talks to your editor and browser through small connectors
+            that run locally, over 127.0.0.1 and nothing else.
+          </p>
+          <p class="t-15 m-440 mt-5">
+            Your editor pairs itself by reading a file only your account can
+            read. Chrome cannot, so it asks. Between them they are allowed to
+            do exactly five things.
+          </p>
+        </div>
+      </div>
+
+      <div class="m-720">
+        <div class="status">
+          <span class="status__dot" aria-hidden="true"></span>
+          <span class="t-17 status__name">macOS app<span class="t-15 status__note">The signed, notarized .dmg — 5.5 MB, Apple Silicon</span></span>
+          <span class="status__state">Available</span>
+        </div>
+        <div class="status">
+          <span class="status__dot" aria-hidden="true"></span>
+          <span class="t-17 status__name">Editor connector<span class="t-15 status__note">On Open&nbsp;VSX — Cursor, VSCodium and Windsurf install it directly. Stock VS&nbsp;Code installs the same .vsix by hand.</span></span>
+          <span class="status__state">Published</span>
+        </div>
+        <div class="status">
+          <span class="status__dot status__dot--hollow" aria-hidden="true"></span>
+          <span class="t-17 status__name">Browser connector<span class="t-15 status__note">Submitted to the Chrome Web Store. Rabta works without it — you get editor, terminal and git state until it lands.</span></span>
+          <span class="status__state">In review</span>
+        </div>
+
+        <p class="t-mono manifest mt-5">
+          workspace.open · workspace.snapshot · terminal.list · tabs.list · tabs.open
+        </p>
+        <p class="t-15 m-560 mt-4">
+          The Chrome connector reads tab URLs and titles only. It requests no
+          host permissions and runs no content scripts, so it is structurally
+          unable to read page contents.
+        </p>
+        <p class="mt-5">
+          <a class="link t-15" href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener noreferrer">Editor connector on Open&nbsp;VSX</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ========================== 8.10 — SCREENS =========================
+     The clickable screen, and nothing more than that. Three visually-hidden
+     radios and three labels: CSS only, correct with scripting disabled,
+     arrow keys move between them natively. It switches screens and does not
+     simulate a cursor, type anything, tour anything or autoplay. -->
+<section class="section rail rule-top" id="screens" aria-labelledby="scr-h">
+  <div class="axis">
+    <p class="t-13 chapter__mark">screens</p>
+    <div>
+      <div class="chapter__head g-6-6">
+        <h2 class="t-40" id="scr-h">The rest of <br />the app.</h2>
+        <div>
+          <p class="t-21 m-440 chapter__lede">
+            Five screens. Two of them put a task back; the other three keep
+            the record of what is registered, attached and done.
+          </p>
+        </div>
+      </div>
+
+      <div class="switch" role="group" aria-label="Choose a screen">
+        <input type="radio" name="screen" id="sc-projects" checked />
+        <input type="radio" name="screen" id="sc-connectors" />
+        <input type="radio" name="screen" id="sc-activity" />
+
+        <div class="switch__bar">
+          <label for="sc-projects">Projects</label>
+          <label for="sc-connectors">Connectors</label>
+          <label for="sc-activity">Activity</label>
+        </div>
+
+        <div class="switch__stage">
+          <figure class="switch__panel" data-panel="projects">
+            <div class="frame frame--crop fold">
+              <picture>
+                <source type="image/avif" srcset="/assets/shots/projects-1024.avif 1024w, /assets/shots/projects-1600.avif 1600w" sizes="(max-width: 767px) 720px, (max-width: 899px) calc(100vw - 128px), (max-width: 1023px) calc(100vw - 224px), 896px" />
+                <source type="image/webp" srcset="/assets/shots/projects-1024.webp 1024w, /assets/shots/projects-1600.webp 1600w" sizes="(max-width: 767px) 720px, (max-width: 899px) calc(100vw - 128px), (max-width: 1023px) calc(100vw - 224px), 896px" />
+                <img class="frame__img" src="/assets/shots/projects-1024.png" width="1024" height="640" loading="lazy" decoding="async"
+                     alt="The Projects screen: atlas-api, mercury-web and ledger-cli, each with its folder path, its branch and its git status. atlas-api and mercury-web also show a dev server URL; atlas-api is on feat/connector-reconnect with four changed files." />
+              </picture>
+            </div>
+            <figcaption class="t-15 switch__cap">Register a folder once. Rabta tracks its branch, its git status, its dev server URL if it has one, and how long ago you last worked in it.</figcaption>
+          </figure>
+
+          <figure class="switch__panel" data-panel="connectors">
+            <div class="frame frame--crop fold">
+              <picture>
+                <source type="image/avif" srcset="/assets/shots/connectors-1024.avif 1024w, /assets/shots/connectors-1600.avif 1600w" sizes="(max-width: 767px) 720px, (max-width: 899px) calc(100vw - 128px), (max-width: 1023px) calc(100vw - 224px), 896px" />
+                <source type="image/webp" srcset="/assets/shots/connectors-1024.webp 1024w, /assets/shots/connectors-1600.webp 1600w" sizes="(max-width: 767px) 720px, (max-width: 899px) calc(100vw - 128px), (max-width: 1023px) calc(100vw - 224px), 896px" />
+                <img class="frame__img" src="/assets/shots/connectors-1024.png" width="1024" height="640" loading="lazy" decoding="async"
+                     alt="The Connectors screen with a pairing request from Chrome offering Deny and Approve, a connected VS Code connector, and an offline Chrome connector, each listing its capabilities." />
+              </picture>
+            </div>
+            <figcaption class="t-15 switch__cap">Chrome cannot read a local file, so it has to ask — and you press Approve or Deny. Your editor pairs itself.</figcaption>
+          </figure>
+
+          <figure class="switch__panel" data-panel="activity">
+            <div class="frame frame--crop fold">
+              <picture>
+                <source type="image/avif" srcset="/assets/shots/activity-1024.avif 1024w, /assets/shots/activity-1600.avif 1600w" sizes="(max-width: 767px) 720px, (max-width: 899px) calc(100vw - 128px), (max-width: 1023px) calc(100vw - 224px), 896px" />
+                <source type="image/webp" srcset="/assets/shots/activity-1024.webp 1024w, /assets/shots/activity-1600.webp 1600w" sizes="(max-width: 767px) 720px, (max-width: 899px) calc(100vw - 128px), (max-width: 1023px) calc(100vw - 224px), 896px" />
+                <img class="frame__img" src="/assets/shots/activity-1024.png" width="1024" height="640" loading="lazy" decoding="async"
+                     alt="The Activity screen: nine events, newest first — workspace.open sent to VS Code, VS Code responded, VS Code connected, workspace.snapshot sent, Chrome disconnected — each with a relative timestamp and an expandable Details row." />
+              </picture>
+            </div>
+            <figcaption class="t-15 switch__cap">Every command Rabta sends a connector, every reply and every connect or disconnect, written to a local log you can read and filter. It never leaves the machine.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ========================== 8.11 — PRIVACY =========================
+     List the absences as absences and never convert one into a feature.
+     No ticks, no shields, no seals. -->
+<section class="section rail rule-top" id="privacy" aria-labelledby="priv-h">
+  <div class="axis">
+    <p class="t-13 chapter__mark">privacy</p>
+    <div>
+      <div class="chapter__head g-6-6">
+        <h2 class="t-40" id="priv-h">It never leaves <br />your Mac.</h2>
+        <div>
+          <p class="t-21 m-440 chapter__lede">
+            There is no Rabta account and no Rabta server. Your capsules live in
+            one folder on your own disk.
+          </p>
+          <p class="t-15 m-440 mt-5">
+            Your project code is never uploaded — Rabta stores the path to a
+            file, not the file.
+          </p>
+        </div>
+      </div>
+
+      <div class="panel panel--bordered claims">
+        <ul role="list" class="absences">
+          <li>no account</li>
+          <li>no telemetry</li>
+          <li>no analytics</li>
+          <li>no crash reporting</li>
+          <li>no update checks</li>
+          <li>no cloud</li>
+        </ul>
+        <div class="claims__more">
+          <p class="t-15 m-560">The one thing that can reach the network is the optional GitHub feature, and it runs the <span class="t-mono">gh</span> tool you installed yourself.</p>
+          <p class="t-15 m-560 mt-2">Connectors talk only to 127.0.0.1. Nothing is exposed to the network.</p>
+          <p class="t-15 m-560 mt-2">Rabta 0.1.0 has no auto-updater and makes no outbound request on launch or on a timer.</p>
+        </div>
+      </div>
+
+      <p class="mt-5">
+        <a class="link t-15" href="/privacy/">Read the privacy policy</a>
       </p>
+    </div>
+  </div>
+</section>
 
-      <div class="hero__cta">
-        <div class="hero__actions">
-          <a class="btn btn--primary" href="#download">
+
+<!-- ========================== 8.12 — INSTALL =========================
+     The artefact, and everything needed to verify it before running it.
+     No email gate, no modal, no waitlist, no "get started free" on a free
+     MIT app — the anchor points straight at the .dmg. -->
+<section class="section rail rule-top" id="install" aria-labelledby="ins-h">
+  <div class="axis">
+    <p class="t-13 chapter__mark">install</p>
+    <div class="g-6-6">
+      <div class="m-496">
+        <h2 class="t-28" id="ins-h">Download Rabta</h2>
+        <p class="t-15 mt-4">
+          Free and MIT-licensed. Signed and notarized by Apple, so it opens with
+          a normal double-click.
+        </p>
+        <p class="mt-7">
+          <!-- accent instance 5 of 5 -->
+          <a class="btn btn--accent" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Download for macOS
           </a>
-          <a class="btn btn--secondary" href="#product">Try the demo</a>
-        </div>
-        <p class="t-technical hero__trust">
-          Local-first · No Rabta account · No telemetry by default
+        </p>
+        <p class="t-mono t-3 mt-3">
+          Rabta_0.1.0_aarch64.dmg · 5.5 MB · macOS 11.0+ · Apple Silicon
+        </p>
+        <p class="mt-6">
+          <a class="link t-15" href="/setup/">Read the setup guide</a>
+        </p>
+        <p class="mt-4">
+          <a class="link t-15" href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">View the release on GitHub</a>
         </p>
       </div>
-    </div>
 
-    <!-- Layers 3–7 — the product stage -->
-    <div class="hero__stage" data-stage>
-      <figure class="capsule hero__capsule" data-capsule data-cap-state="saved">
-          <figcaption class="capsule__head">
-            <span class="capsule__label">capsule · rabta</span>
-            <span class="capsule__state" data-cap-badge>Saved</span>
-          </figcaption>
-          <p class="capsule__title" data-cap-title>Fix restore timeout</p>
-          <div class="capsule__lines">
-            <p class="capsule__line" data-slot="branch"><span>branch</span><b>fix/restore-timeout</b></p>
-            <p class="capsule__line" data-slot="editor"><span>editor</span><b>6 files · 2 terminals</b></p>
-            <p class="capsule__line" data-slot="browser"><span>browser</span><b>3 tabs</b></p>
-          </div>
-          <p class="capsule__foot">pointers, not contents</p>
-        </figure>
+      <div>
+        <dl class="ledger">
+          <dt>File</dt><dd class="t-mono">Rabta_0.1.0_aarch64.dmg</dd>
+          <dt>Size</dt><dd class="t-mono">5,495,778 bytes · 5.5 MB</dd>
+          <dt>Requires</dt><dd>macOS 11.0 or later, Apple Silicon (arm64)</dd>
+          <dt>Intel</dt><dd>No build</dd>
+          <dt>Signing</dt><dd class="t-mono">Developer ID · team 86M2X6MUA3</dd>
+          <dt>Notarized</dt><dd>Yes, with the ticket stapled</dd>
+        </dl>
 
-      <div class="hero__frame" data-frame>
-
-        <div class="app" data-env="product" role="img"
-             aria-label="The Rabta desktop app on its Overview screen. The active task ‘Reconnect browser session’ is on branch feat/reconnect, with VS Code holding four files and three terminals, Chrome holding five tabs, and the git branch — all restored.">
-
-          <!-- the rail -->
-          <div class="app__rail">
-            <div class="app__titlebar">
-              <i class="app__light"></i><i class="app__light"></i><i class="app__light"></i>
-            </div>
-            <div class="app__hairline"></div>
-
-            <div class="app__brand">
-              <svg viewBox="0 0 64 64">
-                <rect width="64" height="64" rx="14" fill="#173234"/>
-                <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
-                <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
-              </svg>
-              <b>Rabta</b>
-            </div>
-
-            <div class="app__nav">
-              <div class="app__sel" style="--sel: 0"></div>
-              <div class="app__row is-active">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-                <span>Overview</span><kbd>⌘1</kbd>
-              </div>
-              <div class="app__row">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 4.5-9 4.5-9-4.5Z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 17 9 4.5 9-4.5"/></svg>
-                <span>Capsules</span><kbd>⌘2</kbd>
-              </div>
-              <div class="app__row">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v3"/><circle cx="17" cy="17" r="3"/><path d="M20.2 20.2 22 22"/></svg>
-                <span>Projects</span><kbd>⌘3</kbd>
-              </div>
-              <div class="app__row">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v3a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg>
-                <span>Connectors</span><kbd>⌘4</kbd>
-              </div>
-              <div class="app__row">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                <span>Activity</span><kbd>⌘5</kbd>
-              </div>
-            </div>
-
-            <div class="app__railfoot">
-              <div class="app__hairline"></div>
-              <div class="app__assure"><i></i><span>Data stored locally</span></div>
-            </div>
-          </div>
-
-          <!-- the workspace -->
-          <div class="app__main">
-            <div class="app__toolbar">
-              <span class="app__search">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                <span>Search or jump to…</span><kbd>⌘K</kbd>
-              </span>
-              <span class="app__conn"><i></i>2 connected</span>
-            </div>
-
-            <div class="app__content">
-              <p class="app__eyebrow">Workspace</p>
-              <p class="app__title" data-app-title>Reconnect browser session</p>
-
-              <div class="app__meta">
-                <span class="app__pill app__pill--branch" data-o="branch">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
-                  <span data-app-branch>feat/reconnect</span>
-                </span>
-                <span class="app__pill">rabta</span>
-              </div>
-
-              <div class="app__panel">
-                <div class="app__panelhead">
-                  <b data-app-heading>Workspace restored</b>
-                  <button type="button" class="app__btn" data-switch data-needs-js>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>
-                    <span data-switch-label>Switch task</span>
-                  </button>
-                  <span class="app__eyebrow" data-no-js>capsule</span>
-                </div>
-
-                <div class="app__rows">
-                  <div class="app__resource" data-row data-o="editor">
-                    <span class="app__icon app__icon--editor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg></span>
-                    <span class="app__rtext">
-                      <span class="app__rname">VS Code</span>
-                      <span class="app__rdetail" data-detail>src/hub.rs · 4 files · 3 terminals</span>
-                    </span>
-                    <span class="app__status" data-status="applied">Restored</span>
-                  </div>
-                  <div class="app__resource" data-row data-o="browser">
-                    <span class="app__icon app__icon--browser"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/></svg></span>
-                    <span class="app__rtext">
-                      <span class="app__rname">Chrome</span>
-                      <span class="app__rdetail" data-detail>5 tabs</span>
-                    </span>
-                    <span class="app__status" data-status="applied">Restored</span>
-                  </div>
-                  <div class="app__resource" data-row data-o="git">
-                    <span class="app__icon app__icon--git"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></span>
-                    <span class="app__rtext">
-                      <span class="app__rname">Git</span>
-                      <span class="app__rdetail" data-detail>feat/reconnect</span>
-                    </span>
-                    <span class="app__status" data-status="applied">Restored</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="sha">
+          <p class="sha__head">
+            <span class="t-13">SHA-256</span>
+            <!-- The accessible name is fixed ("Copy" alone is ambiguous beside
+                 a version, a size and a signing team). The visible label still
+                 flips to Copied; because aria-label wins over the button's
+                 contents, that change is announced by the status region below
+                 instead. -->
+            <button type="button" class="copy" aria-label="Copy the SHA-256 checksum" data-copy="3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655" hidden>
+              <span data-copy-label aria-hidden="true">Copy</span>
+            </button>
+            <span class="visually-hidden" role="status" data-copy-status></span>
+          </p>
+          <code>3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655</code>
+          <p class="t-mono t-3 mt-3">shasum -a 256 ~/Downloads/Rabta_0.1.0_aarch64.dmg</p>
         </div>
-
-        <!-- Context objects. Each names a real thing at a real location
-             inside the frame, and each carries its meaning-colour. -->
-        <span class="ctx ctx--branch ctx--at-branch" aria-hidden="true"
-              data-ctx="branch" data-origin='[data-o="branch"]' data-depth="48">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
-          <span data-text>feat/reconnect</span>
-        </span>
-
-        <span class="ctx ctx--file ctx--at-file" aria-hidden="true"
-              data-ctx="file" data-origin='[data-o="editor"]' data-depth="44">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v5h5"/><path d="M15 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6Z"/></svg>
-          <span data-text>src/hub.rs</span>
-        </span>
-
-        <span class="ctx ctx--tabs ctx--at-tabs" aria-hidden="true"
-              data-ctx="tabs" data-origin='[data-o="browser"]' data-depth="-40">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="14" x="3" y="7" rx="2"/><path d="M7 7V5a2 2 0 0 1 2-2h2"/></svg>
-          <span data-text>5 browser tabs</span>
-        </span>
-
-        <span class="ctx ctx--terminal ctx--at-terminal" aria-hidden="true"
-              data-ctx="terminals" data-origin='[data-o="editor"]' data-depth="52">
-          <i></i><span data-text>3 terminals</span>
-        </span>
-
-        <!-- Layer 7 — the capsule. Spans copy and product because it is the
-             only thing that belongs to both. Shows the PRESERVED task: the
-             one you are not in is the one being kept. -->
-        
-
-        <!-- The connector rail, aligned beside the product. -->
-        <div class="hero__conn" aria-hidden="true">
-          <span class="conn-chip"><i></i>VS Code</span>
-          <span class="conn-chip"><i></i>Chrome</span>
-        </div>
-
-      </div>
-
-      <!-- Provenance sits with the product it describes, not adrift at the
-           bottom of the composition. -->
-      <div class="hero__provenance">
-        <p class="demo-label">
-          Interactive product demo · Representative Rabta v0.1.0 data
-        </p>
-        <button type="button" class="hero__replay" data-replay data-needs-js>
-          Replay
-        </button>
-      </div>
-      <p class="visually-hidden" data-live role="status" aria-live="polite"></p>
-    </div>
-  </div>
-</section>
-
-
-<!-- ===================== CHAPTER 2 — THE CONTEXT SWITCH =====================
-     Full-width cinematic stage. One centred statement over a product field
-     that spans the viewport — deliberately NOT the hero's asymmetric grammar.
-     Pinned above 900px; stacked below, under reduced motion, and with no JS. -->
-<section class="story" data-story data-env="ink" aria-labelledby="story-title">
-  <h2 class="visually-hidden" id="story-title">What happens to your context when the task changes</h2>
-
-  <div class="story__track" data-story-track>
-    <div class="story__pin" data-story-pin>
-
-      <div class="story__copy">
-        <p class="story__line" data-story-line>The task changes.</p>
-        <p class="story__line" data-story-line >Your place usually disappears with it.</p>
-        <p class="story__line" data-story-line >Rabta keeps the context together.</p>
-        <p class="story__line" data-story-line >The next task returns around you.</p>
-        <p class="story__line" data-story-line >Come back without rebuilding. <em>Context, kept.</em></p>
-      </div>
-
-      <div class="story__stage" data-story-stage aria-hidden="true">
-        <div class="story__frame" data-story-frame>
-          <div class="app app--still" data-env="product">
-            <div class="app__rail">
-              <div class="app__titlebar">
-                <i class="app__light"></i><i class="app__light"></i><i class="app__light"></i>
-              </div>
-              <div class="app__hairline"></div>
-              <div class="app__brand">
-                <svg viewBox="0 0 64 64">
-                  <rect width="64" height="64" rx="14" fill="#173234"/>
-                  <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
-                  <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
-                </svg>
-                <b>Rabta</b>
-              </div>
-              <div class="app__nav">
-                <div class="app__sel" style="--sel: 1"></div>
-                <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg><span>Overview</span><kbd>&#8984;1</kbd></div>
-                <div class="app__row is-active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 4.5-9 4.5-9-4.5Z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 17 9 4.5 9-4.5"/></svg><span>Capsules</span><kbd>&#8984;2</kbd></div>
-                <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v3"/><circle cx="17" cy="17" r="3"/><path d="M20.2 20.2 22 22"/></svg><span>Projects</span><kbd>&#8984;3</kbd></div>
-                <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v3a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg><span>Connectors</span><kbd>&#8984;4</kbd></div>
-              </div>
-              <div class="app__railfoot">
-                <div class="app__hairline"></div>
-                <div class="app__assure"><i></i><span>Data stored locally</span></div>
-              </div>
-            </div>
-            <div class="app__main">
-              <div class="app__toolbar">
-                <span class="app__search"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search or jump to&#8230;</span><kbd>&#8984;K</kbd></span>
-                <span class="app__conn"><i></i>2 connected</span>
-              </div>
-              <div class="app__content">
-                <p class="app__eyebrow">Tasks</p>
-                <p class="app__title">Reconnect browser session</p>
-                <div class="app__meta">
-                  <span class="app__pill app__pill--branch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg> feat/reconnect</span>
-                  <span class="app__pill">rabta</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="story__layer story__layer--editor" data-story-layer data-i="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg><span>src/hub.rs · 4 files</span></div>
-        <div class="story__layer story__layer--browser" data-story-layer data-i="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/></svg><span>5 browser tabs</span></div>
-        <div class="story__layer story__layer--terminal" data-story-layer data-i="2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 3 3-3 3"/><path d="M12 15h5"/><rect width="20" height="16" x="2" y="4" rx="2"/></svg><span>3 terminal sessions</span></div>
-        <div class="story__layer story__layer--branch" data-story-layer data-i="3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg><span>feat/reconnect</span></div>
-
-        <figure class="capsule story__capsule" data-story-capsule data-cap-state="saving">
-            <figcaption class="capsule__head">
-              <span class="capsule__label">capsule · rabta</span>
-              <span class="capsule__state">Saved</span>
-            </figcaption>
-            <p class="capsule__title">Reconnect browser session</p>
-            <div class="capsule__lines">
-              <p class="capsule__line"><span>branch</span><b>feat/reconnect</b></p>
-              <p class="capsule__line"><span>editor</span><b>4 files · 3 terminals</b></p>
-              <p class="capsule__line"><span>browser</span><b>5 tabs</b></p>
-            </div>
-            <p class="capsule__foot">pointers, not contents</p>
-          </figure>
-      </div>
-
-      <!-- The stacked rendering: reduced motion, no JS, and every narrow
-           viewport get the complete five-scene story. -->
-      <div class="story__still">
-        <div class="story__layer story__layer--editor" data-story-layer data-i="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg><span>src/hub.rs · 4 files</span></div>
-        <div class="story__layer story__layer--browser" data-story-layer data-i="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/></svg><span>5 browser tabs</span></div>
-        <div class="story__layer story__layer--terminal" data-story-layer data-i="2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 3 3-3 3"/><path d="M12 15h5"/><rect width="20" height="16" x="2" y="4" rx="2"/></svg><span>3 terminal sessions</span></div>
-        <div class="story__layer story__layer--branch" data-story-layer data-i="3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg><span>feat/reconnect</span></div>
-        <figure class="capsule story__capsule" data-story-capsule data-cap-state="saving">
-            <figcaption class="capsule__head">
-              <span class="capsule__label">capsule · rabta</span>
-              <span class="capsule__state">Saved</span>
-            </figcaption>
-            <p class="capsule__title">Reconnect browser session</p>
-            <div class="capsule__lines">
-              <p class="capsule__line"><span>branch</span><b>feat/reconnect</b></p>
-              <p class="capsule__line"><span>editor</span><b>4 files · 3 terminals</b></p>
-              <p class="capsule__line"><span>browser</span><b>5 tabs</b></p>
-            </div>
-            <p class="capsule__foot">pointers, not contents</p>
-          </figure>
       </div>
     </div>
   </div>
 </section>
 
 
-<!-- ====================== CHAPTER 3 — THE PLAYABLE DEMO ======================
-     Split header over one immersive product surface. Everything inside the
-     frame is the real Capsules screen; the marketing layer is the room around
-     it and one contextual line. -->
-<section class="demo" id="product" data-demo data-env="canvas" aria-labelledby="demo-title">
-  <div class="wrap demo__inner">
-
-    <div class="demo__head">
-      <h2 class="demo__title" id="demo-title">
-        Switch tasks.
-        <em>Not environments.</em>
-      </h2>
-      <div class="demo__say">
-        <p class="demo__saytext" data-demo-say>
-          Pick the task you are not in. Rabta saves the one you are leaving
-          before it restores the one you chose.
-        </p>
-        <p class="demo-label demo__label">Interactive product demo &#183; Representative Rabta v0.1.0 data</p>
-      </div>
-    </div>
-
-    <div class="demo__surface">
-      <div class="app" data-env="product">
-        <div class="app__rail">
-          <div class="app__titlebar">
-            <i class="app__light"></i><i class="app__light"></i><i class="app__light"></i>
-          </div>
-          <div class="app__hairline"></div>
-          <div class="app__brand">
-            <svg viewBox="0 0 64 64" aria-hidden="true">
-              <rect width="64" height="64" rx="14" fill="#173234"/>
-              <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
-              <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
-            </svg>
-            <b>Rabta</b>
-          </div>
-          <div class="app__nav">
-            <div class="app__sel" style="--sel: 1"></div>
-            <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg><span>Overview</span><kbd>&#8984;1</kbd></div>
-              <div class="app__row is-active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 9 4.5-9 4.5-9-4.5Z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 17 9 4.5 9-4.5"/></svg><span>Capsules</span><kbd>&#8984;2</kbd></div>
-              <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v3"/><circle cx="17" cy="17" r="3"/><path d="M20.2 20.2 22 22"/></svg><span>Projects</span><kbd>&#8984;3</kbd></div>
-              <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v3a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg><span>Connectors</span><kbd>&#8984;4</kbd></div>
-              <div class="app__row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>Activity</span><kbd>&#8984;5</kbd></div>
-          </div>
-          <div class="app__railfoot">
-            <div class="app__hairline"></div>
-            <div class="app__assure"><i></i><span>Data stored locally</span></div>
-          </div>
-        </div>
-
-        <div class="app__main">
-          <div class="app__toolbar">
-            <span class="app__search">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-              <span>Search or jump to&#8230;</span><kbd>&#8984;K</kbd>
-            </span>
-            <span class="app__conn"><i></i>2 connected</span>
-          </div>
-
-          <div class="app__content">
-            <p class="app__eyebrow">Tasks</p>
-            <p class="app__title">Capsules</p>
-
-            <div class="demo__split">
-              <div class="demo__tasks" role="group" aria-label="Tasks in this project">
-                <button type="button" class="demo__task" data-demo-task="reconnect" aria-current="true" data-state="active"><span class="demo__taskname">Reconnect browser session</span><span class="demo__taskmeta"><i></i><span data-demo-taskstate>Active</span> &#183; feat/reconnect</span></button>
-                  <button type="button" class="demo__task" data-demo-task="timeout" aria-current="false" data-state="saved"><span class="demo__taskname">Fix restore timeout</span><span class="demo__taskmeta"><i></i><span data-demo-taskstate>Saved</span> &#183; fix/restore-timeout</span></button>
-              </div>
-
-              <div class="demo__detail">
-                <div class="demo__detailhead">
-                  <div>
-                    <p class="demo__detailtitle" data-demo-title>Reconnect browser session</p>
-                    <div class="demo__detailmeta">
-                      <span class="app__pill app__pill--branch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg> <span data-demo-branch>feat/reconnect</span></span>
-                      <span class="app__pill" data-demo-project>rabta</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="demo__rail" data-demo-rail aria-hidden="true"></div>
-
-                <div class="app__rows">
-                  <div class="app__resource" data-demo-row><span class="app__icon app__icon--editor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg></span><span class="app__rtext"><span class="app__rname" data-demo-name>VS Code</span><span class="app__rdetail" data-demo-detail>src/hub.rs &#183; 4 files &#183; 3 terminals</span></span><span class="app__status" data-demo-status-cell data-status="applied">Restored</span></div>
-                  <div class="app__resource" data-demo-row><span class="app__icon app__icon--browser"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/></svg></span><span class="app__rtext"><span class="app__rname" data-demo-name>Chrome</span><span class="app__rdetail" data-demo-detail>5 tabs</span></span><span class="app__status" data-demo-status-cell data-status="applied">Restored</span></div>
-                  <div class="app__resource" data-demo-row><span class="app__icon app__icon--git"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></span><span class="app__rtext"><span class="app__rname" data-demo-name>Git</span><span class="app__rdetail" data-demo-detail>feat/reconnect</span></span><span class="app__status" data-demo-status-cell data-status="applied">Restored</span></div>
-                </div>
-
-                <p class="demo__status" data-demo-status data-tone="ready">
-                  <i aria-hidden="true"></i><span data-demo-statustext>Workspace ready</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="demo__foot">
-      <div class="demo__history">
-        <p class="demo__histhead">Task history</p>
-        <p class="demo__histrow"><span class="demo__histwhen">Now</span><b data-demo-now>Reconnect browser session</b></p>
-        <p class="demo__histrow"><span class="demo__histwhen">Before</span><span data-demo-before>Fix restore timeout</span> &#183; Saved</p>
-      </div>
-      <button type="button" class="demo__reset" data-demo-reset data-needs-js hidden>Reset demo</button>
-    </div>
-
-    <p class="visually-hidden" data-demo-live role="status" aria-live="polite"></p>
-  </div>
-</section>
-
-
-<!-- ==================== CHAPTER 4 — CONNECTOR ASSEMBLY ====================
-     Symmetric constellation: the capsule at the centre, tool contexts on a
-     cross axis. Terminals live inside the editor context — there is no
-     terminal connector on the wire. Availability is stated separately and
-     kept visually secondary. -->
-<section class="conn" id="connectors" data-conn data-env="ink" aria-labelledby="conn-title">
-  <div class="wrap conn__inner">
-
-    <div class="conn__head">
-      <h2 class="conn__title" id="conn-title">Your tools return with the task.</h2>
-      <p class="conn__lede">
-        Editor, browser and branch reconnect around the work you chose.
-      </p>
-    </div>
-
-    <div class="conn__grid">
-      <div class="conn__slot conn__slot--branch">
-        <div class="conn__panel conn__panel--branch" data-conn-panel="branch">
-            <div class="conn__top">
-              <span class="conn__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></span>
-              <span>
-                <span class="conn__name">Branch</span>
-                <span class="conn__detail">feat/reconnect</span>
-              </span>
-            </div>
-            <p class="conn__status" data-conn-status data-status="applied">
-              <i aria-hidden="true"></i><span data-conn-statustext>Restored</span>
-            </p>
-          </div>
-      </div>
-
-      <div class="conn__slot conn__slot--editor">
-        <div class="conn__panel conn__panel--editor" data-conn-panel="editor">
-            <div class="conn__top">
-              <span class="conn__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg></span>
-              <span>
-                <span class="conn__name">VS Code</span>
-                <span class="conn__detail">src/hub.rs &#183; 4 files &#183; 3 terminals</span>
-              </span>
-            </div>
-            <p class="conn__status" data-conn-status data-status="applied">
-              <i aria-hidden="true"></i><span data-conn-statustext>Restored</span>
-            </p>
-          </div>
-      </div>
-
-      <div class="conn__slot conn__slot--centre">
-        <figure class="capsule conn__capsule" data-cap-state="saved">
-          <figcaption class="capsule__head">
-            <span class="capsule__label">capsule &#183; rabta</span>
-            <span class="capsule__state">Saved</span>
-          </figcaption>
-          <p class="capsule__title">Reconnect browser session</p>
-          <div class="capsule__lines">
-            <p class="capsule__line"><span>branch</span><b>feat/reconnect</b></p>
-            <p class="capsule__line"><span>editor</span><b>4 files &#183; 3 terminals</b></p>
-            <p class="capsule__line"><span>browser</span><b>5 tabs</b></p>
-          </div>
-          <p class="capsule__foot">pointers, not contents</p>
-        </figure>
-      </div>
-
-      <div class="conn__slot conn__slot--browser">
-        <div class="conn__panel conn__panel--browser" data-conn-panel="browser">
-            <div class="conn__top">
-              <span class="conn__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/></svg></span>
-              <span>
-                <span class="conn__name">Chrome</span>
-                <span class="conn__detail">5 tabs</span>
-              </span>
-            </div>
-            <p class="conn__status" data-conn-status data-status="applied">
-              <i aria-hidden="true"></i><span data-conn-statustext>Restored</span>
-            </p>
-          </div>
-      </div>
-    </div>
-
-    <!-- Product capability and public availability are separate facts. -->
-    <div class="conn__avail">
-      <div class="conn__availrow">
-        <span class="conn__availname">Editor connector</span>
-        <span class="conn__availwhere">
-          <a href="https://marketplace.visualstudio.com/items?itemName=rabta-connect.rabta-vscode" target="_blank" rel="noopener noreferrer">VS&#160;Code Marketplace</a>
-          &#183;
-          <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener noreferrer">Open&#160;VSX</a>
-          &#183; for Cursor, VSCodium and Windsurf
-        </span>
-      </div>
-      <div class="conn__availrow">
-        <span class="conn__availname">Browser connector</span>
-        <span class="conn__pending">Chrome Web Store &#183; review pending</span>
-      </div>
-      <p class="t-technical t-muted">
-        Rabta works without the browser connector &#8212; you get editor,
-        terminal and git state until it lands.
-      </p>
-    </div>
-
-    <p class="visually-hidden" data-conn-live role="status" aria-live="polite"></p>
-  </div>
-</section>
-
-
-<!-- ====================== CHAPTER 5 — LOCAL-FIRST ======================
-     The quietest chapter, and the fifth spatial grammar: one very large
-     statement, three proof lines, one product-native visual, and a lot of
-     nothing. Every claim below is verified against the shipped build. -->
-<section class="local" data-local data-env="ivory" aria-labelledby="local-title">
-  <div class="wrap local__grid">
-
-    <div class="local__copy">
-      <h2 class="local__title" id="local-title">Your workspace stays on your Mac.</h2>
-
-      <ul class="local__proof">
-        <li>No Rabta account required.</li>
-        <li>Workspace data is stored on this Mac.</li>
-        <li>Rabta does not upload your project code.</li>
-      </ul>
-
-      <dl class="local__facts">
-        <dt>Data mode</dt><dd>Local</dd>
-        <dt>Account</dt><dd>Not required</dd>
-        <dt>Project upload</dt><dd>None</dd>
-        <dt>Stored at</dt><dd>~/Library/Application&#160;Support/com.omnibus.dev</dd>
-      </dl>
-
-      <p class="t-technical local__note">
-        The <code>com.omnibus.dev</code> identifier predates the rename and is
-        kept so existing installs keep their data.
-      </p>
-
-      <p style="margin-top: var(--space-6)">
-        <a class="btn btn--secondary btn--compact" href="/privacy/">Read the privacy policy</a>
-      </p>
-    </div>
-
-    <div class="local__vis">
-      <div class="local__device" aria-hidden="true">
-        <p class="local__devicelabel"><span>This Mac</span><span>local</span></p>
-
-        <figure class="capsule" data-cap-state="saved">
-          <figcaption class="capsule__head">
-            <span class="capsule__label">capsule &#183; rabta</span>
-            <span class="capsule__state">Saved</span>
-          </figcaption>
-          <p class="capsule__title">Reconnect browser session</p>
-          <div class="capsule__lines">
-            <p class="capsule__line"><span>branch</span><b>feat/reconnect</b></p>
-            <p class="capsule__line"><span>editor</span><b>4 files &#183; 3 terminals</b></p>
-            <p class="capsule__line"><span>browser</span><b>5 tabs</b></p>
-          </div>
-          <p class="capsule__foot">pointers, not contents</p>
-        </figure>
-
-        <!-- Context reaches the boundary and goes no further. -->
-        <div class="local__stops">
-          <p class="local__stop"><span class="local__stopline"></span><span>paths</span></p>
-          <p class="local__stop"><span class="local__stopline"></span><span>branch</span></p>
-          <p class="local__stop"><span class="local__stopline"></span><span>tab urls</span></p>
-        </div>
-      </div>
-    </div>
-  </div>
+<!-- ========================== 8.13 — CLOSING =========================
+     The page's only two-tone heading, and no button: 8.12 sits directly
+     above and has already handed over the download, the requirements and
+     the checksum. A second call to action here is not emphasis, it is a
+     page that does not trust its own conversion. -->
+<section class="section rail rule-top" aria-labelledby="close-h">
+  <h2 class="t-68 m-900" id="close-h">You should not have to <br /><span class="t-3">remember where you were.</span></h2>
 </section>
 
 </main>
+
+
+<!-- ========================== 8.14 — FOOTER ========================== -->
+<footer class="foot">
+  <div class="rail">
+    <div class="foot__grid">
+      <div>
+        <a class="brand" href="/" aria-label="Rabta — home">
+          <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+            <rect width="64" height="64" rx="14" fill="#102526"/>
+            <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
+            <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
+          </svg>
+          Rabta
+        </a>
+        <p class="t-15 m-440 mt-4">
+          A local-first macOS tool that gives a task its workspace back.
+        </p>
+      </div>
+
+      <nav aria-labelledby="f-get">
+        <p class="foot__col" id="f-get">Get Rabta</p>
+        <ul role="list">
+          <li><a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download for macOS</a></li>
+          <li><a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener noreferrer">Editor connector</a></li>
+          <li><a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">Release notes</a></li>
+          <li><a href="https://github.com/salmuflahi/rabta" target="_blank" rel="noopener noreferrer">Source on GitHub</a></li>
+        </ul>
+      </nav>
+
+      <nav aria-labelledby="f-learn">
+        <p class="foot__col" id="f-learn">Learn</p>
+        <ul role="list">
+          <li><a href="/setup/">Setup guide</a></li>
+          <li><a href="/setup/#troubleshooting">Troubleshooting</a></li>
+          <li><a href="/privacy/">Privacy policy</a></li>
+          <li><a href="https://github.com/salmuflahi/rabta/issues" target="_blank" rel="noopener noreferrer">Report an issue</a></li>
+        </ul>
+      </nav>
+
+      <section aria-labelledby="f-avail">
+        <p class="foot__col" id="f-avail">Availability</p>
+        <ul role="list" class="foot__states">
+          <li><span class="foot__dot" aria-hidden="true"></span>macOS app — available</li>
+          <li><span class="foot__dot" aria-hidden="true"></span>Editor — on Open VSX</li>
+          <li><span class="foot__dot foot__dot--hollow" aria-hidden="true"></span>Browser — in review</li>
+        </ul>
+      </section>
+    </div>
+
+    <div class="foot__meta t-mono t-3">
+      <span>v0.1.0 · published 29 July 2026 · MIT · Sammy Almuflahi</span>
+      <span>Editor connector on Open VSX · browser connector in review</span>
+    </div>
+  </div>
+</footer>
 </body>
 </html>

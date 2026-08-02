@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="no-js">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,7 +7,7 @@
 <title>Setup — Rabta</title>
 <meta name="description" content="Install Rabta 0.1.0 on macOS, verify the download, connect your editor, and save and resume your first capsule — with troubleshooting, diagnostics and uninstall steps." />
 <link rel="canonical" href="https://rabta.build/setup/" />
-<meta name="theme-color" content="#081718" />
+<meta name="theme-color" content="#0a1314" />
 <meta name="color-scheme" content="dark" />
 
 <link rel="icon" href="/favicon.ico" sizes="32x32" />
@@ -26,43 +26,41 @@
 <meta name="twitter:card" content="summary_large_image" />
 
 <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-latin-variable.woff2" crossorigin />
-<link rel="stylesheet" href="/css/base.css" />
-<link rel="stylesheet" href="/css/site.css" />
-<script>
-  document.documentElement.className = "js";
-  setTimeout(function () {
-    // Restore `no-js`, not an empty string: the FAQ's open-by-default
-    // fallback and other no-JS states are keyed off that class.
-    if (!window.__rabta) document.documentElement.className = "no-js";
-  }, 2500);
-</script>
+<link rel="stylesheet" href="/css/tokens.css" />
+<link rel="stylesheet" href="/css/shell.css" />
+<link rel="stylesheet" href="/css/doc.css" />
 </head>
 
 <body>
-<a class="skip-link" href="#main">Skip to content</a>
+<a class="skip" href="#main">Skip to content</a>
 
 <header class="nav">
-  <div class="wrap nav__inner">
+  <div class="rail nav__inner">
     <a class="brand" href="/" aria-label="Rabta — home">
       <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
         <rect width="64" height="64" rx="14" fill="#102526"/>
         <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
         <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
       </svg>
-      <span class="brand__word">Rabta</span>
+      Rabta
     </a>
-    <nav class="nav__links" aria-label="Primary">
-      <a href="/#demo">Product</a>
-      <a href="/setup/" aria-current="page">Setup</a>
+
+    <nav class="nav__mid" aria-label="Primary">
+      <a href="/#capture">Capture</a>
+      <a href="/#connectors">Connectors</a>
       <a href="/privacy/">Privacy</a>
-      <a class="btn btn--primary btn--fold" href="/#download">Download</a>
     </nav>
+
+    <div class="nav__end">
+      <a href="/setup/" aria-current="page">Setup</a>
+      <a class="btn btn--accent btn--sm" href="/#install">Download for macOS</a>
+    </div>
   </div>
 </header>
 
-<main id="main">
+<main id="main" tabindex="-1">
   <div class="wrap railed page-head">
-    <div class="rail"><span class="marker">Setup</span></div>
+    <div><span class="marker">Setup</span></div>
     <div>
     <h1>Install Rabta and save your first capsule.</h1>
     <p class="lede">
@@ -73,11 +71,11 @@
   </div>
 
   <div class="wrap railed">
-    <div class="rail" aria-hidden="true"></div>
+    <div></div>
     <div class="prose">
 
     <nav class="toc" aria-labelledby="toc-title">
-      <h2 id="toc-title">On this page</h2>
+      <p id="toc-title">On this page</p>
       <ol>
         <li><a href="#requirements">1. What you need</a></li>
         <li><a href="#install">2. Install the app</a></li>
@@ -95,7 +93,7 @@
 
     <h2 id="requirements">1. What you need</h2>
 
-    <ul>
+    <ul role="list">
       <li><strong>macOS 11.0 (Big Sur) or later.</strong></li>
       <li><strong>An Apple Silicon Mac</strong> (M1 or newer). Rabta 0.1.0 is an
         arm64-only build — there is no Intel build and no universal build, so it
@@ -107,7 +105,7 @@
     </ul>
 
     <p>
-      Not sure which Mac you have: <strong>Apple menu → About This Mac</strong>.
+      Not sure which Mac you have: <strong>Apple menu › About This Mac</strong>.
       "Chip: Apple M…" means Apple Silicon.
     </p>
 
@@ -137,9 +135,9 @@
       the notarization ticket stapled to the DMG. In practice:
     </p>
 
-    <ul>
+    <ul role="list">
       <li><strong>It opens with a normal double-click.</strong> You should not
-        need to right-click → Open, and you should not see an "unidentified
+        need to right-click › Open, and you should not see an "unidentified
         developer" or "Apple could not verify" warning.</li>
       <li>The first launch may pause briefly while macOS checks the signature.
         That is normal and happens once.</li>
@@ -161,14 +159,14 @@
     <p>Optional, and worth doing. All of it is checkable from the file itself.</p>
 
     <h3>Checksum</h3>
-    <pre class="code"><span class="cmt"># from wherever you saved it</span>
+    <pre class="code" tabindex="0"><span class="cmt"># from wherever you saved it</span>
 shasum -a 256 ~/Downloads/Rabta_0.1.0_aarch64.dmg
 
 <span class="cmt"># expected</span>
 <span class="out">3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655</span></pre>
 
     <h3>Signature and notarization</h3>
-    <pre class="code"><span class="cmt"># the stapled notarization ticket</span>
+    <pre class="code" tabindex="0"><span class="cmt"># the stapled notarization ticket</span>
 xcrun stapler validate ~/Downloads/Rabta_0.1.0_aarch64.dmg
 <span class="cmt"># -> The validate action worked!</span>
 
@@ -179,20 +177,33 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
     <table>
       <tbody>
         <tr><th scope="row">Team ID</th><td><code>86M2X6MUA3</code></td></tr>
-        <tr><th scope="row">Bundle ID</th><td><code>com.omnibus.dev</code></td></tr>
+        <tr><th scope="row">Bundle ID</th><td><code>com.omnibus.dev</code> &mdash; see the note below</td></tr>
         <tr><th scope="row">Identity</th><td><code>Developer ID Application: sammy almuflahi (86M2X6MUA3)</code></td></tr>
       </tbody>
     </table>
+
+    <div class="note">
+      <p>
+        <strong>Why the bundle id says &#8220;omnibus&#8221;.</strong> Rabta was
+        called Omnibus before release, and <code>com.omnibus.dev</code> is the
+        identifier it shipped under. It is deliberately unchanged: macOS uses
+        the bundle id to locate an app&#8217;s data, so renaming it would orphan
+        the capsules of anyone who installed an early build. It is the same
+        folder referenced throughout this page and in the
+        <a href="/privacy/#local">privacy policy</a>.
+      </p>
+    </div>
 
     <h2 id="editor">4. Connect your editor</h2>
 
     <p>
       The extension is published as <strong>Rabta Connector</strong>
       (<code>rabta-connect.rabta-vscode</code>, version 0.1.0) on
-      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener">Open VSX</a>
-      and on the
-      <a href="https://marketplace.visualstudio.com/items?itemName=rabta-connect.rabta-vscode" target="_blank" rel="noopener">VS&nbsp;Code Marketplace</a>.
-      Both registries serve the identical build.
+      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener">Open VSX</a>.
+      That is the registry <strong>Cursor, VSCodium and Windsurf</strong>
+      install from. It is <strong>not yet on the Microsoft VS&nbsp;Code
+      Marketplace</strong> &mdash; for stock VS Code, install the identical
+      <code>.vsix</code> directly (below).
     </p>
 
     <h3>Cursor, VSCodium and Windsurf</h3>
@@ -206,26 +217,22 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
     </ol>
 
     <p>Or from a terminal:</p>
-    <pre class="code">cursor --install-extension rabta-connect.rabta-vscode</pre>
+    <pre class="code" tabindex="0">cursor --install-extension rabta-connect.rabta-vscode</pre>
 
     <h3>VS Code</h3>
 
-    <p>Stock VS Code installs from the Marketplace, so it's in the Extensions panel:</p>
+    <p>
+      Stock VS Code reads the Microsoft Marketplace, where Rabta Connector is
+      <strong>not published yet</strong>, so searching the Extensions panel
+      will not find it. Install the packaged extension instead &mdash; it is
+      the same build Open VSX serves.
+    </p>
 
-    <ol>
-      <li>Open the Extensions panel (<code>⇧⌘X</code>).</li>
-      <li>Search for <strong>Rabta Connector</strong>.</li>
-      <li>Install it, then reload the window.</li>
-    </ol>
-
-    <p>Or from a terminal:</p>
-    <pre class="code">code --install-extension rabta-connect.rabta-vscode</pre>
-
-    <h3>Installing the file directly</h3>
+    <h3 id="vsix">Installing the file directly</h3>
 
     <p>
-      If you'd rather not use a registry, the packaged extension is the
-      identical build:
+      This is the route for stock VS Code today, and it works in any of the
+      four editors:
     </p>
 
     <ol>
@@ -233,8 +240,8 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
         <a href="https://open-vsx.org/api/rabta-connect/rabta-vscode/0.1.0/file/rabta-connect.rabta-vscode-0.1.0.vsix"><code>rabta-connect.rabta-vscode-0.1.0.vsix</code></a>
         from Open VSX.</li>
       <li>Install it:
-        <pre class="code">code --install-extension ~/Downloads/rabta-connect.rabta-vscode-0.1.0.vsix</pre>
-        or use <strong>Extensions panel → ⋯ → Install from VSIX…</strong>
+        <pre class="code" tabindex="0">code --install-extension ~/Downloads/rabta-connect.rabta-vscode-0.1.0.vsix</pre>
+        or use <strong>Extensions panel › … › Install from VSIX…</strong>
       </li>
       <li>Reload the window.</li>
     </ol>
@@ -242,9 +249,8 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
     <div class="note">
       <p>
         The <code>.vsix</code> itself carries no code signature — VS Code
-        extensions are not signed artefacts the way the macOS app is. Verify it
-        by downloading from Open VSX or the Marketplace rather than from a
-        third party.
+        extensions are not signed artefacts the way the macOS app is. Download
+        it from Open VSX rather than from a third party.
       </p>
     </div>
 
@@ -311,7 +317,7 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
     </p>
 
     <h3>macOS permissions</h3>
-    <ul>
+    <ul role="list">
       <li><strong>Incoming network connections</strong> — macOS may ask on first
         launch. This is the loopback hub. Allow it, or connectors cannot reach
         the app.</li>
@@ -323,7 +329,7 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
 
     <h3>Register a project</h3>
     <ol>
-      <li>Go to <strong>Projects</strong> → <strong>Register Project</strong>.</li>
+      <li>Go to <strong>Projects</strong> › <strong>Register Project</strong>.</li>
       <li>Choose the folder of a git repository.</li>
       <li>Rabta reads the path and current branch. Optionally add a dev URL (for
         example <code>http://localhost:3000</code>) and an icon.</li>
@@ -363,7 +369,7 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
       summary sheet reports the outcome per tool:
     </p>
 
-    <ul>
+    <ul role="list">
       <li><strong>Restored</strong> — the tool confirmed it applied.</li>
       <li><strong>On next reload</strong> — the tool isn't connected right now,
         so it's queued rather than failed.</li>
@@ -382,7 +388,7 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
     <h2 id="troubleshooting">8. Troubleshooting</h2>
 
     <h3>The app won't launch</h3>
-    <ul>
+    <ul role="list">
       <li><strong>"You can't open this application because it is not supported
         on this Mac."</strong> — you're on an Intel Mac. Rabta 0.1.0 is Apple
         Silicon only.</li>
@@ -403,14 +409,14 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
       <li><strong>Did you reload the editor</strong> after installing the
         extension? It activates on startup.</li>
       <li><strong>Does the discovery file exist?</strong>
-        <pre class="code">cat ~/Library/Application\ Support/com.omnibus.dev/hub.json</pre>
+        <pre class="code" tabindex="0">cat ~/Library/Application\ Support/com.omnibus.dev/hub.json</pre>
         It should print a port and a secret. If it's missing, the hub didn't
         start — check that you allowed incoming connections when macOS asked.</li>
       <li><strong>Is something else on the port?</strong> The hub prefers
         <code>17872</code> and falls back to another local port when it's taken.
         The port it actually bound is shown in the app header and in
         <code>hub.json</code>.
-        <pre class="code">lsof -nP -iTCP:17872 -sTCP:LISTEN</pre>
+        <pre class="code" tabindex="0">lsof -nP -iTCP:17872 -sTCP:LISTEN</pre>
       </li>
       <li><strong>Check Activity.</strong> If the connector reached the hub at
         all, there will be a <code>connectorConnected</code> event with a
@@ -432,7 +438,7 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
       and connectors are released together, and 0.1.0 expects 0.1.0. If they
       differ:
     </p>
-    <ul>
+    <ul role="list">
       <li>Update the extension from
         <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener">Open VSX</a>,
         or reinstall the matching <code>.vsix</code>, so it matches the app.</li>
@@ -462,18 +468,18 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
     </p>
 
     <p>Everything Rabta stores lives in one folder:</p>
-    <pre class="code">~/Library/Application Support/com.omnibus.dev/</pre>
-    <ul>
+    <pre class="code" tabindex="0">~/Library/Application Support/com.omnibus.dev/</pre>
+    <ul role="list">
       <li><code>omnibus.db</code> — projects, tasks, capsules and event history.</li>
       <li><code>hub.json</code> — the current port and per-run secret.</li>
     </ul>
     <p>
-      Open that folder from <strong>Settings → Privacy &amp; data → Reveal in
+      Open that folder from <strong>Settings › Privacy &amp; data › Reveal in
       Finder</strong>.
     </p>
 
     <p>
-      <strong>Settings → Advanced → Developer mode</strong> reveals the raw
+      <strong>Settings › Advanced › Developer mode</strong> reveals the raw
       connector-command console if you want to watch the wire traffic directly.
     </p>
 
@@ -486,7 +492,7 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
       <li><strong>Remove the app</strong> — drag
         <code>/Applications/Rabta.app</code> to the Trash.</li>
       <li><strong>Remove its data</strong>, if you want it gone:
-        <pre class="code">rm -rf ~/Library/Application\ Support/com.omnibus.dev</pre>
+        <pre class="code" tabindex="0">rm -rf ~/Library/Application\ Support/com.omnibus.dev</pre>
         That deletes every capsule, project, task and event Rabta stored. It
         cannot be undone, and there is no copy anywhere else.</li>
       <li><strong>Uninstall the editor extension</strong> from your editor's
@@ -508,7 +514,7 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
     </p>
 
     <p>What helps most:</p>
-    <ul>
+    <ul role="list">
       <li>Your macOS version and Mac model.</li>
       <li>Rabta's version (0.1.0) and the connector version from Connectors.</li>
       <li>Which editor, and how you installed the extension.</li>
@@ -528,58 +534,59 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
   </div>
 </main>
 
-<footer class="footer">
-  <div class="wrap">
-    <div class="footer__top">
-      <div class="footer__brand">
+<footer class="foot">
+  <div class="rail">
+    <div class="foot__grid">
+      <div>
         <a class="brand" href="/" aria-label="Rabta — home">
           <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-            <rect width="64" height="64" rx="14" fill="#102526"/>
-            <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
-            <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
+        <rect width="64" height="64" rx="14" fill="#102526"/>
+        <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
+        <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
           </svg>
-          <span class="brand__word">Rabta</span>
+          Rabta
         </a>
-        <p>A local-first tool that gives a task its workspace back.</p>
+        <p class="t-15 m-440 mt-4">
+          A local-first macOS tool that gives a task its workspace back.
+        </p>
       </div>
 
-      <nav aria-labelledby="foot-get">
-        <h2 id="foot-get">Get Rabta</h2>
-        <ul>
+      <nav aria-labelledby="f-get">
+        <p class="foot__col" id="f-get">Get Rabta</p>
+        <ul role="list">
           <li><a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download for macOS</a></li>
-          <li><a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener">Editor connector</a></li>
-          <li><a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener">Release notes</a></li>
+          <li><a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener noreferrer">Editor connector</a></li>
+          <li><a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">Release notes</a></li>
+          <li><a href="https://github.com/salmuflahi/rabta" target="_blank" rel="noopener noreferrer">Source on GitHub</a></li>
         </ul>
       </nav>
 
-      <nav aria-labelledby="foot-learn">
-        <h2 id="foot-learn">Learn</h2>
-        <ul>
+      <nav aria-labelledby="f-learn">
+        <p class="foot__col" id="f-learn">Learn</p>
+        <ul role="list">
           <li><a href="/setup/">Setup guide</a></li>
-          <li><a href="#troubleshooting">Troubleshooting</a></li>
+          <li><a href="/setup/#troubleshooting">Troubleshooting</a></li>
           <li><a href="/privacy/">Privacy policy</a></li>
-          <li><a href="/#faq">FAQ</a></li>
+          <li><a href="https://github.com/salmuflahi/rabta/issues" target="_blank" rel="noopener noreferrer">Report an issue</a></li>
         </ul>
       </nav>
 
-      <nav aria-labelledby="foot-status">
-        <h2 id="foot-status">Availability</h2>
-        <ul>
-          <li><span class="footer__status"><span class="dot dot--live" aria-hidden="true"></span>macOS · Apple Silicon</span></li>
-          <li><span class="footer__status"><span class="dot dot--live" aria-hidden="true"></span>Editor · Open VSX</span></li>
-          <li><span class="footer__status"><span class="dot dot--pending" aria-hidden="true"></span>Browser · in review</span></li>
-          <li><a href="https://github.com/salmuflahi/rabta/issues" target="_blank" rel="noopener">Report an issue</a></li>
+      <section aria-labelledby="f-avail">
+        <p class="foot__col" id="f-avail">Availability</p>
+        <ul class="foot__states" role="list">
+          <li><span class="foot__dot" aria-hidden="true"></span>macOS app — available</li>
+          <li><span class="foot__dot" aria-hidden="true"></span>Editor — on Open VSX</li>
+          <li><span class="foot__dot foot__dot--hollow" aria-hidden="true"></span>Browser — in review</li>
         </ul>
-      </nav>
+      </section>
     </div>
 
-    <div class="footer__legal">
-      <span>Rabta v0.1.0 · MIT · Built by Sammy Almuflahi</span>
-      <span><a href="/privacy/">Privacy</a> · <a href="mailto:sammyalmuflahi1@gmail.com">sammyalmuflahi1@gmail.com</a></span>
+    <div class="foot__meta t-mono t-3">
+      <span>v0.1.0 · published 29 July 2026 · MIT · Sammy Almuflahi</span>
+      <span>Editor connector on Open VSX · browser connector in review</span>
     </div>
   </div>
 </footer>
 
-<script src="/js/site.js" defer></script>
 </body>
 </html>

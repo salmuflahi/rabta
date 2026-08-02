@@ -1,52 +1,24 @@
 /* ==========================================================================
    Rabta — tokens
+   docs/site-design-plan.md §4. These are the only values on the site.
+   A number that is not in this file does not go in the CSS.
 
-   THREE AXES, deliberately separate:
-
-     1. PALETTE      absolute colour values. Never overridden.
-     2. ENVIRONMENT  [data-env] — the room a chapter is in.
-     3. SEMANTIC     --sem-* — what a colour MEANS in the product.
-
-   The environment layer self-applies `color` and `background-color`, not just
-   custom properties. That is load-bearing: redeclaring --fg on a descendant
-   can NEVER change an already-inherited `color`, so a petrol product panel
-   sitting inside a light chapter would otherwise render ink-on-ink. Setting
-   the concrete longhands at every [data-env] boundary restarts inheritance
-   and makes that whole bug class unconstructable.
-
-   `product` is an ENVIRONMENT, not a surface variant — a room the product
-   brings with it, mirroring the shipped app's theme-invariant petrol rail.
+   Every hue is lifted verbatim from assets/brand/rabta-mark.svg, which
+   contains exactly three colours: #102526, #F3F0E8, #FF6B2C. Nothing here was
+   picked to look nice; it was picked because it was already in the logo.
    ========================================================================== */
 
-/* Component BEFORE chapter: components define what a thing is, chapters place
-   it. With the old order (chapter then component) `.capsule { position:
-   relative }` silently beat `.hero__capsule { position: absolute }` no matter
-   the specificity, so the hero capsule was never actually absolutely
-   positioned — it only looked right by coincidence in the two-column layout. */
-@layer reset, tokens, env, type, chrome, component, chapter, state, utility;
+@layer tokens, reset, type, layout, component, section, state;
 
 @layer tokens {
-  /* Registered so an undeclared role falls back to a KNOWN value rather than
-     to whatever an ancestor happened to leave behind — and so the capture ->
-     seal colour shifts can interpolate. */
-  @property --fg {
-    syntax: "<color>";
-    inherits: true;
-    initial-value: #102526;
-  }
-  @property --bg {
-    syntax: "<color>";
-    inherits: true;
-    initial-value: #faf8f2;
-  }
-
   @font-face {
     font-family: "Inter Variable";
-    /* Absolute, matching the <link rel=preload> byte-for-byte. A relative URL
-       here would be hashed by the bundler while the preload is not, and the
-       font would download twice on every page. */
+    /* Absolute, byte-identical to the <link rel=preload> so the font is
+       fetched exactly once. */
     src: url("/assets/fonts/inter-latin-variable.woff2") format("woff2");
-    font-weight: 100 900;
+    /* 400–600 only. 300 and 700 are forbidden by the plan and declaring a
+       wider range invites them back in. */
+    font-weight: 400 600;
     font-style: normal;
     font-display: swap;
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
@@ -55,252 +27,109 @@
   }
 
   :root {
-    /* ---- palette: petrol family (structure + product surfaces) -------- */
-    --ink: #081718;
-    --ink-deep: #061112;
-    --petrol: #102526;
-    --petrol-raised: #173234;
-    --petrol-accent: #1c3a3c;
-    --petrol-line: #244548;
-    --petrol-line-soft: #1a3536;
+    /* ---- colour: twelve tokens, no thirteenth --------------------------- */
+    --ground: #0a1314;
+    --panel: #102526;
+    --field-bone: #eae4d5;
 
-    /* ---- palette: warm light family (environments) --------------------- */
-    --paper: #faf8f2;
-    --canvas: #f3f0e8;
-    --ivory: #e9e5dc;
-    --warm-sand: #d9cdb9;
-    --cream: #f4f1e9;
+    --text-1: #f3f0e8; /* 17.5:1 on ground · 13.4:1 on panel */
+    --text-2: #a9bcba; /*  9.5:1 on ground ·  7.2:1 on panel */
+    --text-3: #7c8f8e; /*  5.6:1 on ground ·  4.7:1 on panel — never below 13px */
 
-    /* ---- palette: semantic accents ------------------------------------ */
-    /* Each has a -deep sibling: a fill that reads correctly on petrol fails
-       contrast as small text on cream. Never use the light value for text on
-       a light environment. */
-    --tangerine: #ff6b2c;
-    --tangerine-hi: #ff824d;
-    --tangerine-deep: #bf4718;
+    /* Hard cap of FIVE painted instances per document: nav pill, hero anchor,
+       hero fold underside, active switcher underline, install anchor.
+       NOT counted: the focus ring and ::selection (system affordances), and
+       the ember triangle inside rabta-mark.svg — that is the logo, not an
+       instance, and it appears wherever the mark does. */
+    --accent: #ff6b2c; /* 6.6:1 on ground */
+    /* The one derived hue on the site — the hover fill for the three accent
+       anchors. Never a resting colour, never text, never a border. */
+    --accent-hi: #ff8452;
+    --ink-on-accent: #102526; /* 5.6:1 on accent. White on accent is 3.34:1
+                                 and is forbidden outright, at any size. */
 
-    --sea-glass: #66d6c2;
-    --sea-glass-deep: #0e6f5e;
+    --hairline: rgba(243, 240, 232, 0.08);
+    --hairline-strong: rgba(243, 240, 232, 0.14);
+    --hairline-dark: rgba(0, 0, 0, 0.28);
 
-    --mist-blue: #8fb8c9;
-    --mist-blue-deep: #3c687d;
+    /* ---- type ----------------------------------------------------------- */
+    --sans: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, Helvetica, Arial, sans-serif;
+    /* System stack only. A downloaded mono face would fail CI's
+       no-third-party-subresource guard, and this is what the app renders. */
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-    --preserved-gold: #d8aa57;
-    --preserved-gold-deep: #7d5a0c;
+    /* Tracking is a pure function of size (§4.2). Named so a component that
+       sets a font-size can set the matching tracking instead of inheriting
+       whatever the cascade left behind. */
+    --track-68: -1.5px;
+    --track-56: -1.23px;
+    --track-40: -0.88px;
+    --track-28: -0.5px;
+    --track-21: -0.25px;
+    --track-17: -0.19px;
+    --track-15: -0.17px;
+    --track-13: 0;
+    --track-mono: 0.24px;
 
-    --switch-coral: #df796d;
-    --switch-coral-deep: #ab3f2c;
+    /* ---- space: 4px base ------------------------------------------------ */
+    --s1: 4px;
+    --s2: 8px;
+    --s3: 12px;
+    --s4: 16px;
+    --s5: 24px;
+    --s6: 32px;
+    --s7: 40px;
+    --s8: 56px;
+    --s9: 72px;
+    --s10: 96px;
+    --s11: 128px;
 
-    --restore-mint: #9bd8bd;
-    --restore-mint-deep: #12705a;
+    /* Section padding. One value, every top-level section, no exceptions —
+       with no colour and one typeface, the beat is most of what holds the
+       page together. */
+    --section-y: 128px;
 
-    --atmosphere-lavender: #9b91b4;
+    /* ---- layout --------------------------------------------------------- */
+    --shell: 1320px; /* hero field and full-shell rules ONLY */
+    --rail: 1120px; /* everything below the hero */
+    /* 96, not 64: the longest chapter mark ("connectors") measures ~71px at
+       13px and overflowed a 64px track straight into the heading. 96 is the
+       next step on the spacing scale and clears every mark. */
+    --axis: 96px;
+    --gutter: 40px;
+    --gap: 24px;
+    --locked: 960px; /* the Return Pair. Both frames. Identically. */
 
-    --on-accent: #1d120d;
+    /* ---- shape ---------------------------------------------------------- */
+    --r1: 4px;
+    --r2: 8px;
+    --r3: 12px;
+    --r4: 16px;
+    --r5: 20px;
 
-    /* ---- type --------------------------------------------------------- */
-    --font-sans: "Inter Variable", -apple-system, BlinkMacSystemFont,
-      "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco,
-      Consolas, "Liberation Mono", monospace;
+    /* The mark's own cut. §4.4: a chamfered top-right corner means
+       "this holds context", and nothing else may carry it. */
+    --fold-sm: 12px;
+    --fold: 18px;
+    --fold-lg: 56px;
 
-    /* Capped at 4.5rem, and the cap is load-bearing twice over:
-       - "Keep your place." must hold ONE line inside the 6-column copy well
-         (~610px at 1440). Wrapping after "your" reads as an accident.
-       - the second line must END far enough left that the product frame can
-         intrude ~65px into the copy grid without covering live glyphs.
-       At 5rem the line ends at x=639 and the frame can only reach x=655,
-       which buys no intrusion at all. */
-    --text-display-hero: clamp(2.625rem, 1rem + 3.8vw, 4.5rem);
-    --text-display-section: clamp(2.5rem, 1rem + 4.1vw, 5rem);
-    --text-display-statement: clamp(2.25rem, 1rem + 3.6vw, 4.25rem);
-    --text-heading-large: clamp(1.75rem, 1.1rem + 1.9vw, 2.75rem);
-    --text-heading-medium: 1.75rem;
-    --text-heading-small: 1.25rem;
-    --text-body-large: clamp(1.1875rem, 1.05rem + 0.5vw, 1.4375rem);
-    --text-body: 1rem;
-    --text-body-small: 0.875rem;
-    --text-label: 0.75rem;
-    --text-technical: 0.75rem;
-
-    /* ---- space -------------------------------------------------------- */
-    --space-1: 4px;
-    --space-2: 8px;
-    --space-3: 12px;
-    --space-4: 16px;
-    --space-5: 24px;
-    --space-6: 32px;
-    --space-7: 48px;
-    --space-8: 64px;
-    --space-9: 96px;
-    --space-10: 128px;
-    --space-11: 160px;
-    --space-12: 224px;
-
-    /* ---- layout ------------------------------------------------------- */
-    --page-gutter: clamp(20px, 4vw, 56px);
-    --content-max: 1360px;
-    --stage-max: 1760px;
-    --grid-gap: clamp(16px, 2vw, 28px);
-    --nav-height: 82px;
-    --nav-height-compact: 64px;
-
-    /* ---- shape -------------------------------------------------------- */
-    --radius-small: 8px;
-    --radius-medium: 14px;
-    --radius-large: 22px;
-    --radius-window: 24px;
-    /* The mark's own corner chamfer: 14.5 units of a 64-unit canvas. */
-    --fold-ratio: 0.2266;
-
-    /* ---- motion ------------------------------------------------------- */
-    --duration-instant: 90ms;
-    --duration-fast: 140ms;
-    --duration-standard: 190ms;
-    --duration-medium: 280ms;
-    --duration-large: 480ms;
-    --duration-cinematic: 800ms;
-    --ease-rabta: cubic-bezier(0.22, 1, 0.36, 1);
-    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-    --ease-gather: cubic-bezier(0.55, 0, 0.1, 1);
-
-    /* ---- depth -------------------------------------------------------- */
-    /* Layered, never one giant black blur. rgba is petrol ink, not black. */
-    --shadow-small: 0 1px 2px rgba(16, 37, 38, 0.06),
-      0 2px 6px rgba(16, 37, 38, 0.05);
-    --shadow-medium: 0 2px 4px rgba(16, 37, 38, 0.08),
-      0 10px 28px rgba(16, 37, 38, 0.1);
-    --shadow-product: 0 2px 4px rgba(8, 23, 24, 0.1),
-      0 18px 48px rgba(8, 23, 24, 0.22), 0 50px 120px rgba(8, 23, 24, 0.16);
-
-    /* ---- z, scoped per stacking context ------------------------------- */
-    --z-background: 0;
-    --z-environment: 10;
-    --z-copy: 20;
-    --z-product-back: 30;
-    --z-product: 40;
-    --z-product-front: 50;
-    --z-controls: 60;
-    --z-navigation: 100;
-  }
-}
-
-/* ==========================================================================
-   environments
-   Every [data-env] block declares the COMPLETE role set. No var() chaining
-   to another environment, no partial overrides — a missing role resolves to
-   its @property initial value, which is the same bug wearing a new hat.
-   ========================================================================== */
-
-@layer env {
-  [data-env] {
-    /* The two lines that make the inherited-colour bug impossible. */
-    color: var(--fg);
-    background-color: var(--bg);
+    /* ---- motion --------------------------------------------------------- */
+    --dur: 120ms;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  [data-env="paper"] {
-    --bg: var(--paper);
-    --fg: #102526;
-    --fg-2: #57625f;
-    --fg-3: #7d8886;
-    --rule: #ddd8cc;
-    --rule-soft: #e7e2d6;
-    --well: #eceae1;
-    --sem-active: var(--mist-blue-deep);
-    --sem-saved: var(--preserved-gold-deep);
-    --sem-switching: var(--switch-coral-deep);
-    --sem-restored: var(--sea-glass-deep);
-    --sem-action: var(--tangerine-deep);
-    --sem-action-fill: var(--tangerine);
-    --sem-atmos: var(--atmosphere-lavender);
-    --shadow-card: var(--shadow-small);
-    --shadow-lift: var(--shadow-medium);
-    color-scheme: light;
+  @media (max-width: 899px) {
+    :root {
+      --section-y: 96px;
+      --gutter: 24px;
+      --fold-lg: 36px;
+    }
   }
 
-  [data-env="canvas"] {
-    --bg: var(--canvas);
-    --fg: #102526;
-    --fg-2: #545f5c;
-    --fg-3: #78837f;
-    --rule: #d8d2c4;
-    --rule-soft: #e2dccf;
-    --well: #e7e3d8;
-    --sem-active: var(--mist-blue-deep);
-    --sem-saved: var(--preserved-gold-deep);
-    --sem-switching: var(--switch-coral-deep);
-    --sem-restored: var(--sea-glass-deep);
-    --sem-action: var(--tangerine-deep);
-    --sem-action-fill: var(--tangerine);
-    --sem-atmos: var(--atmosphere-lavender);
-    --shadow-card: var(--shadow-small);
-    --shadow-lift: var(--shadow-medium);
-    color-scheme: light;
-  }
-
-  [data-env="ivory"] {
-    --bg: var(--ivory);
-    --fg: #102526;
-    --fg-2: #4f5a57;
-    --fg-3: #6f7a77;
-    --rule: #d2cbbb;
-    --rule-soft: #ded8c9;
-    --well: #ded8cb;
-    --sem-active: var(--mist-blue-deep);
-    --sem-saved: var(--preserved-gold-deep);
-    --sem-switching: var(--switch-coral-deep);
-    --sem-restored: var(--sea-glass-deep);
-    --sem-action: var(--tangerine-deep);
-    --sem-action-fill: var(--tangerine);
-    --sem-atmos: var(--atmosphere-lavender);
-    --shadow-card: var(--shadow-small);
-    --shadow-lift: var(--shadow-medium);
-    color-scheme: light;
-  }
-
-  [data-env="ink"] {
-    --bg: var(--ink);
-    --fg: var(--cream);
-    --fg-2: #9ba8a6;
-    --fg-3: #7f8d8b;
-    --rule: var(--petrol-line);
-    --rule-soft: var(--petrol-line-soft);
-    --well: var(--petrol-raised);
-    --sem-active: var(--mist-blue);
-    --sem-saved: var(--preserved-gold);
-    --sem-switching: var(--switch-coral);
-    --sem-restored: var(--restore-mint);
-    --sem-action: var(--tangerine);
-    --sem-action-fill: var(--tangerine);
-    --sem-atmos: var(--atmosphere-lavender);
-    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset,
-      0 18px 48px rgba(0, 0, 0, 0.5);
-    --shadow-lift: 0 1px 0 rgba(255, 255, 255, 0.05) inset,
-      0 28px 60px rgba(0, 0, 0, 0.6);
-    color-scheme: dark;
-  }
-
-  /* The product's own room. Petrol regardless of the chapter around it. */
-  [data-env="product"] {
-    --bg: var(--petrol);
-    --fg: var(--cream);
-    --fg-2: #9ba8a6;
-    --fg-3: #7f8d8b;
-    --rule: var(--petrol-line);
-    --rule-soft: var(--petrol-line-soft);
-    --well: var(--petrol-raised);
-    --sem-active: var(--mist-blue);
-    --sem-saved: var(--preserved-gold);
-    --sem-switching: var(--switch-coral);
-    --sem-restored: var(--restore-mint);
-    --sem-action: var(--tangerine);
-    --sem-action-fill: var(--tangerine);
-    --sem-atmos: var(--atmosphere-lavender);
-    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.035) inset,
-      0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-lift: 0 1px 0 rgba(255, 255, 255, 0.05) inset,
-      0 20px 44px rgba(0, 0, 0, 0.55);
-    color-scheme: dark;
+  @media (max-width: 599px) {
+    :root {
+      --section-y: 72px;
+    }
   }
 }

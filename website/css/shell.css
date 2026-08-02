@@ -1,0 +1,628 @@
+/* ==========================================================================
+   Rabta — shell
+   docs/site-design-plan.md §4.2 (type), §4.6 (motion), §5 (grid), §7.1 (btn).
+
+   Loaded by every route. Holds the reset, the eight type size classes, the
+   container/grid system, the button, the focus ring, and the page chrome
+   (nav + footer) that all four pages share.
+   ========================================================================== */
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: calc(56px + 24px);
+    /* `clip`, not `hidden`: hidden would make html a scroll container and kill
+       position:sticky for the nav. */
+    overflow-x: clip;
+  }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text-2);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 26px;
+    letter-spacing: -0.19px;
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* NO overflow-x here. `overflow-x: hidden` on body computes overflow-y to
+       auto, which makes body a scroll container — and that silently kills
+       position:sticky for everything inside it. */
+  }
+
+  img,
+  svg,
+  picture {
+    display: block;
+    max-width: 100%;
+  }
+
+  h1,
+  h2,
+  h3,
+  p,
+  figure,
+  dl,
+  dd,
+  blockquote {
+    margin: 0;
+  }
+
+  ul,
+  ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--ink-on-accent);
+  }
+}
+
+/* ==========================================================================
+   type — eight size classes and one mono. Tracking is a pure function of
+   size (§4.2) and is baked into each class, never set per component.
+   ========================================================================== */
+
+@layer type {
+  /* Display leading of 1.04–1.05 applies at 40px and above ONLY. Every display
+     block carries 6px of internal vertical padding so a sub-1.1 leading cannot
+     clip caps or descenders inside a clipped parent. */
+  .t-68,
+  .t-56,
+  .t-40 {
+    font-weight: 600;
+    color: var(--text-1);
+    padding-block: 6px;
+    text-wrap: balance;
+  }
+
+  .t-68 {
+    font-size: 68px;
+    line-height: 71px;
+    letter-spacing: -1.5px;
+  }
+
+  .t-56 {
+    font-size: 56px;
+    line-height: 58px;
+    letter-spacing: -1.23px;
+  }
+
+  .t-40 {
+    font-size: 40px;
+    line-height: 42px;
+    letter-spacing: -0.88px;
+  }
+
+  .t-28 {
+    font-size: 28px;
+    line-height: 34px;
+    letter-spacing: -0.5px;
+    font-weight: 600;
+    color: var(--text-1);
+  }
+
+  .t-21 {
+    font-size: 21px;
+    line-height: 32px;
+    letter-spacing: -0.25px;
+    font-weight: 400;
+    color: var(--text-2);
+  }
+
+  .t-17 {
+    font-size: 17px;
+    line-height: 26px;
+    letter-spacing: -0.19px;
+    font-weight: 400;
+    color: var(--text-2);
+  }
+
+  .t-15 {
+    font-size: 15px;
+    line-height: 24px;
+    letter-spacing: -0.17px;
+    font-weight: 400;
+    color: var(--text-3);
+  }
+
+  .t-13 {
+    font-size: 13px;
+    line-height: 18px;
+    letter-spacing: 0;
+    font-weight: 500;
+    color: var(--text-3);
+  }
+
+  /* Every machine numeral on the site. Selectable, never truncated, never
+     ellipsised — the whole point is that you can copy it and check it. */
+  .t-mono {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 18px;
+    letter-spacing: 0.24px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-1);
+    overflow-wrap: anywhere;
+  }
+
+  .t-3 { color: var(--text-3); }
+
+  /* Stack spacing. The gap between two things in the same block. Only the
+     scale's own steps exist — there is no .mt-13. */
+  .mt-2 { margin-top: var(--s2); }
+  .mt-3 { margin-top: var(--s3); }
+  .mt-4 { margin-top: var(--s4); }
+  .mt-5 { margin-top: var(--s5); }
+  .mt-6 { margin-top: var(--s6); }
+  .mt-7 { margin-top: var(--s7); }
+  .mt-10 { margin-top: var(--s10); }
+
+  /* Hard measure cap. 68 characters, captions included. */
+  .m-520 { max-width: 520px; }
+  .m-440 { max-width: 440px; }
+  .m-496 { max-width: 496px; }
+  .m-560 { max-width: 560px; }
+  .m-720 { max-width: 720px; }
+  /* 68px type holds ~19 characters in 680px, which turns the closing statement
+     into two fragments rather than two lines. It gets its own step. */
+  .m-900 { max-width: 900px; }
+
+  /* Mobile ladder — fixed steps, never a percentage shrink. A proportional
+     shrink of 56px still yields four lines at 390px. */
+  @media (max-width: 899px) {
+    /* Tracking is re-derived from the NEW size, not carried down from the
+       old one: 38 and 32 stay in the display band (-0.018em), 26 and 22 fall
+       into the 20-27 band (-0.012em), 19 into the body band (-0.011em). */
+    .t-68 { font-size: 38px; line-height: 40px; letter-spacing: -0.68px; }
+    .t-56 { font-size: 32px; line-height: 34px; letter-spacing: -0.58px; }
+    .t-40 { font-size: 26px; line-height: 28px; letter-spacing: -0.31px; }
+    .t-28 { font-size: 22px; line-height: 28px; letter-spacing: -0.26px; }
+    .t-21 { font-size: 19px; line-height: 29px; letter-spacing: -0.21px; }
+    /* Authored breaks are for the desktop measure only. */
+    .t-68 br,
+    .t-56 br,
+    .t-40 br { display: none; }
+  }
+
+  @media (max-width: 389px) {
+    .t-56 { font-size: 28px; line-height: 30px; letter-spacing: -0.5px; }
+  }
+  /* 17, 15, 13 and mono 12 do not scale at any breakpoint. */
+}
+
+/* ==========================================================================
+   layout — four container widths, never a fifth (§5)
+   ========================================================================== */
+
+@layer layout {
+  .shell {
+    width: 100%;
+    max-width: var(--shell);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  .rail {
+    width: 100%;
+    max-width: var(--rail);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  .section {
+    padding-block: var(--section-y);
+  }
+
+  /* Separation between two adjacent sections is the section padding plus AT
+     MOST ONE of {a rule, a panel background}. Never both. */
+  .rule-top {
+    border-top: 1px solid var(--hairline);
+  }
+
+  /* The reserved left column. Headings across every chapter start at the same
+     x whether or not that chapter has a marker. */
+  .axis {
+    display: grid;
+    grid-template-columns: var(--axis) minmax(0, 1fr);
+  }
+
+  @media (max-width: 899px) {
+    .axis {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .axis > :first-child {
+      margin-bottom: var(--s4);
+    }
+  }
+
+  /* The legal grid occupancies. No 8/4, no 5/7, no offsets, no bento.
+     7-5 was one of them and now has no users -- the chapter head was its only
+     caller and moved to 6-6 -- so it is not shipped. */
+  .g-6-6,
+  .g-3-3-3-3 {
+    display: grid;
+  }
+
+  .g-6-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s6);
+  }
+
+  /* The chapter head's own 6-6: a wider gap than the generic pair, because
+     these two halves are a heading and its lede rather than two peers. */
+  .chapter__head.g-6-6 {
+    gap: var(--s7);
+  }
+
+  .g-3-3-3-3 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--gap);
+  }
+
+  @media (max-width: 1023px) {
+    .g-3-3-3-3 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 767px) {
+    .g-6-6 {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--s7);
+    }
+  }
+
+  @media (max-width: 599px) {
+    .g-3-3-3-3 {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* ==========================================================================
+   chrome — buttons, links, focus (§7.1)
+   ========================================================================== */
+
+@layer component {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 48px;
+    padding-inline: var(--s5);
+    border-radius: var(--r2);
+    border: 1px solid transparent;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.17px;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+
+  .btn svg {
+    width: 16px;
+    height: 16px;
+    flex: none;
+  }
+
+  /* Accent instances #1, #2 and #5. There are no others. */
+  .btn--accent {
+    background: var(--accent);
+    color: var(--ink-on-accent);
+  }
+
+  .btn--accent:hover {
+    background: var(--accent-hi);
+  }
+
+  .btn--quiet {
+    color: var(--text-1);
+    border-color: var(--hairline-strong);
+  }
+
+  .btn--quiet:hover {
+    border-color: var(--text-3);
+  }
+
+  .btn--sm {
+    height: 40px;
+    padding-inline: var(--s4);
+  }
+
+  /* A link that is a target gets an underline offset far enough to read, and
+     never an accent colour — the accent is capped and spoken for. */
+  .link {
+    color: var(--text-2);
+    text-decoration: none;
+    border-bottom: 1px solid var(--hairline-strong);
+    padding-bottom: 1px;
+    transition: color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
+  }
+
+  .link:hover {
+    color: var(--text-1);
+    border-bottom-color: var(--text-3);
+  }
+
+  /* No border-radius here: an outline already follows its element's own
+     radius, and setting radius in a focus rule mutates the ELEMENT's shape
+     on focus rather than the ring's. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .skip {
+    position: fixed;
+    left: 16px;
+    top: -60px;
+    z-index: 200;
+    background: var(--panel);
+    color: var(--text-1);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--r2);
+    padding: 10px 16px;
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .skip:focus {
+    top: 12px;
+  }
+}
+
+/* ==========================================================================
+   §4.6 — nothing on this page conveys meaning through motion, so removing
+   all of it costs nothing.
+   ========================================================================== */
+
+@layer state {
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   page chrome — the nav and the footer, shared by all four routes
+   Site plan §8.1 and §8.14. These live here rather than in sections.css
+   because every route loads shell.css and only the homepage loads sections.
+   ========================================================================== */
+
+@layer component {
+  /* ---- 8.1 nav --------------------------------------------------------- */
+
+  /* Solid --ground from the first pixel and no backdrop blur, so it is
+     identical with JS off — it has no scroll-dependent state to lose. */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--ground);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .nav__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--s4);
+    height: 56px;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text-1);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.17px;
+    flex: none;
+  }
+
+  .brand svg {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    flex: none;
+  }
+
+  .nav__mid {
+    display: flex;
+    align-items: center;
+    gap: var(--s5);
+    margin-inline: auto;
+  }
+
+  .nav__mid a {
+    color: var(--text-3);
+    text-decoration: none;
+    font-size: 15px;
+    letter-spacing: -0.17px;
+    transition: color var(--dur) var(--ease);
+  }
+
+  .nav__mid a:hover,
+  .nav__mid a[aria-current="page"],
+  .nav__end > a[aria-current="page"] {
+    color: var(--text-1);
+  }
+
+  .nav__end {
+    display: flex;
+    align-items: center;
+    gap: var(--s4);
+    flex: none;
+  }
+
+  .nav__end > a:first-child {
+    color: var(--text-3);
+    text-decoration: none;
+    font-size: 15px;
+    letter-spacing: -0.17px;
+    transition: color var(--dur) var(--ease);
+  }
+
+  .nav__end > a:first-child:hover {
+    color: var(--text-1);
+  }
+
+  /* No hamburger and no drawer: the footer carries every link and the page is
+     a single scroll. */
+  @media (max-width: 767px) {
+    .nav__mid {
+      display: none;
+    }
+    .nav__inner {
+      justify-content: space-between;
+    }
+  }
+
+  @media (max-width: 479px) {
+    .nav__end > a:first-child {
+      display: none;
+    }
+  }
+
+  /* ---- 8.14 footer ----------------------------------------------------- */
+
+  /* One modest ledger, not the mega-footer of a company that does not exist
+     yet. */
+  .foot {
+    padding-top: var(--s10);
+    padding-bottom: var(--s8);
+    border-top: 1px solid var(--hairline);
+  }
+
+  .foot__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
+    gap: var(--s7) var(--gap);
+  }
+
+  /* Real, verified states. Not a status page, not a badge — three lines of
+     what actually ships today. */
+  .foot__states {
+    display: grid;
+    gap: 10px;
+    font-size: 15px;
+    line-height: 24px;
+    letter-spacing: var(--track-15);
+    color: var(--text-3);
+  }
+
+  .foot__states li {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+  }
+
+  .foot__dot {
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--text-2);
+    transform: translateY(-1px);
+  }
+
+  .foot__dot--hollow {
+    background: none;
+    border: 1px solid var(--text-3);
+  }
+
+  .foot__col {
+    margin-bottom: var(--s4);
+    font-size: 13px;
+    line-height: 18px;
+    letter-spacing: var(--track-13);
+    font-weight: 500;
+    color: var(--text-3);
+  }
+
+  .foot ul {
+    display: grid;
+    gap: 10px;
+  }
+
+  .foot a {
+    color: var(--text-2);
+    font-size: 15px;
+    letter-spacing: var(--track-15);
+    text-decoration: none;
+    transition: color var(--dur) var(--ease);
+  }
+
+  .foot a:hover {
+    color: var(--text-1);
+  }
+
+  .foot__meta {
+    display: grid;
+    gap: var(--s2);
+    margin-top: var(--s10);
+    padding-top: var(--s5);
+    border-top: 1px solid var(--hairline);
+  }
+
+  @media (max-width: 1023px) {
+    .foot__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 599px) {
+    .foot__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

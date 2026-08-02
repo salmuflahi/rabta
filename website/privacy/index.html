@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="no-js">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,7 +7,7 @@
 <title>Privacy policy — Rabta</title>
 <meta name="description" content="Rabta's privacy policy: no account, no cloud, no telemetry, no crash reporting and no update checks. Exactly what is stored on your machine, what the connectors reach, and what this website does and does not collect." />
 <link rel="canonical" href="https://rabta.build/privacy/" />
-<meta name="theme-color" content="#081718" />
+<meta name="theme-color" content="#0a1314" />
 <meta name="color-scheme" content="dark" />
 
 <link rel="icon" href="/favicon.ico" sizes="32x32" />
@@ -26,43 +26,41 @@
 <meta name="twitter:card" content="summary_large_image" />
 
 <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-latin-variable.woff2" crossorigin />
-<link rel="stylesheet" href="/css/base.css" />
-<link rel="stylesheet" href="/css/site.css" />
-<script>
-  document.documentElement.className = "js";
-  setTimeout(function () {
-    // Restore `no-js`, not an empty string: the FAQ's open-by-default
-    // fallback and other no-JS states are keyed off that class.
-    if (!window.__rabta) document.documentElement.className = "no-js";
-  }, 2500);
-</script>
+<link rel="stylesheet" href="/css/tokens.css" />
+<link rel="stylesheet" href="/css/shell.css" />
+<link rel="stylesheet" href="/css/doc.css" />
 </head>
 
 <body>
-<a class="skip-link" href="#main">Skip to content</a>
+<a class="skip" href="#main">Skip to content</a>
 
 <header class="nav">
-  <div class="wrap nav__inner">
+  <div class="rail nav__inner">
     <a class="brand" href="/" aria-label="Rabta — home">
       <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
         <rect width="64" height="64" rx="14" fill="#102526"/>
         <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
         <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
       </svg>
-      <span class="brand__word">Rabta</span>
+      Rabta
     </a>
-    <nav class="nav__links" aria-label="Primary">
-      <a href="/#demo">Product</a>
-      <a href="/setup/">Setup</a>
+
+    <nav class="nav__mid" aria-label="Primary">
+      <a href="/#capture">Capture</a>
+      <a href="/#connectors">Connectors</a>
       <a href="/privacy/" aria-current="page">Privacy</a>
-      <a class="btn btn--primary btn--fold" href="/#download">Download</a>
     </nav>
+
+    <div class="nav__end">
+      <a href="/setup/">Setup</a>
+      <a class="btn btn--accent btn--sm" href="/#install">Download for macOS</a>
+    </div>
   </div>
 </header>
 
-<main id="main">
+<main id="main" tabindex="-1">
   <div class="wrap railed page-head">
-    <div class="rail"><span class="marker">Privacy</span></div>
+    <div><span class="marker">Privacy</span></div>
     <div>
     <h1>Privacy policy</h1>
     <p class="lede">
@@ -70,18 +68,18 @@
       and no telemetry — so most of this policy describes things that do not
       happen, and is precise about where the exceptions are.
     </p>
-    <p class="mono muted" style="margin-top: 1.25rem">
+    <p class="mono muted mt-5">
       Effective 29 July 2026 · Applies to Rabta 0.1.0 and rabta.build
     </p>
     </div>
   </div>
 
   <div class="wrap railed">
-    <div class="rail" aria-hidden="true"></div>
+    <div></div>
     <div class="prose">
 
     <nav class="toc" aria-labelledby="toc-title">
-      <h2 id="toc-title">On this page</h2>
+      <p id="toc-title">On this page</p>
       <ol>
         <li><a href="#summary">The short version</a></li>
         <li><a href="#account">Accounts</a></li>
@@ -121,11 +119,20 @@
 
     <p>Everything Rabta stores lives in a single folder on your Mac:</p>
 
-    <pre class="code">~/Library/Application Support/com.omnibus.dev/</pre>
+    <pre class="code" tabindex="0">~/Library/Application Support/com.omnibus.dev/</pre>
+
+    <p>
+      <strong>Why that path says &#8220;omnibus&#8221;.</strong> Rabta was called
+      Omnibus before release, and <code>com.omnibus.dev</code> is the bundle
+      identifier it shipped under. It is deliberately unchanged: macOS uses the
+      bundle id to locate an app&#8217;s data, so renaming it would orphan the
+      capsules of anyone who installed an early build. It is a folder name, not
+      a service &#8212; nothing about it involves a third party.
+    </p>
 
     <p>It holds two files:</p>
 
-    <ul>
+    <ul role="list">
       <li><code>omnibus.db</code> — a local database of your projects, tasks,
         capsules and event history.</li>
       <li><code>hub.json</code> — the port the local hub is listening on and a
@@ -214,7 +221,7 @@
       Pending Chrome Web Store review at the time of writing. When available it
       will use three permissions:
     </p>
-    <ul>
+    <ul role="list">
       <li><code>tabs</code> — to read the URLs and titles of open http/https,
         non-incognito tabs, so they can be snapshotted into a capsule and
         reopened later.</li>
@@ -231,7 +238,7 @@
 
     <h2 id="telemetry">Telemetry, crash reports, update checks</h2>
 
-    <ul>
+    <ul role="list">
       <li><strong>Telemetry: none.</strong> Rabta 0.1.0 contains no analytics
         SDK, no usage pings, no event reporting and no advertising code.</li>
       <li><strong>Crash reporting: none.</strong> There is no crash reporting
@@ -270,7 +277,7 @@
       Fonts, styles, scripts and images are all served from this domain.
     </p>
 
-    <ul>
+    <ul role="list">
       <li><strong>Cookies: none.</strong> The site sets no cookies and uses no
         local or session storage.</li>
       <li><strong>Forms: none.</strong> There is nothing here to sign up for and
@@ -290,7 +297,7 @@
       privacy policy and will see the request:
     </p>
 
-    <ul>
+    <ul role="list">
       <li><strong>GitHub</strong> — hosts the macOS download, the release notes
         and the issue tracker. Downloading the DMG is a request to GitHub.</li>
       <li><strong>Open VSX</strong> — hosts the editor extension. Installing it
@@ -308,12 +315,12 @@
     <h2 id="control">Deleting and moving your data</h2>
 
     <h3>Deleting</h3>
-    <ul>
+    <ul role="list">
       <li>Delete a single capsule or task from the <strong>Capsules</strong>
         view.</li>
       <li>Archive or delete a project from the <strong>Projects</strong> view.</li>
       <li>Delete everything by removing the data folder:
-        <pre class="code">rm -rf ~/Library/Application\ Support/com.omnibus.dev</pre>
+        <pre class="code" tabindex="0">rm -rf ~/Library/Application\ Support/com.omnibus.dev</pre>
       </li>
       <li>Uninstalling the app and the extension removes the rest.</li>
     </ul>
@@ -327,8 +334,8 @@
     <p>
       Rabta 0.1.0 has no export command. It does not need one to be portable:
       <code>omnibus.db</code> is an ordinary database file you can copy, inspect
-      or back up yourself. Open the folder from <strong>Settings → Privacy &amp;
-      data → Reveal in Finder</strong>.
+      or back up yourself. Open the folder from <strong>Settings › Privacy &amp;
+      data › Reveal in Finder</strong>.
     </p>
 
     <h3>Your rights</h3>
@@ -362,58 +369,59 @@
   </div>
 </main>
 
-<footer class="footer">
-  <div class="wrap">
-    <div class="footer__top">
-      <div class="footer__brand">
+<footer class="foot">
+  <div class="rail">
+    <div class="foot__grid">
+      <div>
         <a class="brand" href="/" aria-label="Rabta — home">
           <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-            <rect width="64" height="64" rx="14" fill="#102526"/>
-            <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
-            <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
+        <rect width="64" height="64" rx="14" fill="#102526"/>
+        <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
+        <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
           </svg>
-          <span class="brand__word">Rabta</span>
+          Rabta
         </a>
-        <p>A local-first tool that gives a task its workspace back.</p>
+        <p class="t-15 m-440 mt-4">
+          A local-first macOS tool that gives a task its workspace back.
+        </p>
       </div>
 
-      <nav aria-labelledby="foot-get">
-        <h2 id="foot-get">Get Rabta</h2>
-        <ul>
+      <nav aria-labelledby="f-get">
+        <p class="foot__col" id="f-get">Get Rabta</p>
+        <ul role="list">
           <li><a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download for macOS</a></li>
-          <li><a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener">Editor connector</a></li>
-          <li><a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener">Release notes</a></li>
+          <li><a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener noreferrer">Editor connector</a></li>
+          <li><a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">Release notes</a></li>
+          <li><a href="https://github.com/salmuflahi/rabta" target="_blank" rel="noopener noreferrer">Source on GitHub</a></li>
         </ul>
       </nav>
 
-      <nav aria-labelledby="foot-learn">
-        <h2 id="foot-learn">Learn</h2>
-        <ul>
+      <nav aria-labelledby="f-learn">
+        <p class="foot__col" id="f-learn">Learn</p>
+        <ul role="list">
           <li><a href="/setup/">Setup guide</a></li>
           <li><a href="/setup/#troubleshooting">Troubleshooting</a></li>
           <li><a href="/privacy/">Privacy policy</a></li>
-          <li><a href="/#faq">FAQ</a></li>
+          <li><a href="https://github.com/salmuflahi/rabta/issues" target="_blank" rel="noopener noreferrer">Report an issue</a></li>
         </ul>
       </nav>
 
-      <nav aria-labelledby="foot-status">
-        <h2 id="foot-status">Availability</h2>
-        <ul>
-          <li><span class="footer__status"><span class="dot dot--live" aria-hidden="true"></span>macOS · Apple Silicon</span></li>
-          <li><span class="footer__status"><span class="dot dot--live" aria-hidden="true"></span>Editor · Open VSX</span></li>
-          <li><span class="footer__status"><span class="dot dot--pending" aria-hidden="true"></span>Browser · in review</span></li>
-          <li><a href="https://github.com/salmuflahi/rabta/issues" target="_blank" rel="noopener">Report an issue</a></li>
+      <section aria-labelledby="f-avail">
+        <p class="foot__col" id="f-avail">Availability</p>
+        <ul class="foot__states" role="list">
+          <li><span class="foot__dot" aria-hidden="true"></span>macOS app — available</li>
+          <li><span class="foot__dot" aria-hidden="true"></span>Editor — on Open VSX</li>
+          <li><span class="foot__dot foot__dot--hollow" aria-hidden="true"></span>Browser — in review</li>
         </ul>
-      </nav>
+      </section>
     </div>
 
-    <div class="footer__legal">
-      <span>Rabta v0.1.0 · MIT · Built by Sammy Almuflahi</span>
-      <span><a href="/privacy/">Privacy</a> · <a href="mailto:sammyalmuflahi1@gmail.com">sammyalmuflahi1@gmail.com</a></span>
+    <div class="foot__meta t-mono t-3">
+      <span>v0.1.0 · published 29 July 2026 · MIT · Sammy Almuflahi</span>
+      <span>Editor connector on Open VSX · browser connector in review</span>
     </div>
   </div>
 </footer>
 
-<script src="/js/site.js" defer></script>
 </body>
 </html>

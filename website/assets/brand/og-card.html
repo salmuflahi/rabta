@@ -5,9 +5,17 @@
 
   Rules this card follows:
     - composed, never a raw screenshot dropped in whole
-    - >=60px safe padding on every edge, so platform crops never clip content
+    - >=64px safe padding on every edge, so platform crops never clip content
     - no platform or availability claim that could age badly
     - the current Rabta mark only
+    - the SAME headline as <meta property="og:title">, verbatim. A card that
+      argues one thing while the link preview beside it argues another is the
+      one bug in a social image nobody catches, because the two are never
+      rendered side by side except by the platform.
+
+  It is built from docs/site-design-plan.md §4 and nothing else: the twelve
+  colour tokens, weights 400-600, the 45-degree fold, flat surfaces. There are
+  no gradients and no third hue on this site, so there are none here.
 -->
 <html lang="en">
 <head>
@@ -16,7 +24,9 @@
   @font-face {
     font-family: "Inter Variable";
     src: url("../fonts/inter-latin-variable.woff2") format("woff2");
-    font-weight: 100 900;
+    /* The subset ships 400-600. Declaring 100-900 invited a synthesised 700,
+       which is what the previous card was actually rendering. */
+    font-weight: 400 600;
     font-display: block;
   }
 
@@ -27,11 +37,9 @@
   body {
     position: relative;
     overflow: hidden;
-    background:
-      radial-gradient(52rem 34rem at 88% -12%, rgba(255, 107, 44, 0.16), transparent 60%),
-      radial-gradient(44rem 38rem at -8% 108%, rgba(102, 214, 194, 0.10), transparent 62%),
-      #081718;
-    color: #f4f1e9;
+    /* --ground. Flat. */
+    background: #0a1314;
+    color: #f3f0e8;
     font-family: "Inter Variable", -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
@@ -40,73 +48,97 @@
   .card {
     position: absolute;
     inset: 64px;
+    width: 600px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    z-index: 2;
   }
 
-  .brand { display: flex; align-items: center; gap: 16px; }
-  .brand svg { width: 52px; height: 52px; display: block; }
-  .brand .word { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand svg { width: 44px; height: 44px; display: block; }
+  .brand .word {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
 
+  /* The site's own display step, scaled for a card read at thumbnail size. */
   h1 {
-    font-size: 62px;
-    font-weight: 700;
-    line-height: 1.06;
-    letter-spacing: -0.035em;
-    max-width: 15ch;
+    font-size: 60px;
+    font-weight: 600;
+    line-height: 62px;
+    letter-spacing: -1.32px;
+    padding-block: 6px;
   }
-  h1 .accent { color: #ff6b2c; }
 
   .sub {
-    margin-top: 22px;
-    font-size: 25px;
-    line-height: 1.4;
-    color: #9ba8a6;
-    max-width: 24ch;
+    margin-top: 24px;
+    font-size: 23px;
+    line-height: 34px;
+    letter-spacing: -0.27px;
+    font-weight: 400;
+    /* --text-2 */
+    color: #a9bcba;
+    max-width: 520px;
   }
 
+  /* Three verified absences, in the machine register. No dots, no ticks, no
+     badge — the same call the page's privacy section makes. */
   .meta {
     display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 19px;
-    color: #8a9b98;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 17px;
+    letter-spacing: 0.24px;
+    /* --text-3 */
+    color: #7c8f8e;
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    letter-spacing: 0.02em;
   }
-  .meta .dot { width: 5px; height: 5px; border-radius: 50%; background: #66d6c2; }
-  .meta .sep { color: #244548; }
+  .meta .sep { color: #1d3536; }
 
-  /* A framed fragment of the real app, angled and bleeding off the right
-     edge — enough to read as product, never enough to need legible text. */
+  /* A framed fragment of the real app, flat and bleeding off the right edge.
+     Not tilted: the site never renders the product in perspective, because a
+     product shown at an angle is a product you are being sold rather than
+     shown. */
   .shot {
     position: absolute;
     top: 96px;
-    left: 664px;
-    width: 760px;
-    height: 476px;
-    border: 1px solid #2a4e51;
-    border-radius: 16px;
-    overflow: hidden;
+    left: 700px;
+    width: 720px;
+    height: 456px;
+    /* --panel, --hairline-strong */
     background: #102526;
-    box-shadow: 0 50px 90px -40px rgba(0, 0, 0, 0.9);
-    transform: perspective(1800px) rotateY(-15deg) rotateX(3deg);
-    transform-origin: left center;
+    border: 1px solid rgba(243, 240, 232, 0.14);
+    border-radius: 12px 0 0 12px;
+    overflow: hidden;
   }
   .shot img {
     display: block;
-    width: 100%;
+    width: 1024px;
     height: auto;
     /* Frame the workspace pane, away from the window's top chrome. */
-    margin-top: -34px;
+    margin: -30px 0 0 -24px;
   }
-  /* Fade the far edge into the background so the crop reads as intentional. */
+  /* Fade the far edge into the ground so the crop reads as intentional. */
   .shot::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(105deg, transparent 52%, rgba(8, 23, 24, 0.85) 100%);
+    background: linear-gradient(96deg, rgba(10, 19, 20, 0) 46%, #0a1314 96%);
+  }
+
+  /* The one accent instance on the card, and the same gesture the page makes
+     above its hero: the fold's underside, at the top-right corner. */
+  .fold {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 96px;
+    height: 96px;
+    background: #ff6b2c;
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+    z-index: 3;
   }
 </style>
 </head>
@@ -114,6 +146,7 @@
   <div class="shot">
     <img src="../shots/src/overview.png" alt="" />
   </div>
+  <div class="fold"></div>
 
   <div class="card">
     <div class="brand">
@@ -126,17 +159,16 @@
     </div>
 
     <div>
-      <h1>Save a task's whole workspace.<br /><span class="accent">Reopen it exactly.</span></h1>
-      <p class="sub">Files, terminals, tabs and branch — captured into a capsule, restored on demand.</p>
+      <h1>Leave the task.<br />Keep your place.</h1>
+      <p class="sub">Rabta saves the files, terminals, browser tabs and git branch a task had open, and puts them back when you return to it.</p>
     </div>
 
     <div class="meta">
-      <span class="dot"></span>
-      <span>Local-first</span>
-      <span class="sep">/</span>
       <span>No account</span>
       <span class="sep">/</span>
       <span>No telemetry</span>
+      <span class="sep">/</span>
+      <span>No cloud</span>
     </div>
   </div>
 </body>
