@@ -525,7 +525,7 @@
 
 @layer type {
   .eyebrow {
-    color: var(--cool-mid);
+    color: var(--cool-soft);
     font-family: var(--mono);
     font-size: 12px;
     font-weight: 500;
@@ -584,7 +584,7 @@
   }
 
   .button--primary:hover {
-    background: #ff8452;
+    background: var(--orange);
   }
 
   .button--small {
@@ -614,7 +614,7 @@
   }
 
   .text-link--dark:hover {
-    color: #274348;
+    color: var(--cool-panel);
     border-bottom-color: var(--petrol);
   }
 
@@ -705,7 +705,7 @@
     grid-column: 1 / -1;
     padding-top: 22px;
     border-top: 1px solid rgba(169, 190, 194, 0.1);
-    color: var(--cool-mid);
+    color: var(--cool-soft);
     font-family: var(--mono);
     font-size: 11px;
     line-height: 1.5;

@@ -76,6 +76,105 @@ test("homepage hero retains the approved responsive display scale", async () => 
   assert.doesNotMatch(mobileHero, /line-height:/);
 });
 
+test("homepage surfaces stay within the approved Living Instrument palette", async () => {
+  const approved = new Set([
+    "#102526",
+    "#ff6b2c",
+    "#f3f0e8",
+    "#173239",
+    "#66858c",
+    "#a9bec2",
+    "#d9e3e3",
+  ]);
+
+  for (const file of ["css/shell.css", "css/landing.css", "index.html"]) {
+    const source = await readFile(resolve(SITE, file), "utf8");
+    const literals = [...source.matchAll(/#[0-9a-f]{3,8}\b/gi)].map((match) =>
+      match[0].toLowerCase(),
+    );
+    assert.ok(
+      literals.every((value) => approved.has(value)),
+      `${file}: unapproved color ${literals.find((value) => !approved.has(value))}`,
+    );
+  }
+});
+
+test("homepage uses the exact approved responsive section rhythm", async () => {
+  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
+  const desktop = css.slice(0, css.indexOf("@media (max-width: 899px)"));
+  const tablet = css.slice(
+    css.indexOf("@media (max-width: 899px)"),
+    css.indexOf("@media (max-width: 599px)"),
+  );
+  const mobile = css.slice(css.indexOf("@media (max-width: 599px)"));
+
+  for (const [source, selector, spacing] of [
+    [desktop, ".hero", "144px 64px"],
+    [desktop, ".thesis", "128px"],
+    [desktop, ".pieces", "128px 160px"],
+    [desktop, ".honest-return", "128px"],
+    [desktop, ".local", "96px"],
+    [desktop, ".download", "160px"],
+    [tablet, ".thesis", "92px"],
+    [tablet, ".pieces", "92px 112px"],
+    [tablet, ".honest-return", "92px"],
+    [tablet, ".local", "72px"],
+    [tablet, ".download", "112px"],
+    [mobile, ".hero", "88px 40px"],
+    [mobile, ".thesis", "72px"],
+    [mobile, ".pieces", "72px 88px"],
+    [mobile, ".honest-return", "72px"],
+    [mobile, ".local", "56px"],
+    [mobile, ".download", "88px"],
+  ]) {
+    const body = source.match(
+      new RegExp(`\\${selector}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`),
+    )?.[1] ?? "";
+    assert.match(
+      body,
+      new RegExp(`padding-block:\\s*${spacing}`),
+      `${selector} ${spacing}`,
+    );
+  }
+});
+
+test("homepage metadata uses the approved contrast pairings", async () => {
+  const landing = await readFile(resolve(SITE, "css/landing.css"), "utf8");
+  const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");
+
+  for (const selector of [
+    ".requirement",
+    ".release-strip",
+    ".product-crop figcaption",
+    ".return-demo figcaption",
+  ]) {
+    const body = landing.match(
+      new RegExp(`\\${selector.replaceAll(" ", "\\s+")}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`),
+    )?.[1] ?? "";
+    assert.match(body, /color:\s*var\(--cool-soft\)/, selector);
+  }
+
+  for (const selector of [".local .eyebrow", ".availability"]) {
+    const body = landing.match(
+      new RegExp(`\\${selector.replaceAll(" ", "\\s+")}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`),
+    )?.[1] ?? "";
+    assert.match(body, /color:\s*var\(--(?:petrol|cool-panel)\)/, selector);
+  }
+
+  const livingShell = shell.slice(shell.indexOf("Living Instrument shared shell"));
+  const footerMeta = livingShell.match(/\.foot__meta\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+  assert.match(footerMeta, /color:\s*var\(--cool-soft\)/);
+});
+
+test("homepage footer includes the published release page", async () => {
+  const html = await readRoute("/");
+  const footer = html.match(/<footer\b[\s\S]*?<\/footer>/)?.[0] ?? "";
+  assert.match(
+    footer,
+    /href="https:\/\/github\.com\/salmuflahi\/rabta\/releases\/tag\/v0\.1\.0"[^>]*>Release<\/a>/,
+  );
+});
+
 test("all root-relative assets exist", async () => {
   for (const route of routes) {
     const html = await readRoute(route);
