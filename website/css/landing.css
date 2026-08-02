@@ -87,15 +87,47 @@
   .return-field__stage {
     position: relative;
     z-index: 1;
+    display: grid;
     overflow: hidden;
     border: 1px solid rgba(16, 37, 38, 0.16);
     border-radius: 12px;
     background: var(--cool-panel);
   }
 
-  .return-field__stage img {
+  .return-field__stage video {
+    grid-area: 1 / 1;
     width: 100%;
     height: auto;
+  }
+
+  .media-play {
+    z-index: 2;
+    align-self: center;
+    justify-self: center;
+    min-height: 44px;
+    padding: 11px 18px;
+    border: 1px solid rgba(243, 240, 232, 0.34);
+    border-radius: 999px;
+    background: var(--petrol);
+    color: var(--ivory);
+    font: 600 12px/1 var(--mono);
+    letter-spacing: 0.025em;
+    cursor: pointer;
+  }
+
+  .media-play:hover {
+    background: var(--orange);
+    color: var(--petrol);
+  }
+
+  .media-play:focus-visible {
+    outline: 3px solid var(--orange);
+    outline-offset: 4px;
+  }
+
+  .media-play:disabled,
+  .media-play[hidden] {
+    display: none;
   }
 
   .return-field figcaption {
@@ -261,23 +293,27 @@
   }
 
   .return-demo {
+    display: grid;
     min-width: 0;
   }
 
-  .return-demo picture {
+  .return-demo video {
+    grid-area: 1 / 1;
+    width: 100%;
+    height: auto;
     overflow: hidden;
     border: 1px solid rgba(217, 227, 227, 0.13);
     border-radius: 12px;
     background: var(--petrol);
   }
 
-  .return-demo img {
-    width: 100%;
-    height: auto;
+  .return-demo .media-play {
+    grid-area: 1 / 1;
   }
 
   .return-demo figcaption {
     display: grid;
+    grid-row: 2;
     grid-template-columns: 1.45fr 1fr 1fr 1fr;
     margin-top: 18px;
     padding-top: 18px;
@@ -482,17 +518,6 @@
       border-radius: 8px 0 0 8px;
     }
 
-    .return-field__stage picture {
-      display: block;
-      width: 760px;
-    }
-
-    .return-field__stage img {
-      width: 760px;
-      max-width: none;
-      transform: translateX(-146px);
-    }
-
     .return-field figcaption {
       padding-right: 20px;
     }
@@ -570,17 +595,6 @@
     .chapter-copy h2,
     .local h2 {
       font-size: 36px;
-    }
-
-    .return-demo picture {
-      display: block;
-      overflow: hidden;
-    }
-
-    .return-demo picture img {
-      width: 720px;
-      max-width: none;
-      transform: translateX(-178px);
     }
 
     .return-demo figcaption {

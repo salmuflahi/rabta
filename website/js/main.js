@@ -1,14 +1,6 @@
-/* ==========================================================================
-   Rabta — boot
+/* Rabta — independent boot paths for enhancement-only homepage controls. */
 
-   This is the ENTIRE runtime for the homepage: one copy-to-clipboard control.
-
-   Everything else on the page is HTML and CSS. The screens switcher in §8.10
-   is three radio inputs and a `:checked ~` selector, so it works with
-   scripting disabled and moves under the arrow keys natively. There is no
-   scroll listener, no IntersectionObserver, no rAF and no animation code —
-   see docs/site-design-plan.md §4.6.
-   ========================================================================== */
+import { initProductMedia } from "./media.js";
 
 /**
  * The checksum copy control. It is `hidden` in the markup and revealed here,
@@ -51,12 +43,17 @@ function initCopy() {
   });
 }
 
-function boot() {
+function safely(label, init) {
   try {
-    initCopy();
-  } catch (err) {
-    if (window.console && console.warn) console.warn("[rabta] copy failed:", err);
+    init();
+  } catch (error) {
+    console.warn(`[rabta] ${label} failed:`, error);
   }
+}
+
+function boot() {
+  safely("copy", initCopy);
+  safely("media", initProductMedia);
 }
 
 if (document.readyState === "loading") {
