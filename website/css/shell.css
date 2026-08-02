@@ -352,7 +352,7 @@
   }
 
   .btn--accent:hover {
-    background: var(--accent-hi);
+    background: var(--orange);
   }
 
   .btn--quiet {

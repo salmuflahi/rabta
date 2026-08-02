@@ -37,7 +37,6 @@
     --text-2: var(--cool-soft);
     --text-3: var(--cool-mid);
     --accent: var(--orange);
-    --accent-hi: #ff8452;
     --ink-on-accent: var(--ink-on-orange);
 
     --hairline: rgba(243, 240, 232, 0.08);

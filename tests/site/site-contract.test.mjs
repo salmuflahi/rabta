@@ -36,6 +36,46 @@ test("the approved palette is canonical", async () => {
   }
 });
 
+test("token literals stay within the approved Living Instrument palette", async () => {
+  const css = await readFile(resolve(SITE, "css/tokens.css"), "utf8");
+  const approved = new Set([
+    "#102526",
+    "#ff6b2c",
+    "#f3f0e8",
+    "#173239",
+    "#66858c",
+    "#a9bec2",
+    "#d9e3e3",
+  ]);
+  const literals = [...css.matchAll(/#[0-9a-f]{3,8}\b/gi)].map((match) =>
+    match[0].toLowerCase(),
+  );
+
+  assert.ok(
+    literals.every((value) => approved.has(value)),
+    `unapproved token color: ${literals.find((value) => !approved.has(value))}`,
+  );
+});
+
+test("homepage hero retains the approved responsive display scale", async () => {
+  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
+  const desktop = css.match(/\.hero h1\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+  const tablet = css.slice(
+    css.indexOf("@media (max-width: 899px)"),
+    css.indexOf("@media (max-width: 599px)"),
+  );
+  const mobile = css.slice(css.indexOf("@media (max-width: 599px)"));
+  const tabletHero = tablet.match(/\.hero h1\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+  const mobileHero = mobile.match(/\.hero h1\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+
+  assert.match(desktop, /font-size:\s*72px/);
+  assert.match(desktop, /line-height:\s*0\.98/);
+  assert.match(tabletHero, /font-size:\s*46px/);
+  assert.doesNotMatch(tabletHero, /line-height:/);
+  assert.match(mobileHero, /font-size:\s*36px/);
+  assert.doesNotMatch(mobileHero, /line-height:/);
+});
+
 test("all root-relative assets exist", async () => {
   for (const route of routes) {
     const html = await readRoute(route);
