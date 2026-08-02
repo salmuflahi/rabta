@@ -23,11 +23,133 @@ const WINDOW = { left: 64, top: 64 };
 const REPLACE = process.argv.includes("--replace");
 
 const JOBS = [
-  { demo: "hero-return", variant: "desktop", width: 1280, height: 720, seconds: 8.0, preset: "PresetAppleM4V720pHD" },
-  { demo: "hero-return", variant: "mobile", width: 390, height: 700, seconds: 8.0, preset: "PresetAppleM4VCellular" },
-  { demo: "honest-return", variant: "desktop", width: 1280, height: 720, seconds: 5.0, preset: "PresetAppleM4V720pHD" },
-  { demo: "honest-return", variant: "mobile", width: 390, height: 700, seconds: 5.0, preset: "PresetAppleM4VCellular" },
+  { demo: "hero-return", variant: "desktop", width: 1280, height: 720, seconds: 8.0, tolerance: 0.5, preset: "PresetAppleM4V720pHD" },
+  { demo: "hero-return", variant: "mobile", width: 390, height: 700, seconds: 8.0, tolerance: 0.5, preset: "PresetPassthrough", exactSize: true },
+  { demo: "honest-return", variant: "desktop", width: 1280, height: 720, seconds: 5.0, tolerance: 0.4, preset: "PresetAppleM4V720pHD" },
+  { demo: "honest-return", variant: "mobile", width: 390, height: 700, seconds: 5.0, tolerance: 0.4, preset: "PresetPassthrough", exactSize: true },
 ];
+
+/** `screencapture` records Retina regions at 2x physical pixels. Apple's
+ * delivery presets only offer fixed sizes (the Cellular preset turns a
+ * 390x700 logical crop into 168x300), so mobile gets one native, video-only
+ * AVFoundation composition after avconvert normalizes the container. */
+const EXACT_SIZE_TRANSCODER = String.raw`
+import AVFoundation
+import CoreGraphics
+import CoreVideo
+import Foundation
+
+enum TranscodeError: Error {
+  case usage
+  case invalidSize
+  case missingVideo
+  case aspectMismatch
+  case cannotRead
+  case cannotWrite
+  case cannotAddIO
+  case appendFailed
+}
+
+@main
+struct ExactSizeTranscoder {
+  static func main() async {
+    do {
+      try await transcode()
+    } catch {
+      fputs("exact-size transcode failed: \(error)\n", stderr)
+      exit(1)
+    }
+  }
+
+  static func transcode() async throws {
+    guard CommandLine.arguments.count == 5 else { throw TranscodeError.usage }
+    let input = URL(fileURLWithPath: CommandLine.arguments[1])
+    let output = URL(fileURLWithPath: CommandLine.arguments[2])
+    guard let width = Int(CommandLine.arguments[3]), let height = Int(CommandLine.arguments[4]) else {
+      throw TranscodeError.invalidSize
+    }
+
+    let source = AVURLAsset(url: input)
+    guard let sourceTrack = try await source.loadTracks(withMediaType: .video).first else {
+      throw TranscodeError.missingVideo
+    }
+    let duration = try await source.load(.duration)
+    let naturalSize = try await sourceTrack.load(.naturalSize)
+    let preferredTransform = try await sourceTrack.load(.preferredTransform)
+    let sourceRect = CGRect(origin: .zero, size: naturalSize).applying(preferredTransform)
+    let target = CGSize(width: width, height: height)
+    let sourceAspect = abs(sourceRect.width / sourceRect.height)
+    let targetAspect = target.width / target.height
+    guard abs(sourceAspect - targetAspect) < 0.001 else {
+      throw TranscodeError.aspectMismatch
+    }
+
+    let normalized = preferredTransform.translatedBy(
+      x: -sourceRect.origin.x,
+      y: -sourceRect.origin.y
+    )
+    let scale = CGAffineTransform(
+      scaleX: target.width / abs(sourceRect.width),
+      y: target.height / abs(sourceRect.height)
+    )
+    let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: sourceTrack)
+    layerInstruction.setTransform(normalized.concatenating(scale), at: .zero)
+    let instruction = AVMutableVideoCompositionInstruction()
+    instruction.timeRange = CMTimeRange(start: .zero, duration: duration)
+    instruction.layerInstructions = [layerInstruction]
+    let videoComposition = AVMutableVideoComposition()
+    videoComposition.instructions = [instruction]
+    videoComposition.renderSize = target
+    videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
+
+    // Feed the composition's decoded frames into an H.264 writer. Only a
+    // video input is added, so even an unexpectedly audible source produces
+    // a silent website asset. The bitrate is sufficient for this real 390px
+    // UI crop while keeping mobile well below 75% of its desktop pair.
+    let reader = try AVAssetReader(asset: source)
+    let readerOutput = AVAssetReaderVideoCompositionOutput(
+      videoTracks: [sourceTrack],
+      videoSettings: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+    )
+    readerOutput.videoComposition = videoComposition
+    guard reader.canAdd(readerOutput) else { throw TranscodeError.cannotAddIO }
+    reader.add(readerOutput)
+
+    let writer = try AVAssetWriter(outputURL: output, fileType: .m4v)
+    let writerInput = AVAssetWriterInput(
+      mediaType: .video,
+      outputSettings: [
+        AVVideoCodecKey: AVVideoCodecType.h264,
+        AVVideoWidthKey: width,
+        AVVideoHeightKey: height,
+        AVVideoCompressionPropertiesKey: [
+          AVVideoAverageBitRateKey: 400_000,
+          AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
+          AVVideoMaxKeyFrameIntervalKey: 60,
+        ],
+      ]
+    )
+    guard writer.canAdd(writerInput) else { throw TranscodeError.cannotAddIO }
+    writer.add(writerInput)
+    guard writer.startWriting() else { throw TranscodeError.cannotWrite }
+    writer.startSession(atSourceTime: .zero)
+    guard reader.startReading() else { throw TranscodeError.cannotRead }
+
+    while reader.status == .reading {
+      if writerInput.isReadyForMoreMediaData {
+        guard let sample = readerOutput.copyNextSampleBuffer() else { break }
+        guard writerInput.append(sample) else { throw TranscodeError.appendFailed }
+      } else {
+        try await Task.sleep(nanoseconds: 1_000_000)
+      }
+    }
+    guard reader.status == .completed else { throw TranscodeError.cannotRead }
+    writerInput.markAsFinished()
+    await writer.finishWriting()
+    guard writer.status == .completed else { throw TranscodeError.cannotWrite }
+  }
+}
+`;
 
 const CHROME_CANDIDATES = [
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -64,6 +186,39 @@ function run(command, args, options = {}) {
       }
     });
   });
+}
+
+async function compileExactSizeTranscoder(tempDir) {
+  const source = join(tempDir, "exact-size-transcoder.swift");
+  const executable = join(tempDir, "exact-size-transcoder");
+  writeFileSync(source, EXACT_SIZE_TRANSCODER);
+  await run("/usr/bin/xcrun", ["swiftc", "-parse-as-library", source, "-o", executable]);
+  return executable;
+}
+
+async function verifyMediaOutput(job, output) {
+  const { stdout } = await run("/usr/bin/avmediainfo", [output, "--brief"]);
+  const dimensions = /Dimensions: (\d+) x (\d+)/.exec(stdout);
+  const duration = Number(/Duration: ([\d.]+) seconds/.exec(stdout)?.[1]);
+  const videoTracks = (stdout.match(/^Track \d+: Video,/gm) ?? []).length;
+  const audioTracks = (stdout.match(/^Track \d+: Audio,/gm) ?? []).length;
+  const codec = /Format: H\.264/.test(stdout) ? "H.264" : "unknown";
+  const observed = dimensions ? `${dimensions[1]}x${dimensions[2]}` : "unknown dimensions";
+  if (
+    dimensions?.[1] !== String(job.width) ||
+    dimensions?.[2] !== String(job.height) ||
+    videoTracks !== 1 ||
+    audioTracks !== 0 ||
+    codec !== "H.264" ||
+    !Number.isFinite(duration) ||
+    Math.abs(duration - job.seconds) > job.tolerance
+  ) {
+    throw new Error(
+      `${job.demo}-${job.variant} media contract failed: ${observed}, ${duration}s, ` +
+      `${videoTracks} video/${audioTracks} audio, ${codec}`,
+    );
+  }
+  return { duration, width: Number(dimensions[1]), height: Number(dimensions[2]), videoTracks, audioTracks, codec };
 }
 
 async function waitForServer(url, timeoutMs = 30_000) {
@@ -315,7 +470,7 @@ async function activateChrome(processId) {
   await sleep(250);
 }
 
-async function recordJob(chrome, tempDir, job, index) {
+async function recordJob(chrome, tempDir, exactSizeTranscoder, job, index) {
   const stem = `${job.demo}-${job.variant}`;
   const output = join(outDir, `${stem}.m4v`);
   const rawMovie = join(tempDir, `${stem}.mov`);
@@ -374,12 +529,21 @@ async function recordJob(chrome, tempDir, job, index) {
     await run("/usr/bin/avconvert", [
       "--source", rawMovie,
       "--preset", job.preset,
-      "--output", output,
+      "--output", job.exactSize ? join(tempDir, `${stem}-passthrough.m4v`) : output,
       "--duration", job.seconds.toFixed(1),
       "--disableMetadataFilter",
       "--replace",
     ]);
-    console.log(`ok  ${(statSync(output).size / 1024).toFixed(0)} KB`);
+    if (job.exactSize) {
+      const passthrough = join(tempDir, `${stem}-passthrough.m4v`);
+      rmSync(output, { force: true });
+      await run(exactSizeTranscoder, [passthrough, output, String(job.width), String(job.height)]);
+    }
+    const media = await verifyMediaOutput(job, output);
+    console.log(
+      `ok  ${media.width}x${media.height} ${media.duration.toFixed(3)}s ` +
+      `${media.codec} silent ${(statSync(output).size / 1024).toFixed(0)} KB`,
+    );
   } finally {
     client?.close();
     chromeProcess.kill("SIGTERM");
@@ -406,6 +570,7 @@ async function main() {
   }
 
   const tempDir = mkdtempSync(join(tmpdir(), "rabta-demos-"));
+  const exactSizeTranscoder = await compileExactSizeTranscoder(tempDir);
   const vite = spawn(
     join(appDir, "node_modules/.bin/vite"),
     ["--config", join(here, "vite.config.ts")],
@@ -417,7 +582,7 @@ async function main() {
   try {
     await waitForServer(`http://localhost:${PORT}/`);
     for (const [index, job] of JOBS.entries()) {
-      await recordJob(chrome, tempDir, job, index);
+      await recordJob(chrome, tempDir, exactSizeTranscoder, job, index);
     }
   } finally {
     vite.kill("SIGTERM");

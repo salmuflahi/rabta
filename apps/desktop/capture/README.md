@@ -29,10 +29,10 @@ The final real partial-restore states are also captured as
 390×700 capture crop around the task row and restore sheet; they do not scale
 the desktop interface into a phone-sized frame.
 
-Recording requires macOS, Google Chrome, and **Screen Recording** permission
-for the terminal or Codex app that launches the command. Grant access in
-System Settings → Privacy & Security → Screen Recording, then restart the
-invoking app before retrying.
+Recording requires macOS, Google Chrome, Xcode command-line tools (`xcrun
+swiftc`), and **Screen Recording** permission for the terminal or Codex app
+that launches the command. Grant access in System Settings → Privacy &
+Security → Screen Recording, then restart the invoking app before retrying.
 
 ```sh
 cd apps/desktop
@@ -41,9 +41,12 @@ node capture/record-demos.mjs --replace
 
 The driver boots the capture Vite config on port 5199, opens a throwaway
 Chrome app window at a fixed location, records each content rectangle with
-macOS `screencapture`, and converts it with `avconvert`. Jobs are deliberately
-serial so no two windows share the rectangle. Without `--replace`, the command
-refuses to overwrite an existing video or poster.
+macOS `screencapture`, and normalizes it with `avconvert`. Retina mobile
+captures then pass through a video-only native AVFoundation composition so
+their encoded output is exactly 390×700, remains silent H.264, and never uses
+a shrunken desktop interface. Jobs are deliberately serial so no two windows
+share the rectangle. Without `--replace`, the command refuses to overwrite an
+existing video or poster.
 
 After regeneration, inspect both posters and representative frames from all
 four videos. Then use `avmediainfo --brief`, `mdls`, `sips`, and `stat` to
