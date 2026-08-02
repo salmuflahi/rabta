@@ -260,6 +260,21 @@ test("the hero source waits for two animation frames", () => {
   cleanup();
 });
 
+test("an already-ready offscreen hero attaches but does not autoplay", async () => {
+  const page = harness();
+  const hero = page.media[0];
+  const cleanup = initProductMedia(page.root, page.env);
+
+  page.runAnimationFrame();
+  page.runAnimationFrame();
+  await settle();
+
+  assert.equal(hero.video.src, "/hero-desktop.m4v");
+  assert.equal(hero.block.dataset.inView, undefined);
+  assert.equal(hero.video.playCount, 0);
+  cleanup();
+});
+
 test("a visible hero makes one play attempt when its media becomes ready", async () => {
   const page = harness();
   const hero = page.media[0];

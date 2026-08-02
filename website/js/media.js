@@ -47,7 +47,10 @@ export function initProductMedia(root = document, env = window) {
       if (button) button.hidden = false;
       return;
     }
-    if (!explicit && video.readyState < futureData) return;
+    if (!explicit && (
+      block.dataset.inView !== "true"
+      || video.readyState < futureData
+    )) return;
     pauseOthers(video);
     try {
       await video.play();
