@@ -14,6 +14,46 @@ Then regenerate the responsive derivatives the site actually loads:
 python3 scripts/optimize-shots.py
 ```
 
+## Recording the product loops
+
+The homepage's two return stories use four silent H.264 recordings of this
+same real app and frozen fixture:
+
+| Demo | Desktop output | Mobile output |
+|---|---|---|
+| Hero return (8 seconds) | `website/assets/demos/hero-return-desktop.m4v` | `website/assets/demos/hero-return-mobile.m4v` |
+| Honest return (5 seconds) | `website/assets/demos/honest-return-desktop.m4v` | `website/assets/demos/honest-return-mobile.m4v` |
+
+The final real partial-restore states are also captured as
+`hero-return.png` and `honest-return.png`. The mobile jobs use a dedicated
+390×700 capture crop around the task row and restore sheet; they do not scale
+the desktop interface into a phone-sized frame.
+
+Recording requires macOS, Google Chrome, and **Screen Recording** permission
+for the terminal or Codex app that launches the command. Grant access in
+System Settings → Privacy & Security → Screen Recording, then restart the
+invoking app before retrying.
+
+```sh
+cd apps/desktop
+node capture/record-demos.mjs --replace
+```
+
+The driver boots the capture Vite config on port 5199, opens a throwaway
+Chrome app window at a fixed location, records each content rectangle with
+macOS `screencapture`, and converts it with `avconvert`. Jobs are deliberately
+serial so no two windows share the rectangle. Without `--replace`, the command
+refuses to overwrite an existing video or poster.
+
+After regeneration, inspect both posters and representative frames from all
+four videos. Then use `avmediainfo --brief`, `mdls`, `sips`, and `stat` to
+replace the observed durations, encoded dimensions, byte counts, codec/audio
+facts, and poster dimensions in `website/assets/demos/manifest.json`. Never
+copy expected values from the storyboard into the manifest: the manifest is a
+record of the generated files, not a prediction. Fixture strings must continue
+to match `seed.ts`, including `Workspace partially restored`, `VS Code —
+Restored`, `Chrome — On next reload`, and `Git — Restored`.
+
 ## What these screenshots are
 
 **Genuine Rabta v0.1.0 product UI rendered with deterministic, representative
@@ -34,8 +74,10 @@ captions must describe it as demo data and never as live usage.
 | `seed.ts` | The frozen fixture: projects, tasks, capsule resources, connectors, events |
 | `mock-tauri.ts` | Stands in for `@tauri-apps/api/core` + `/event` |
 | `main.tsx` | Capture entry: freezes the clock, seeds prefs, drives the requested screen |
+| `director.ts` | Pure hash-mode parser and approved demo timeline contract |
 | `vite.config.ts` | Aliases the Tauri modules to the mock; HMR disabled |
 | `capture.mjs` | Driver: boots Vite, runs headless Chrome once per screen |
+| `record-demos.mjs` | Driver: records and converts the four real-product demo jobs serially |
 
 None of this is reachable from the shipped app — `apps/desktop/vite.config.ts`
 has no alias to the mock, so a production build cannot pick it up.
@@ -107,5 +149,5 @@ process-teardown workaround, not a timing race.
 1. Add any data it needs to `seed.ts`, respecting the fidelity rules above.
 2. Add the command to `mock-tauri.ts` if the screen calls a new one.
 3. Add `{ id, label }` to `SCREENS` in `capture.mjs` — `id` is both the output
-   filename and the `#capture=` hash value, and must appear in `VALID` in
-   `main.tsx`.
+   filename and the `#capture=` hash value, and must appear in `SCREENS` in
+   `director.ts`.
