@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { SITE, localReferences, readRoute } from "./helpers.mjs";
 
@@ -356,6 +356,63 @@ test("all root-relative assets exist", async () => {
   }
 });
 
+test("every declared media source is on disk", async () => {
+  const home = await readRoute("/");
+
+  const regions = home.match(/data-product-media="[^"]+"/g) ?? [];
+  assert.equal(regions.length, 2);
+  assert.deepEqual(
+    regions.sort(),
+    ['data-product-media="hero"', 'data-product-media="return"'],
+  );
+
+  // These are attached by JavaScript, so no crawler and no earlier contract
+  // would ever notice them going missing.
+  const sources = [
+    ...home.matchAll(/data-src-(?:desktop|mobile)="(\/[^"]+)"/g),
+  ].map((match) => match[1]);
+  assert.equal(sources.length, 4);
+  for (const source of sources) {
+    await access(resolve(SITE, `.${source}`));
+  }
+
+  const posters = [...home.matchAll(/poster="(\/[^"]+)"/g)].map((m) => m[1]);
+  assert.equal(posters.length, 2);
+  for (const poster of posters) {
+    await access(resolve(SITE, `.${poster}`));
+  }
+});
+
+test("no route opens a new tab without noopener", async () => {
+  for (const route of routes) {
+    const html = await readRoute(route);
+    for (const [tag] of html.matchAll(/<a\b[^>]*target="_blank"[^>]*>/g)) {
+      assert.match(tag, /rel="[^"]*\bnoopener\b/, `${route}: ${tag}`);
+    }
+  }
+});
+
+test("nothing in the shipped site references the local probe file", async () => {
+  for (const route of routes) {
+    const html = await readRoute(route);
+    assert.doesNotMatch(html, /__cap\.html/, route);
+  }
+
+  for (const file of [
+    "css/tokens.css",
+    "css/shell.css",
+    "css/landing.css",
+    "css/doc.css",
+    "css/receipt-fold.css",
+    "js/main.js",
+    "js/media.js",
+    "js/receipt-fold.js",
+  ]) {
+    const source = await readFile(resolve(SITE, file), "utf8");
+    assert.doesNotMatch(source, /__cap/, file);
+  }
+});
+
 test("no third-party subresource is loaded", async () => {
   for (const route of routes) {
     const html = await readRoute(route);
@@ -368,6 +425,27 @@ test("no third-party subresource is loaded", async () => {
       ),
     );
     assert.deepEqual(subresources, [], route);
+  }
+});
+
+test("no stylesheet or module reaches off this origin", async () => {
+  // The privacy claim is that the site serves every byte itself, so this
+  // covers CSS and JS too — a font @import or a CDN module would contradict
+  // the page's own copy without touching any route's HTML.
+  const files = [
+    ...(await readdir(resolve(SITE, "css"))).map((f) => `css/${f}`),
+    ...(await readdir(resolve(SITE, "js"))).map((f) => `js/${f}`),
+    "assets/brand/og-card.html",
+  ];
+
+  for (const file of files) {
+    const source = await readFile(resolve(SITE, file), "utf8");
+    const external = [
+      ...source.matchAll(/url\(\s*["']?(https?:\/\/[^"')]+)/g),
+      ...source.matchAll(/@import\s+(?:url\()?["'](https?:\/\/[^"']+)/g),
+      ...source.matchAll(/(?:from|import)\s+["'](https?:\/\/[^"']+)/g),
+    ].map((match) => match[1]);
+    assert.deepEqual(external, [], file);
   }
 });
 
