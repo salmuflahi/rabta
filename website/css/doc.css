@@ -45,7 +45,9 @@
 @layer section {
   .marker {
     position: sticky;
-    top: 80px;
+    /* Derived from the nav, not a literal: at 80px it tucked under the taller
+       Living Instrument header. */
+    top: calc(var(--nav-h) + 24px);
     display: block;
     font-size: 13px;
     line-height: 18px;
@@ -249,6 +251,40 @@
   }
 
   .cmt {
+    color: var(--text-3);
+  }
+
+  /* The checksum copy affordance. The button ships `hidden` and js/main.js
+     reveals it, so a scriptless page never offers a control that cannot work —
+     the hex itself stays selectable either way. */
+  .copy-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s3) var(--s4);
+  }
+
+  .copy {
+    min-height: 34px;
+    padding: 7px 13px;
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--r2);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: var(--track-mono);
+    color: var(--text-1);
+    cursor: pointer;
+    transition: border-color var(--dur) var(--ease);
+  }
+
+  .copy:hover {
+    border-color: var(--text-3);
+  }
+
+  .copy-status {
+    font-size: 13px;
+    line-height: 18px;
+    letter-spacing: var(--track-13);
     color: var(--text-3);
   }
 

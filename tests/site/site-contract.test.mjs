@@ -175,6 +175,177 @@ test("homepage footer includes the published release page", async () => {
   );
 });
 
+test("document routes keep detail but never load product media", async () => {
+  const setup = await readRoute("/setup/");
+  const privacy = await readRoute("/privacy/");
+  const notFound = await readRoute("/404.html");
+
+  // The homepage deliberately sheds these; /setup/ is where they live.
+  assert.ok(
+    setup.includes(
+      "3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655",
+    ),
+  );
+  assert.ok(setup.includes("86M2X6MUA3"));
+  assert.ok(privacy.includes("127.0.0.1"));
+
+  for (const html of [setup, privacy, notFound]) {
+    assert.doesNotMatch(html, /<video\b/);
+    assert.match(html, /data-receipt-fold/);
+  }
+
+  assert.ok(notFound.includes("Home"));
+  assert.ok(notFound.includes("Download"));
+  assert.ok(notFound.includes("Setup"));
+});
+
+test("every route wears the same shell", async () => {
+  for (const route of routes) {
+    const html = await readRoute(route);
+
+    // One nav, one footer, one main, one receipt — no route keeps a private
+    // copy of the chrome.
+    assert.equal((html.match(/<main\b/g) ?? []).length, 1, route);
+    assert.equal((html.match(/data-receipt-fold/g) ?? []).length, 1, route);
+    assert.match(html, /<header class="nav">/, route);
+    assert.match(html, /class="rail nav__inner"/, route);
+    assert.match(html, /<footer class="foot">/, route);
+    assert.match(html, /class="rail foot__compact"/, route);
+
+    const footer = html.match(/<footer\b[\s\S]*?<\/footer>/)?.[0] ?? "";
+    for (const link of [
+      '"/setup/"',
+      '"/privacy/"',
+      "https://github.com/salmuflahi/rabta",
+      "https://github.com/salmuflahi/rabta/releases/tag/v0.1.0",
+      "open-vsx.org",
+      "https://github.com/salmuflahi/rabta/issues",
+    ]) {
+      assert.ok(footer.includes(link), `${route} footer → ${link}`);
+    }
+    assert.ok(footer.includes("v0.1.0 · MIT · Sammy Almuflahi"), route);
+
+    // The document routes never carry homepage composition or media behaviour.
+    if (route !== "/") {
+      assert.doesNotMatch(html, /\/css\/landing\.css/, route);
+      assert.doesNotMatch(html, /data-product-media/, route);
+      assert.doesNotMatch(html, /class="[^"]*\breturn-field\b/, route);
+    }
+  }
+});
+
+test("no route links to an anchor that does not exist", async () => {
+  const home = await readRoute("/");
+  const idsIn = (html) =>
+    new Set([...html.matchAll(/id="([^"]+)"/g)].map((match) => match[1]));
+  const homeIds = idsIn(home);
+
+  for (const route of routes) {
+    const html = await readRoute(route);
+    const ownIds = idsIn(html);
+
+    for (const [, target] of html.matchAll(/href="\/#([^"]+)"/g)) {
+      assert.ok(homeIds.has(target), `${route} → /#${target} is not on the homepage`);
+    }
+    for (const [, target] of html.matchAll(/href="#([^"]+)"/g)) {
+      assert.ok(ownIds.has(target), `${route} → #${target} is not in that document`);
+    }
+  }
+});
+
+test("every route paints the same browser chrome colour", async () => {
+  for (const route of routes) {
+    const html = await readRoute(route);
+    assert.match(
+      html,
+      /<meta name="theme-color" content="#102526" \/>/,
+      route,
+    );
+  }
+});
+
+test("every route carries its canonical title", async () => {
+  const expected = new Map([
+    ["/", "Rabta — Pick up the task. Not the pieces."],
+    ["/setup/", "Setup"],
+    ["/privacy/", "Privacy"],
+    ["/404.html", "Page not found"],
+  ]);
+
+  for (const [route, fragment] of expected) {
+    const html = await readRoute(route);
+    const title = html.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.trim() ?? "";
+    assert.ok(title.includes(fragment), `${route}: ${title}`);
+    assert.ok(title.includes("Rabta"), route);
+  }
+
+  const home = await readRoute("/");
+  assert.match(
+    home,
+    /<meta property="og:title" content="Rabta — Pick up the task\. Not the pieces\." \/>/,
+  );
+});
+
+test("the social card and the link preview say the same thing", async () => {
+  const card = await readFile(resolve(SITE, "assets/brand/og-card.html"), "utf8");
+  const home = await readRoute("/");
+
+  // A card that argues one thing while the preview beside it argues another
+  // is the one social-image bug nobody catches, because the two are never
+  // rendered side by side except by the platform.
+  const ogTitle =
+    home.match(/<meta property="og:title" content="([^"]+)"/)?.[1] ?? "";
+  const headline = (card.match(/<h1>([\s\S]*?)<\/h1>/)?.[1] ?? "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  assert.ok(ogTitle, "homepage declares an og:title");
+  assert.equal(headline, ogTitle);
+  assert.ok(card.includes("Workspace memory for macOS"));
+
+  // The card is uploaded with the rest of website/, so it is bound by the
+  // palette and no-third-party rules like any other page.
+  const approved = new Set([
+    "#102526",
+    "#ff6b2c",
+    "#f3f0e8",
+    "#173239",
+    "#66858c",
+    "#a9bec2",
+    "#d9e3e3",
+  ]);
+  const literals = [...card.matchAll(/#[0-9a-f]{3,8}\b/gi)].map((match) =>
+    match[0].toLowerCase(),
+  );
+  assert.ok(
+    literals.every((value) => approved.has(value)),
+    `og-card: unapproved colour ${literals.find((value) => !approved.has(value))}`,
+  );
+  assert.deepEqual(
+    [...card.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"/g)].map((m) => m[1]),
+    [],
+  );
+});
+
+test("the generated social preview is the declared size", async () => {
+  const png = await readFile(resolve(SITE, "assets/brand/og-cover.png"));
+  assert.equal(png.subarray(1, 4).toString("ascii"), "PNG");
+
+  // IHDR width/height live at bytes 16..24 of every PNG.
+  const width = png.readUInt32BE(16);
+  const height = png.readUInt32BE(20);
+  assert.equal(width, 1200);
+  assert.equal(height, 630);
+
+  for (const route of routes) {
+    const html = await readRoute(route);
+    if (!html.includes("og:image")) continue;
+    assert.match(html, /<meta property="og:image:width" content="1200" \/>/, route);
+    assert.match(html, /<meta property="og:image:height" content="630" \/>/, route);
+  }
+});
+
 test("all root-relative assets exist", async () => {
   for (const route of routes) {
     const html = await readRoute(route);

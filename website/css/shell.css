@@ -16,7 +16,7 @@
 
   html {
     -webkit-text-size-adjust: 100%;
-    scroll-padding-top: calc(56px + 24px);
+    scroll-padding-top: calc(var(--nav-h) + 24px);
     /* `clip`, not `hidden`: hidden would make html a scroll container and kill
        position:sticky for the nav. */
     overflow-x: clip;
@@ -413,88 +413,6 @@
   }
 }
 
-/* Final homepage shell overrides. Kept after the legacy document chrome so
-   the new nav/footer win until Task 7 ports the supporting route markup. */
-@layer component {
-  .nav {
-    z-index: 50;
-    height: 72px;
-    background: rgba(16, 37, 38, 0.96);
-  }
-
-  .nav__inner {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    height: 100%;
-  }
-
-  .brand {
-    gap: 10px;
-    font-size: 16px;
-    font-weight: 560;
-    letter-spacing: -0.02em;
-  }
-
-  .brand svg {
-    width: 30px;
-    height: 30px;
-    border-radius: 7px;
-  }
-
-  .foot {
-    padding-block: 48px;
-  }
-
-  .foot__compact {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 36px 64px;
-    align-items: start;
-  }
-
-  .foot__links {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 12px 24px;
-  }
-
-  .foot__links a {
-    font-size: 13px;
-  }
-
-  .foot__meta {
-    grid-column: 1 / -1;
-    display: block;
-    margin-top: 0;
-    padding-top: 22px;
-    font-size: 11px;
-  }
-
-  @media (max-width: 699px) {
-    .nav {
-      height: 64px;
-    }
-
-    .nav__inner {
-      grid-template-columns: 1fr auto;
-    }
-
-    .foot__compact {
-      grid-template-columns: 1fr;
-      gap: 28px;
-    }
-
-    .foot__links {
-      justify-content: flex-start;
-    }
-
-    .foot__meta {
-      grid-column: auto;
-    }
-  }
-}
-
 /* ==========================================================================
    §4.6 — nothing on this page conveys meaning through motion, so removing
    all of it costs nothing.
@@ -587,6 +505,17 @@
     background: var(--orange);
   }
 
+  /* A second action in the same row as a primary one. Bordered rather than
+     filled, because orange is spoken for and a page never has two of them. */
+  .button--quiet {
+    border-color: rgba(169, 190, 194, 0.32);
+    color: var(--ivory);
+  }
+
+  .button--quiet:hover {
+    border-color: var(--cool-soft);
+  }
+
   .button--small {
     min-height: 38px;
     padding: 10px 15px;
@@ -649,6 +578,9 @@
   .brand svg {
     width: 30px;
     height: 30px;
+    /* The mark is drawn on its own petrol tile, so it needs the tile's corner
+       radius back — the artwork's rx only applies inside the viewBox. */
+    border-radius: 7px;
   }
 
   .nav__links {
@@ -675,6 +607,12 @@
     padding-block: 48px;
     border-top: 1px solid rgba(169, 190, 194, 0.14);
     background: var(--petrol);
+  }
+
+  /* The receipt is the last gesture of the page, so it gets its own band above
+     the link row rather than sharing a grid with it. */
+  .foot__receipt {
+    padding-bottom: 52px;
   }
 
   .foot__compact {
@@ -737,6 +675,12 @@
       grid-column: auto;
     }
   }
+
+  @media (max-width: 599px) {
+    .foot__receipt {
+      padding-bottom: 40px;
+    }
+  }
 }
 
 @layer state {
@@ -756,292 +700,3 @@
   }
 }
 
-/* ==========================================================================
-   page chrome — the nav and the footer, shared by all four routes
-   Site plan §8.1 and §8.14. These live here rather than in sections.css
-   because every route loads shell.css and only the homepage loads sections.
-   ========================================================================== */
-
-@layer component {
-  /* ---- 8.1 nav --------------------------------------------------------- */
-
-  /* Solid --ground from the first pixel and no backdrop blur, so it is
-     identical with JS off — it has no scroll-dependent state to lose. */
-  .nav {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: var(--ground);
-    border-bottom: 1px solid var(--hairline);
-  }
-
-  .nav__inner {
-    display: flex;
-    align-items: center;
-    gap: var(--s4);
-    height: 56px;
-  }
-
-  .brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-    color: var(--text-1);
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: -0.17px;
-    flex: none;
-  }
-
-  .brand svg {
-    width: 20px;
-    height: 20px;
-    border-radius: 5px;
-    flex: none;
-  }
-
-  .nav__mid {
-    display: flex;
-    align-items: center;
-    gap: var(--s5);
-    margin-inline: auto;
-  }
-
-  .nav__mid a {
-    color: var(--text-3);
-    text-decoration: none;
-    font-size: 15px;
-    letter-spacing: -0.17px;
-    transition: color var(--dur) var(--ease);
-  }
-
-  .nav__mid a:hover,
-  .nav__mid a[aria-current="page"],
-  .nav__end > a[aria-current="page"] {
-    color: var(--text-1);
-  }
-
-  .nav__end {
-    display: flex;
-    align-items: center;
-    gap: var(--s4);
-    flex: none;
-  }
-
-  .nav__end > a:first-child {
-    color: var(--text-3);
-    text-decoration: none;
-    font-size: 15px;
-    letter-spacing: -0.17px;
-    transition: color var(--dur) var(--ease);
-  }
-
-  .nav__end > a:first-child:hover {
-    color: var(--text-1);
-  }
-
-  /* No hamburger and no drawer: the footer carries every link and the page is
-     a single scroll. */
-  @media (max-width: 767px) {
-    .nav__mid {
-      display: none;
-    }
-    .nav__inner {
-      justify-content: space-between;
-    }
-  }
-
-  @media (max-width: 479px) {
-    .nav__end > a:first-child {
-      display: none;
-    }
-  }
-
-  /* ---- 8.14 footer ----------------------------------------------------- */
-
-  /* One modest ledger, not the mega-footer of a company that does not exist
-     yet. */
-  .foot {
-    padding-top: var(--s10);
-    padding-bottom: var(--s8);
-    border-top: 1px solid var(--hairline);
-  }
-
-  .foot__grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
-    gap: var(--s7) var(--gap);
-  }
-
-  /* Real, verified states. Not a status page, not a badge — three lines of
-     what actually ships today. */
-  .foot__states {
-    display: grid;
-    gap: 10px;
-    font-size: 15px;
-    line-height: 24px;
-    letter-spacing: var(--track-15);
-    color: var(--text-3);
-  }
-
-  .foot__states li {
-    display: flex;
-    align-items: baseline;
-    gap: 9px;
-  }
-
-  .foot__dot {
-    width: 6px;
-    height: 6px;
-    flex: none;
-    border-radius: 50%;
-    background: var(--text-2);
-    transform: translateY(-1px);
-  }
-
-  .foot__dot--hollow {
-    background: none;
-    border: 1px solid var(--text-3);
-  }
-
-  .foot__col {
-    margin-bottom: var(--s4);
-    font-size: 13px;
-    line-height: 18px;
-    letter-spacing: var(--track-13);
-    font-weight: 500;
-    color: var(--text-3);
-  }
-
-  .foot ul {
-    display: grid;
-    gap: 10px;
-  }
-
-  .foot a {
-    color: var(--text-2);
-    font-size: 15px;
-    letter-spacing: var(--track-15);
-    text-decoration: none;
-    transition: color var(--dur) var(--ease);
-  }
-
-  .foot a:hover {
-    color: var(--text-1);
-  }
-
-  .foot__meta {
-    display: grid;
-    gap: var(--s2);
-    margin-top: var(--s10);
-    padding-top: var(--s5);
-    border-top: 1px solid var(--hairline);
-  }
-
-  @media (max-width: 1023px) {
-    .foot__grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 599px) {
-    .foot__grid {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-}
-
-/* The homepage uses the compact Living Instrument chrome. This block follows
-   the legacy document chrome so its shared selectors resolve intentionally. */
-@layer component {
-  /* The receipt is the last gesture of the page, so it gets its own band above
-     the link row rather than sharing a grid with it. */
-  .foot__receipt {
-    padding-bottom: 52px;
-  }
-
-  @media (max-width: 599px) {
-    .foot__receipt {
-      padding-bottom: 40px;
-    }
-  }
-
-  .nav {
-    z-index: 50;
-    height: 72px;
-    background: rgba(16, 37, 38, 0.96);
-  }
-
-  .nav__inner {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    height: 100%;
-  }
-
-  .brand {
-    gap: 10px;
-    font-size: 16px;
-    font-weight: 560;
-    letter-spacing: -0.02em;
-  }
-
-  .brand svg {
-    width: 30px;
-    height: 30px;
-    border-radius: 7px;
-  }
-
-  .foot {
-    padding-block: 48px;
-  }
-
-  .foot__compact {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 36px 64px;
-    align-items: start;
-  }
-
-  .foot__links {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 12px 24px;
-  }
-
-  .foot__links a {
-    font-size: 13px;
-  }
-
-  .foot__meta {
-    grid-column: 1 / -1;
-    display: block;
-    margin-top: 0;
-    padding-top: 22px;
-    font-size: 11px;
-  }
-
-  @media (max-width: 699px) {
-    .nav {
-      height: 64px;
-    }
-
-    .nav__inner {
-      grid-template-columns: 1fr auto;
-    }
-
-    .foot__compact {
-      grid-template-columns: 1fr;
-      gap: 28px;
-    }
-
-    .foot__links {
-      justify-content: flex-start;
-    }
-
-    .foot__meta {
-      grid-column: auto;
-    }
-  }
-}

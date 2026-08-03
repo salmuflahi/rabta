@@ -88,6 +88,9 @@
        13px and overflowed a 64px track straight into the heading. 96 is the
        next step on the spacing scale and clears every mark. */
     --axis: 96px;
+    /* The sticky nav's own height. scroll-padding and every sticky offset
+       derive from it, so an anchor can never land underneath it. */
+    --nav-h: 72px;
     --gutter: 40px;
     --gap: 24px;
     --locked: 960px; /* the Return Pair. Both frames. Identically. */
@@ -117,6 +120,13 @@
     --fold-duration: 520ms;
     --fold-delay: 100ms;
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Matches the nav's own 699px step in shell.css. */
+  @media (max-width: 699px) {
+    :root {
+      --nav-h: 64px;
+    }
   }
 
   @media (max-width: 899px) {

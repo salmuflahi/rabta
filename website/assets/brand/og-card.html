@@ -6,16 +6,21 @@
   Rules this card follows:
     - composed, never a raw screenshot dropped in whole
     - >=64px safe padding on every edge, so platform crops never clip content
-    - no platform or availability claim that could age badly
-    - the current Rabta mark only
+    - no availability, version or roadmap claim that could age badly. The one
+      platform word here — macOS — is what the product IS, not a claim about
+      where it is going; it is the page's own hero eyebrow, verbatim.
+    - the current Rabta mark only, and only once: the headline already opens
+      with the word Rabta, so the wordmark beside it would say it twice.
     - the SAME headline as <meta property="og:title">, verbatim. A card that
       argues one thing while the link preview beside it argues another is the
       one bug in a social image nobody catches, because the two are never
       rendered side by side except by the platform.
 
-  It is built from docs/site-design-plan.md §4 and nothing else: the twelve
-  colour tokens, weights 400-600, the 45-degree fold, flat surfaces. There are
-  no gradients and no third hue on this site, so there are none here.
+  It is the Living Instrument system at card scale: petrol is the world, one
+  cool-field sheet carries the product, and the orange fold is the single
+  accent. The sheet's clipped corner and the fold triangle use the same
+  geometry as .return-field in css/landing.css. Flat surfaces, no gradients,
+  no third hue.
 -->
 <html lang="en">
 <head>
@@ -37,8 +42,8 @@
   body {
     position: relative;
     overflow: hidden;
-    /* --ground. Flat. */
-    background: #0a1314;
+    /* --petrol. Flat. */
+    background: #102526;
     color: #f3f0e8;
     font-family: "Inter Variable", -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -47,40 +52,40 @@
   /* Safe area: nothing meaningful crosses this inset. */
   .card {
     position: absolute;
-    inset: 64px;
-    width: 600px;
+    top: 64px;
+    bottom: 64px;
+    left: 64px;
+    width: 560px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     z-index: 2;
   }
 
-  .brand { display: flex; align-items: center; gap: 14px; }
-  .brand svg { width: 44px; height: 44px; display: block; }
-  .brand .word {
-    font-size: 28px;
-    font-weight: 600;
-    letter-spacing: -0.5px;
-  }
+  .brand svg { width: 44px; height: 44px; display: block; border-radius: 10px; }
 
   /* The site's own display step, scaled for a card read at thumbnail size. */
   h1 {
-    font-size: 60px;
+    font-size: 54px;
     font-weight: 600;
-    line-height: 62px;
+    line-height: 56px;
     letter-spacing: -1.32px;
     padding-block: 6px;
   }
 
+  /* The second line drops to --cool-mid, exactly as the page hero does. The
+     accent is spoken for by the fold and is never used on type. */
+  h1 .quiet { color: #66858c; }
+
   .sub {
-    margin-top: 24px;
-    font-size: 23px;
-    line-height: 34px;
-    letter-spacing: -0.27px;
+    margin-top: 22px;
+    font-size: 21px;
+    line-height: 32px;
+    letter-spacing: -0.25px;
     font-weight: 400;
-    /* --text-2 */
-    color: #a9bcba;
-    max-width: 520px;
+    /* --cool-soft */
+    color: #a9bec2;
+    max-width: 500px;
   }
 
   /* Three verified absences, in the machine register. No dots, no ticks, no
@@ -89,78 +94,97 @@
     display: flex;
     align-items: baseline;
     gap: 12px;
-    font-size: 17px;
+    font-size: 16px;
     letter-spacing: 0.24px;
-    /* --text-3 */
-    color: #7c8f8e;
+    /* --cool-mid */
+    color: #66858c;
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
   }
-  .meta .sep { color: #1d3536; }
+  .meta .sep { color: #173239; }
 
-  /* A framed fragment of the real app, flat and bleeding off the right edge.
-     Not tilted: the site never renders the product in perspective, because a
-     product shown at an angle is a product you are being sold rather than
-     shown. */
-  .shot {
+  /* The Return Field at card scale: a cool-field sheet whose top-right corner
+     is cut at 45 degrees, holding the real product on a petrol stage. Same
+     geometry as .return-field in css/landing.css, scaled 72px -> 64px. */
+  .field {
     position: absolute;
     top: 96px;
-    left: 700px;
-    width: 720px;
-    height: 456px;
-    /* --panel, --hairline-strong */
-    background: #102526;
-    border: 1px solid rgba(243, 240, 232, 0.14);
-    border-radius: 12px 0 0 12px;
-    overflow: hidden;
+    left: 672px;
+    width: 464px;
+    height: 438px;
+    z-index: 1;
   }
-  .shot img {
-    display: block;
-    width: 1024px;
-    height: auto;
-    /* Frame the workspace pane, away from the window's top chrome. */
-    margin: -30px 0 0 -24px;
-  }
-  /* Fade the far edge into the ground so the crop reads as intentional. */
-  .shot::after {
+
+  .field::before {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(96deg, rgba(10, 19, 20, 0) 46%, #0a1314 96%);
+    /* --cool-field */
+    background: #d9e3e3;
+    clip-path: polygon(0 0, calc(100% - 64px) 0, 100% 64px, 100% 100%, 0 100%);
   }
 
   /* The one accent instance on the card, and the same gesture the page makes
      above its hero: the fold's underside, at the top-right corner. */
-  .fold {
+  .field::after {
+    content: "";
     position: absolute;
     top: 0;
     right: 0;
-    width: 96px;
-    height: 96px;
+    width: 64px;
+    height: 64px;
+    /* --orange */
     background: #ff6b2c;
-    clip-path: polygon(0 0, 100% 0, 100% 100%);
+    clip-path: polygon(0 0, 100% 100%, 100% 0);
     z-index: 3;
+  }
+
+  /* A framed fragment of the real app, flat and cropped by the stage. Not
+     tilted: the site never renders the product in perspective, because a
+     product shown at an angle is a product you are being sold rather than
+     shown. */
+  .stage {
+    position: absolute;
+    inset: 30px;
+    overflow: hidden;
+    /* --cool-panel */
+    background: #173239;
+    border: 1px solid rgba(16, 37, 38, 0.16);
+    border-radius: 9px;
+    z-index: 2;
+  }
+
+  /* The source is 2560x1600 (2x of 1280x800), so every offset here is a
+     fraction of it rather than a nudge: at 790px the scale is 0.3086, the app
+     sidebar ends at x=559 and the window chrome at y=120, and the right edge
+     lands in the gap between two stat cards. Eyeballing this slices the
+     headings mid-word, which reads as a mistake rather than a crop. */
+  .stage img {
+    display: block;
+    width: 790px;
+    height: auto;
+    margin: -37px 0 0 -172px;
   }
 </style>
 </head>
 <body>
-  <div class="shot">
-    <img src="../shots/src/overview.png" alt="" />
+  <div class="field">
+    <div class="stage">
+      <img src="../shots/src/overview.png" alt="" />
+    </div>
   </div>
-  <div class="fold"></div>
 
   <div class="card">
     <div class="brand">
       <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
         <rect width="64" height="64" rx="14" fill="#102526"/>
-        <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
-        <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
+        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
+        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z"/>
       </svg>
-      <span class="word">Rabta</span>
     </div>
 
     <div>
-      <h1>Leave the task.<br />Keep your place.</h1>
-      <p class="sub">Rabta saves the files, terminals, browser tabs and git branch a task had open, and puts them back when you return to it.</p>
+      <h1>Rabta — Pick up the task. <br /><span class="quiet">Not the pieces.</span></h1>
+      <p class="sub">Workspace memory for macOS</p>
     </div>
 
     <div class="meta">
