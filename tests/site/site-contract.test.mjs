@@ -249,7 +249,14 @@ test("hover motion runs on one duration and one curve", async () => {
   // The sweep waits off the leading edge and lands flush; the diagonal is its
   // front face, so the fold's geometry appears in motion and never as shape.
   const rest = shell.match(/\.sweep::before \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-  assert.match(rest, /transform:\s*translateX\(-130%\) skewX\(var\(--cut-skew\)\)/);
+  // The resting side is --cut-x, which js/instrument.js sets to the edge the
+  // pointer crossed. It must stay a whole offset with a left-hand default:
+  // calc() will not re-resolve a percentage scaled by a substituted number,
+  // and the default is what keyboard focus and a scriptless page get.
+  assert.match(
+    rest,
+    /transform:\s*translateX\(var\(--cut-x, -130%\)\) skewX\(var\(--cut-skew\)\)/,
+  );
   assert.match(rest, /transition:\s*transform var\(--hover-dur\) var\(--ease-out\)/);
 
   const landed = shell.match(
@@ -276,10 +283,12 @@ test("the current route is marked in the nav, not just in the markup", async () 
   const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");
   const rule =
     shell.match(
-      /\.nav__links a\[aria-current="page"\]::after \{([\s\S]*?)\n\s*\}/,
+      /\.nav__links a\[aria-current="page"\]::before \{([\s\S]*?)\n\s*\}/,
     )?.[1] ?? "";
 
-  assert.match(rule, /transform:\s*scaleX\(1\)/);
+  // The indicator holds the same fill the hover lands, so "you are here" and
+  // "you are about to go here" are the same mark in two tenses.
+  assert.match(rule, /transform:\s*translateX\(0\) skewX\(var\(--cut-skew\)\)/);
   assert.match(rule, /transition:\s*none/, "the indicator is a state, not a gesture");
 
   // And the attribute it depends on is actually on the document routes.
@@ -288,6 +297,34 @@ test("the current route is marked in the nav, not just in the markup", async () 
     const nav = html.match(/<nav class="nav__links"[\s\S]*?<\/nav>/)?.[0] ?? "";
     assert.equal((nav.match(/aria-current="page"/g) ?? []).length, 1, route);
   }
+});
+
+test("every enhancement resolves to the finished state without JavaScript", async () => {
+  // The whole rule for this layer: CSS ships the completed page, and the
+  // modules only opt elements into being animated on the way there.
+  const landing = await readFile(resolve(SITE, "css/landing.css"), "utf8");
+
+  // The restore caption's rows are only hidden once JS has marked them pending.
+  assert.match(landing, /\[data-resolve="pending"\] > \* \{[\s\S]*?opacity:\s*0/);
+  const html = await readRoute("/");
+  assert.match(html, /<figcaption data-resolve>/, "the markup ships no state");
+  assert.doesNotMatch(html, /data-resolve="pending"/);
+  assert.doesNotMatch(html, /data-reveal="pending"/);
+
+  // A counter's markup holds its final value, so a scriptless page shows it.
+  for (const [, value] of html.matchAll(/data-count>(\d+)</g)) {
+    assert.ok(Number.parseInt(value, 10) > 0, `counter ships ${value}`);
+  }
+  assert.equal((html.match(/data-count/g) ?? []).length, 6);
+
+  const instrument = await readFile(resolve(SITE, "js/instrument.js"), "utf8");
+  // Counting and sequencing are motion with no meaning of their own, so both
+  // stand down under reduced motion rather than merely running faster.
+  assert.equal(
+    (instrument.match(/prefers-reduced-motion/g) ?? []).length +
+      (instrument.match(/matchMedia\?\.\(REDUCED\)/g) ?? []).length,
+    3,
+  );
 });
 
 test("chapter marks are drawn at rest, so a script failure cannot hide them", async () => {

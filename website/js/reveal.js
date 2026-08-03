@@ -34,11 +34,16 @@ export function initChapterMarks(root = document, env = window) {
 
   chapters.forEach((chapter) => observer.observe(chapter));
 
-  /* A chapter that somehow never intersects — a hidden ancestor, a browser that
-     reports nothing — must not keep its mark undrawn forever. */
+  /* A chapter that is on screen and somehow never reported must not keep its
+     mark undrawn — but a chapter the visitor has not reached yet is not a
+     failure, and drawing it early would spend the gesture on nobody. */
   const failsafe = env.setTimeout?.(() => {
     chapters.forEach((chapter) => {
-      if (chapter.dataset.reveal === "pending") chapter.dataset.reveal = "shown";
+      if (chapter.dataset.reveal !== "pending") return;
+      const box = chapter.getBoundingClientRect();
+      if (box.top < (env.innerHeight ?? 0) && box.bottom > 0) {
+        chapter.dataset.reveal = "shown";
+      }
     });
   }, 3000);
 

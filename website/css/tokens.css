@@ -129,6 +129,9 @@
     /* A chapter mark is drawn once on entry, not toggled — slower than a
        hover so it reads as an opening rather than a response. */
     --mark-dur: 420ms;
+    /* One beat of the restore sequence. The rows are offsets of it, so the
+       rhythm is a single number rather than four hand-picked delays. */
+    --resolve-step: 140ms;
     --fold-duration: 520ms;
     --fold-delay: 100ms;
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);

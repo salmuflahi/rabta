@@ -459,7 +459,12 @@
     inset: -2px -35%;
     z-index: -1;
     background: var(--sweep, transparent);
-    transform: translateX(-130%) skewX(var(--cut-skew));
+    /* --cut-x is set by js/instrument.js to the edge the pointer crossed, so
+       the fill answers the cursor instead of always arriving from the left.
+       It is a whole offset rather than a multiplier: calc() will not
+       re-resolve a percentage scaled by a substituted number. The default is
+       the left, which is where keyboard focus and a scriptless page enter. */
+    transform: translateX(var(--cut-x, -130%)) skewX(var(--cut-skew));
     transition: transform var(--hover-dur) var(--ease-out);
   }
 
@@ -468,42 +473,64 @@
     transform: translateX(0) skewX(var(--cut-skew));
   }
 
-  /* The underline sweep. On a 1px bar the diagonal is imperceptible, so links
-     share the system's direction and timing rather than its geometry. */
-  .sweep-line,
+  /* Links get the same gesture the buttons get, at text scale: the cut sweeps
+     in behind the label and the label flips to petrol on it. An underline that
+     merely changes colour was the weaker answer, and stacking a second bar
+     under a link that already had one was simply wrong.
+
+     The resting underline is the affordance — a link has to be identifiable
+     without hovering it — so it fades out exactly as the fill arrives, leaving
+     one mark at a time rather than two. */
+  .cut-link,
   :where(.nav__links, .foot__links, .download__links, .toc) a {
     position: relative;
+    display: inline-block;
+    /* Clips the sweep to the label, so only its leading diagonal shows. */
+    overflow: hidden;
+    isolation: isolate;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: rgba(169, 190, 194, 0.55);
+    text-underline-offset: 4px;
+    transition: color var(--hover-dur) var(--ease-out),
+      text-decoration-color var(--hover-dur) var(--ease-out);
   }
 
-  .sweep-line::after,
-  :where(.nav__links, .foot__links, .download__links, .toc) a::after {
+  .cut-link::before,
+  :where(.nav__links, .foot__links, .download__links, .toc) a::before {
     content: "";
     position: absolute;
-    right: 0;
-    bottom: -2px;
-    left: 0;
-    height: 1px;
+    inset: -2px -12px;
+    z-index: -1;
     background: var(--orange);
-    transform: scaleX(0);
-    transform-origin: left;
+    transform: translateX(var(--cut-x, -130%)) skewX(var(--cut-skew));
     transition: transform var(--hover-dur) var(--ease-out);
   }
 
-  .sweep-line:hover::after,
-  .sweep-line:focus-visible::after,
-  :where(.nav__links, .foot__links, .download__links, .toc) a:hover::after,
-  :where(.nav__links, .foot__links, .download__links, .toc) a:focus-visible::after {
-    transform: scaleX(1);
+  .cut-link:hover,
+  .cut-link:focus-visible,
+  :where(.nav__links, .foot__links, .download__links, .toc) a:hover,
+  :where(.nav__links, .foot__links, .download__links, .toc) a:focus-visible {
+    color: var(--ink-on-orange);
+    text-decoration-color: transparent;
+  }
+
+  .cut-link:hover::before,
+  .cut-link:focus-visible::before,
+  :where(.nav__links, .foot__links, .download__links, .toc) a:hover::before,
+  :where(.nav__links, .foot__links, .download__links, .toc) a:focus-visible::before {
+    transform: translateX(0) skewX(var(--cut-skew));
   }
 
   /* You are here. The attribute already ships on the document routes and had
      no visual expression at all, so the markup and the design disagreed. */
   .nav__links a[aria-current="page"] {
-    color: var(--ivory);
+    color: var(--ink-on-orange);
+    text-decoration-color: transparent;
   }
 
-  .nav__links a[aria-current="page"]::after {
-    transform: scaleX(1);
+  .nav__links a[aria-current="page"]::before {
+    transform: translateX(0) skewX(var(--cut-skew));
     transition: none;
   }
 
@@ -576,32 +603,26 @@
   }
 
   .text-link {
-    display: inline-flex;
     width: max-content;
     color: var(--cool-soft);
     font-size: 14px;
     line-height: 1.4;
-    text-decoration: none;
-    /* This border replaces text-decoration, so it has to carry the whole
-       "this is a link" signal: 0.3 was 1.95:1 against petrol, 0.55 is 3.48:1. */
-    border-bottom: 1px solid rgba(169, 190, 194, 0.55);
   }
 
-  .text-link:hover,
-  .text-link:focus-visible {
-    color: var(--ivory);
-    border-bottom-color: var(--cool-soft);
-  }
-
+  /* On the ivory reset the fill would be orange on near-white, so this one
+     inverts: the label goes to petrol's own surface instead. */
   .text-link--dark {
     color: var(--petrol);
-    border-bottom-color: rgba(16, 37, 38, 0.55);
+    text-decoration-color: rgba(16, 37, 38, 0.55);
+  }
+
+  .text-link--dark::before {
+    background: var(--petrol);
   }
 
   .text-link--dark:hover,
   .text-link--dark:focus-visible {
-    color: var(--cool-panel);
-    border-bottom-color: var(--petrol);
+    color: var(--ivory);
   }
 
   .nav {
@@ -648,10 +669,6 @@
     font-size: 13px;
   }
 
-  .nav__links a {
-    text-decoration: none;
-  }
-
   .nav__links a:hover,
   .nav__links a:focus-visible {
     color: var(--ivory);
@@ -687,10 +704,6 @@
     gap: 12px 24px;
     color: var(--cool-soft);
     font-size: 13px;
-  }
-
-  .foot__links a {
-    text-decoration: none;
   }
 
   .foot__links a:hover,

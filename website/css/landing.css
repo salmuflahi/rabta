@@ -223,7 +223,9 @@
 
   .thesis h2,
   .download h2 {
-    max-width: 980px;
+    /* 980 dropped the last word of the thesis onto a line of its own at
+       1280px. The rail's own content width is 1100. */
+    max-width: 1100px;
     color: var(--ivory);
     font-size: clamp(48px, 5vw, 60px);
     font-weight: 560;
@@ -299,6 +301,16 @@
     font-size: 12px;
     line-height: 1.55;
     overflow-wrap: anywhere;
+  }
+
+  /* A counting readout must not reflow the line it sits in while it settles,
+     so the digit keeps its own width. */
+  .pieces__manifest dd b {
+    display: inline-block;
+    min-width: 1ch;
+    font-weight: inherit;
+    color: var(--ivory);
+    font-variant-numeric: tabular-nums;
   }
 
   .product-crop {
@@ -387,6 +399,28 @@
     color: var(--ivory);
     font-weight: 520;
   }
+
+  /* The restore resolving. Each row arrives on the cut's own curve, in the
+     order the product reports them, and the summary settles last — the page
+     performing the thing this chapter describes rather than illustrating it.
+     Written so the resting state is the finished state: with no JavaScript the
+     caption is simply complete. */
+  [data-resolve="pending"] > * {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  [data-resolve="shown"] > * {
+    opacity: 1;
+    transform: none;
+    transition: opacity var(--mark-dur) var(--ease-out),
+      transform var(--mark-dur) var(--ease-out);
+  }
+
+  [data-resolve="shown"] > span:nth-child(2) { transition-delay: calc(var(--resolve-step) * 1); }
+  [data-resolve="shown"] > span:nth-child(3) { transition-delay: calc(var(--resolve-step) * 2); }
+  [data-resolve="shown"] > span:nth-child(4) { transition-delay: calc(var(--resolve-step) * 3); }
+  [data-resolve="shown"] > strong { transition-delay: calc(var(--resolve-step) * 4); }
 
   .local {
     padding-block: 96px;

@@ -216,10 +216,16 @@
       border-color var(--dur) var(--ease);
   }
 
+  /* The one link family that cannot take the fill: an inline link wraps, and a
+     block behind it would break at every line end. It gets the accent in the
+     one mark it already has, thickened so the change is felt and not just
+     seen — never a second underline stacked beneath the first. */
   .prose a:hover,
   .prose a:focus-visible {
     color: var(--text-1);
+    border-bottom-width: 2px;
     border-bottom-color: var(--orange);
+    padding-bottom: 1px;
   }
 
   /* ---- machine data ---------------------------------------------------- */
@@ -348,9 +354,14 @@
   }
 
   .toc a {
-    display: block;
+    /* .prose a switches text-decoration off for inline links; a contents entry
+       is not one, so it opts back into the cut system's resting underline. */
     padding: 5px 0;
     border: 0;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: rgba(169, 190, 194, 0.55);
+    text-underline-offset: 4px;
     font-size: 15px;
     line-height: 24px;
     letter-spacing: var(--track-15);

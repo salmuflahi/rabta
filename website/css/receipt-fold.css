@@ -102,6 +102,7 @@
     font-weight: 500;
     text-align: right;
     overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
   }
 
   /* Where the flap lands. Same N×N box, mirrored triangle: the reflection of

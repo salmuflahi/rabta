@@ -145,6 +145,31 @@ Grain fights "flat surfaces, no third hue", and the flat alternative — a
 perforation rule — would be a sixth horizontal line on the one element that is
 already the strongest thing on the site. This is addition for its own sake.
 
+## Adapted from Inspira UI
+
+Four ideas were taken from inspira-ui.com and rebuilt natively. Nothing was
+imported: that library ships Vue components and Tailwind, and this site serves
+every byte itself, has no framework and no build step.
+
+- **Direction Aware Hover** → the cut now enters from the edge the pointer
+  actually crossed. Implemented as a whole offset (`--cut-x`), not a sign,
+  because `calc()` will not re-resolve a percentage scaled by a substituted
+  number — the multiplier version silently never moved.
+- **Number Ticker** → the manifest and receipt counts settle into place. They
+  are the page's most machine-like register, and the markup ships the final
+  number so a scriptless page simply shows it.
+- **Multi Step Loader** → the restore caption resolves row by row, in the order
+  the product reports them. This is the page performing the thing the chapter
+  describes rather than an effect borrowed onto it.
+- **Text Reveal / Box Reveal** → not built. The hero is already the thesis, and
+  a load-time wipe risks a flash of the very copy it is meant to introduce.
+
+Rejected outright, because each breaks a rule the brief sets: every gradient
+background (Aurora, Liquid, Silk, Vortex, Wavy), Glow/Neon/Shimmer borders and
+buttons, Liquid Glass, Bento Grid, all particle and meteor fields, 3D Card and
+Glare (the product is never shown in perspective), and every Testimonial
+component (the brief forbids invented social proof outright).
+
 ## Verification
 
 - Contracts pinning the shared duration and curve, that no `:hover` rule exists
