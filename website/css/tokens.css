@@ -39,9 +39,11 @@
     --accent: var(--orange);
     --ink-on-accent: var(--ink-on-orange);
 
+    /* Both derived from ivory. There is no black on this site: a
+       rgba(0, 0, 0, …) hairline was the one token whose base was not an
+       approved hue, and nothing referenced it. */
     --hairline: rgba(243, 240, 232, 0.08);
     --hairline-strong: rgba(243, 240, 232, 0.14);
-    --hairline-dark: rgba(0, 0, 0, 0.28);
 
     /* ---- type ----------------------------------------------------------- */
     --sans: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI",

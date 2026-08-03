@@ -44,16 +44,23 @@ class FakeVideo extends FakeTarget {
     this.loadCount = 0;
     this.pauseCount = 0;
     this.playCount = 0;
+    this.paused = true;
     this.playResult = play;
   }
 
   load() { this.loadCount += 1; }
 
-  pause() { this.pauseCount += 1; }
+  pause() {
+    this.pauseCount += 1;
+    this.paused = true;
+  }
 
   play() {
     this.playCount += 1;
-    return this.playResult();
+    return this.playResult().then(
+      (value) => { this.paused = false; return value; },
+      (error) => { throw error; },
+    );
   }
 
   removeAttribute(name) {
@@ -64,6 +71,8 @@ class FakeVideo extends FakeTarget {
 class FakeButton extends FakeTarget {
   hidden = true;
   disabled = false;
+  textContent = "Play demo";
+  dataset = { labelPlay: "Play demo", labelPause: "Pause demo" };
 }
 
 function mediaBlock(name, play) {
@@ -173,7 +182,8 @@ for (const constrained of [
     assert.equal(page.media[0].video.loadCount, 1);
     assert.equal(page.media[0].video.playCount, 1);
     assert.equal(page.media[0].block.dataset.mediaState, "playing");
-    assert.equal(page.media[0].button.hidden, true);
+    assert.equal(page.media[0].button.hidden, false);
+    assert.equal(page.media[0].button.textContent, "Pause demo");
     cleanup();
   });
 }
@@ -204,6 +214,60 @@ test("rejected playback exposes a local manual control without a playing state",
   assert.equal(blocked.block.dataset.mediaState, "blocked");
   assert.equal(blocked.button.hidden, false);
   assert.notEqual(blocked.block.dataset.mediaState, "playing");
+  cleanup();
+});
+
+test("a running loop can always be stopped, and stays stopped", async () => {
+  // WCAG 2.2.2: these loops start on their own and run past five seconds
+  // beside the copy they illustrate, so the page owes the visitor a way out.
+  const page = harness();
+  const cleanup = initProductMedia(page.root, page.env);
+  const { block, button, video } = page.media[0];
+
+  page.observer.enter(0, 1);
+  await settle();
+  assert.equal(block.dataset.mediaState, "playing");
+  assert.equal(button.hidden, false, "the control stays reachable while it plays");
+  assert.equal(button.textContent, "Pause demo");
+
+  button.dispatch("click");
+  await settle();
+  assert.equal(video.paused, true);
+  assert.equal(block.dataset.mediaState, "paused");
+  assert.equal(button.textContent, "Play demo");
+
+  // Scrolling past and back must not undo a deliberate pause.
+  const playsBefore = video.playCount;
+  page.observer.enter(0, 0);
+  page.observer.enter(0, 1);
+  await settle();
+  assert.equal(video.playCount, playsBefore, "intersection does not override the visitor");
+  assert.equal(video.paused, true);
+
+  // Pressing Play again hands control back to the page.
+  button.dispatch("click");
+  await settle();
+  assert.equal(video.paused, false);
+  assert.equal(block.dataset.mediaState, "playing");
+  assert.equal(button.textContent, "Pause demo");
+  cleanup();
+});
+
+test("scrolling away pauses without latching", async () => {
+  const page = harness();
+  const cleanup = initProductMedia(page.root, page.env);
+  const { block, video } = page.media[0];
+
+  page.observer.enter(0, 1);
+  await settle();
+  page.observer.enter(0, 0);
+  await settle();
+  assert.equal(block.dataset.mediaState, "paused");
+  assert.notEqual(block.dataset.mediaPaused, "true", "the page paused it, not the visitor");
+
+  page.observer.enter(0, 1);
+  await settle();
+  assert.equal(video.paused, false, "it resumes when it comes back into view");
   cleanup();
 });
 

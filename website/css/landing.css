@@ -140,6 +140,18 @@
     display: none;
   }
 
+  /* While a loop runs the control becomes Pause and steps out of the frame's
+     centre — small, in the corner, but never faded or hidden, because a pause
+     mechanism the visitor cannot see is not a pause mechanism. */
+  [data-media-state="playing"] .media-play {
+    align-self: end;
+    justify-self: end;
+    margin: 14px;
+    min-height: 34px;
+    padding: 8px 13px;
+    font-size: 11px;
+  }
+
   .return-field figcaption {
     position: relative;
     z-index: 1;

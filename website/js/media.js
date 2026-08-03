@@ -25,6 +25,29 @@ export function initProductMedia(root = document, env = window) {
     return block.querySelector("[data-media-play]");
   }
 
+  /* WCAG 2.2.2: these loops start on their own and run past five seconds beside
+     the copy they illustrate, so the page owes the visitor a way to stop them.
+     The control is the same button that offers Play — it just tells the truth
+     about what pressing it will do, and stays reachable while the loop runs. */
+  function setControl(block, mode) {
+    const button = buttonFor(block);
+    if (!button || button.disabled) return;
+    if (mode === "gone") {
+      button.hidden = true;
+      return;
+    }
+    const label =
+      mode === "pause" ? button.dataset.labelPause : button.dataset.labelPlay;
+    if (label) button.textContent = label;
+    button.hidden = false;
+  }
+
+  /* A visitor who pauses has said something the scroll position must not
+     override, so intersection never resumes a deliberately paused loop. */
+  function heldByVisitor(block) {
+    return block.dataset.mediaPaused === "true";
+  }
+
   function attach(video) {
     if (video.src) return;
     video.src = chooseSource(video.dataset, mobile);
@@ -42,9 +65,10 @@ export function initProductMedia(root = document, env = window) {
     const video = block.querySelector("video");
     const button = buttonFor(block);
     if (!video || block.dataset.mediaState === "failed") return;
+    if (!explicit && heldByVisitor(block)) return;
     if (explicit || policy.attach) attach(video);
     if (!video.src) {
-      if (button) button.hidden = false;
+      if (button) setControl(block, "play");
       return;
     }
     if (!explicit && (
@@ -59,12 +83,23 @@ export function initProductMedia(root = document, env = window) {
         return;
       }
       block.dataset.mediaState = "playing";
-      if (button) button.hidden = true;
+      setControl(block, "pause");
     } catch {
       if (!active) return;
       block.dataset.mediaState = "blocked";
-      if (button) button.hidden = false;
+      setControl(block, "play");
     }
+  }
+
+  /* Pausing is never asynchronous and never fails, so it is stated plainly
+     rather than routed through the play() promise path. */
+  function pause(block, byVisitor) {
+    const video = block.querySelector("video");
+    if (!video || block.dataset.mediaState === "failed") return;
+    video.pause();
+    if (byVisitor) block.dataset.mediaPaused = "true";
+    block.dataset.mediaState = "paused";
+    setControl(block, "play");
   }
 
   function playWhenReady(block, video) {
@@ -103,10 +138,17 @@ export function initProductMedia(root = document, env = window) {
         button.disabled = true;
       }
     };
-    const onClick = () => void play(block, true);
+    const onClick = () => {
+      if (!video.paused) {
+        pause(block, true);
+        return;
+      }
+      delete block.dataset.mediaPaused;
+      void play(block, true);
+    };
     video.addEventListener("error", onError);
     button?.addEventListener("click", onClick);
-    if (!policy.autoplay && button) button.hidden = false;
+    if (!policy.autoplay && button) setControl(block, "play");
     cleanups.push(() => {
       video.removeEventListener("error", onError);
       button?.removeEventListener("click", onClick);
@@ -125,9 +167,9 @@ export function initProductMedia(root = document, env = window) {
         block.dataset.inView = String(entry.intersectionRatio >= 0.55);
         if (entry.intersectionRatio >= 0.55) {
           playWhenReady(block, video);
-        } else {
-          video.pause();
-          if (block.dataset.mediaState !== "failed") block.dataset.mediaState = "paused";
+        } else if (block.dataset.mediaState !== "failed") {
+          /* Scrolling away is not the visitor pausing, so it must not latch. */
+          pause(block, false);
         }
       });
     }, { rootMargin: "300px 0px", threshold: [0, 0.55] });

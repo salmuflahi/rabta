@@ -138,6 +138,68 @@ test("homepage uses the exact approved responsive section rhythm", async () => {
   }
 });
 
+/** WCAG relative luminance of a #rrggbb string. */
+function luminance(hex) {
+  const channel = (value) => {
+    const v = value / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const n = Number.parseInt(hex.slice(1), 16);
+  return (
+    0.2126 * channel((n >> 16) & 255) +
+    0.7152 * channel((n >> 8) & 255) +
+    0.0722 * channel(n & 255)
+  );
+}
+
+function contrast(a, b) {
+  const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (light + 0.05) / (dark + 0.05);
+}
+
+test("cool-mid is a display colour, and small text never uses it", async () => {
+  const petrol = "#102526";
+  const panel = "#173239";
+  const coolMid = "#66858c";
+  const coolSoft = "#a9bec2";
+
+  // The fact this whole rule rests on: cool-mid clears the 3:1 that text at
+  // 24px+ needs, but not the 4.5:1 that anything smaller needs.
+  assert.ok(contrast(coolMid, petrol) >= 3, "cool-mid is legible as display type");
+  assert.ok(
+    contrast(coolMid, petrol) < 4.5,
+    "cool-mid is NOT AA for small text — if this ever passes, revisit the rule",
+  );
+  assert.ok(contrast(coolMid, panel) < 4.5);
+
+  // Which is why every small register uses cool-soft instead.
+  assert.ok(contrast(coolSoft, petrol) >= 4.5);
+  assert.ok(contrast(coolSoft, panel) >= 4.5);
+
+  // And why the dark-on-light surfaces are safe.
+  assert.ok(contrast(petrol, "#d9e3e3") >= 4.5);
+  assert.ok(contrast(petrol, "#f3f0e8") >= 4.5);
+  assert.ok(contrast(petrol, "#ff6b2c") >= 4.5, "button label on the accent");
+
+  const doc = await readFile(resolve(SITE, "css/doc.css"), "utf8");
+  for (const selector of [
+    ".marker",
+    ".muted",
+    ".cmt",
+    ".note p",
+    ".prose th",
+    ".prose tbody th",
+    ".copy-status",
+    ".notfound__code",
+  ]) {
+    const body =
+      doc.match(
+        new RegExp(`\\${selector.replaceAll(" ", "\\s+")} \\{([\\s\\S]*?)\\n\\s*\\}`),
+      )?.[1] ?? "";
+    assert.doesNotMatch(body, /color:\s*var\(--text-3\)/, selector);
+  }
+});
+
 test("homepage metadata uses the approved contrast pairings", async () => {
   const landing = await readFile(resolve(SITE, "css/landing.css"), "utf8");
   const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");

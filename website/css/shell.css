@@ -508,7 +508,10 @@
   /* A second action in the same row as a primary one. Bordered rather than
      filled, because orange is spoken for and a page never has two of them. */
   .button--quiet {
-    border-color: rgba(169, 190, 194, 0.32);
+    /* 0.55, not 0.32: an outlined control's border IS its boundary, and at
+       0.32 it read 2.05:1 against petrol, under the 3:1 that SC 1.4.11 asks
+       of a UI component. 0.55 gives 3.48:1. */
+    border-color: rgba(169, 190, 194, 0.55);
     color: var(--ivory);
   }
 
@@ -529,7 +532,9 @@
     font-size: 14px;
     line-height: 1.4;
     text-decoration: none;
-    border-bottom: 1px solid rgba(169, 190, 194, 0.3);
+    /* This border replaces text-decoration, so it has to carry the whole
+       "this is a link" signal: 0.3 was 1.95:1 against petrol, 0.55 is 3.48:1. */
+    border-bottom: 1px solid rgba(169, 190, 194, 0.55);
   }
 
   .text-link:hover {
@@ -539,7 +544,7 @@
 
   .text-link--dark {
     color: var(--petrol);
-    border-bottom-color: rgba(16, 37, 38, 0.3);
+    border-bottom-color: rgba(16, 37, 38, 0.55);
   }
 
   .text-link--dark:hover {

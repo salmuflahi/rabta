@@ -1,12 +1,12 @@
 {
   "name": "Rabta",
   "short_name": "Rabta",
-  "description": "Save a task's whole workspace. Reopen it exactly.",
+  "description": "Workspace memory for macOS. Rabta keeps the files, terminals, browser tabs and Git branch around a task, and restores what it can when you return.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#081718",
-  "theme_color": "#081718",
+  "background_color": "#102526",
+  "theme_color": "#102526",
   "icons": [
     {
       "src": "/assets/brand/icon-192.png",

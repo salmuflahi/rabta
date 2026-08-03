@@ -43,6 +43,13 @@
 }
 
 @layer section {
+  /* --text-3 is cool-mid #66858c: 4.03:1 on petrol and 3.41:1 on cool-panel.
+     That clears AA for the 60px+ display spans it was designed for, but not
+     the 4.5:1 that text under 24px needs — so every small register below uses
+     --text-2 (cool-soft, 8.24:1 and 6.98:1). Colour is not what separates
+     these from body text; size and weight are.
+     ========================================================================== */
+
   .marker {
     position: sticky;
     /* Derived from the nav, not a literal: at 80px it tucked under the taller
@@ -53,7 +60,7 @@
     line-height: 18px;
     letter-spacing: var(--track-13);
     font-weight: 500;
-    color: var(--text-3);
+    color: var(--text-2);
     text-transform: lowercase;
   }
 
@@ -199,9 +206,12 @@
   }
 
   .prose a {
+    /* A link the same colour as the sentence around it, underlined at 1.5:1,
+       is not distinguishable by anything (SC 1.4.1). The underline is the only
+       differentiator these documents use, so it carries a real 3:1 weight. */
     color: var(--text-2);
     text-decoration: none;
-    border-bottom: 1px solid var(--hairline-strong);
+    border-bottom: 1px solid rgba(243, 240, 232, 0.42);
     transition: color var(--dur) var(--ease),
       border-color var(--dur) var(--ease);
   }
@@ -251,7 +261,7 @@
   }
 
   .cmt {
-    color: var(--text-3);
+    color: var(--text-2);
   }
 
   /* The checksum copy affordance. The button ships `hidden` and js/main.js
@@ -267,7 +277,9 @@
   .copy {
     min-height: 34px;
     padding: 7px 13px;
-    border: 1px solid var(--hairline-strong);
+    /* --hairline-strong is 1.5:1 on petrol, which is a hairline, not a
+       button boundary. A control has to reach 3:1 to read as pressable. */
+    border: 1px solid rgba(243, 240, 232, 0.42);
     border-radius: var(--r2);
     font-family: var(--mono);
     font-size: 12px;
@@ -285,11 +297,11 @@
     font-size: 13px;
     line-height: 18px;
     letter-spacing: var(--track-13);
-    color: var(--text-3);
+    color: var(--text-2);
   }
 
   .muted {
-    color: var(--text-3);
+    color: var(--text-2);
   }
 
   /* ---- table of contents ----------------------------------------------- */
@@ -312,7 +324,7 @@
     line-height: 18px;
     letter-spacing: var(--track-13);
     font-weight: 500;
-    color: var(--text-3);
+    color: var(--text-2);
   }
 
   .toc ol {
@@ -356,7 +368,7 @@
     font-size: 15px;
     line-height: 24px;
     letter-spacing: var(--track-15);
-    color: var(--text-3);
+    color: var(--text-2);
   }
 
   .note p:first-child {
@@ -385,7 +397,7 @@
     line-height: 18px;
     letter-spacing: var(--track-13);
     font-weight: 500;
-    color: var(--text-3);
+    color: var(--text-2);
     text-align: left;
     vertical-align: top;
   }
@@ -398,7 +410,7 @@
   }
 
   .prose tbody th {
-    color: var(--text-3);
+    color: var(--text-2);
     white-space: nowrap;
   }
 
@@ -413,7 +425,7 @@
     font-family: var(--mono);
     font-size: 12px;
     letter-spacing: var(--track-mono);
-    color: var(--text-3);
+    color: var(--text-2);
     margin-bottom: var(--s5);
   }
 
