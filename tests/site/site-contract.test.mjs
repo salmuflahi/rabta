@@ -200,6 +200,109 @@ test("cool-mid is a display colour, and small text never uses it", async () => {
   }
 });
 
+/** Every selector list in a stylesheet, paired with its declaration block. */
+async function rulesOf(file) {
+  const css = await readFile(resolve(SITE, file), "utf8");
+  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  return [...stripped.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((match) => ({
+    selector: match[1].replace(/\s+/g, " ").trim(),
+    body: match[2],
+  }));
+}
+
+const STYLESHEETS = [
+  "css/tokens.css",
+  "css/shell.css",
+  "css/landing.css",
+  "css/doc.css",
+  "css/receipt-fold.css",
+];
+
+test("nothing on the site responds to a mouse but not to a keyboard", async () => {
+  // The single rule the hover system exists to hold: a keyboard user gets the
+  // same feedback a pointer user gets, or the feedback does not ship.
+  for (const file of STYLESHEETS) {
+    const rules = await rulesOf(file);
+    const selectors = rules.map((rule) => rule.selector).join(" | ");
+
+    for (const rule of rules) {
+      for (const part of rule.selector.split(",")) {
+        const trimmed = part.trim();
+        if (!trimmed.includes(":hover")) continue;
+        const partner = trimmed.replace(/:hover/g, ":focus-visible");
+        assert.ok(
+          selectors.includes(partner),
+          `${file}: "${trimmed}" has no ":focus-visible" counterpart`,
+        );
+      }
+    }
+  }
+});
+
+test("hover motion runs on one duration and one curve", async () => {
+  const tokens = await readFile(resolve(SITE, "css/tokens.css"), "utf8");
+  assert.match(tokens, /--hover-dur:\s*180ms/);
+  assert.match(tokens, /--cut-skew:\s*-18deg/);
+
+  const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");
+
+  // The sweep waits off the leading edge and lands flush; the diagonal is its
+  // front face, so the fold's geometry appears in motion and never as shape.
+  const rest = shell.match(/\.sweep::before \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+  assert.match(rest, /transform:\s*translateX\(-130%\) skewX\(var\(--cut-skew\)\)/);
+  assert.match(rest, /transition:\s*transform var\(--hover-dur\) var\(--ease-out\)/);
+
+  const landed = shell.match(
+    /\.sweep:hover::before,\s*\.sweep:focus-visible::before \{([\s\S]*?)\n\s*\}/,
+  )?.[1] ?? "";
+  assert.match(landed, /transform:\s*translateX\(0\) skewX\(var\(--cut-skew\)\)/);
+
+  // No hover rule may invent its own timing.
+  for (const file of ["css/shell.css", "css/landing.css", "css/doc.css"]) {
+    const rules = await rulesOf(file);
+    for (const rule of rules) {
+      if (!/transition/.test(rule.body)) continue;
+      // `0.01ms` is the reduced-motion collapse, not a hand-picked duration.
+      const literal = rule.body.match(/transition[^;]*?(?<![\d.])(\d+)ms/);
+      assert.ok(
+        !literal,
+        `${file}: "${rule.selector}" hard-codes ${literal?.[1]}ms instead of a token`,
+      );
+    }
+  }
+});
+
+test("the current route is marked in the nav, not just in the markup", async () => {
+  const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");
+  const rule =
+    shell.match(
+      /\.nav__links a\[aria-current="page"\]::after \{([\s\S]*?)\n\s*\}/,
+    )?.[1] ?? "";
+
+  assert.match(rule, /transform:\s*scaleX\(1\)/);
+  assert.match(rule, /transition:\s*none/, "the indicator is a state, not a gesture");
+
+  // And the attribute it depends on is actually on the document routes.
+  for (const route of ["/setup/", "/privacy/"]) {
+    const html = await readRoute(route);
+    const nav = html.match(/<nav class="nav__links"[\s\S]*?<\/nav>/)?.[0] ?? "";
+    assert.equal((nav.match(/aria-current="page"/g) ?? []).length, 1, route);
+  }
+});
+
+test("chapter marks are drawn at rest, so a script failure cannot hide them", async () => {
+  const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");
+  const mark = shell.match(/\.eyebrow::before \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+
+  // No transform in the resting rule means scaleX(1) — visible by default.
+  assert.doesNotMatch(mark, /transform:\s*scaleX\(0\)/);
+  assert.match(shell, /\[data-reveal="pending"\] \.eyebrow::before \{\s*transform:\s*scaleX\(0\)/);
+
+  const reveal = await readFile(resolve(SITE, "js/reveal.js"), "utf8");
+  assert.match(reveal, /dataset\.reveal = "pending"/);
+  assert.match(reveal, /IntersectionObserver/);
+});
+
 test("homepage metadata uses the approved contrast pairings", async () => {
   const landing = await readFile(resolve(SITE, "css/landing.css"), "utf8");
   const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");

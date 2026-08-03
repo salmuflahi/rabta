@@ -25,6 +25,29 @@ export function initProductMedia(root = document, env = window) {
     return block.querySelector("[data-media-play]");
   }
 
+  /* The loop's real position, reported rather than decorated: it says the loop
+     is eight seconds and not an endless gif, and it gives the Pause control a
+     context. Hidden until a source exists, so a data-saver or scriptless
+     visitor is never shown an empty gauge. */
+  function trackFor(block) {
+    return block.querySelector("[data-media-track]");
+  }
+
+  function drawTrack(block, video) {
+    const track = trackFor(block);
+    if (!track) return;
+    const fill = track.firstElementChild;
+    if (!video.src || !Number.isFinite(video.duration) || video.duration <= 0) {
+      track.hidden = true;
+      return;
+    }
+    track.hidden = false;
+    if (fill) {
+      const ratio = Math.min(1, Math.max(0, video.currentTime / video.duration));
+      fill.style.width = `${(ratio * 100).toFixed(2)}%`;
+    }
+  }
+
   /* WCAG 2.2.2: these loops start on their own and run past five seconds beside
      the copy they illustrate, so the page owes the visitor a way to stop them.
      The control is the same button that offers Play — it just tells the truth
@@ -133,11 +156,17 @@ export function initProductMedia(root = document, env = window) {
       video.pause();
       video.removeAttribute("src");
       block.dataset.mediaState = "failed";
+      const track = trackFor(block);
+      if (track) track.hidden = true;
       if (button) {
         button.hidden = true;
         button.disabled = true;
       }
     };
+    const onProgress = () => drawTrack(block, video);
+    video.addEventListener("timeupdate", onProgress);
+    video.addEventListener("loadedmetadata", onProgress);
+
     const onClick = () => {
       if (!video.paused) {
         pause(block, true);
@@ -151,6 +180,8 @@ export function initProductMedia(root = document, env = window) {
     if (!policy.autoplay && button) setControl(block, "play");
     cleanups.push(() => {
       video.removeEventListener("error", onError);
+      video.removeEventListener("timeupdate", onProgress);
+      video.removeEventListener("loadedmetadata", onProgress);
       button?.removeEventListener("click", onClick);
     });
   });

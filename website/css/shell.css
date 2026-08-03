@@ -320,70 +320,11 @@
    ========================================================================== */
 
 @layer component {
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    height: 48px;
-    padding-inline: var(--s5);
-    border-radius: var(--r2);
-    border: 1px solid transparent;
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: -0.17px;
-    text-decoration: none;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: background-color var(--dur) var(--ease),
-      border-color var(--dur) var(--ease), color var(--dur) var(--ease);
-  }
-
-  .btn svg {
-    width: 16px;
-    height: 16px;
-    flex: none;
-  }
-
-  /* Accent instances #1, #2 and #5. There are no others. */
-  .btn--accent {
-    background: var(--accent);
-    color: var(--ink-on-accent);
-  }
-
-  .btn--accent:hover {
-    background: var(--orange);
-  }
-
-  .btn--quiet {
-    color: var(--text-1);
-    border-color: var(--hairline-strong);
-  }
-
-  .btn--quiet:hover {
-    border-color: var(--text-3);
-  }
-
-  .btn--sm {
-    height: 40px;
-    padding-inline: var(--s4);
-  }
-
-  /* A link that is a target gets an underline offset far enough to read, and
-     never an accent colour — the accent is capped and spoken for. */
-  .link {
-    color: var(--text-2);
-    text-decoration: none;
-    border-bottom: 1px solid var(--hairline-strong);
-    padding-bottom: 1px;
-    transition: color var(--dur) var(--ease),
-      border-color var(--dur) var(--ease);
-  }
-
-  .link:hover {
-    color: var(--text-1);
-    border-bottom-color: var(--text-3);
-  }
+  /* The .btn/.link family that used to live here is gone. It was the document
+     chrome's button system, superseded by .button and .text-link, matched by
+     nothing on any route, and — being pre-sweep — it was the one family with
+     hover states and no keyboard equivalent. Two button systems in one
+     stylesheet is how a page ends up with two answers to the same question. */
 
   /* No border-radius here: an outline already follows its element's own
      radius, and setting radius in a focus rule mutates the ELEMENT's shape
@@ -442,6 +383,28 @@
 }
 
 @layer type {
+  /* Every chapter opens with an index mark, the way an instrument marks a
+     scale. It is drawn at rest, so a page without JavaScript has all of them;
+     js/reveal.js only takes over the drawing. */
+  .eyebrow::before {
+    content: "";
+    display: block;
+    width: 28px;
+    height: 2px;
+    margin-bottom: 14px;
+    background: var(--cool-mid);
+    transform-origin: left;
+  }
+
+  [data-reveal="pending"] .eyebrow::before {
+    transform: scaleX(0);
+  }
+
+  [data-reveal="shown"] .eyebrow::before {
+    transform: scaleX(1);
+    transition: transform var(--mark-dur) var(--ease-out);
+  }
+
   .eyebrow {
     color: var(--cool-soft);
     font-family: var(--mono);
@@ -471,6 +434,79 @@
 }
 
 @layer component {
+  /* ---- the cut -------------------------------------------------------------
+     The site's geometry is a 45-degree cut. The Return Receipt turns that cut
+     over, and that gesture stays reserved. Everything interactive draws it
+     instead: a skewed block waiting off the leading edge, translated to rest on
+     hover and on focus. The diagonal is the sweep's front face, so the fold's
+     geometry appears in motion without any element gaining the fold's shape.
+
+     Written on one class so the whole site cannot drift, and always paired with
+     :focus-visible — there is no mouse-only feedback anywhere here.
+     ------------------------------------------------------------------------ */
+
+  .sweep {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .sweep::before {
+    content: "";
+    position: absolute;
+    /* Inset past the edges so the skew's corners never expose the resting
+       surface at the ends of the travel. */
+    inset: -2px -35%;
+    z-index: -1;
+    background: var(--sweep, transparent);
+    transform: translateX(-130%) skewX(var(--cut-skew));
+    transition: transform var(--hover-dur) var(--ease-out);
+  }
+
+  .sweep:hover::before,
+  .sweep:focus-visible::before {
+    transform: translateX(0) skewX(var(--cut-skew));
+  }
+
+  /* The underline sweep. On a 1px bar the diagonal is imperceptible, so links
+     share the system's direction and timing rather than its geometry. */
+  .sweep-line,
+  :where(.nav__links, .foot__links, .download__links, .toc) a {
+    position: relative;
+  }
+
+  .sweep-line::after,
+  :where(.nav__links, .foot__links, .download__links, .toc) a::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: -2px;
+    left: 0;
+    height: 1px;
+    background: var(--orange);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--hover-dur) var(--ease-out);
+  }
+
+  .sweep-line:hover::after,
+  .sweep-line:focus-visible::after,
+  :where(.nav__links, .foot__links, .download__links, .toc) a:hover::after,
+  :where(.nav__links, .foot__links, .download__links, .toc) a:focus-visible::after {
+    transform: scaleX(1);
+  }
+
+  /* You are here. The attribute already ships on the document routes and had
+     no visual expression at all, so the markup and the design disagreed. */
+  .nav__links a[aria-current="page"] {
+    color: var(--ivory);
+  }
+
+  .nav__links a[aria-current="page"]::after {
+    transform: scaleX(1);
+    transition: none;
+  }
+
   .button {
     display: inline-flex;
     min-height: 50px;
@@ -484,25 +520,34 @@
     font-weight: 560;
     line-height: 1;
     text-decoration: none;
-    transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out), transform 140ms var(--ease-out);
+    transition: border-color var(--hover-dur) var(--ease-out),
+      color var(--hover-dur) var(--ease-out),
+      transform var(--hover-dur) var(--ease-out);
   }
 
   .button svg {
     width: 18px;
     height: 18px;
+    transition: transform var(--hover-dur) var(--ease-out);
   }
 
-  .button:hover {
+  .button:hover,
+  .button:focus-visible {
     transform: translateY(-1px);
   }
 
-  .button--primary {
-    background: var(--orange);
-    color: var(--ink-on-orange);
+  /* The arrow depicts the action rather than decorating the button. */
+  .button--primary:hover svg,
+  .button--primary:focus-visible svg {
+    transform: translateY(2px);
   }
 
-  .button--primary:hover {
+  .button--primary {
+    /* Ivory over orange lightens the surface, so the petrol label's contrast
+       rises across the sweep rather than falling. */
+    --sweep: rgba(243, 240, 232, 0.22);
     background: var(--orange);
+    color: var(--ink-on-orange);
   }
 
   /* A second action in the same row as a primary one. Bordered rather than
@@ -515,7 +560,12 @@
     color: var(--ivory);
   }
 
-  .button--quiet:hover {
+  .button--quiet {
+    --sweep: var(--cool-panel);
+  }
+
+  .button--quiet:hover,
+  .button--quiet:focus-visible {
     border-color: var(--cool-soft);
   }
 
@@ -537,7 +587,8 @@
     border-bottom: 1px solid rgba(169, 190, 194, 0.55);
   }
 
-  .text-link:hover {
+  .text-link:hover,
+  .text-link:focus-visible {
     color: var(--ivory);
     border-bottom-color: var(--cool-soft);
   }
@@ -547,7 +598,8 @@
     border-bottom-color: rgba(16, 37, 38, 0.55);
   }
 
-  .text-link--dark:hover {
+  .text-link--dark:hover,
+  .text-link--dark:focus-visible {
     color: var(--cool-panel);
     border-bottom-color: var(--petrol);
   }
@@ -600,7 +652,8 @@
     text-decoration: none;
   }
 
-  .nav__links a:hover {
+  .nav__links a:hover,
+  .nav__links a:focus-visible {
     color: var(--ivory);
   }
 
@@ -640,7 +693,8 @@
     text-decoration: none;
   }
 
-  .foot__links a:hover {
+  .foot__links a:hover,
+  .foot__links a:focus-visible {
     color: var(--ivory);
   }
 
@@ -695,11 +749,14 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .button {
-      transition: none;
-    }
-
-    .button:hover {
+    /* The sweep needs no special case: the global rule above collapses every
+       transition to 0.01ms, and the sweep's rest position IS the hover
+       appearance — the feedback survives, only the travel goes. Movement that
+       carries no state is what actually has to stop. */
+    .button:hover,
+    .button:focus-visible,
+    .button--primary:hover svg,
+    .button--primary:focus-visible svg {
       transform: none;
     }
   }

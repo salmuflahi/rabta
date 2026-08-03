@@ -119,6 +119,16 @@
     /* ---- motion --------------------------------------------------------- */
     --dur: 120ms;
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    /* One duration and one curve for every hover on the site, so the feedback
+       cannot drift the way per-rule values already had. */
+    --hover-dur: 180ms;
+    /* The sweep's leading edge. Shallower than the fold's 45° because a
+       button is wider than it is tall — this is what reads as 45° across a
+       50px control. */
+    --cut-skew: -18deg;
+    /* A chapter mark is drawn once on entry, not toggled — slower than a
+       hover so it reads as an opening rather than a response. */
+    --mark-dur: 420ms;
     --fold-duration: 520ms;
     --fold-delay: 100ms;
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);

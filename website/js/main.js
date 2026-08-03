@@ -2,6 +2,7 @@
 
 import { initProductMedia } from "./media.js";
 import { initReceiptFolds } from "./receipt-fold.js";
+import { initChapterMarks } from "./reveal.js";
 
 /**
  * The checksum copy control. It is `hidden` in the markup and revealed here,
@@ -56,6 +57,7 @@ function boot() {
   safely("copy", initCopy);
   safely("media", initProductMedia);
   safely("receipt", initReceiptFolds);
+  safely("chapter marks", initChapterMarks);
 }
 
 if (document.readyState === "loading") {

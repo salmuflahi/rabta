@@ -216,9 +216,10 @@
       border-color var(--dur) var(--ease);
   }
 
-  .prose a:hover {
+  .prose a:hover,
+  .prose a:focus-visible {
     color: var(--text-1);
-    border-bottom-color: var(--text-3);
+    border-bottom-color: var(--orange);
   }
 
   /* ---- machine data ---------------------------------------------------- */
@@ -289,8 +290,14 @@
     transition: border-color var(--dur) var(--ease);
   }
 
-  .copy:hover {
-    border-color: var(--text-3);
+  .copy {
+    --sweep: var(--cool-panel);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .copy:hover,
+  .copy:focus-visible {
+    border-color: var(--cool-soft);
   }
 
   .copy-status {
@@ -350,7 +357,8 @@
     color: var(--text-2);
   }
 
-  .toc a:hover {
+  .toc a:hover,
+  .toc a:focus-visible {
     color: var(--text-1);
     border: 0;
   }
