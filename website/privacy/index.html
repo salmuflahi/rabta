@@ -101,8 +101,10 @@
       Rabta stores what it needs on your own Mac and nowhere else. It has no
       backend to send data to, collects no analytics, and requires no account.
       The only times anything leaves your machine are things you start yourself:
-      downloading the app or extension from their hosts, and the optional GitHub
-      features, which run your own <code>gh</code> command-line tool.
+      downloading the app or extension from their hosts, the optional GitHub
+      features, which run your own <code>gh</code> command-line tool, and the
+      Git menu's Fetch, which runs your own <code>git</code> binary against the
+      remote your repository already points at.
     </p>
 
     <h2 id="account">Accounts</h2>
@@ -261,10 +263,17 @@
     <p>
       When you use it, <code>gh</code> contacts GitHub on your behalf with your
       existing GitHub credentials. Rabta never sees, stores or transmits those
-      credentials. This is the one part of the app where something you do in it
-      can produce a network request to a third party, so it is worth knowing
-      about — even though the request is made by a tool you installed and logged
-      into yourself.
+      credentials. This and the Git menu's Fetch are the two places where
+      something you do in the app can produce a network request to a third
+      party, so both are worth knowing about — even though each request is made
+      by a tool you installed and configured yourself.
+    </p>
+
+    <p>
+      Fetch runs <code>git fetch --all</code>, which contacts the remote your
+      repository already points at and updates its remote-tracking refs. It
+      never merges, and it sends nothing about your machine that a
+      <code>git fetch</code> you typed yourself would not.
     </p>
 
     <h2 id="website">This website</h2>

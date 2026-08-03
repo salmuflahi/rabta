@@ -100,7 +100,10 @@
       <li><strong>An editor Rabta can connect to:</strong> Cursor, VSCodium,
         Windsurf or VS Code.</li>
       <li><strong>A git repository</strong> you want to work in. Rabta reads its
-        path and branch; it never modifies your files.</li>
+        path and branch, and never writes to your files itself. The one thing
+        that changes your working tree is the branch switch Resume performs,
+        and it stops rather than force one — see
+        <a href="#first-capsule">section 7</a>.</li>
     </ul>
 
     <p>
@@ -483,7 +486,7 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
     </p>
 
     <p>
-      <strong>Settings › Advanced › Developer mode</strong> reveals the raw
+      <strong>Settings › Developer › Developer mode</strong> reveals the raw
       connector-command console if you want to watch the wire traffic directly.
     </p>
 
