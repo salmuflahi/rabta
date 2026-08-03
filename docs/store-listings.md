@@ -41,6 +41,14 @@ manifests (see `docs/RELEASE.md` §0).
 **Privacy:** single purpose — "Capture and restore browser tabs as part of a
 local task workspace for the Rabta desktop app." No remote data collection.
 
+**Privacy policy URL** (required by the Web Store form, and by the Open VSX /
+Marketplace listings where a field exists):
+<https://rabta.build/privacy/>
+
+> This replaces the old externally-hosted policy. If the Chrome Web Store item
+> still points at the previous URL, update it in the developer dashboard — the
+> page it referenced is no longer the canonical policy.
+
 ---
 
 ## VS Code Marketplace / Open VSX — "Rabta Connector"
@@ -72,13 +80,23 @@ serves **Cursor / VSCodium / Windsurf**.
 
 ---
 
-## Notes before publishing
+## Status & notes
 
-- `connectors/vscode/package.json` is missing `repository`, `icon`, and a README
-  link — Marketplace/Open VSX listings look bare without them. Add a
-  `repository` URL once the code is hosted, and a 128×128 `icon` PNG; the README
-  is added (`connectors/vscode/README.md`).
-- The Chrome item gets a **new Store-assigned extension ID** distinct from the
-  unpacked dev ID — fine (pairing is approved per-connector), but add a `"key"`
-  to `connectors/chrome/manifest.json` first if you want a stable ID across
-  dev and prod.
+- **Open VSX:** ✅ published — `rabta-connect.rabta-vscode` 0.1.0:
+  <https://open-vsx.org/extension/rabta-connect/rabta-vscode> (serves Cursor /
+  VSCodium / Windsurf).
+- **Chrome Web Store:** ⏳ pending review — item "Rabta Connector", **Store id
+  `aaombpafbhjkoinppogieaclijddlebo`**, publisher `rabta-connect`. The older item
+  under a prior account (id `eglannhohnfalopddjbjhgiimeblmgbj`) is **obsolete** —
+  do not link or resubmit it. Rabta hardcodes **no** Store id (the hub accepts
+  valid `chrome-extension://` origins and pairing is approved in-app per
+  connector), so the new id needs no code change.
+- **VS Code Marketplace (Microsoft):** not yet published (Azure DevOps PAT
+  blocker). Don't claim Marketplace publication anywhere until it's live.
+- **Website / download:** <https://rabta.build/> · DMG
+  <https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg>
+  (SHA-256 `3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655`).
+- `connectors/vscode/package.json` still lacks `repository`/`icon` — Marketplace
+  listings look bare without them. A public `repository` URL now exists (the
+  website repo, `salmuflahi/rabta`) if you want to add it in a future 0.1.1
+  (don't republish 0.1.0 to Open VSX just for this — see RELEASE.md).

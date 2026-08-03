@@ -3,14 +3,31 @@
 The exact steps to cut a signed, distributable Rabta release. Everything here
 is **packaging/credentials** — none of it changes app code.
 
-Current state: builds are **unsigned / sideload-only** (see `docs/INSTALL.md`).
-The gap to a public release is the three developer accounts below plus the
-mechanical steps to use them.
+**Current state (v0.1.0):** the macOS app is **signed, notarized, and publicly
+hosted**; the editor extension is **published to Open VSX**; the Chrome
+extension is **submitted and pending Web Store review**. The only remaining
+channel is the Microsoft VS Code Marketplace.
 
-- **macOS desktop:** Apple Developer Program — **$99/yr**
-- **Chrome extension:** Chrome Web Store developer account — **$5 one-time**
-- **VS Code / Cursor extension:** VS Code Marketplace publisher (free) **and**
-  Open VSX (free — this is what **Cursor** installs from, not the MS Marketplace)
+| Channel | State |
+|---|---|
+| macOS DMG | ✅ Signed (Developer ID `86M2X6MUA3`), notarized, stapled, hosted |
+| Open VSX (Cursor / VSCodium / Windsurf) | ✅ Published — `rabta-connect.rabta-vscode` 0.1.0 |
+| Chrome Web Store | ⏳ Pending review — "Rabta Connector", id `aaombpafbhjkoinppogieaclijddlebo` |
+| VS Code Marketplace (Microsoft) | ❌ Not published (blocked on Azure DevOps PAT) |
+| Trader / account verification (Google) | ⏳ Pending |
+
+**Public downloads**
+- Website: <https://rabta.build/>
+- Direct DMG: <https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg>
+- SHA-256: `3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655`
+
+The developer accounts this required (for reference):
+
+- **macOS desktop:** Apple Developer Program — **$99/yr** — done
+- **Chrome extension:** Chrome Web Store developer account — **$5 one-time** (adult-owned account) — submitted, pending review
+- **VS Code / Cursor extension:** Open VSX (free — this is what **Cursor**
+  installs from, not the MS Marketplace) — **done**; the MS VS Code Marketplace
+  publisher (free) exists but is **not yet published** (Azure DevOps PAT blocker)
 
 Repo facts this checklist assumes:
 - App: `apps/desktop`, productName **Rabta**, bundle id **`com.omnibus.dev`**,
@@ -48,9 +65,45 @@ Repo facts this checklist assumes:
   `"version": "0.1.0"` is a test-assertion value, not a release version.
 - [ ] Tag intent (don't push the tag until artifacts verify): choose `vX.Y.Z`.
 
+### Brand assets
+
+Every icon, favicon and social image in the repo is generated from one vector
+source, `website/assets/brand/rabta-mark.svg`. Nothing brand-related is hand-
+edited as a raster. Regenerate after any change to the mark:
+
+```sh
+python3 scripts/generate-brand-assets.py
+```
+
+That writes the website favicon set and web-app icons, the Tauri bundle icons
+(`.png`/`.ico`/`.icns`), the Chrome and VS Code connector icons, the `-primary`
+and `-mono` colourways, and the 1200x630 social card (composed from
+`website/assets/brand/og-card.html`, rendered with headless Chrome). Requires
+macOS `sips` + `iconutil`; no third-party imaging libraries.
+
+The script has no fallback artwork: if the source SVG is missing it exits
+rather than drawing anything, so it cannot resurrect the pre-0.1.0 navy/sky
+circular icon that the deleted `scripts/make-icon.py` produced.
+
+### Website screenshots
+
+Product screenshots on rabta.build are captured from the real app frontend
+against a mocked Tauri bridge with a frozen fixture — see
+[`apps/desktop/capture/README.md`](../apps/desktop/capture/README.md):
+
+```sh
+cd apps/desktop && node capture/capture.mjs   # real UI, deterministic demo data
+python3 scripts/optimize-shots.py             # AVIF/WebP/PNG responsive set
+```
+
 ---
 
 ## 1. macOS — sign + notarize the desktop app
+
+> ✅ **Done for 0.1.0.** Signed with `Developer ID Application: sammy almuflahi
+> (86M2X6MUA3)`, notarized (submission accepted), stapled, and verified —
+> `codesign`/`hdiutil verify`/`stapler validate`/`spctl` all pass on the freshly
+> downloaded DMG. The steps below are the repeatable recipe for the next build.
 
 **One-time setup**
 - [ ] Enroll in the Apple Developer Program ($99/yr).
@@ -103,6 +156,12 @@ pnpm --dir apps/desktop tauri build --bundles app dmg
 
 ## 2. Chrome — publish the extension
 
+> ⏳ **Submitted, pending review.** Adult-owned publisher `rabta-connect`; item
+> "Rabta Connector", Store id `aaombpafbhjkoinppogieaclijddlebo`. Do not edit or
+> resubmit while under review unless there's an actual rejection. An older item
+> under a prior account (id `eglannhohnfalopddjbjhgiimeblmgbj`) is **obsolete** —
+> not the current submission.
+
 - [ ] Register a Chrome Web Store developer account ($5 one-time).
 - [ ] Build the zip: `pnpm --filter rabta-chrome build` then use
       `dist-artifacts/rabta-chrome-<ver>.zip` (or `./scripts/package.sh`).
@@ -130,7 +189,11 @@ before first upload.
 Publish to **both** registries — the MS Marketplace serves VS Code; **Cursor,
 VSCodium, and Windsurf install from Open VSX.**
 
-**Marketplace (VS Code)**
+**Marketplace (VS Code)** — ❌ **not published.** The `rabta-connect` publisher
+page exists, but publishing is blocked on Azure DevOps personal-access-token
+creation (the Azure signup card check rejected a prepaid card). Deferred — Open
+VSX already serves Cursor / VSCodium / Windsurf. An adult-owned Azure account
+may be used later, as with Chrome.
 - [ ] Create an Azure DevOps org and a **publisher** whose id matches
       `connectors/vscode/package.json` → `"publisher": "rabta-connect"` (or change
       the manifest to a publisher id you own).
@@ -145,7 +208,7 @@ VSCodium, and Windsurf install from Open VSX.**
       (`package.sh` already handles the Node-≥20 selection when it only
       *packages* the `.vsix`; publishing needs the same Node.)
 
-**Open VSX (Cursor)**
+**Open VSX (Cursor)** — ✅ **published**: <https://open-vsx.org/extension/rabta-connect/rabta-vscode>
 - [ ] Create an Open VSX account (open-vsx.org) + access token; create the
       `rabta-connect` namespace once (`npx ovsx create-namespace rabta-connect -p <token>`).
 - [ ] Publish the same `.vsix`:
@@ -166,11 +229,11 @@ VSCodium, and Windsurf install from Open VSX.**
       version.
 - [ ] Re-run the macOS verify steps (§1) on the freshly built DMG.
 - [ ] Commit the version bumps + any config/doc changes; tag `vX.Y.Z`.
-- [ ] Publish the signed DMG (GitHub Release, download page, etc.). The store
+- [x] Publish the signed DMG — hosted as a GitHub Release asset at
+      <https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg>,
+      linked from the website <https://rabta.build/>. The store
       listings (Chrome / Marketplace / Open VSX) are the extension delivery.
-- [ ] Flip `docs/INSTALL.md`: the "unsigned / sideload" framing and the
-      "Signed / store distribution (not done)" section should now describe the
-      real signed install path + store links.
+- [x] `docs/INSTALL.md` now describes the real signed install path + store links.
 
 ---
 

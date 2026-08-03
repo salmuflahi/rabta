@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rabta — capture</title>
+    <style>
+      /* The app locks its own frame to the viewport; this just guarantees a
+         seamless background behind it before React paints, so no white flash
+         can land in a screenshot. */
+      html, body { margin: 0; background: #081718; }
+
+      /* Mobile demo assets are a real narrow workspace crop: the 280px app
+         sidebar remains laid out just left of the viewport while the 390px
+         workspace occupies the capture rectangle. Nothing is scaled. */
+      html[data-demo-variant="mobile"] #root {
+        position: relative;
+        left: -280px;
+        width: 670px;
+      }
+      html[data-demo-variant="mobile"] main { padding: 16px; }
+      html[data-demo-variant="mobile"] .card-lift > div {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      html[data-demo-variant="mobile"] .card-lift > div > div:last-child {
+        justify-content: flex-start;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

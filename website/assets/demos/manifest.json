@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "fixture": {
+    "taskId": "task_reconnect",
+    "taskTitle": "Wire the connector SDK reconnect",
+    "project": "atlas-api",
+    "files": 4,
+    "terminals": 3,
+    "browserTabs": 5,
+    "branch": "feat/connector-reconnect",
+    "finalLabel": "Workspace partially restored",
+    "restoreResult": {
+      "VS Code": "Restored",
+      "Chrome": "On next reload",
+      "Git": "Restored"
+    }
+  },
+  "videos": [
+    {
+      "file": "hero-return-desktop.m4v",
+      "demo": "hero-return",
+      "variant": "desktop",
+      "durationSeconds": 8,
+      "width": 1280,
+      "height": 720,
+      "bytes": 684144,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "hero-return.png"
+    },
+    {
+      "file": "hero-return-mobile.m4v",
+      "demo": "hero-return",
+      "variant": "mobile",
+      "durationSeconds": 7.833333333333333,
+      "width": 390,
+      "height": 700,
+      "bytes": 289954,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "hero-return.png"
+    },
+    {
+      "file": "honest-return-desktop.m4v",
+      "demo": "honest-return",
+      "variant": "desktop",
+      "durationSeconds": 5,
+      "width": 1280,
+      "height": 720,
+      "bytes": 375110,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "honest-return.png"
+    },
+    {
+      "file": "honest-return-mobile.m4v",
+      "demo": "honest-return",
+      "variant": "mobile",
+      "durationSeconds": 4.8,
+      "width": 390,
+      "height": 700,
+      "bytes": 154817,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "honest-return.png"
+    }
+  ],
+  "posters": [
+    {
+      "file": "hero-return.png",
+      "width": 2560,
+      "height": 1440,
+      "bytes": 401914
+    },
+    {
+      "file": "honest-return.png",
+      "width": 2560,
+      "height": 1440,
+      "bytes": 396399
+    }
+  ]
+}

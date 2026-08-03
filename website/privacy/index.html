@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>Privacy policy — Rabta</title>
+<meta name="description" content="Rabta's privacy policy: no account, no cloud, no telemetry, no crash reporting and no update checks. Exactly what is stored on your machine, what the connectors reach, and what this website does and does not collect." />
+<link rel="canonical" href="https://rabta.build/privacy/" />
+<meta name="theme-color" content="#102526" />
+<meta name="color-scheme" content="dark" />
+
+<link rel="icon" href="/favicon.ico" sizes="32x32" />
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Rabta" />
+<meta property="og:url" content="https://rabta.build/privacy/" />
+<meta property="og:title" content="Privacy policy — Rabta" />
+<meta property="og:description" content="No account, no cloud, no telemetry. Exactly what Rabta stores on your machine and what its connectors can reach." />
+<meta property="og:image" content="https://rabta.build/assets/brand/og-cover.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-latin-variable.woff2" crossorigin />
+<link rel="stylesheet" href="/css/tokens.css" />
+<link rel="stylesheet" href="/css/shell.css" />
+<link rel="stylesheet" href="/css/doc.css" />
+<link rel="stylesheet" href="/css/receipt-fold.css" />
+<script type="module" src="/js/main.js"></script>
+</head>
+
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="rail nav__inner">
+    <a class="brand" href="/" aria-label="Rabta — home">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="14" fill="#102526" />
+        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+      </svg>
+      <span>Rabta</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="/#how-it-works">How it works</a>
+      <a href="/privacy/" aria-current="page">Privacy</a>
+      <a href="/setup/">Setup</a>
+    </nav>
+
+    <a class="button button--small button--primary sweep nav__download" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+  <div class="wrap railed page-head">
+    <div><span class="marker">Privacy</span></div>
+    <div>
+    <h1>Privacy policy</h1>
+    <p class="lede">
+      Rabta is a local-first desktop tool. There is no Rabta server, no account
+      and no telemetry — so most of this policy describes things that do not
+      happen, and is precise about where the exceptions are.
+    </p>
+    <p class="mono muted">
+      Effective 29 July 2026 · Applies to Rabta 0.1.0 and rabta.build
+    </p>
+    </div>
+  </div>
+
+  <div class="wrap railed">
+    <div></div>
+    <div class="prose">
+
+    <nav class="toc" aria-labelledby="toc-title">
+      <p id="toc-title">On this page</p>
+      <ol>
+        <li><a href="#summary">The short version</a></li>
+        <li><a href="#account">Accounts</a></li>
+        <li><a href="#local">What Rabta stores on your machine</a></li>
+        <li><a href="#code">Your source code</a></li>
+        <li><a href="#connectors">Connectors and their permissions</a></li>
+        <li><a href="#telemetry">Telemetry, crash reports, update checks</a></li>
+        <li><a href="#github">Optional GitHub features</a></li>
+        <li><a href="#website">This website</a></li>
+        <li><a href="#thirdparty">Third parties you may reach</a></li>
+        <li><a href="#control">Deleting and moving your data</a></li>
+        <li><a href="#changes">Changes to this policy</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ol>
+    </nav>
+
+    <h2 id="summary">The short version</h2>
+
+    <p>
+      Rabta stores what it needs on your own Mac and nowhere else. It has no
+      backend to send data to, collects no analytics, and requires no account.
+      The only times anything leaves your machine are things you start yourself:
+      downloading the app or extension from their hosts, the optional GitHub
+      features, which run your own <code>gh</code> command-line tool, and the
+      Git menu's Fetch, which runs your own <code>git</code> binary against the
+      remote your repository already points at.
+    </p>
+
+    <h2 id="account">Accounts</h2>
+
+    <p>
+      <strong>Rabta does not require an account, and does not offer one.</strong>
+      There is no sign-up, no login, no email address, no licence key and no
+      profile. Nothing you do in the app is tied to an identity, because there is
+      no identity to tie it to.
+    </p>
+
+    <h2 id="local">What Rabta stores on your machine</h2>
+
+    <p>Everything Rabta stores lives in a single folder on your Mac:</p>
+
+    <pre class="code" tabindex="0">~/Library/Application Support/com.omnibus.dev/</pre>
+
+    <p>
+      <strong>Why that path says &#8220;omnibus&#8221;.</strong> Rabta was called
+      Omnibus before release, and <code>com.omnibus.dev</code> is the bundle
+      identifier it shipped under. It is deliberately unchanged: macOS uses the
+      bundle id to locate an app&#8217;s data, so renaming it would orphan the
+      capsules of anyone who installed an early build. It is a folder name, not
+      a service &#8212; nothing about it involves a third party.
+    </p>
+
+    <p>It holds two files:</p>
+
+    <ul role="list">
+      <li><code>omnibus.db</code> — a local database of your projects, tasks,
+        capsules and event history.</li>
+      <li><code>hub.json</code> — the port the local hub is listening on and a
+        shared secret, regenerated every time the app starts.</li>
+    </ul>
+
+    <h3>The exact categories of data stored</h3>
+
+    <table>
+      <thead>
+        <tr><th scope="col">Category</th><th scope="col">What that means</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Projects</td>
+          <td>A name, a repository path, an optional dev URL, the default branch, an icon choice, ordering and timestamps</td>
+        </tr>
+        <tr>
+          <td>Tasks</td>
+          <td>A title you typed, which project it belongs to, whether it is open or done, and timestamps</td>
+        </tr>
+        <tr>
+          <td>Capsule resources</td>
+          <td>Per task: file <em>paths</em> that were open, the workspace folder, the count and working directories of terminals, browser tab <em>URLs and titles</em>, and a git branch name</td>
+        </tr>
+        <tr>
+          <td>Connectors</td>
+          <td>Each connector's name, kind, declared capabilities, version, and when it was first and last seen</td>
+        </tr>
+        <tr>
+          <td>Activity</td>
+          <td>A log of commands sent to connectors and the responses and events received, with timestamps</td>
+        </tr>
+        <tr>
+          <td>Session timing</td>
+          <td>How long a project was active, counted on your machine</td>
+        </tr>
+        <tr>
+          <td>Preferences</td>
+          <td>Theme, motion setting, landing page and similar UI choices, in the app's local storage</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      None of this is transmitted anywhere. It is written to your disk, read back
+      by the app, and gone when you delete it.
+    </p>
+
+    <h2 id="code">Your source code</h2>
+
+    <p>
+      <strong>Rabta does not read the contents of your files, and does not upload
+      them.</strong>
+    </p>
+
+    <p>
+      A capsule records <em>which</em> files were open — their paths — not what
+      is in them. The editor extension does not read document text, and the app
+      has no code that opens your project files for their contents. The same goes
+      for terminals: Rabta records that terminals existed and their working
+      directories, never their scrollback or output. For the browser it records
+      tab URLs and titles, never page contents.
+    </p>
+
+    <p>
+      Rabta does read your repository's git <em>metadata</em> — current branch,
+      branch list, whether the working tree is dirty, how many files changed — by
+      running your own <code>git</code> binary. It does not read the diffs
+      themselves, and it sends none of it anywhere.
+    </p>
+
+    <h2 id="connectors">Connectors and their permissions</h2>
+
+    <h3>Editor connector (Cursor, VSCodium, Windsurf, VS Code)</h3>
+    <p>
+      Runs inside your editor and connects to the Rabta app on
+      <code>127.0.0.1</code>. It reports which files, workspace folder and
+      terminals are open, and reopens them on request. It authenticates by
+      reading the local <code>hub.json</code> secret, a file only processes
+      running as you can read. It sends nothing to any other destination.
+    </p>
+
+    <h3>Browser connector (Chrome)</h3>
+    <p>
+      Pending Chrome Web Store review at the time of writing. When available it
+      will use three permissions:
+    </p>
+    <ul role="list">
+      <li><code>tabs</code> — to read the URLs and titles of open http/https,
+        non-incognito tabs, so they can be snapshotted into a capsule and
+        reopened later.</li>
+      <li><code>storage</code> — to hold the pairing token that lets it talk to
+        the Rabta app.</li>
+      <li><code>alarms</code> — to keep the local connection alive.</li>
+    </ul>
+    <p>
+      It requests no host permissions and runs no content scripts, so it is
+      structurally unable to read page contents. It connects only after you press
+      <strong>Approve</strong> in the Rabta app, and its only destination is the
+      Rabta app on the same computer.
+    </p>
+
+    <h2 id="telemetry">Telemetry, crash reports, update checks</h2>
+
+    <ul role="list">
+      <li><strong>Telemetry: none.</strong> Rabta 0.1.0 contains no analytics
+        SDK, no usage pings, no event reporting and no advertising code.</li>
+      <li><strong>Crash reporting: none.</strong> There is no crash reporting
+        service. A crash produces whatever macOS records locally, and nothing is
+        sent to us.</li>
+      <li><strong>Update checks: none.</strong> Rabta 0.1.0 has no auto-updater
+        and does not check for new versions. It makes no outbound request on
+        launch or on a timer. A new version is something you choose to come back
+        and download.</li>
+    </ul>
+
+    <h2 id="github">Optional GitHub features</h2>
+
+    <p>
+      Rabta can list a project's open GitHub issues and start a task from one.
+      This does nothing unless you already have the GitHub CLI (<code>gh</code>)
+      installed and authenticated, and it works by running your own
+      <code>gh</code> binary with a fixed set of arguments.
+    </p>
+
+    <p>
+      When you use it, <code>gh</code> contacts GitHub on your behalf with your
+      existing GitHub credentials. Rabta never sees, stores or transmits those
+      credentials. This and the Git menu's Fetch are the two places where
+      something you do in the app can produce a network request to a third
+      party, so both are worth knowing about — even though each request is made
+      by a tool you installed and configured yourself.
+    </p>
+
+    <p>
+      Fetch runs <code>git fetch --all</code>, which contacts the remote your
+      repository already points at and updates its remote-tracking refs. It
+      never merges, and it sends nothing about your machine that a
+      <code>git fetch</code> you typed yourself would not.
+    </p>
+
+    <h2 id="website">This website</h2>
+
+    <p>
+      <strong>rabta.build makes no background requests to third-party
+      services.</strong> No analytics, no tag manager, no advertising or tracking
+      pixel, no hosted-font request, no embedded video player, no chat widget.
+      Fonts, styles, scripts and images are all served from this domain.
+    </p>
+
+    <ul role="list">
+      <li><strong>Cookies: none.</strong> The site sets no cookies and uses no
+        local or session storage.</li>
+      <li><strong>Forms: none.</strong> There is nothing here to sign up for and
+        no field that collects personal data.</li>
+      <li><strong>Server logs.</strong> This is a static site served by a web
+        host. As essentially all web hosts do, that host may keep standard access
+        logs — typically IP address, user agent, requested path and timestamp —
+        for operational and security purposes. Those logs belong to the host, are
+        not forwarded to us, and are not combined with anything else or used to
+        build a profile.</li>
+    </ul>
+
+    <h2 id="thirdparty">Third parties you may reach</h2>
+
+    <p>
+      Following a link takes you to someone else's service, which has its own
+      privacy policy and will see the request:
+    </p>
+
+    <ul role="list">
+      <li><strong>GitHub</strong> — hosts the macOS download, the release notes
+        and the issue tracker. Downloading the DMG is a request to GitHub.</li>
+      <li><strong>Open VSX</strong> — hosts the editor extension. Installing it
+        from your editor, or downloading the <code>.vsix</code>, is a request to
+        Open VSX.</li>
+      <li><strong>Chrome Web Store</strong> — will host the browser extension
+        once review completes.</li>
+    </ul>
+
+    <p>
+      These are ordinary software distribution channels. We receive no data about
+      you from them beyond the public counters they show everyone.
+    </p>
+
+    <h2 id="control">Deleting and moving your data</h2>
+
+    <h3>Deleting</h3>
+    <ul role="list">
+      <li>Delete a single capsule or task from the <strong>Capsules</strong>
+        view.</li>
+      <li>Archive or delete a project from the <strong>Projects</strong> view.</li>
+      <li>Delete everything by removing the data folder:
+        <pre class="code" tabindex="0">rm -rf ~/Library/Application\ Support/com.omnibus.dev</pre>
+      </li>
+      <li>Uninstalling the app and the extension removes the rest.</li>
+    </ul>
+    <p>
+      Because nothing was ever copied anywhere, deleting it locally deletes it
+      completely. There is no server-side copy to request the removal of and no
+      retention period to wait out.
+    </p>
+
+    <h3>Moving it</h3>
+    <p>
+      Rabta 0.1.0 has no export command. It does not need one to be portable:
+      <code>omnibus.db</code> is an ordinary database file you can copy, inspect
+      or back up yourself. Open the folder from <strong>Settings › Privacy &amp;
+      data › Reveal in Finder</strong>.
+    </p>
+
+    <h3>Your rights</h3>
+    <p>
+      Rights like access, correction, export and erasure exist so you can act on
+      data somebody else is holding. Nobody else is holding any here — there is
+      no account, no server and no copy outside your machine — so these are all
+      things you can do directly and immediately with the files on your own disk.
+    </p>
+
+    <h2 id="changes">Changes to this policy</h2>
+
+    <p>
+      If Rabta's behaviour changes in a way that affects this policy — say a
+      future version added an update check or an optional sync feature — this
+      page will be updated and its effective date changed before that version
+      ships. Anything that would send data off your machine would be off by
+      default and would ask first.
+    </p>
+
+    <h2 id="contact">Contact</h2>
+
+    <p>
+      Questions about this policy, or anything above:
+      <a href="mailto:sammyalmuflahi1@gmail.com">sammyalmuflahi1@gmail.com</a>.
+      Bugs and feature requests are better as
+      <a href="https://github.com/salmuflahi/rabta/issues" target="_blank" rel="noopener">GitHub issues</a>.
+    </p>
+
+    </div>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="rail foot__receipt">
+    <button class="receipt" type="button" data-receipt-fold data-folded="false" aria-pressed="false" aria-label="Fold the saved workspace receipt" aria-describedby="receipt-summary">
+      <span class="visually-hidden" id="receipt-summary">Saved workspace receipt: 4 files, 3 terminals, 5 browser tabs, branch feat/connector-reconnect, restore result partial.</span>
+      <span class="receipt__kept" aria-hidden="true">YOUR PLACE IS KEPT</span>
+      <span class="receipt__manifest" aria-hidden="true">
+        <span><b>FILES</b><i data-count>4</i></span>
+        <span><b>TERMINALS</b><i data-count>3</i></span>
+        <span><b>BROWSER TABS</b><i data-count>5</i></span>
+        <span><b>BRANCH</b><i>FEAT/CONNECTOR-RECONNECT</i></span>
+        <span><b>RESTORE RESULT</b><i>PARTIAL</i></span>
+      </span>
+      <span class="receipt__target" aria-hidden="true"></span>
+      <span class="receipt__flap" aria-hidden="true"></span>
+    </button>
+  </div>
+
+  <div class="rail foot__compact">
+    <a class="brand" href="/" aria-label="Rabta — home">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="14" fill="#102526" />
+        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+      </svg>
+      <span>Rabta</span>
+    </a>
+
+    <nav class="foot__links" aria-label="Footer">
+      <a href="/setup/">Setup</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="https://github.com/salmuflahi/rabta" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">Release</a>
+      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener noreferrer">Open VSX</a>
+      <a href="https://github.com/salmuflahi/rabta/issues" target="_blank" rel="noopener noreferrer">Report an issue</a>
+    </nav>
+
+    <p class="foot__meta">v0.1.0 · MIT · Sammy Almuflahi</p>
+  </div>
+</footer>
+
+</body>
+</html>

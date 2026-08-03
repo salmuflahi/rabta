@@ -39,6 +39,4 @@ data folder from **Settings → Privacy & data → Reveal in Finder**.
 
 ## Contact
 
-Questions about this policy: `<contact email>` _(set a contact address before
-publishing — a privacy policy is public, so use whatever you're comfortable
-listing)_.
+Questions about this policy: sammyalmuflahi1@gmail.com

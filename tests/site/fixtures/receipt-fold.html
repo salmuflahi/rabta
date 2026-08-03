@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rabta — receipt fold frames</title>
+
+<!-- The production stylesheets, not a second approximation of them. Serve the
+     repository root so /website/... resolves:
+       python3 -m http.server 4175
+       /tests/site/fixtures/receipt-fold.html?progress=0.5 -->
+<link rel="stylesheet" href="/website/css/tokens.css" />
+<link rel="stylesheet" href="/website/css/shell.css" />
+<link rel="stylesheet" href="/website/css/receipt-fold.css" />
+
+<style>
+  body {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 64px 24px;
+    background: var(--petrol);
+  }
+
+  /* The frame under inspection is driven by ?progress=, so no hover, focus or
+     click state can contaminate a capture. */
+  .stage {
+    display: grid;
+    gap: 20px;
+    justify-items: center;
+  }
+
+  .stage p {
+    margin: 0;
+    color: var(--cool-soft);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  /* Pinning progress means the flap must not animate between frames. */
+  [data-frozen] .receipt__flap,
+  [data-frozen] .receipt__target,
+  [data-frozen] .receipt__kept {
+    transition: none !important;
+  }
+</style>
+</head>
+
+<body>
+<div class="stage" data-frozen>
+  <button class="receipt" type="button" data-receipt-fold data-folded="false" aria-pressed="false" aria-label="Fold the saved workspace receipt" aria-describedby="receipt-summary">
+    <span class="visually-hidden" id="receipt-summary">Saved workspace receipt: 4 files, 3 terminals, 5 browser tabs, branch feat/connector-reconnect, restore result partial.</span>
+    <span class="receipt__kept" aria-hidden="true">YOUR PLACE IS KEPT</span>
+    <span class="receipt__manifest" aria-hidden="true">
+      <span><b>FILES</b><i>4</i></span>
+      <span><b>TERMINALS</b><i>3</i></span>
+      <span><b>BROWSER TABS</b><i>5</i></span>
+      <span><b>BRANCH</b><i>FEAT/CONNECTOR-RECONNECT</i></span>
+      <span><b>RESTORE RESULT</b><i>PARTIAL</i></span>
+    </span>
+    <span class="receipt__target" aria-hidden="true"></span>
+    <span class="receipt__flap" aria-hidden="true"></span>
+  </button>
+  <p data-readout></p>
+</div>
+
+<script type="module">
+  const allowed = ["0", "0.25", "0.5", "0.75", "1"];
+  const raw = new URL(location.href).searchParams.get("progress") ?? "0";
+  const progress = allowed.includes(raw) ? raw : "0";
+
+  const receipt = document.querySelector(".receipt");
+  receipt.style.setProperty("--fold-progress", progress);
+
+  // The message and the landing triangle are keyed off engagement in
+  // production; here they follow the pinned progress so each frame is the
+  // real composite, not the flap alone.
+  receipt.querySelector(".receipt__kept").style.opacity = progress === "0" ? "0" : "1";
+  receipt.querySelector(".receipt__target").style.opacity = progress === "1" ? "1" : "0";
+
+  const size = getComputedStyle(receipt).getPropertyValue("--fold-size").trim();
+  document.querySelector("[data-readout]").textContent =
+    `progress ${progress} · fold ${size} · hinge (width − half, half)`;
+</script>
+</body>
+</html>

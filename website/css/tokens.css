@@ -1,0 +1,169 @@
+/* Rabta — Living Instrument tokens. */
+
+@layer tokens, reset, type, layout, component, section, state;
+
+@layer tokens {
+  @font-face {
+    font-family: "Inter Variable";
+    /* Absolute, byte-identical to the <link rel=preload> so the font is
+       fetched exactly once. */
+    src: url("/assets/fonts/inter-latin-variable.woff2") format("woff2");
+    /* 400–600 only. 300 and 700 are forbidden by the plan and declaring a
+       wider range invites them back in. */
+    font-weight: 400 600;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+      U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+      U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+
+  :root {
+    --petrol: #102526;
+    --orange: #ff6b2c;
+    --ivory: #f3f0e8;
+    --cool-panel: #173239;
+    --cool-mid: #66858c;
+    --cool-soft: #a9bec2;
+    --cool-field: #d9e3e3;
+    --ink-on-orange: #102526;
+
+    /* Compatibility aliases while the supporting routes move to the new
+       visual system. They all resolve to canonical Living Instrument hues. */
+    --ground: var(--petrol);
+    --panel: var(--cool-panel);
+    --field-bone: var(--cool-field);
+    --text-1: var(--ivory);
+    --text-2: var(--cool-soft);
+    --text-3: var(--cool-mid);
+    --accent: var(--orange);
+    --ink-on-accent: var(--ink-on-orange);
+
+    /* Both derived from ivory. There is no black on this site: a
+       rgba(0, 0, 0, …) hairline was the one token whose base was not an
+       approved hue, and nothing referenced it. */
+    --hairline: rgba(243, 240, 232, 0.08);
+    --hairline-strong: rgba(243, 240, 232, 0.14);
+
+    /* ---- type ----------------------------------------------------------- */
+    --sans: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, Helvetica, Arial, sans-serif;
+    /* System stack only. A downloaded mono face would fail CI's
+       no-third-party-subresource guard, and this is what the app renders. */
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Tracking is a pure function of size (§4.2). Named so a component that
+       sets a font-size can set the matching tracking instead of inheriting
+       whatever the cascade left behind. */
+    --track-68: -1.5px;
+    --track-56: -1.23px;
+    --track-40: -0.88px;
+    --track-28: -0.5px;
+    --track-21: -0.25px;
+    --track-17: -0.19px;
+    --track-15: -0.17px;
+    --track-13: 0;
+    --track-mono: 0.24px;
+
+    /* ---- space: 4px base ------------------------------------------------ */
+    --s1: 4px;
+    --s2: 8px;
+    --s3: 12px;
+    --s4: 16px;
+    --s5: 24px;
+    --s6: 32px;
+    --s7: 40px;
+    --s8: 56px;
+    --s9: 72px;
+    --s10: 96px;
+    --s11: 128px;
+
+    /* Section padding. One value, every top-level section, no exceptions —
+       with no colour and one typeface, the beat is most of what holds the
+       page together. */
+    --section-y: 128px;
+
+    /* ---- layout --------------------------------------------------------- */
+    --shell: 1320px;
+    --rail: 1180px;
+    /* 96, not 64: the longest chapter mark ("connectors") measures ~71px at
+       13px and overflowed a 64px track straight into the heading. 96 is the
+       next step on the spacing scale and clears every mark. */
+    --axis: 96px;
+    /* The sticky nav's own height. scroll-padding and every sticky offset
+       derive from it, so an anchor can never land underneath it. */
+    --nav-h: 72px;
+    --gutter: 40px;
+    --gap: 24px;
+    --locked: 960px; /* the Return Pair. Both frames. Identically. */
+
+    --section-wide: 160px;
+    --section-standard: 128px;
+    --section-close: 96px;
+
+    /* ---- shape ---------------------------------------------------------- */
+    --r1: 4px;
+    --r2: 8px;
+    --r3: 12px;
+    --r4: 16px;
+    --r5: 20px;
+
+    /* The mark's own cut. §4.4: a chamfered top-right corner means
+       "this holds context", and nothing else may carry it. */
+    --fold-sm: 12px;
+    --fold: 18px;
+    --fold-lg: 56px;
+    --fold-size: 56px;
+    --fold-half: 28px;
+
+    /* ---- motion --------------------------------------------------------- */
+    --dur: 120ms;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    /* One duration and one curve for every hover on the site, so the feedback
+       cannot drift the way per-rule values already had. */
+    --hover-dur: 180ms;
+    /* The sweep's leading edge. Shallower than the fold's 45° because a
+       button is wider than it is tall — this is what reads as 45° across a
+       50px control. */
+    --cut-skew: -18deg;
+    /* A chapter mark is drawn once on entry, not toggled — slower than a
+       hover so it reads as an opening rather than a response. */
+    --mark-dur: 420ms;
+    /* One beat of the restore sequence. The rows are offsets of it, so the
+       rhythm is a single number rather than four hand-picked delays. */
+    --resolve-step: 140ms;
+    --fold-duration: 520ms;
+    --fold-delay: 100ms;
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Matches the nav's own 699px step in shell.css. */
+  @media (max-width: 699px) {
+    :root {
+      --nav-h: 64px;
+    }
+  }
+
+  @media (max-width: 899px) {
+    :root {
+      --section-y: 96px;
+      --gutter: 24px;
+      --fold-lg: 36px;
+      --section-wide: 112px;
+      --section-standard: 92px;
+      --section-close: 72px;
+    }
+  }
+
+  @media (max-width: 599px) {
+    :root {
+      --section-y: 72px;
+      --gutter: 18px;
+      --section-wide: 88px;
+      --section-standard: 72px;
+      --section-close: 56px;
+      --fold-size: 40px;
+      --fold-half: 20px;
+    }
+  }
+}

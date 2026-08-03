@@ -1,0 +1,490 @@
+/* ==========================================================================
+   Rabta — document pages
+   docs/site-design-plan.md §10. /setup/, /privacy/ and 404.
+
+   These share the nav, footer, tokens and rail with the homepage and change
+   only what a long-form document needs: a narrower measure, a heading rhythm,
+   and code that can be read and copied.
+
+   NO bone field, NO product images, NO chapter numbering, NO capsule rack.
+   Those belong to the homepage, which is an argument. These are references.
+
+   The class names here are the ones the existing documents already use
+   (.wrap, .railed, .rail, .marker, .prose, .toc, .note, .code, .cmt, .lede).
+   Restyling them under the new tokens ports ~1,000 lines of correct, verified
+   prose without touching a single word of it — which is the only safe way to
+   move a privacy policy between design systems.
+   ========================================================================== */
+
+@layer layout {
+  /* The documents' container. Same rail as the homepage. */
+  .wrap {
+    width: 100%;
+    max-width: var(--rail);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  /* The axis: a sticky section marker beside the prose, on the same x as the
+     homepage's chapter marks so the two page types line up. The marker cell is
+     a bare div -- it was .rail, which re-applies max-width and 40px of
+     padding-inline inside an already-padded container and pushed the marker a
+     full gutter right of every chapter mark on the homepage. */
+  .railed {
+    display: grid;
+    grid-template-columns: var(--axis) minmax(0, 1fr);
+  }
+
+  @media (max-width: 899px) {
+    .railed {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+@layer section {
+  /* --text-3 is cool-mid #66858c: 4.03:1 on petrol and 3.41:1 on cool-panel.
+     That clears AA for the 60px+ display spans it was designed for, but not
+     the 4.5:1 that text under 24px needs — so every small register below uses
+     --text-2 (cool-soft, 8.24:1 and 6.98:1). Colour is not what separates
+     these from body text; size and weight are.
+     ========================================================================== */
+
+  .marker {
+    position: sticky;
+    /* Derived from the nav, not a literal: at 80px it tucked under the taller
+       Living Instrument header. */
+    top: calc(var(--nav-h) + 24px);
+    display: block;
+    font-size: 13px;
+    line-height: 18px;
+    letter-spacing: var(--track-13);
+    font-weight: 500;
+    color: var(--text-2);
+    text-transform: lowercase;
+  }
+
+  @media (max-width: 899px) {
+    .marker {
+      position: static;
+      margin-bottom: var(--s4);
+    }
+  }
+
+  /* ---- page head ------------------------------------------------------- */
+
+  .page-head {
+    padding-top: var(--s10);
+    padding-bottom: var(--s8);
+  }
+
+  .page-head h1 {
+    font-size: 40px;
+    line-height: 42px;
+    letter-spacing: -0.88px;
+    font-weight: 600;
+    color: var(--text-1);
+    padding-block: 6px;
+    max-width: 520px;
+  }
+
+  /* The effective-date line under a page-head lede. It used to borrow a
+     .mt-5 utility from the legacy type scale; that scale is gone and this is
+     the only rule that needed it. */
+  .page-head .mono {
+    margin-top: var(--s5);
+  }
+
+  .lede {
+    margin-top: var(--s5);
+    font-size: 21px;
+    line-height: 32px;
+    letter-spacing: var(--track-21);
+    color: var(--text-2);
+    max-width: 560px;
+  }
+
+  @media (max-width: 899px) {
+    .page-head h1 {
+      font-size: 26px;
+      line-height: 28px;
+      letter-spacing: -0.31px;
+      max-width: none;
+    }
+    .lede {
+      font-size: 19px;
+      line-height: 29px;
+      letter-spacing: -0.21px;
+    }
+    .page-head {
+      padding-top: var(--s9);
+      padding-bottom: var(--s7);
+    }
+  }
+
+  /* ---- the prose column ------------------------------------------------ */
+
+  /* 68 characters is the hard cap from §4.2 and it applies to documents too. A
+     privacy policy nobody can track a line of is a privacy policy nobody
+     reads. Stated in px, because `ch` is the advance of the digit zero --
+     0.631em in Inter -- so 68ch would have set 729px and quietly allowed ~92
+     characters a line. 680px is 68 at 17px. */
+  .prose {
+    max-width: 680px;
+    padding-bottom: var(--s11);
+    font-size: 17px;
+    line-height: 26px;
+    letter-spacing: -0.19px;
+    color: var(--text-2);
+  }
+
+  .prose > h2 {
+    margin-top: var(--s9);
+    margin-bottom: var(--s4);
+    padding-top: var(--s9);
+    border-top: 1px solid var(--hairline);
+    font-size: 28px;
+    line-height: 34px;
+    letter-spacing: -0.5px;
+    font-weight: 600;
+    color: var(--text-1);
+  }
+
+  /* The first heading has the table of contents above it and does not need a
+     second rule 40px below the first. */
+  .prose > .toc + h2 {
+    margin-top: var(--s8);
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .prose > h3 {
+    margin-top: var(--s7);
+    margin-bottom: var(--s3);
+    font-size: 17px;
+    line-height: 26px;
+    letter-spacing: -0.19px;
+    font-weight: 600;
+    color: var(--text-1);
+  }
+
+  .prose p,
+  .prose ul,
+  .prose ol,
+  .prose table,
+  .prose .note,
+  .prose pre {
+    margin-top: var(--s4);
+  }
+
+  .prose ul,
+  .prose ol {
+    padding-left: var(--s5);
+  }
+
+  .prose ul {
+    list-style: disc;
+  }
+
+  .prose ol {
+    list-style: decimal;
+  }
+
+  .prose li {
+    margin-top: var(--s2);
+    padding-left: 2px;
+  }
+
+  .prose li::marker {
+    color: var(--text-3);
+  }
+
+  .prose strong {
+    font-weight: 500;
+    color: var(--text-1);
+  }
+
+  /* No italics anywhere on the site (§4.2). Inline emphasis in a document is
+     real, so it is carried by colour instead of by a slanted face. */
+  .prose em {
+    font-style: normal;
+    font-weight: 500;
+    color: var(--text-1);
+  }
+
+  .prose a {
+    /* A link the same colour as the sentence around it, underlined at 1.5:1,
+       is not distinguishable by anything (SC 1.4.1). The underline is the only
+       differentiator these documents use, so it carries a real 3:1 weight. */
+    color: var(--text-2);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(243, 240, 232, 0.42);
+    transition: color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
+  }
+
+  /* The one link family that cannot take the fill: an inline link wraps, and a
+     block behind it would break at every line end. It gets the accent in the
+     one mark it already has, thickened so the change is felt and not just
+     seen — never a second underline stacked beneath the first. */
+  .prose a:hover,
+  .prose a:focus-visible {
+    color: var(--text-1);
+    border-bottom-width: 2px;
+    border-bottom-color: var(--orange);
+    padding-bottom: 1px;
+  }
+
+  /* ---- machine data ---------------------------------------------------- */
+
+  /* Every path, command, identifier and flag. Same 12px mono register as the
+     homepage — on a document page it does most of the work. */
+  .prose code,
+  .mono {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: var(--track-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-1);
+    overflow-wrap: anywhere;
+  }
+
+  .prose :not(pre) > code {
+    padding: 2px 5px;
+    border-radius: var(--r1);
+    background: var(--panel);
+  }
+
+  .prose a code {
+    color: inherit;
+  }
+
+  pre.code {
+    padding: var(--s4);
+    border-radius: var(--r3);
+    background: var(--panel);
+    border: 1px solid var(--hairline);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 20px;
+    letter-spacing: var(--track-mono);
+    color: var(--text-1);
+    overflow-x: auto;
+    white-space: pre;
+    tab-size: 2;
+  }
+
+  .cmt {
+    color: var(--text-2);
+  }
+
+  /* The checksum copy affordance. The button ships `hidden` and js/main.js
+     reveals it, so a scriptless page never offers a control that cannot work —
+     the hex itself stays selectable either way. */
+  .copy-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s3) var(--s4);
+  }
+
+  .copy {
+    min-height: 34px;
+    padding: 7px 13px;
+    /* --hairline-strong is 1.5:1 on petrol, which is a hairline, not a
+       button boundary. A control has to reach 3:1 to read as pressable. */
+    border: 1px solid rgba(243, 240, 232, 0.42);
+    border-radius: var(--r2);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: var(--track-mono);
+    color: var(--text-1);
+    cursor: pointer;
+    transition: border-color var(--dur) var(--ease);
+  }
+
+  .copy {
+    --sweep: var(--cool-panel);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .copy:hover,
+  .copy:focus-visible {
+    border-color: var(--cool-soft);
+  }
+
+  .copy-status {
+    font-size: 13px;
+    line-height: 18px;
+    letter-spacing: var(--track-13);
+    color: var(--text-2);
+  }
+
+  .muted {
+    color: var(--text-2);
+  }
+
+  /* ---- table of contents ----------------------------------------------- */
+
+  .toc {
+    margin-top: var(--s6);
+    padding: var(--s5);
+    border-radius: var(--r3);
+    background: var(--panel);
+    border: 1px solid var(--hairline);
+  }
+
+  /* --text-3 is never a heading (§4.1), and a contents label is not a
+     document heading anyway — the same call the homepage's rack makes. */
+  .toc > p:first-child {
+    margin: 0 0 var(--s3);
+    padding: 0;
+    border: 0;
+    font-size: 13px;
+    line-height: 18px;
+    letter-spacing: var(--track-13);
+    font-weight: 500;
+    color: var(--text-2);
+  }
+
+  .toc ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 2px;
+  }
+
+  .toc li {
+    margin: 0;
+    padding: 0;
+  }
+
+  .toc a {
+    /* .prose a switches text-decoration off for inline links; a contents entry
+       is not one, so it opts back into the cut system's resting underline. */
+    padding: 5px 0;
+    border: 0;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: rgba(169, 190, 194, 0.55);
+    text-underline-offset: 4px;
+    font-size: 15px;
+    line-height: 24px;
+    letter-spacing: var(--track-15);
+    color: var(--text-2);
+  }
+
+  .toc a:hover,
+  .toc a:focus-visible {
+    color: var(--text-1);
+    border: 0;
+  }
+
+  /* ---- note ------------------------------------------------------------ */
+
+  /* A rule and an indent, not a tinted box. There is no third surface. */
+  .note {
+    padding-left: var(--s5);
+    border-left: 1px solid var(--hairline-strong);
+  }
+
+  .note p {
+    margin-top: var(--s3);
+    font-size: 15px;
+    line-height: 24px;
+    letter-spacing: var(--track-15);
+    color: var(--text-2);
+  }
+
+  .note p:first-child {
+    margin-top: 0;
+  }
+
+  .note strong,
+  .note em {
+    color: var(--text-2);
+  }
+
+  /* ---- tables ---------------------------------------------------------- */
+
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+    line-height: 24px;
+    letter-spacing: var(--track-15);
+  }
+
+  .prose th {
+    padding: var(--s3) var(--s4) var(--s3) 0;
+    border-bottom: 1px solid var(--hairline);
+    font-size: 13px;
+    line-height: 18px;
+    letter-spacing: var(--track-13);
+    font-weight: 500;
+    color: var(--text-2);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .prose td {
+    padding: var(--s3) var(--s4) var(--s3) 0;
+    border-bottom: 1px solid var(--hairline);
+    color: var(--text-2);
+    vertical-align: top;
+  }
+
+  .prose tbody th {
+    color: var(--text-2);
+    white-space: nowrap;
+  }
+
+  /* ---- 404 ------------------------------------------------------------- */
+
+  .notfound {
+    padding-block: var(--s11);
+    max-width: 720px;
+  }
+
+  .notfound__code {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: var(--track-mono);
+    color: var(--text-2);
+    margin-bottom: var(--s5);
+  }
+
+  .notfound h1 {
+    font-size: 40px;
+    line-height: 42px;
+    letter-spacing: -0.88px;
+    font-weight: 600;
+    color: var(--text-1);
+    padding-block: 6px;
+  }
+
+  .notfound p {
+    margin-top: var(--s5);
+    font-size: 17px;
+    line-height: 26px;
+    letter-spacing: var(--track-17);
+    color: var(--text-2);
+    max-width: 560px;
+  }
+
+  .cta__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s3);
+    margin-top: var(--s7);
+  }
+
+  @media (max-width: 899px) {
+    .notfound h1 {
+      font-size: 26px;
+      line-height: 28px;
+      letter-spacing: -0.31px;
+    }
+  }
+}

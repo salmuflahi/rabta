@@ -1,0 +1,579 @@
+/* ==========================================================================
+   Rabta — shell
+   docs/site-design-plan.md §4.2 (type), §4.6 (motion), §5 (grid), §7.1 (btn).
+
+   Loaded by every route. Holds the reset, the eight type size classes, the
+   container/grid system, the button, the focus ring, and the page chrome
+   (nav + footer) that all four pages share.
+   ========================================================================== */
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: calc(var(--nav-h) + 24px);
+    /* `clip`, not `hidden`: hidden would make html a scroll container and kill
+       position:sticky for the nav. */
+    overflow-x: clip;
+  }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text-2);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 26px;
+    letter-spacing: -0.19px;
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* NO overflow-x here. `overflow-x: hidden` on body computes overflow-y to
+       auto, which makes body a scroll container — and that silently kills
+       position:sticky for everything inside it. */
+  }
+
+  img,
+  svg,
+  picture {
+    display: block;
+    max-width: 100%;
+  }
+
+  h1,
+  h2,
+  h3,
+  p,
+  figure,
+  dl,
+  dd,
+  blockquote {
+    margin: 0;
+  }
+
+  ul,
+  ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--ink-on-accent);
+  }
+}
+
+/* ==========================================================================
+   layout — the two container widths, and the one utility every route needs.
+
+   The eight-class type scale, the spacing and measure utilities, and the grid
+   occupancies that used to live here are gone: no route matched any of them,
+   and they were 3.5 KB of render-blocking CSS on every page load. The pages
+   set their own type in landing.css and doc.css.
+   ========================================================================== */
+
+@layer layout {
+  .shell {
+    width: 100%;
+    max-width: var(--shell);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  .rail {
+    width: 100%;
+    max-width: var(--rail);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* ==========================================================================
+   chrome — buttons, links, focus (§7.1)
+   ========================================================================== */
+
+@layer component {
+  /* The .btn/.link family that used to live here is gone. It was the document
+     chrome's button system, superseded by .button and .text-link, matched by
+     nothing on any route, and — being pre-sweep — it was the one family with
+     hover states and no keyboard equivalent. Two button systems in one
+     stylesheet is how a page ends up with two answers to the same question. */
+
+  /* No border-radius here: an outline already follows its element's own
+     radius, and setting radius in a focus rule mutates the ELEMENT's shape
+     on focus rather than the ring's. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .skip {
+    position: fixed;
+    left: 16px;
+    top: -60px;
+    z-index: 200;
+    background: var(--panel);
+    color: var(--text-1);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--r2);
+    padding: 10px 16px;
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .skip:focus {
+    top: 12px;
+  }
+}
+
+/* ==========================================================================
+   §4.6 — nothing on this page conveys meaning through motion, so removing
+   all of it costs nothing.
+   ========================================================================== */
+
+@layer state {
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Living Instrument shared shell. These declarations intentionally sit at
+   the end of their layers while Setup and Privacy are migrated in place. */
+
+@layer reset {
+  body {
+    background: var(--petrol);
+    color: var(--cool-soft);
+  }
+}
+
+@layer type {
+  /* Every chapter opens with an index mark, the way an instrument marks a
+     scale. It is drawn at rest, so a page without JavaScript has all of them;
+     js/reveal.js only takes over the drawing. */
+  .eyebrow::before {
+    content: "";
+    display: block;
+    width: 28px;
+    height: 2px;
+    margin-bottom: 14px;
+    background: var(--cool-mid);
+    transform-origin: left;
+  }
+
+  [data-reveal="pending"] .eyebrow::before {
+    transform: scaleX(0);
+  }
+
+  [data-reveal="shown"] .eyebrow::before {
+    transform: scaleX(1);
+    transition: transform var(--mark-dur) var(--ease-out);
+  }
+
+  .eyebrow {
+    color: var(--cool-soft);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}
+
+@layer layout {
+  .rail,
+  .shell {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  .rail {
+    max-width: var(--rail);
+  }
+
+  .shell {
+    max-width: var(--shell);
+  }
+}
+
+@layer component {
+  /* ---- the cut -------------------------------------------------------------
+     The site's geometry is a 45-degree cut. The Return Receipt turns that cut
+     over, and that gesture stays reserved. Everything interactive draws it
+     instead: a skewed block waiting off the leading edge, translated to rest on
+     hover and on focus. The diagonal is the sweep's front face, so the fold's
+     geometry appears in motion without any element gaining the fold's shape.
+
+     Written on one class so the whole site cannot drift, and always paired with
+     :focus-visible — there is no mouse-only feedback anywhere here.
+     ------------------------------------------------------------------------ */
+
+  .sweep {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .sweep::before {
+    content: "";
+    position: absolute;
+    /* Inset past the edges so the skew's corners never expose the resting
+       surface at the ends of the travel. */
+    inset: -2px -35%;
+    z-index: -1;
+    background: var(--sweep, transparent);
+    /* --cut-x is set by js/instrument.js to the edge the pointer crossed, so
+       the fill answers the cursor instead of always arriving from the left.
+       It is a whole offset rather than a multiplier: calc() will not
+       re-resolve a percentage scaled by a substituted number. The default is
+       the left, which is where keyboard focus and a scriptless page enter. */
+    transform: translateX(var(--cut-x, -130%)) skewX(var(--cut-skew));
+    transition: transform var(--hover-dur) var(--ease-out);
+  }
+
+  .sweep:hover::before,
+  .sweep:focus-visible::before {
+    transform: translateX(0) skewX(var(--cut-skew));
+  }
+
+  /* Links get the same gesture the buttons get, at text scale: the cut sweeps
+     in behind the label and the label flips to petrol on it. An underline that
+     merely changes colour was the weaker answer, and stacking a second bar
+     under a link that already had one was simply wrong.
+
+     The resting underline is the affordance — a link has to be identifiable
+     without hovering it — so it fades out exactly as the fill arrives, leaving
+     one mark at a time rather than two. */
+  .cut-link,
+  :where(.nav__links, .foot__links, .download__links, .toc) a {
+    position: relative;
+    display: inline-block;
+    /* Clips the sweep to the label, so only its leading diagonal shows. */
+    overflow: hidden;
+    isolation: isolate;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: rgba(169, 190, 194, 0.55);
+    text-underline-offset: 4px;
+    transition: color var(--hover-dur) var(--ease-out),
+      text-decoration-color var(--hover-dur) var(--ease-out);
+  }
+
+  .cut-link::before,
+  :where(.nav__links, .foot__links, .download__links, .toc) a::before {
+    content: "";
+    position: absolute;
+    inset: -2px -12px;
+    z-index: -1;
+    background: var(--orange);
+    transform: translateX(var(--cut-x, -130%)) skewX(var(--cut-skew));
+    transition: transform var(--hover-dur) var(--ease-out);
+  }
+
+  .cut-link:hover,
+  .cut-link:focus-visible,
+  :where(.nav__links, .foot__links, .download__links, .toc) a:hover,
+  :where(.nav__links, .foot__links, .download__links, .toc) a:focus-visible {
+    color: var(--ink-on-orange);
+    text-decoration-color: transparent;
+  }
+
+  .cut-link:hover::before,
+  .cut-link:focus-visible::before,
+  :where(.nav__links, .foot__links, .download__links, .toc) a:hover::before,
+  :where(.nav__links, .foot__links, .download__links, .toc) a:focus-visible::before {
+    transform: translateX(0) skewX(var(--cut-skew));
+  }
+
+  /* You are here. The attribute already ships on the document routes and had
+     no visual expression at all, so the markup and the design disagreed. */
+  .nav__links a[aria-current="page"] {
+    color: var(--ink-on-orange);
+    text-decoration-color: transparent;
+  }
+
+  .nav__links a[aria-current="page"]::before {
+    transform: translateX(0) skewX(var(--cut-skew));
+    transition: none;
+  }
+
+  .button {
+    display: inline-flex;
+    min-height: 50px;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 13px 20px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 560;
+    line-height: 1;
+    text-decoration: none;
+    transition: border-color var(--hover-dur) var(--ease-out),
+      color var(--hover-dur) var(--ease-out),
+      transform var(--hover-dur) var(--ease-out);
+  }
+
+  .button svg {
+    width: 18px;
+    height: 18px;
+    transition: transform var(--hover-dur) var(--ease-out);
+  }
+
+  .button:hover,
+  .button:focus-visible {
+    transform: translateY(-1px);
+  }
+
+  /* The arrow depicts the action rather than decorating the button. */
+  .button--primary:hover svg,
+  .button--primary:focus-visible svg {
+    transform: translateY(2px);
+  }
+
+  .button--primary {
+    /* Ivory over orange lightens the surface, so the petrol label's contrast
+       rises across the sweep rather than falling. */
+    --sweep: rgba(243, 240, 232, 0.22);
+    background: var(--orange);
+    color: var(--ink-on-orange);
+  }
+
+  /* A second action in the same row as a primary one. Bordered rather than
+     filled, because orange is spoken for and a page never has two of them. */
+  .button--quiet {
+    /* 0.55, not 0.32: an outlined control's border IS its boundary, and at
+       0.32 it read 2.05:1 against petrol, under the 3:1 that SC 1.4.11 asks
+       of a UI component. 0.55 gives 3.48:1. */
+    border-color: rgba(169, 190, 194, 0.55);
+    color: var(--ivory);
+  }
+
+  .button--quiet {
+    --sweep: var(--cool-panel);
+  }
+
+  .button--quiet:hover,
+  .button--quiet:focus-visible {
+    border-color: var(--cool-soft);
+  }
+
+  .button--small {
+    min-height: 38px;
+    padding: 10px 15px;
+    font-size: 13px;
+  }
+
+  .text-link {
+    width: max-content;
+    color: var(--cool-soft);
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  /* On the ivory reset the fill would be orange on near-white, so this one
+     inverts: the label goes to petrol's own surface instead. */
+  .text-link--dark {
+    color: var(--petrol);
+    text-decoration-color: rgba(16, 37, 38, 0.55);
+  }
+
+  .text-link--dark::before {
+    background: var(--petrol);
+  }
+
+  .text-link--dark:hover,
+  .text-link--dark:focus-visible {
+    color: var(--ivory);
+  }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    height: 72px;
+    border-bottom: 1px solid rgba(169, 190, 194, 0.12);
+    background: rgba(16, 37, 38, 0.96);
+  }
+
+  .nav__inner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    height: 100%;
+  }
+
+  .brand {
+    display: inline-flex;
+    width: max-content;
+    align-items: center;
+    gap: 10px;
+    color: var(--ivory);
+    font-size: 16px;
+    font-weight: 560;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+
+  .brand svg {
+    width: 30px;
+    height: 30px;
+    /* The mark is drawn on its own petrol tile, so it needs the tile's corner
+       radius back — the artwork's rx only applies inside the viewBox. */
+    border-radius: 7px;
+  }
+
+  .nav__links {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    color: var(--cool-soft);
+    font-size: 13px;
+  }
+
+  .nav__links a:hover,
+  .nav__links a:focus-visible {
+    color: var(--ivory);
+  }
+
+  .nav__download {
+    justify-self: end;
+  }
+
+  .foot {
+    padding-block: 48px;
+    border-top: 1px solid rgba(169, 190, 194, 0.14);
+    background: var(--petrol);
+  }
+
+  /* The receipt is the last gesture of the page, so it gets its own band above
+     the link row rather than sharing a grid with it. */
+  .foot__receipt {
+    padding-bottom: 52px;
+  }
+
+  .foot__compact {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 36px 64px;
+    align-items: start;
+  }
+
+  .foot__links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 12px 24px;
+    color: var(--cool-soft);
+    font-size: 13px;
+  }
+
+  .foot__links a:hover,
+  .foot__links a:focus-visible {
+    color: var(--ivory);
+  }
+
+  .foot__meta {
+    grid-column: 1 / -1;
+    padding-top: 22px;
+    border-top: 1px solid rgba(169, 190, 194, 0.1);
+    color: var(--cool-soft);
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 699px) {
+    .nav {
+      height: 64px;
+    }
+
+    .nav__inner {
+      grid-template-columns: 1fr auto;
+    }
+
+    .nav__links {
+      display: none;
+    }
+
+    .foot__compact {
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+
+    .foot__links {
+      justify-content: flex-start;
+    }
+
+    .foot__meta {
+      grid-column: auto;
+    }
+  }
+
+  @media (max-width: 599px) {
+    .foot__receipt {
+      padding-bottom: 40px;
+    }
+  }
+}
+
+@layer state {
+  :where(a, button):focus-visible {
+    outline: 3px solid var(--orange);
+    outline-offset: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The sweep needs no special case: the global rule above collapses every
+       transition to 0.01ms, and the sweep's rest position IS the hover
+       appearance — the feedback survives, only the travel goes. Movement that
+       carries no state is what actually has to stop. */
+    .button:hover,
+    .button:focus-visible,
+    .button--primary:hover svg,
+    .button--primary:focus-visible svg {
+      transform: none;
+    }
+  }
+}
+

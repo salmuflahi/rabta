@@ -2,6 +2,7 @@
   "name": "rabta-vscode",
   "displayName": "Rabta Connector",
   "description": "Connects this editor to the local Rabta hub.",
+  "icon": "icon.png",
   "version": "0.1.0",
   "publisher": "rabta-connect",
   "license": "MIT",
