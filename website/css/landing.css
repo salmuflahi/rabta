@@ -267,78 +267,133 @@
     border-top: 1px solid rgba(169, 190, 194, 0.14);
   }
 
-  .pieces__composition {
+  /* ---- the bento ----------------------------------------------------------
+     A bento earns its place when the cell sizes carry information. Here they
+     do: the three counts are peers and share a row, the real product is the
+     evidence and takes two thirds of the one below it, and the branch gets the
+     remaining third because it is the piece restored first.
+
+     Every surface is flat cool-panel on petrol with one hairline. No cell
+     carries the 45-degree corner — the fold stays with the Return Field, the
+     Return Receipt and the mark, which is what makes it a signature.
+     ------------------------------------------------------------------------ */
+
+  .bento {
     display: grid;
-    grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
-    /* The vw term is deliberately shallow: a steeper one spends the 900–1200px
-       range on empty gutter and leaves the product crop too small to read. */
-    gap: clamp(40px, 4.5vw, 92px);
-    align-items: center;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    /* Cells size to their content rather than stretching to the tallest in the
+       row. A cell that is 500px tall holding 120px of content is dead space
+       with a border around it, which is exactly what makes a bento read as
+       decoration. */
+    align-items: start;
+    gap: 20px;
     margin-top: 76px;
   }
 
-  .pieces__manifest {
-    border-top: 1px solid rgba(169, 190, 194, 0.2);
-  }
-
-  .pieces__manifest > div {
+  .bento__cell {
     display: grid;
-    grid-template-columns: 112px minmax(0, 1fr);
-    gap: 20px;
-    padding-block: 22px;
-    border-bottom: 1px solid rgba(169, 190, 194, 0.2);
-  }
-
-  .pieces__manifest dt {
-    color: var(--ivory);
-    font-size: 15px;
-    font-weight: 520;
-  }
-
-  .pieces__manifest dd {
-    color: var(--cool-soft);
-    font-family: var(--mono);
-    font-size: 12px;
-    line-height: 1.55;
-    overflow-wrap: anywhere;
-  }
-
-  /* A counting readout must not reflow the line it sits in while it settles,
-     so the digit keeps its own width. */
-  .pieces__manifest dd b {
-    display: inline-block;
-    min-width: 1ch;
-    font-weight: inherit;
-    color: var(--ivory);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .product-crop {
-    overflow: hidden;
-    padding: 20px;
+    align-content: start;
+    gap: 12px;
+    padding: 26px 28px;
+    border: 1px solid rgba(169, 190, 194, 0.14);
     border-radius: 14px;
     background: var(--cool-panel);
   }
 
-  .product-crop picture {
+  .bento__cell--count {
+    grid-column: span 4;
+  }
+
+  .bento__cell--product {
+    grid-column: span 8;
+    overflow: hidden;
+    padding: 20px;
+    gap: 14px;
+  }
+
+  .bento__cell--branch {
+    grid-column: span 4;
+  }
+
+  .bento dt {
+    color: var(--cool-soft);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* The count is the cell's subject, so it is set at the document display
+     step. It is a manifest entry, not a vanity metric — the number is what
+     the section is about. */
+  .bento dd {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    color: var(--ivory);
+    font-size: 40px;
+    font-weight: 560;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bento dd span {
+    color: var(--cool-soft);
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  .bento__cell--branch dd {
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: normal;
+    line-height: 1.5;
+  }
+
+  .bento__cell--branch code {
+    color: var(--ivory);
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    overflow-wrap: anywhere;
+  }
+
+  .bento p {
+    color: var(--cool-soft);
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  .bento__cell--product picture {
     overflow: hidden;
     border: 1px solid rgba(217, 227, 227, 0.12);
     border-radius: 9px;
   }
 
-  .product-crop img {
+  .bento__cell--product img {
     width: 100%;
     height: auto;
   }
 
-  .product-crop figcaption {
-    margin-top: 14px;
+  .bento__cell--product figcaption {
     color: var(--cool-soft);
     font-family: var(--mono);
     font-size: 11px;
     line-height: 1.5;
     font-variant-numeric: tabular-nums;
   }
+
+  /* The cells arrive on the same beat the restore caption uses, so the page
+     has one rhythm rather than two. */
+  .bento[data-resolve="shown"] > *:nth-child(2) { transition-delay: calc(var(--resolve-step) * 1); }
+  .bento[data-resolve="shown"] > *:nth-child(3) { transition-delay: calc(var(--resolve-step) * 2); }
+  .bento[data-resolve="shown"] > *:nth-child(4) { transition-delay: calc(var(--resolve-step) * 3); }
+  .bento[data-resolve="shown"] > *:nth-child(5) { transition-delay: calc(var(--resolve-step) * 4); }
 
   .honest-return {
     padding-block: 160px;
@@ -532,19 +587,30 @@
     }
 
     .chapter-heading,
-    .pieces__composition,
     .honest-return__inner,
     .local__inner {
       grid-template-columns: minmax(0, 1fr);
     }
 
-    .chapter-heading {
-      gap: 20px;
+    /* Two up: the counts pair off and the product takes a full row of its
+       own, which is the only way it stays readable at this width. */
+    .bento {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 56px;
     }
 
-    .pieces__composition {
-      gap: 48px;
-      margin-top: 56px;
+    .bento__cell--count,
+    .bento__cell--branch {
+      grid-column: span 1;
+    }
+
+    .bento__cell--product {
+      grid-column: 1 / -1;
+    }
+
+    .chapter-heading {
+      gap: 20px;
     }
 
     .honest-return__inner {
@@ -679,35 +745,24 @@
       padding-block: 72px 88px;
     }
 
-    .pieces__composition {
+    .bento {
+      grid-template-columns: minmax(0, 1fr);
       margin-top: 44px;
+    }
+
+    .bento__cell--count,
+    .bento__cell--branch {
+      grid-column: 1 / -1;
+    }
+
+    .bento dd {
+      font-size: 34px;
     }
 
     .pieces__manifest > div {
       grid-template-columns: 1fr;
       gap: 7px;
       padding-block: 18px;
-    }
-
-    .product-crop {
-      padding: 14px 0 14px 14px;
-      border-radius: 10px;
-    }
-
-    .product-crop picture {
-      display: block;
-      overflow: hidden;
-      border-radius: 7px 0 0 7px;
-    }
-
-    .product-crop picture img {
-      width: 720px;
-      max-width: none;
-      transform: translateX(-98px);
-    }
-
-    .product-crop figcaption {
-      padding-right: 14px;
     }
 
     .honest-return__inner {

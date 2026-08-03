@@ -347,7 +347,8 @@ test("homepage metadata uses the approved contrast pairings", async () => {
   for (const selector of [
     ".requirement",
     ".release-strip",
-    ".product-crop figcaption",
+    ".bento__cell--product figcaption",
+    ".bento p",
     ".return-demo figcaption",
   ]) {
     const body = landing.match(

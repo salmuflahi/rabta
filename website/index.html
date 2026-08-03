@@ -123,23 +123,40 @@
       <h2 id="pieces-title">The pieces you usually reconstruct by hand.</h2>
     </div>
 
-    <div class="pieces__composition">
-      <dl class="pieces__manifest">
-        <div><dt>Files</dt><dd><b data-count>4</b> open · cursor positions kept</dd></div>
-        <div><dt>Terminals</dt><dd><b data-count>3</b> sessions · working directories kept</dd></div>
-        <div><dt>Browser tabs</dt><dd><b data-count>5</b> URLs + titles · no page content</dd></div>
-        <div><dt>Git branch</dt><dd>feat/connector-reconnect · restored first</dd></div>
-      </dl>
+    <dl class="bento" data-resolve>
+      <div class="bento__cell bento__cell--count">
+        <dt>Files</dt>
+        <dd><b data-count>4</b> <span>open</span></dd>
+        <p>cursor positions kept</p>
+      </div>
 
-      <figure class="product-crop">
+      <div class="bento__cell bento__cell--count">
+        <dt>Terminals</dt>
+        <dd><b data-count>3</b> <span>sessions</span></dd>
+        <p>working directories kept</p>
+      </div>
+
+      <div class="bento__cell bento__cell--count">
+        <dt>Browser tabs</dt>
+        <dd><b data-count>5</b> <span>URLs + titles</span></dd>
+        <p>no page content</p>
+      </div>
+
+      <figure class="bento__cell bento__cell--product">
         <picture>
-          <source type="image/avif" srcset="/assets/shots/capsules-640.avif 640w, /assets/shots/capsules-1024.avif 1024w, /assets/shots/capsules-1600.avif 1600w" sizes="(max-width: 899px) calc(100vw - 48px), 700px" />
-          <source type="image/webp" srcset="/assets/shots/capsules-640.webp 640w, /assets/shots/capsules-1024.webp 1024w, /assets/shots/capsules-1600.webp 1600w" sizes="(max-width: 899px) calc(100vw - 48px), 700px" />
+          <source type="image/avif" srcset="/assets/shots/capsules-640.avif 640w, /assets/shots/capsules-1024.avif 1024w, /assets/shots/capsules-1600.avif 1600w" sizes="(max-width: 899px) calc(100vw - 48px), 660px" />
+          <source type="image/webp" srcset="/assets/shots/capsules-640.webp 640w, /assets/shots/capsules-1024.webp 1024w, /assets/shots/capsules-1600.webp 1600w" sizes="(max-width: 899px) calc(100vw - 48px), 660px" />
           <img src="/assets/shots/capsules-1024.png" width="1024" height="640" loading="lazy" decoding="async" alt="The real Capsules view for Wire the connector SDK reconnect, showing four files, three terminals, five browser tabs and its Git branch." />
         </picture>
         <figcaption>Wire the connector SDK reconnect · pointers, never project contents</figcaption>
       </figure>
-    </div>
+
+      <div class="bento__cell bento__cell--branch">
+        <dt>Git branch</dt>
+        <dd><code>feat/connector-reconnect</code></dd>
+        <p>restored first — before the files, so the editor opens on the right code</p>
+      </div>
+    </dl>
   </section>
 
   <section class="honest-return" id="return" aria-labelledby="return-title">
