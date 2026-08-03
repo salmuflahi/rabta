@@ -955,6 +955,18 @@
 /* The homepage uses the compact Living Instrument chrome. This block follows
    the legacy document chrome so its shared selectors resolve intentionally. */
 @layer component {
+  /* The receipt is the last gesture of the page, so it gets its own band above
+     the link row rather than sharing a grid with it. */
+  .foot__receipt {
+    padding-bottom: 52px;
+  }
+
+  @media (max-width: 599px) {
+    .foot__receipt {
+      padding-bottom: 40px;
+    }
+  }
+
   .nav {
     z-index: 50;
     height: 72px;

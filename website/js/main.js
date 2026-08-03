@@ -1,6 +1,7 @@
 /* Rabta — independent boot paths for enhancement-only homepage controls. */
 
 import { initProductMedia } from "./media.js";
+import { initReceiptFolds } from "./receipt-fold.js";
 
 /**
  * The checksum copy control. It is `hidden` in the markup and revealed here,
@@ -54,6 +55,7 @@ function safely(label, init) {
 function boot() {
   safely("copy", initCopy);
   safely("media", initProductMedia);
+  safely("receipt", initReceiptFolds);
 }
 
 if (document.readyState === "loading") {
