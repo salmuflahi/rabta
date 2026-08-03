@@ -88,6 +88,13 @@
     max-width: 520px;
   }
 
+  /* The effective-date line under a page-head lede. It used to borrow a
+     .mt-5 utility from the legacy type scale; that scale is gone and this is
+     the only rule that needed it. */
+  .page-head .mono {
+    margin-top: var(--s5);
+  }
+
   .lede {
     margin-top: var(--s5);
     font-size: 21px;
