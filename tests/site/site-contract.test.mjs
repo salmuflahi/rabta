@@ -110,20 +110,20 @@ test("homepage uses the exact approved responsive section rhythm", async () => {
 
   for (const [source, selector, spacing] of [
     [desktop, ".hero", "144px 64px"],
-    [desktop, ".thesis", "128px"],
+    [desktop, ".thesis", "160px"],
     [desktop, ".pieces", "128px 160px"],
-    [desktop, ".honest-return", "128px"],
+    [desktop, ".honest-return", "160px"],
     [desktop, ".local", "96px"],
     [desktop, ".download", "160px"],
-    [tablet, ".thesis", "92px"],
+    [tablet, ".thesis", "112px"],
     [tablet, ".pieces", "92px 112px"],
-    [tablet, ".honest-return", "92px"],
+    [tablet, ".honest-return", "112px"],
     [tablet, ".local", "72px"],
     [tablet, ".download", "112px"],
     [mobile, ".hero", "88px 40px"],
-    [mobile, ".thesis", "72px"],
+    [mobile, ".thesis", "88px"],
     [mobile, ".pieces", "72px 88px"],
-    [mobile, ".honest-return", "72px"],
+    [mobile, ".honest-return", "88px"],
     [mobile, ".local", "56px"],
     [mobile, ".download", "88px"],
   ]) {
@@ -243,6 +243,90 @@ test("mobile Return Field offsets fit inside the viewport", async () => {
   assert.ok(mobile, "mobile Return Field rule exists");
   assert.match(mobile, /width:\s*auto/);
   assert.match(mobile, /margin-inline:\s*12px/);
+});
+
+test("homepage is a focused download narrative", async () => {
+  const html = await readRoute("/");
+
+  assert.equal((html.match(/<video\b/g) ?? []).length, 2);
+  assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
+
+  const pieces =
+    html.match(/<section\b[^>]*id="pieces"[\s\S]*?<\/section>/)?.[0] ?? "";
+  assert.equal((pieces.match(/<img\b/g) ?? []).length, 1);
+
+  assert.doesNotMatch(html, /type="radio"/);
+  assert.doesNotMatch(html, /3978ec57|86M2X6MUA3/);
+});
+
+test("the two colour chapters are full-bleed surfaces", async () => {
+  const html = await readRoute("/");
+
+  // The cool panel and the ivory reset are the world changing colour, not
+  // centred cards. Carrying a rail/shell here would also charge the product
+  // stage inside a double gutter.
+  for (const id of ["return", "local"]) {
+    const open = html.match(new RegExp(`<section\\b[^>]*id="${id}"[^>]*>`))?.[0] ?? "";
+    assert.ok(open, id);
+    assert.doesNotMatch(open, /class="[^"]*\b(?:rail|shell)\b/, id);
+  }
+});
+
+test("product stages declare their own shape", async () => {
+  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
+  const desktop = css.slice(0, css.indexOf("@media (max-width: 899px)"));
+  const stage =
+    desktop.match(/\[data-product-media\] video \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+
+  // Never `height: auto` alone: that hands the stage's height to whichever
+  // source is attached, so a post-load breakpoint change restyles the page.
+  assert.match(stage, /aspect-ratio:\s*1280\s*\/\s*720/);
+  assert.match(stage, /object-fit:\s*contain/);
+
+  for (const selector of [".return-field__stage video", ".return-demo video"]) {
+    const body =
+      desktop.match(
+        new RegExp(`\\${selector.replaceAll(" ", "\\s+")} \\{([\\s\\S]*?)\\n\\s*\\}`),
+      )?.[1] ?? "";
+    assert.doesNotMatch(body, /aspect-ratio|object-fit/, selector);
+  }
+});
+
+test("mobile product media is a deliberate portrait crop", async () => {
+  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
+  const mobile = css.slice(css.indexOf("@media (max-width: 599px)"));
+
+  const stage =
+    mobile.match(/\[data-product-media\] video \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+  assert.match(stage, /aspect-ratio:\s*390\s*\/\s*700/);
+  assert.match(stage, /object-fit:\s*cover/);
+
+  const hero =
+    mobile.match(
+      /\[data-product-media="hero"\] video \{([\s\S]*?)\n\s*\}/,
+    )?.[1] ?? "";
+  const restore =
+    mobile.match(
+      /\[data-product-media="return"\] video \{([\s\S]*?)\n\s*\}/,
+    )?.[1] ?? "";
+
+  assert.match(hero, /object-position:/);
+  assert.match(restore, /object-position:/);
+  assert.notEqual(
+    hero.trim(),
+    restore.trim(),
+    "each loop keeps its own crop position",
+  );
+
+  // The crop is CSS-only: the intrinsic ratio the browser uses before the
+  // stylesheet applies must still be the recorded one.
+  const html = await readRoute("/");
+  const videos = [...html.matchAll(/<video\b[^>]*>/g)].map((match) => match[0]);
+  assert.equal(videos.length, 2);
+  for (const video of videos) {
+    assert.match(video, /width="1280"/);
+    assert.match(video, /height="720"/);
+  }
 });
 
 test("Return Field paints the orange fold outside the clipped cool sheet", async () => {

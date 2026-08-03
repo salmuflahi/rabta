@@ -94,10 +94,20 @@
     background: var(--cool-panel);
   }
 
+  /* The stage owns its shape, the source fills it. Without a declared ratio
+     the box inherits whichever file happens to be attached, so a phone
+     rotated into landscape after the mobile loop loaded would stretch a
+     390×700 source across the full rail. `contain` keeps a mismatched source
+     whole against the stage's own background rather than zooming into it. */
+  [data-product-media] video {
+    aspect-ratio: 1280 / 720;
+    height: auto;
+    object-fit: contain;
+  }
+
   .return-field__stage video {
     grid-area: 1 / 1;
     width: 100%;
-    height: auto;
   }
 
   .media-play {
@@ -162,7 +172,7 @@
   }
 
   .thesis {
-    padding-block: 128px;
+    padding-block: 160px;
   }
 
   .thesis h2,
@@ -212,7 +222,9 @@
   .pieces__composition {
     display: grid;
     grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
-    gap: clamp(44px, 7vw, 92px);
+    /* The vw term is deliberately shallow: a steeper one spends the 900–1200px
+       range on empty gutter and leaves the product crop too small to read. */
+    gap: clamp(40px, 4.5vw, 92px);
     align-items: center;
     margin-top: 76px;
   }
@@ -270,14 +282,14 @@
   }
 
   .honest-return {
-    padding-block: 128px;
+    padding-block: 160px;
     background: var(--cool-panel);
   }
 
   .honest-return__inner {
     display: grid;
-    grid-template-columns: minmax(250px, 0.65fr) minmax(0, 1.35fr);
-    gap: clamp(48px, 8vw, 108px);
+    grid-template-columns: minmax(230px, 0.58fr) minmax(0, 1.42fr);
+    gap: clamp(44px, 5vw, 108px);
     align-items: center;
   }
 
@@ -300,7 +312,6 @@
   .return-demo video {
     grid-area: 1 / 1;
     width: 100%;
-    height: auto;
     overflow: hidden;
     border: 1px solid rgba(217, 227, 227, 0.13);
     border-radius: 12px;
@@ -425,7 +436,7 @@
     }
 
     .thesis {
-      padding-block: 92px;
+      padding-block: 112px;
     }
 
     .thesis > p:last-child {
@@ -457,7 +468,7 @@
     }
 
     .honest-return {
-      padding-block: 92px;
+      padding-block: 112px;
     }
 
     .local {
@@ -522,6 +533,30 @@
       padding-right: 20px;
     }
 
+    /* Both loops ship a real 390×700 portrait capture, so the phone stage
+       takes that shape rather than shrinking a 1280px interface down to 390px
+       of width. The posters are the 16:9 desktop frames, so each stage crops
+       its own poster to the workspace column the matching loop plays in. The
+       intrinsic width/height attributes stay 1280×720 — this is a display
+       crop, not a re-encode. */
+    [data-product-media] video {
+      aspect-ratio: 390 / 700;
+      height: auto;
+      object-fit: cover;
+    }
+
+    /* 32%: the workspace column starts exactly where the app sidebar ends, so
+       the active task keeps its card edge, title and context chips. */
+    [data-product-media="hero"] video {
+      object-position: 32% 50%;
+    }
+
+    /* 35%: shifted right to the restore sheet's own left border, so the
+       partial-restore heading and its three app rows stay readable. */
+    [data-product-media="return"] video {
+      object-position: 35% 50%;
+    }
+
     .release-strip {
       grid-template-columns: 1fr;
       gap: 6px;
@@ -534,7 +569,7 @@
     }
 
     .thesis {
-      padding-block: 72px;
+      padding-block: 88px;
     }
 
     .thesis h2,
@@ -588,7 +623,7 @@
     }
 
     .honest-return {
-      padding-block: 72px;
+      padding-block: 88px;
     }
 
     .chapter-heading h2,
