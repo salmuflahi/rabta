@@ -2,9 +2,14 @@
 
 **A local-first desktop platform that acts as a shared "brain" for your dev tools.**
 
-You work in tasks, not apps. Editors, browsers, terminals, and git connect once to a local hub; Rabta captures the state of a task across all of them and restores it on demand. Switch tasks and your workspace — files, folder, terminals, git branch, browser tabs — comes back exactly as you left it. No cloud, no telemetry, no account. "USB-C for dev tools": every app connects once, then talks to every other app through Rabta.
+You work in tasks, not apps. Editors, browsers, terminals, and git connect once to a local hub; Rabta captures the state of a task across all of them and restores it on demand. Switch tasks and your workspace — files, folder, terminals, git branch, browser tabs — comes back. It restores what it can immediately and tells you what is waiting on another app: a branch switch and an editor's files land at once, where browser tabs come back on the next reload. A partial result is reported, never hidden. No cloud, no telemetry, no account. "USB-C for dev tools": every app connects once, then talks to every other app through Rabta.
 
-> **Status:** all eleven roadmap phases are built and merged; the full task-switching loop works end to end. macOS is the only tested platform. Runs from source (not yet packaged/signed for distribution). See [`docs/vision.md`](./docs/vision.md) for the original project vision.
+> **Status:** v0.1.0 is released — signed, notarized, and downloadable from
+> [rabta.build](https://rabta.build). Apple Silicon only (macOS 11+); there is no
+> Intel build. The editor connector is published on Open VSX; the browser
+> connector is still in review, so browser tabs are captured but not yet
+> restorable for most people. See [`docs/vision.md`](./docs/vision.md) for the
+> original project vision.
 
 ---
 
