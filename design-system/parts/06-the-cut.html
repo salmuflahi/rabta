@@ -1,0 +1,35 @@
+<!-- @dsCard group="Motion" name="The Cut" -->
+<div class="card-head">
+  <h1>The Cut</h1>
+  <p>The one hover in the system. A skewed block waits off the leading edge and
+  lands &mdash; the fold's 45&deg; turned into a gesture. Hover or tab into
+  anything below.</p>
+</div>
+
+<div class="card-row" style="margin-bottom: 28px">
+  <button class="button button--primary sweep" type="button">Primary</button>
+  <button class="button button--quiet sweep" type="button">Quiet</button>
+  <a class="cut-link" href="#0">A link takes the same gesture</a>
+</div>
+
+<div class="card-note" style="margin-top: 0; border-top: 0; padding-top: 0">
+  <p><strong>&minus;18&deg;, not 45&deg;.</strong>
+  <span class="card-mono">--cut-skew</span> is shallower than the fold because a
+  button is wider than it is tall; &minus;18&deg; is what reads as 45&deg; across a
+  50px control.</p>
+  <p style="margin-top: 12px"><strong>It answers the cursor.</strong>
+  <span class="card-mono">--cut-x</span> is set to the edge the pointer actually
+  crossed, so the fill arrives from the side you came from rather than always
+  from the left. It is a whole offset and not a sign multiplier, because
+  <span class="card-mono">calc()</span> will not re-resolve a percentage scaled
+  by a substituted number &mdash; written the obvious way it parses cleanly and
+  silently never moves. The default is the left, which is where keyboard focus
+  and a scriptless page enter.</p>
+  <p style="margin-top: 12px"><strong>On links it replaces the underline
+  rather than joining it.</strong> The resting underline fades out as the fill
+  arrives; drawn as an addition you get two underlines stacked.</p>
+  <p style="margin-top: 12px"><strong>Every hover rule has a
+  <span class="card-mono">:focus-visible</span> twin.</strong> A test walks the
+  stylesheets and fails on any <span class="card-mono">:hover</span> selector
+  without one, so a keyboard can never get less than a mouse.</p>
+</div>

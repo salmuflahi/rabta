@@ -1,0 +1,37 @@
+<!-- @dsCard group="Foundations" name="Space & rhythm" -->
+<div class="card-head">
+  <h1>Space &amp; rhythm</h1>
+  <p>A 4px base, eleven steps. With one typeface and almost no colour, the beat
+  is most of what holds a page together &mdash; so section padding is a single
+  value with no exceptions.</p>
+</div>
+
+<div style="display: grid; gap: 6px">
+  <div class="card-row"><span class="card-mono" style="width: 116px">--s1 &nbsp;4px</span><div style="height: 14px; width: 4px; background: var(--orange)"></div></div>
+  <div class="card-row"><span class="card-mono" style="width: 116px">--s2 &nbsp;8px</span><div style="height: 14px; width: 8px; background: var(--orange)"></div></div>
+  <div class="card-row"><span class="card-mono" style="width: 116px">--s3 12px</span><div style="height: 14px; width: 12px; background: var(--orange)"></div></div>
+  <div class="card-row"><span class="card-mono" style="width: 116px">--s4 16px</span><div style="height: 14px; width: 16px; background: var(--orange)"></div></div>
+  <div class="card-row"><span class="card-mono" style="width: 116px">--s5 24px</span><div style="height: 14px; width: 24px; background: var(--orange)"></div></div>
+  <div class="card-row"><span class="card-mono" style="width: 116px">--s6 32px</span><div style="height: 14px; width: 32px; background: var(--orange)"></div></div>
+  <div class="card-row"><span class="card-mono" style="width: 116px">--s7 40px</span><div style="height: 14px; width: 40px; background: var(--orange)"></div></div>
+  <div class="card-row"><span class="card-mono" style="width: 116px">--s8 56px</span><div style="height: 14px; width: 56px; background: var(--orange)"></div></div>
+  <div class="card-row"><span class="card-mono" style="width: 116px">--s9 72px</span><div style="height: 14px; width: 72px; background: var(--orange)"></div></div>
+  <div class="card-row"><span class="card-mono" style="width: 116px">--s10 96px</span><div style="height: 14px; width: 96px; background: var(--orange)"></div></div>
+  <div class="card-row"><span class="card-mono" style="width: 116px">--s11 128px</span><div style="height: 14px; width: 128px; background: var(--orange)"></div></div>
+</div>
+
+<div class="card-note">
+  <p><strong>Section rhythm.</strong> <span class="card-mono">--section-y: 128px</span>
+  on every top-level section, stepping to 96px under 900px and 72px under 600px.
+  Three named variants exist for deliberate exceptions &mdash;
+  <span class="card-mono">--section-wide</span> 160,
+  <span class="card-mono">--section-standard</span> 128,
+  <span class="card-mono">--section-close</span> 96.</p>
+  <p style="margin-top: 12px"><strong>Layout.</strong>
+  <span class="card-mono">--shell</span> 1320 &middot;
+  <span class="card-mono">--rail</span> 1180 &middot;
+  <span class="card-mono">--locked</span> 960 (both frames of the Return Pair,
+  identically) &middot; <span class="card-mono">--axis</span> 96 &mdash; 96 and not
+  64, because the longest chapter mark measures ~71px at 13px and overflowed a
+  64px track straight into the heading.</p>
+</div>

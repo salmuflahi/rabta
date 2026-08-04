@@ -1,0 +1,27 @@
+<!-- @dsCard group="Foundations" name="Type" -->
+<div class="card-head">
+  <h1>Type</h1>
+  <p>Inter Variable, weights 400&ndash;600 only. Tracking is a function of size,
+  not a judgement call &mdash; every size has a paired token, so a component that
+  sets a size sets its tracking instead of inheriting whatever the cascade left.</p>
+</div>
+
+<div class="spec"><div style="font-size: 68px; font-weight: 560; letter-spacing: var(--track-68); line-height: 1.04">Pick up the task</div><span class="card-mono">68 / --track-68 / -1.5px</span></div>
+<div class="spec"><div style="font-size: 56px; font-weight: 560; letter-spacing: var(--track-56); line-height: 1.06">Not the pieces</div><span class="card-mono">56 / --track-56 / -1.23px</span></div>
+<div class="spec"><div style="font-size: 40px; font-weight: 560; letter-spacing: var(--track-40); line-height: 1.1">Section heading</div><span class="card-mono">40 / --track-40 / -0.88px</span></div>
+<div class="spec"><div style="font-size: 28px; font-weight: 560; letter-spacing: var(--track-28); line-height: 1.2">Subsection</div><span class="card-mono">28 / --track-28 / -0.5px</span></div>
+<div class="spec"><div style="font-size: 21px; font-weight: 560; letter-spacing: var(--track-21)">Card title</div><span class="card-mono">21 / --track-21 / -0.25px</span></div>
+<div class="spec"><div style="font-size: 17px; letter-spacing: var(--track-17); line-height: 1.55; color: var(--cool-soft)">Lead paragraph. The size a first sentence gets when it has to carry the idea on its own.</div><span class="card-mono">17 / --track-17 / -0.19px</span></div>
+<div class="spec"><div style="font-size: 15px; letter-spacing: var(--track-15); line-height: 1.6; color: var(--cool-soft)">Body. Most of the words on the site are this size, in cool-soft, on petrol.</div><span class="card-mono">15 / --track-15 / -0.17px</span></div>
+<div class="spec"><div style="font-size: 13px; letter-spacing: var(--track-13); color: var(--cool-soft)">Small print, captions, meta.</div><span class="card-mono">13 / --track-13 / 0</span></div>
+<div class="spec"><div class="card-mono" style="font-size: 12px; letter-spacing: var(--track-mono); text-transform: uppercase">Eyebrow &middot; mono &middot; 0.24px</div><span class="card-mono">--mono / --track-mono / +0.24px</span></div>
+
+<div class="card-note">
+  <p><strong>400&ndash;600, declared.</strong> The <span class="card-mono">@font-face</span>
+  declares <span class="card-mono">font-weight: 400 600</span> rather than the
+  full variable range &mdash; 300 and 700 are outside the system, and declaring a
+  wider range is what invites them back in.</p>
+  <p style="margin-top: 12px"><strong>Mono is the system stack.</strong> A
+  downloaded mono face would fail CI's no-third-party-subresource guard, and the
+  desktop app renders the system one anyway.</p>
+</div>

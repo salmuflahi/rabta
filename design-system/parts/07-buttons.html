@@ -1,0 +1,24 @@
+<!-- @dsCard group="Components" name="Buttons" -->
+<div class="card-head">
+  <h1>Buttons</h1>
+  <p>Two, and a size. There is one primary action on a page, because orange
+  means one thing &mdash; a second filled button would spend it.</p>
+</div>
+
+<div class="card-row" style="margin-bottom: 28px">
+  <button class="button button--primary sweep" type="button">Download for macOS</button>
+  <button class="button button--quiet sweep" type="button">Set up a connector</button>
+  <button class="button button--quiet button--small sweep" type="button">Small</button>
+</div>
+
+<div class="spec"><span class="card-label">.button--primary</span><span class="card-sub">Orange ground, petrol label. Sweeps <span class="card-mono">rgba(243,240,232,0.22)</span> &mdash; ivory over orange lightens the surface, so the label's contrast <em>rises</em> across the sweep instead of falling.</span></div>
+<div class="spec"><span class="card-label">.button--quiet</span><span class="card-sub">Bordered, not filled. Sweeps <span class="card-mono">--cool-panel</span>. For the second action in a row.</span></div>
+<div class="spec"><span class="card-label">.button--small</span><span class="card-sub">38px min-height, 13px. A size, not a third variant.</span></div>
+
+<div class="card-note">
+  <p><strong>The quiet border is 0.55, not 0.32.</strong> An outlined control's
+  border <em>is</em> its boundary. At 0.32 it measured 2.05:1 against petrol,
+  under the 3:1 that SC 1.4.11 asks of a UI component; 0.55 gives 3.48:1.</p>
+  <p style="margin-top: 12px"><strong>Minimum height is 44px</strong> on the
+  default size &mdash; a pointer target, not a text box.</p>
+</div>

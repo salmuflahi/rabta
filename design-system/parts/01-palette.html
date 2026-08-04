@@ -1,0 +1,63 @@
+<!-- @dsCard group="Foundations" name="Palette" -->
+<div class="card-head">
+  <h1>Palette</h1>
+  <p>Seven hues, and no eighth. Orange means exactly one thing &mdash; the live
+  thing, or the primary action &mdash; so it can never be spent on decoration.</p>
+</div>
+
+<div class="card-grid" style="--card-min: 216px">
+  <div class="swatch">
+    <div class="swatch__chip" style="background: var(--petrol)"></div>
+    <span class="card-label">Petrol</span>
+    <span class="card-mono">--petrol&nbsp;&nbsp;#102526</span>
+    <p class="card-sub">The ground. Every surface starts here.</p>
+  </div>
+  <div class="swatch">
+    <div class="swatch__chip" style="background: var(--orange)"></div>
+    <span class="card-label">Orange</span>
+    <span class="card-mono">--orange&nbsp;&nbsp;#ff6b2c</span>
+    <p class="card-sub">Connected, active, primary. One meaning only.</p>
+  </div>
+  <div class="swatch">
+    <div class="swatch__chip" style="background: var(--ivory)"></div>
+    <span class="card-label">Ivory</span>
+    <span class="card-mono">--ivory&nbsp;&nbsp;#f3f0e8</span>
+    <p class="card-sub">Text that carries the sentence.</p>
+  </div>
+  <div class="swatch">
+    <div class="swatch__chip" style="background: var(--cool-panel)"></div>
+    <span class="card-label">Cool panel</span>
+    <span class="card-mono">--cool-panel&nbsp;&nbsp;#173239</span>
+    <p class="card-sub">A surface lifted off the ground.</p>
+  </div>
+  <div class="swatch">
+    <div class="swatch__chip" style="background: var(--cool-mid)"></div>
+    <span class="card-label">Cool mid</span>
+    <span class="card-mono">--cool-mid&nbsp;&nbsp;#66858c</span>
+    <p class="card-sub">Dormant states, quiet marks. Not body text.</p>
+  </div>
+  <div class="swatch">
+    <div class="swatch__chip" style="background: var(--cool-soft)"></div>
+    <span class="card-label">Cool soft</span>
+    <span class="card-mono">--cool-soft&nbsp;&nbsp;#a9bec2</span>
+    <p class="card-sub">Secondary text, borders, the sentence under the sentence.</p>
+  </div>
+  <div class="swatch">
+    <div class="swatch__chip" style="background: var(--cool-field)"></div>
+    <span class="card-label">Cool field</span>
+    <span class="card-mono">--cool-field&nbsp;&nbsp;#d9e3e3</span>
+    <p class="card-sub">The light end. Inverted panels and fields.</p>
+  </div>
+</div>
+
+<div class="card-note">
+  <p><strong>Measured against petrol:</strong> ivory 14.03:1, cool-field 12.21:1,
+  cool-soft 8.24:1, orange 5.62:1, cool-mid 4.03:1. Petrol on orange is 5.62:1.
+  Cool-mid clears 3:1, so it is legitimate for UI boundaries and large text but
+  never for body copy.</p>
+  <p style="margin-top: 12px"><strong>There is no black.</strong> Both hairlines
+  derive from ivory &mdash; <span class="card-mono">rgba(243,240,232,0.08)</span>
+  and <span class="card-mono">&hellip;0.14</span>. A single
+  <span class="card-mono">rgba(0,0,0,&hellip;)</span> rule was the one token whose
+  base was not an approved hue; it was removed.</p>
+</div>

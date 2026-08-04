@@ -1,0 +1,115 @@
+/* Chrome for a design-system card — the frame around a specimen, never the
+   specimen itself. Everything a card demonstrates comes from tokens.css and
+   shell.css; nothing here restates a value from either.
+
+   Scoped under .card-* so a specimen can use the site's real classes without
+   this stylesheet reaching into them. */
+
+body {
+  margin: 0;
+  padding: var(--s6) var(--s6) var(--s7);
+  background: var(--petrol);
+  color: var(--ivory);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.card-head {
+  margin-bottom: var(--s6);
+  padding-bottom: var(--s4);
+  border-bottom: 1px solid var(--hairline-strong);
+}
+
+.card-head h1 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 560;
+  letter-spacing: var(--track-21);
+}
+
+/* The one-line rule the card exists to state. Cards without one tend to be
+   inventories rather than decisions. */
+.card-head p {
+  max-width: 62ch;
+  margin: var(--s2) 0 0;
+  color: var(--cool-soft);
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: var(--track-15);
+}
+
+.card-grid {
+  display: grid;
+  gap: var(--s4);
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min, 200px), 1fr));
+}
+
+.card-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s4);
+}
+
+.card-note {
+  max-width: 68ch;
+  margin-top: var(--s5);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--hairline);
+  color: var(--cool-soft);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.card-note strong {
+  color: var(--ivory);
+  font-weight: 560;
+}
+
+/* Token names, hex values, durations — anything that is literally a string
+   from the stylesheet is set in the same mono the app uses. */
+.card-mono {
+  color: var(--cool-soft);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: var(--track-mono);
+}
+
+.card-label {
+  display: block;
+  margin-bottom: var(--s1);
+  color: var(--ivory);
+  font-size: 13px;
+  font-weight: 560;
+}
+
+.card-sub {
+  color: var(--cool-mid);
+  font-size: 12px;
+}
+
+/* A swatch carries its own contrast check, because "which text goes on this"
+   is the question a palette card is actually asked. */
+.swatch {
+  padding: var(--s4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r2);
+}
+
+/* The hairline is what lets petrol read as a chip rather than a hole — it is
+   the same colour as the ground it sits on, which is the point of it. */
+.swatch__chip {
+  height: 68px;
+  margin: calc(-1 * var(--s4)) calc(-1 * var(--s4)) var(--s3);
+  border-bottom: 1px solid var(--hairline-strong);
+  border-radius: var(--r2) var(--r2) 0 0;
+}
+
+.spec {
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.spec:last-child {
+  border-bottom: 0;
+}
