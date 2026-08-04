@@ -1,5 +1,5 @@
 import { isRestorableUrl } from "./tabs";
-import { STATES, stateFrom, type ConnectorStatus, type PopupState } from "./popup-state";
+import { STATES, nextState, type ConnectorStatus, type PopupState } from "./popup-state";
 
 /* The popup's whole job is to answer one question honestly: is this browser
    connected to Rabta right now. The previous version answered a different one —
@@ -16,7 +16,11 @@ const tabCountEl = document.querySelector<HTMLElement>("[data-tab-count]")!;
 const portInput = document.querySelector<HTMLInputElement>("#port")!;
 const advancedStatus = document.querySelector<HTMLElement>("[data-advanced-status]")!;
 
+let shown: PopupState | null = null;
+
 function render(state: PopupState) {
+  if (state === shown) return;
+  shown = state;
   stateEl.dataset.state = state;
   labelEl.textContent = STATES[state].label;
   detailEl.textContent = STATES[state].detail;
@@ -39,13 +43,10 @@ async function refresh() {
     /* Worker asleep or gone. The markup already ships the offline case. */
   }
 
-  if (!status) {
-    render("offline");
-    return;
-  }
+  render(nextState(status, shown));
+  if (!status) return;
 
   portInput.value = status.port === DEFAULT_PORT ? "" : String(status.port);
-  render(stateFrom(status));
 
   if (status.connected) {
     tabCountEl.textContent = String(await countRestorableTabs());
@@ -65,4 +66,14 @@ document.querySelector("#forget")!.addEventListener("click", async () => {
   chrome.runtime.reload();
 });
 
+/* Read once, and the popup answers a question about the moment it opened rather
+   than the moment you are looking at it — and that moment is the worst one to
+   pick, because opening the popup is often what wakes the worker, so the first
+   reply lands mid-dial. Observed: a browser that was three seconds into pairing
+   reported "Not paired yet" and held it until the popup was closed and opened
+   again. Keep asking for as long as someone is watching. */
+const POLL_MS = 600;
+
 void refresh();
+const poll = setInterval(() => void refresh(), POLL_MS);
+addEventListener("pagehide", () => clearInterval(poll));

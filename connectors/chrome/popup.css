@@ -220,8 +220,12 @@ body {
   display: none;
 }
 
+/* Split by what the labels actually need rather than down the middle: an even
+   split wraps "Save and reconnect" onto two lines and leaves "Forget pairing"
+   sitting on one, which reads as a mistake at this size. */
 .actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
   gap: 8px;
   margin-top: 13px;
 }
@@ -233,7 +237,6 @@ body {
    so a keyboard never gets less than a mouse. */
 .button {
   position: relative;
-  flex: 1;
   overflow: hidden;
   isolation: isolate;
   min-height: 32px;

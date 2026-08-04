@@ -42,3 +42,20 @@ export function stateFrom(status: ConnectorStatus): PopupState {
   if (!status.paired) return status.connecting ? "pairing" : "unpaired";
   return "offline";
 }
+
+/**
+ * What to show for one reading, given what is already on screen.
+ *
+ * The worker is usually asleep when the popup opens — opening the popup is what
+ * wakes it — so a reply can go missing while it starts. Once the popup has
+ * shown a true state, one dropped reply is not news; flashing "Rabta isn't
+ * running" at it would be the popup inventing an outage. Only a popup that has
+ * never had an answer treats silence as one.
+ */
+export function nextState(
+  status: ConnectorStatus | undefined,
+  shown: PopupState | null,
+): PopupState {
+  if (status) return stateFrom(status);
+  return shown ?? "offline";
+}

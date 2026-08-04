@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stateFrom } from "../src/popup-state";
+import { nextState, stateFrom } from "../src/popup-state";
 
 /* The popup used to read the pairing token off disk and call that "paired".
    A token is a fact about storage, not about the socket — so the old popup
@@ -33,5 +33,41 @@ describe("popup state", () => {
     expect(
       stateFrom({ connected: true, connecting: true, paired: false, port: 1 }),
     ).toBe("connected");
+  });
+});
+
+/* Loaded unpacked against a running hub, the popup showed "Not paired yet"
+   while the worker was three seconds into a pairing — because it read the
+   worker once, at the instant the popup opened, which is the instant the worker
+   is still waking up. These pin the reading, not just the mapping. */
+
+describe("what one reading shows", () => {
+  it("takes a real answer over whatever is on screen", () => {
+    const pairing = { ...base, connecting: true };
+    expect(nextState(pairing, "offline")).toBe("pairing");
+  });
+
+  it("does not invent an outage when a single reply goes missing", () => {
+    // The worker sleeps between messages; one dropped reply is not an outage.
+    expect(nextState(undefined, "connected")).toBe("connected");
+    expect(nextState(undefined, "pairing")).toBe("pairing");
+  });
+
+  it("treats silence as offline only before it has ever had an answer", () => {
+    expect(nextState(undefined, null)).toBe("offline");
+  });
+
+  it("follows the worker from waking to paired to connected", () => {
+    // The exact sequence a first-run browser walks through while the popup is
+    // open — every step of which the read-once popup used to miss.
+    let shown: ReturnType<typeof nextState> | null = null;
+    const seen = [
+      undefined, // worker still waking
+      { ...base, connecting: true }, // dialing, no token yet
+      { ...base, connecting: true, paired: true }, // approved in Rabta
+      { ...base, connected: true, paired: true }, // socket up
+    ].map((status) => (shown = nextState(status, shown)));
+
+    expect(seen).toEqual(["offline", "pairing", "offline", "connected"]);
   });
 });
