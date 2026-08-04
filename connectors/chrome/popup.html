@@ -1,10 +1,55 @@
 <!doctype html>
-<html>
-  <body style="width: 240px; font: 13px system-ui; padding: 8px">
-    <div id="status">…</div>
-    <input id="port" type="number" placeholder="hub port (default 17872)" style="width: 100%; margin-top: 6px" />
-    <button id="save" style="margin-top: 6px">save port &amp; reconnect</button>
-    <button id="repair" style="margin-top: 6px">re-pair</button>
-    <script type="module" src="dist/popup.js"></script>
-  </body>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="popup.css" />
+</head>
+
+<body>
+<header class="brand">
+  <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+    <rect width="64" height="64" rx="14" fill="#102526" />
+    <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+    <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+  </svg>
+  <span>Rabta</span>
+</header>
+
+<!-- The state line is rewritten by dist/popup.js from the worker's live
+     answer. The markup ships the offline case on purpose: a worker that never
+     replies leaves an honest message rather than a spinner, and never the old
+     popup's "paired" — which was a fact about disk, not about the socket. -->
+<main>
+  <p class="state" data-state="offline">
+    <span class="dot" aria-hidden="true"></span>
+    <span data-state-label>Rabta isn’t running</span>
+  </p>
+  <p class="detail" data-state-detail>Open Rabta and this reconnects on its own.</p>
+
+  <dl class="readout" data-readout hidden>
+    <div>
+      <dt>Tabs in view</dt>
+      <dd><b data-tab-count>0</b></dd>
+    </div>
+  </dl>
+</main>
+
+<details class="advanced">
+  <summary>Advanced</summary>
+
+  <label class="field" for="port">
+    <span>Hub port</span>
+    <input id="port" type="number" inputmode="numeric" placeholder="17872" />
+  </label>
+  <p class="hint">Only change this if Rabta reported a different port when it started.</p>
+
+  <div class="actions">
+    <button id="save" class="button button--primary" type="button">Save and reconnect</button>
+    <button id="forget" class="button button--quiet" type="button">Forget pairing</button>
+  </div>
+  <p class="hint" role="status" data-advanced-status></p>
+</details>
+
+<script type="module" src="dist/popup.js"></script>
+</body>
 </html>

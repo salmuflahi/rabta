@@ -1,0 +1,297 @@
+/* Rabta Connector — popup.
+ *
+ * The same Living Instrument palette the app and rabta.build use, at popup
+ * scale: petrol is the ground, cool tones are the light in it, and orange means
+ * one thing only — a working connection, and the primary action. The 45-degree
+ * fold stays inside the mark, where it belongs.
+ *
+ * System font rather than the site's Inter: this ships in an extension bundle
+ * that loads on every popup open, and a 48 KB webfont to set nine short strings
+ * is not a trade worth making. On the only platform Rabta runs on, system-ui is
+ * SF, which sits happily beside the app.
+ */
+
+:root {
+  --petrol: #102526;
+  --orange: #ff6b2c;
+  --ivory: #f3f0e8;
+  --cool-panel: #173239;
+  --cool-mid: #66858c;
+  --cool-soft: #a9bec2;
+
+  --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --dur: 180ms;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 296px;
+  margin: 0;
+  padding: 18px 18px 16px;
+  background: var(--petrol);
+  color: var(--cool-soft);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- brand --------------------------------------------------------------- */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 18px;
+}
+
+.brand svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+}
+
+.brand span {
+  color: var(--ivory);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* ---- state --------------------------------------------------------------- */
+
+/* One line that says what is true right now. The dot carries the same fact as
+   the words, never the fact on its own — colour is not the message. */
+.state {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  color: var(--ivory);
+  font-size: 15px;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+}
+
+.dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cool-mid);
+}
+
+.state[data-state="connected"] .dot {
+  background: var(--orange);
+}
+
+.state[data-state="pairing"] .dot {
+  background: var(--cool-soft);
+}
+
+.detail {
+  margin: 6px 0 0 16px;
+  color: var(--cool-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ---- readout ------------------------------------------------------------- */
+
+/* Shown only while connected, because a count of tabs that are not going
+   anywhere is noise. */
+.readout {
+  margin: 16px 0 0;
+  padding-top: 13px;
+  border-top: 1px solid rgba(169, 190, 194, 0.14);
+}
+
+.readout[hidden] {
+  display: none;
+}
+
+.readout > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.readout dt {
+  color: var(--cool-soft);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.readout dd {
+  margin: 0;
+  color: var(--ivory);
+  font-size: 19px;
+  font-weight: 560;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- advanced ------------------------------------------------------------ */
+
+/* Folded away by default. The port exists for the one case where 17872 was
+   taken, and everybody else should never meet it. */
+.advanced {
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(169, 190, 194, 0.14);
+}
+
+.advanced summary {
+  color: var(--cool-soft);
+  font-size: 12px;
+  cursor: pointer;
+  list-style: none;
+  transition: color var(--dur) var(--ease);
+}
+
+.advanced summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced summary::before {
+  content: "›";
+  display: inline-block;
+  width: 12px;
+  color: var(--cool-mid);
+  transition: transform var(--dur) var(--ease);
+}
+
+.advanced[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.advanced summary:hover,
+.advanced summary:focus-visible {
+  color: var(--ivory);
+}
+
+.field {
+  display: grid;
+  gap: 5px;
+  margin-top: 13px;
+  color: var(--cool-soft);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.field input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(169, 190, 194, 0.32);
+  border-radius: 7px;
+  background: var(--cool-panel);
+  color: var(--ivory);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: normal;
+  text-transform: none;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.field input:hover,
+.field input:focus-visible {
+  border-color: var(--cool-soft);
+}
+
+.hint {
+  margin: 7px 0 0;
+  color: var(--cool-soft);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.hint:empty {
+  display: none;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 13px;
+}
+
+/* ---- buttons ------------------------------------------------------------- */
+
+/* The site's cut, at popup scale: a skewed block waits off the leading edge and
+   lands on hover and on focus. Every hover rule is paired with :focus-visible,
+   so a keyboard never gets less than a mouse. */
+.button {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 32px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 560;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.button::before {
+  content: "";
+  position: absolute;
+  inset: -2px -35%;
+  z-index: -1;
+  background: var(--sweep, transparent);
+  transform: translateX(-130%) skewX(-18deg);
+  transition: transform var(--dur) var(--ease);
+}
+
+.button:hover::before,
+.button:focus-visible::before {
+  transform: translateX(0) skewX(-18deg);
+}
+
+.button--primary {
+  /* Ivory over orange lightens the surface, so the petrol label's contrast
+     rises across the sweep rather than falling. */
+  --sweep: rgba(243, 240, 232, 0.22);
+  background: var(--orange);
+  color: var(--petrol);
+}
+
+.button--quiet {
+  --sweep: var(--cool-panel);
+  border-color: rgba(169, 190, 194, 0.55);
+  background: transparent;
+  color: var(--ivory);
+}
+
+.button--quiet:hover,
+.button--quiet:focus-visible {
+  border-color: var(--cool-soft);
+}
+
+:where(button, summary, input):focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

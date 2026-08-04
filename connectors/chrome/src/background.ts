@@ -99,4 +99,29 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
+/* The popup used to read the stored token and call that "paired", which is a
+   fact about disk, not about the connection: it said paired while the hub was
+   closed. The worker is the only thing that knows whether the socket is up, so
+   it answers for itself. */
+export interface ConnectorStatus {
+  connected: boolean;
+  connecting: boolean;
+  paired: boolean;
+  port: number;
+}
+
+chrome.runtime.onMessage.addListener((message, _sender, respond) => {
+  if (message?.type !== "rabta:status") return undefined;
+  void store.get().then((token) => {
+    const status: ConnectorStatus = {
+      connected,
+      connecting: connecting && !connected,
+      paired: token !== null,
+      port: currentPort,
+    };
+    respond(status);
+  });
+  return true; // the reply is async
+});
+
 chrome.storage.local.get("omnibusPort").then(({ omnibusPort }) => connect(omnibusPort ?? DEFAULT_PORT));
