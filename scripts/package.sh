@@ -21,24 +21,9 @@ pnpm --filter desktop tauri build
 cp target/release/bundle/dmg/Rabta_*_*.dmg "$OUT"/
 
 echo "==> chrome extension zip"
-pnpm --filter rabta-chrome build >/dev/null
-# The manifest is the version of record for this artifact (docs/RELEASE.md §0),
-# so read it rather than trusting a constant up top to have been bumped too.
-CHROME_VER="$(node -p 'require("./connectors/chrome/manifest.json").version')"
-STAGE="$(mktemp -d)/rabta-chrome"; mkdir -p "$STAGE/dist"
-cp connectors/chrome/manifest.json connectors/chrome/popup.html \
-   connectors/chrome/popup.css "$STAGE"/
-cp connectors/chrome/dist/background.js connectors/chrome/dist/popup.js "$STAGE/dist"/
-cp -r connectors/chrome/icons "$STAGE"/
-# Every file popup.html asks for has to be in the zip. It is not a build input,
-# so nothing fails when one is missing — the popup just renders unstyled, which
-# is only visible to whoever installs it from the store.
-for need in popup.css dist/popup.js; do
-  [ -f "$STAGE/$need" ] || { echo "!! popup needs $need and it is not staged" >&2; exit 1; }
-done
-# Zip with manifest.json at the ROOT (Chrome Web Store requires this; it also
-# works for "Load unpacked" once extracted).
-( cd "$STAGE" && zip -qr "$OUT/rabta-chrome-$CHROME_VER.zip" . )
+# Staged by package-chrome.sh so that this and publish-chrome.mjs ship the
+# identical zip — there is one place that decides what goes in it.
+"$ROOT/scripts/package-chrome.sh" >/dev/null
 
 echo "==> vscode .vsix"
 pnpm --filter rabta-vscode build >/dev/null

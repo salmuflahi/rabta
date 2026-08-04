@@ -176,16 +176,60 @@ Each subsequent version:
 - [ ] Bump `"version"` in **both** `connectors/chrome/manifest.json` and
       `connectors/chrome/package.json`. The Store rejects a re-upload that does
       not raise the manifest version.
-- [ ] Build the zip: `./scripts/package.sh` (or, for the extension alone,
-      `pnpm --filter rabta-chrome build` and stage `manifest.json`,
-      `popup.html`, `popup.css`, `icons/`, `dist/{background,popup}.js` with
-      `manifest.json` at the zip root).
+- [ ] Build the zip: `./scripts/package-chrome.sh` (prints the artifact path;
+      `./scripts/package.sh` calls it as part of building everything). This is
+      the only thing that assembles the zip — packaging and publishing cannot
+      disagree about what ships.
 - [ ] Load the **extracted zip** unpacked and open the popup before uploading.
       Missing a file that only `popup.html` references — `popup.css` went
-      missing this way — breaks nothing at build time and is visible only to
-      whoever installs it from the Store.
-- [ ] Developer Dashboard → the item → **Package** → **Upload new package** →
-      submit for review.
+      missing this way and shipped in 0.1.1 — breaks nothing at build time and
+      is visible only to whoever installs it from the Store.
+- [ ] Upload. Either `./scripts/publish-chrome.mjs --publish` (below), or by
+      hand: Developer Dashboard → the item → **Package** → **Upload new
+      package** → submit for review.
+
+### Publishing from the command line
+
+`./scripts/publish-chrome.mjs` uploads and (with `--publish`) submits for
+review through the Web Store API v2. Without the flag it uploads only, leaving
+a draft that nobody can install — so a bare run cannot put a build in front of
+users by accident.
+
+```bash
+export CWS_SERVICE_ACCOUNT_KEY=~/.config/rabta/cws-key.json
+export CWS_PUBLISHER_ID=<the first GUID in the dashboard URL>
+./scripts/publish-chrome.mjs --publish
+```
+
+Auth is a Google Cloud **service account** rather than an OAuth refresh token:
+nothing expires, there is no consent flow to redo, and the credential is a file
+that never has to be pasted into a form. The v1 API is retired **2026-10-15**;
+this speaks v2.
+
+One-time setup, on the account that owns the listing:
+
+- [ ] [Cloud Console](https://console.cloud.google.com) → a project → enable
+      the **Chrome Web Store API**.
+- [ ] [Service accounts](https://console.cloud.google.com/iam-admin/serviceaccounts)
+      → create one. It needs no IAM roles — its access comes from the step
+      below, not from the project.
+- [ ] Create a **JSON key** for it and save it outside the repo (e.g.
+      `~/.config/rabta/cws-key.json`, `chmod 600`). It is a credential: never
+      commit it.
+- [ ] Web Store Developer Dashboard → **Account** → add the service account's
+      email as a publisher member. **A publisher can only have one service
+      account**, so this choice is effectively permanent — worth doing on the
+      account that will hold the listing long term.
+- [ ] `CWS_PUBLISHER_ID` is the first GUID in the dashboard URL:
+      `…/devconsole/<PUBLISHER_ID>/<ITEM_ID>/edit/package`. `CWS_ITEM_ID`
+      defaults to the published item, so it only needs setting for a different
+      extension.
+
+`tests/scripts/publish-chrome.test.mjs` runs the script against a stub that
+checks each request the way Google would — the signed assertion, the upload
+body, and that a failed upload is never published on top of. It cannot test the
+real Store, because an upload is not something you can do twice to see what
+happens.
 
 **Extension-ID note:** the published item gets a **new, Store-assigned ID**
 (different from the unpacked dev ID). That's fine — the hub accepts any
