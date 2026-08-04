@@ -278,24 +278,23 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
     <h2 id="browser">5. The browser connector</h2>
 
     <p>
-      <strong>Status: pending Chrome Web Store review.</strong> The Rabta
-      Connector extension for Chrome has been submitted and is waiting on
-      review. It is not installable from the Web Store yet, and this page will
-      link it as soon as it is.
+      Install <strong>Rabta Connector</strong> from the
+      <a href="https://chromewebstore.google.com/detail/aaombpafbhjkoinppogieaclijddlebo" target="_blank" rel="noopener noreferrer">Chrome Web
+      Store</a>. It pairs with the local hub on first run, the same way the
+      editor connector does — there is nothing to configure.
     </p>
 
     <p>
-      Rabta is fully usable without it. Capsules capture and restore your editor
-      files, terminals and git branch; browser tabs are reported as unavailable
-      rather than failing the restore. Add the browser connector later and
-      existing capsules start capturing tabs too.
+      Rabta is usable without it. Capsules capture and restore your editor
+      files, terminals and git branch either way; without the browser connector,
+      tabs are reported as unavailable rather than failing the restore. Add it
+      later and existing capsules start capturing tabs too.
     </p>
 
     <p>
-      Once approved, the extension will read only tab <strong>URLs and
-      titles</strong>, for http/https non-incognito tabs. It requests no host
-      permissions and runs no content scripts, so it is structurally unable to
-      read page contents.
+      The extension reads only tab <strong>URLs and titles</strong>, for
+      http/https non-incognito tabs. It requests no host permissions and runs no
+      content scripts, so it is structurally unable to read page contents.
     </p>
 
     <h2 id="pairing">6. Pairing and permissions</h2>

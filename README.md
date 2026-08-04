@@ -6,10 +6,9 @@ You work in tasks, not apps. Editors, browsers, terminals, and git connect once 
 
 > **Status:** v0.1.0 is released — signed, notarized, and downloadable from
 > [rabta.build](https://rabta.build). Apple Silicon only (macOS 11+); there is no
-> Intel build. The editor connector is published on Open VSX; the browser
-> connector is still in review, so browser tabs are captured but not yet
-> restorable for most people. See [`docs/vision.md`](./docs/vision.md) for the
-> original project vision.
+> Intel build. Both connectors are published — the editor on Open VSX, the
+> browser on the Chrome Web Store. See [`docs/vision.md`](./docs/vision.md) for
+> the original project vision.
 
 ---
 
