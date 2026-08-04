@@ -24,8 +24,8 @@
 
   body {
     margin: 0;
-    background: var(--ground);
-    color: var(--text-2);
+    background: var(--petrol);
+    color: var(--cool-soft);
     font-family: var(--sans);
     font-size: 17px;
     line-height: 26px;
@@ -76,8 +76,8 @@
   }
 
   ::selection {
-    background: var(--accent);
-    color: var(--ink-on-accent);
+    background: var(--orange);
+    color: var(--ink-on-orange);
   }
 }
 
@@ -132,7 +132,7 @@
      radius, and setting radius in a focus rule mutates the ELEMENT's shape
      on focus rather than the ring's. */
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--orange);
     outline-offset: 3px;
   }
 
@@ -141,8 +141,8 @@
     left: 16px;
     top: -60px;
     z-index: 200;
-    background: var(--panel);
-    color: var(--text-1);
+    background: var(--cool-panel);
+    color: var(--ivory);
     border: 1px solid var(--hairline-strong);
     border-radius: var(--r2);
     padding: 10px 16px;

@@ -28,17 +28,6 @@
     --cool-field: #d9e3e3;
     --ink-on-orange: #102526;
 
-    /* Compatibility aliases while the supporting routes move to the new
-       visual system. They all resolve to canonical Living Instrument hues. */
-    --ground: var(--petrol);
-    --panel: var(--cool-panel);
-    --field-bone: var(--cool-field);
-    --text-1: var(--ivory);
-    --text-2: var(--cool-soft);
-    --text-3: var(--cool-mid);
-    --accent: var(--orange);
-    --ink-on-accent: var(--ink-on-orange);
-
     /* Both derived from ivory. There is no black on this site: a
        rgba(0, 0, 0, …) hairline was the one token whose base was not an
        approved hue, and nothing referenced it. */

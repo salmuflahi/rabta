@@ -60,7 +60,7 @@
     line-height: 18px;
     letter-spacing: var(--track-13);
     font-weight: 500;
-    color: var(--text-2);
+    color: var(--cool-soft);
     text-transform: lowercase;
   }
 
@@ -83,7 +83,7 @@
     line-height: 42px;
     letter-spacing: -0.88px;
     font-weight: 600;
-    color: var(--text-1);
+    color: var(--ivory);
     padding-block: 6px;
     max-width: 520px;
   }
@@ -100,7 +100,7 @@
     font-size: 21px;
     line-height: 32px;
     letter-spacing: var(--track-21);
-    color: var(--text-2);
+    color: var(--cool-soft);
     max-width: 560px;
   }
 
@@ -135,7 +135,7 @@
     font-size: 17px;
     line-height: 26px;
     letter-spacing: -0.19px;
-    color: var(--text-2);
+    color: var(--cool-soft);
   }
 
   .prose > h2 {
@@ -147,7 +147,7 @@
     line-height: 34px;
     letter-spacing: -0.5px;
     font-weight: 600;
-    color: var(--text-1);
+    color: var(--ivory);
   }
 
   /* The first heading has the table of contents above it and does not need a
@@ -165,7 +165,7 @@
     line-height: 26px;
     letter-spacing: -0.19px;
     font-weight: 600;
-    color: var(--text-1);
+    color: var(--ivory);
   }
 
   .prose p,
@@ -196,12 +196,12 @@
   }
 
   .prose li::marker {
-    color: var(--text-3);
+    color: var(--cool-mid);
   }
 
   .prose strong {
     font-weight: 500;
-    color: var(--text-1);
+    color: var(--ivory);
   }
 
   /* No italics anywhere on the site (§4.2). Inline emphasis in a document is
@@ -209,14 +209,14 @@
   .prose em {
     font-style: normal;
     font-weight: 500;
-    color: var(--text-1);
+    color: var(--ivory);
   }
 
   .prose a {
     /* A link the same colour as the sentence around it, underlined at 1.5:1,
        is not distinguishable by anything (SC 1.4.1). The underline is the only
        differentiator these documents use, so it carries a real 3:1 weight. */
-    color: var(--text-2);
+    color: var(--cool-soft);
     text-decoration: none;
     border-bottom: 1px solid rgba(243, 240, 232, 0.42);
     transition: color var(--dur) var(--ease),
@@ -229,7 +229,7 @@
      seen — never a second underline stacked beneath the first. */
   .prose a:hover,
   .prose a:focus-visible {
-    color: var(--text-1);
+    color: var(--ivory);
     border-bottom-width: 2px;
     border-bottom-color: var(--orange);
     padding-bottom: 1px;
@@ -245,14 +245,14 @@
     font-size: 12px;
     letter-spacing: var(--track-mono);
     font-variant-numeric: tabular-nums;
-    color: var(--text-1);
+    color: var(--ivory);
     overflow-wrap: anywhere;
   }
 
   .prose :not(pre) > code {
     padding: 2px 5px;
     border-radius: var(--r1);
-    background: var(--panel);
+    background: var(--cool-panel);
   }
 
   .prose a code {
@@ -262,20 +262,20 @@
   pre.code {
     padding: var(--s4);
     border-radius: var(--r3);
-    background: var(--panel);
+    background: var(--cool-panel);
     border: 1px solid var(--hairline);
     font-family: var(--mono);
     font-size: 12px;
     line-height: 20px;
     letter-spacing: var(--track-mono);
-    color: var(--text-1);
+    color: var(--ivory);
     overflow-x: auto;
     white-space: pre;
     tab-size: 2;
   }
 
   .cmt {
-    color: var(--text-2);
+    color: var(--cool-soft);
   }
 
   /* The checksum copy affordance. The button ships `hidden` and js/main.js
@@ -298,7 +298,7 @@
     font-family: var(--mono);
     font-size: 12px;
     letter-spacing: var(--track-mono);
-    color: var(--text-1);
+    color: var(--ivory);
     cursor: pointer;
     transition: border-color var(--dur) var(--ease);
   }
@@ -317,11 +317,11 @@
     font-size: 13px;
     line-height: 18px;
     letter-spacing: var(--track-13);
-    color: var(--text-2);
+    color: var(--cool-soft);
   }
 
   .muted {
-    color: var(--text-2);
+    color: var(--cool-soft);
   }
 
   /* ---- table of contents ----------------------------------------------- */
@@ -330,7 +330,7 @@
     margin-top: var(--s6);
     padding: var(--s5);
     border-radius: var(--r3);
-    background: var(--panel);
+    background: var(--cool-panel);
     border: 1px solid var(--hairline);
   }
 
@@ -344,7 +344,7 @@
     line-height: 18px;
     letter-spacing: var(--track-13);
     font-weight: 500;
-    color: var(--text-2);
+    color: var(--cool-soft);
   }
 
   .toc ol {
@@ -372,12 +372,12 @@
     font-size: 15px;
     line-height: 24px;
     letter-spacing: var(--track-15);
-    color: var(--text-2);
+    color: var(--cool-soft);
   }
 
   .toc a:hover,
   .toc a:focus-visible {
-    color: var(--text-1);
+    color: var(--ivory);
     border: 0;
   }
 
@@ -394,7 +394,7 @@
     font-size: 15px;
     line-height: 24px;
     letter-spacing: var(--track-15);
-    color: var(--text-2);
+    color: var(--cool-soft);
   }
 
   .note p:first-child {
@@ -403,7 +403,7 @@
 
   .note strong,
   .note em {
-    color: var(--text-2);
+    color: var(--cool-soft);
   }
 
   /* ---- tables ---------------------------------------------------------- */
@@ -423,7 +423,7 @@
     line-height: 18px;
     letter-spacing: var(--track-13);
     font-weight: 500;
-    color: var(--text-2);
+    color: var(--cool-soft);
     text-align: left;
     vertical-align: top;
   }
@@ -431,12 +431,12 @@
   .prose td {
     padding: var(--s3) var(--s4) var(--s3) 0;
     border-bottom: 1px solid var(--hairline);
-    color: var(--text-2);
+    color: var(--cool-soft);
     vertical-align: top;
   }
 
   .prose tbody th {
-    color: var(--text-2);
+    color: var(--cool-soft);
     white-space: nowrap;
   }
 
@@ -451,7 +451,7 @@
     font-family: var(--mono);
     font-size: 12px;
     letter-spacing: var(--track-mono);
-    color: var(--text-2);
+    color: var(--cool-soft);
     margin-bottom: var(--s5);
   }
 
@@ -460,7 +460,7 @@
     line-height: 42px;
     letter-spacing: -0.88px;
     font-weight: 600;
-    color: var(--text-1);
+    color: var(--ivory);
     padding-block: 6px;
   }
 
@@ -469,7 +469,7 @@
     font-size: 17px;
     line-height: 26px;
     letter-spacing: var(--track-17);
-    color: var(--text-2);
+    color: var(--cool-soft);
     max-width: 560px;
   }
 
