@@ -3,7 +3,7 @@
   "displayName": "Rabta Connector",
   "description": "Connects this editor to the local Rabta hub.",
   "icon": "icon.png",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "rabta-connect",
   "license": "MIT",
   "engines": { "vscode": "^1.85.0" },

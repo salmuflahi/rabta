@@ -44,6 +44,10 @@ else
   ( cd "$TOOL" && "$NODE_BIN" "$NPMCLI" install @vscode/vsce@latest >/dev/null 2>&1 )
   ( cd connectors/vscode && "$NODE_BIN" "$TOOL/node_modules/@vscode/vsce/vsce" \
       package --no-dependencies --allow-missing-repository -o "$OUT/rabta-vscode-$VSCODE_VER.vsix" )
+  # 0.1.0 shipped with no icon: package.json declared one and the archive did
+  # not contain it. Nothing reads the icon at build time, so only a stranger
+  # installing it would ever notice.
+  ./scripts/verify-vsix.mjs "$OUT/rabta-vscode-$VSCODE_VER.vsix"
 fi
 
 echo "==> done. artifacts:"

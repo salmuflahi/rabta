@@ -40,6 +40,10 @@ TOOL="$(mktemp -d)"
     package --no-dependencies --allow-missing-repository -o "$VSIX" )
 echo "    packaged $VSIX"
 
+# Checked before either registry sees it: 0.1.0 went out with no icon, and a
+# published version cannot be replaced — only superseded.
+./scripts/verify-vsix.mjs "$VSIX"
+
 if [ -n "${VSCE_PAT:-}" ]; then
   echo "==> publishing to VS Code Marketplace"
   ( cd connectors/vscode && "$NODE_BIN" "$TOOL/node_modules/@vscode/vsce/vsce" \

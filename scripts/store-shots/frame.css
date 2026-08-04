@@ -1,0 +1,148 @@
+/* Chrome Web Store screenshots — 1280x800 exactly, the size the Store accepts.
+   Living Instrument palette, same as the app and rabta.build: petrol ground,
+   ivory type, orange only where it means something. */
+
+@font-face {
+  font-family: "Inter";
+  src: url("/website/assets/fonts/inter-latin-variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: block;
+}
+
+:root {
+  --petrol: #102526;
+  --orange: #ff6b2c;
+  --ivory: #f3f0e8;
+  --cool-panel: #173239;
+  --cool-mid: #66858c;
+  --cool-soft: #a9bec2;
+}
+
+* { box-sizing: border-box; margin: 0; }
+
+html, body {
+  width: 1280px;
+  height: 800px;
+  overflow: hidden;
+}
+
+body {
+  background: var(--petrol);
+  color: var(--ivory);
+  font-family: "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A hairline of the 45-degree fold, top-left — the mark the whole product
+   uses, at the scale of a corner rather than a logo. */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  border-top: 56px solid var(--orange);
+  border-right: 56px solid transparent;
+}
+
+.eyebrow {
+  margin-bottom: 16px;
+  color: var(--orange);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: 38px;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+p.sub {
+  color: var(--cool-soft);
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+/* ---- app shots: copy across the top, screenshot full width ---------------- */
+
+/* Beside the copy the window had to shrink to about half size to fit, which
+   put the interface below reading size. Stacked, it runs the full width and
+   the crop only ever removes empty panel — never a control. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  height: 800px;
+  padding: 56px 56px 44px;
+}
+
+.stack .head {
+  display: grid;
+  grid-template-columns: 1fr 430px;
+  gap: 44px;
+  align-items: end;
+  margin-bottom: 26px;
+}
+
+.stack .head h1 { max-width: 620px; }
+
+/* Centres the window in whatever height the copy leaves. */
+.shotwrap {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-height: 0;
+}
+
+/* --crop-h trims screens that are mostly empty panel, so the frame is not
+   handed over to blank space. Left unset, the window fills the height. */
+.crop {
+  position: relative;
+  width: 100%;
+  height: var(--crop-h, 100%);
+  overflow: hidden;
+  border-radius: 12px;
+  outline: 1px solid rgba(169, 190, 194, 0.16);
+  outline-offset: -1px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+}
+
+.crop img {
+  position: absolute;
+  top: var(--shift, 0);
+  left: 0;
+  display: block;
+  width: 1168px;
+}
+
+/* ---- the popup --------------------------------------------------------- */
+
+/* Same header band as the app shots. Seen one after another in the carousel,
+   copy that jumps from the top of one frame to the middle of the next reads as
+   four separate images rather than a set. */
+
+/* The popup is not a picture of the popup — it is the shipping popup.html,
+   rendered live in an iframe and scaled up. A screenshot of it could go stale
+   the moment the popup changes; this cannot.
+
+   Petrol on petrol: against this ground it would float with no edge, so the
+   panel behind it is what makes it read as a window. */
+.shot--popup {
+  display: block;
+  width: 296px;
+  height: 247px;
+  border: 0;
+  margin: 0 auto;
+  transform: scale(1.69);
+  border-radius: 8px;
+  outline: 1px solid rgba(169, 190, 194, 0.28);
+  outline-offset: -1px;
+  box-shadow:
+    0 0 0 26px var(--cool-panel),
+    0 0 0 27px rgba(169, 190, 194, 0.14),
+    0 34px 70px rgba(0, 0, 0, 0.5);
+}
