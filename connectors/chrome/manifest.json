@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Rabta Connector",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Connects this browser's tabs to the local Rabta hub.",
   "permissions": [
     "tabs",

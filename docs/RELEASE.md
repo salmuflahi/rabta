@@ -5,14 +5,14 @@ is **packaging/credentials** — none of it changes app code.
 
 **Current state (v0.1.0):** the macOS app is **signed, notarized, and publicly
 hosted**; the editor extension is **published to Open VSX**; the Chrome
-extension is **submitted and pending Web Store review**. The only remaining
-channel is the Microsoft VS Code Marketplace.
+extension is **live on the Web Store**. The only remaining channel is the
+Microsoft VS Code Marketplace.
 
 | Channel | State |
 |---|---|
 | macOS DMG | ✅ Signed (Developer ID `86M2X6MUA3`), notarized, stapled, hosted |
 | Open VSX (Cursor / VSCodium / Windsurf) | ✅ Published — `rabta-connect.rabta-vscode` 0.1.0 |
-| Chrome Web Store | ⏳ Pending review — "Rabta Connector", id `aaombpafbhjkoinppogieaclijddlebo` |
+| Chrome Web Store | ✅ Live — [Rabta Connector](https://chromewebstore.google.com/detail/rabta-connector/aaombpafbhjkoinppogieaclijddlebo) 0.1.1; 0.1.2 packaged, awaiting upload |
 | VS Code Marketplace (Microsoft) | ❌ Not published (blocked on Azure DevOps PAT) |
 | Trader / account verification (Google) | ⏳ Pending |
 
@@ -24,7 +24,7 @@ channel is the Microsoft VS Code Marketplace.
 The developer accounts this required (for reference):
 
 - **macOS desktop:** Apple Developer Program — **$99/yr** — done
-- **Chrome extension:** Chrome Web Store developer account — **$5 one-time** (adult-owned account) — submitted, pending review
+- **Chrome extension:** Chrome Web Store developer account — **$5 one-time** (adult-owned account) — published
 - **VS Code / Cursor extension:** Open VSX (free — this is what **Cursor**
   installs from, not the MS Marketplace) — **done**; the MS VS Code Marketplace
   publisher (free) exists but is **not yet published** (Azure DevOps PAT blocker)
@@ -156,20 +156,36 @@ pnpm --dir apps/desktop tauri build --bundles app dmg
 
 ## 2. Chrome — publish the extension
 
-> ⏳ **Submitted, pending review.** Adult-owned publisher `rabta-connect`; item
-> "Rabta Connector", Store id `aaombpafbhjkoinppogieaclijddlebo`. Do not edit or
-> resubmit while under review unless there's an actual rejection. An older item
-> under a prior account (id `eglannhohnfalopddjbjhgiimeblmgbj`) is **obsolete** —
-> not the current submission.
+> ✅ **Live.** Adult-owned publisher `rabta-connect`; item "Rabta Connector",
+> Store id `aaombpafbhjkoinppogieaclijddlebo`, at
+> <https://chromewebstore.google.com/detail/rabta-connector/aaombpafbhjkoinppogieaclijddlebo>.
+> An older item under a prior account (id `eglannhohnfalopddjbjhgiimeblmgbj`) is
+> **obsolete** — not the current listing.
 
-- [ ] Register a Chrome Web Store developer account ($5 one-time).
-- [ ] Build the zip: `pnpm --filter rabta-chrome build` then use
-      `dist-artifacts/rabta-chrome-<ver>.zip` (or `./scripts/package.sh`).
-- [ ] Web Store → **Add new item** → upload the zip. Fill store listing (name
+First publish (done):
+
+- [x] Register a Chrome Web Store developer account ($5 one-time).
+- [x] Web Store → **Add new item** → upload the zip. Fill store listing (name
       "Rabta Connector", description, icons, screenshots, a privacy
       justification for the `tabs` permission — Rabta reads tab URLs locally to
       capture/restore a task; no data leaves the machine).
-- [ ] Submit for review (approval typically takes a few days).
+- [x] Submit for review (approval typically takes a few days).
+
+Each subsequent version:
+
+- [ ] Bump `"version"` in **both** `connectors/chrome/manifest.json` and
+      `connectors/chrome/package.json`. The Store rejects a re-upload that does
+      not raise the manifest version.
+- [ ] Build the zip: `./scripts/package.sh` (or, for the extension alone,
+      `pnpm --filter rabta-chrome build` and stage `manifest.json`,
+      `popup.html`, `popup.css`, `icons/`, `dist/{background,popup}.js` with
+      `manifest.json` at the zip root).
+- [ ] Load the **extracted zip** unpacked and open the popup before uploading.
+      Missing a file that only `popup.html` references — `popup.css` went
+      missing this way — breaks nothing at build time and is visible only to
+      whoever installs it from the Store.
+- [ ] Developer Dashboard → the item → **Package** → **Upload new package** →
+      submit for review.
 
 **Extension-ID note:** the published item gets a **new, Store-assigned ID**
 (different from the unpacked dev ID). That's fine — the hub accepts any
