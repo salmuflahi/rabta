@@ -1705,3 +1705,25 @@ async fn removing_a_captured_item_leaves_pins_alone() {
         "removing a record must not unpin"
     );
 }
+
+#[tokio::test]
+async fn removing_a_captured_item_does_not_corrupt_a_git_resource_type() {
+    // `kind` is caller-supplied and is not restricted to chrome/vscode. A
+    // "git" row's resource_type is "branch", not "workspace" — writing back
+    // a hardcoded "workspace" would silently break activate_task's git
+    // lookup, which matches on connector_kind == "git" && resource_type ==
+    // "branch" to find the branch to check out.
+    let (_hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(&task_id, "git", "branch", &json!({"branch": "main"}))
+        .unwrap();
+
+    capsules
+        .remove_captured_item(&task_id, "git", "some-identity")
+        .await
+        .unwrap();
+
+    let rows = db.task_resources(&task_id).unwrap();
+    let git_row = rows.iter().find(|r| r.connector_kind == "git").unwrap();
+    assert_eq!(git_row.resource_type, "branch");
+    assert_eq!(git_row.payload["branch"], json!("main"));
+}

@@ -226,11 +226,13 @@ async fn pin_task_item(
     let identity = crate::capsules::identity_of(&connector_kind, &payload)
         .ok_or_else(|| format!("cannot identify a {connector_kind} item from {payload}"))?;
     let db = db.0.clone();
-    tokio::task::spawn_blocking(move || db.add_task_pin(&task_id, &connector_kind, &identity, &payload))
-        .await
-        .map_err(|e| e.to_string())?
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        db.add_task_pin(&task_id, &connector_kind, &identity, &payload)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map(|_| ())
+    .map_err(|e| e.to_string())
 }
 
 /// Removes a pin; returns whether one actually existed.
@@ -242,10 +244,12 @@ async fn unpin_task_item(
     db: State<'_, DbHandle>,
 ) -> Result<bool, String> {
     let db = db.0.clone();
-    tokio::task::spawn_blocking(move || db.remove_task_pin(&task_id, &connector_kind, &identity))
-        .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        db.remove_task_pin(&task_id, &connector_kind, &identity)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())
 }
 
 /// Drops one item from a task's captured payload. Does not touch pins.
@@ -266,7 +270,7 @@ async fn remove_task_item(
 #[tauri::command]
 async fn task_pins(task_id: String, db: State<'_, DbHandle>) -> Result<Vec<TaskPin>, String> {
     let db = db.0.clone();
-    tokio::task::spawn_blocking(move || db.task_pins(&task_id))
+    tauri::async_runtime::spawn_blocking(move || db.task_pins(&task_id))
         .await
         .map_err(|e| e.to_string())?
         .map_err(|e| e.to_string())

@@ -107,6 +107,10 @@ pub struct Capsules {
     transition_lock: Arc<tokio::sync::Mutex<()>>,
     activation_archive_lock: Arc<tokio::sync::Mutex<()>>,
     continuation_lock: Arc<tokio::sync::Mutex<()>>,
+    /// Serializes `remove_captured_item`'s read-modify-write of a task's
+    /// resource row so two concurrent removals can't both read the same
+    /// pre-image and have one write silently undo the other.
+    task_resources_lock: Arc<tokio::sync::Mutex<()>>,
     transition_boundary_signal: Arc<Mutex<Option<tokio::sync::oneshot::Sender<()>>>>,
     activation_continuation_boundary_signal: Arc<Mutex<Option<tokio::sync::oneshot::Sender<()>>>>,
     generation: Arc<std::sync::atomic::AtomicU64>,
@@ -166,6 +170,7 @@ impl Capsules {
             transition_lock: Arc::new(tokio::sync::Mutex::new(())),
             activation_archive_lock: Arc::new(tokio::sync::Mutex::new(())),
             continuation_lock: Arc::new(tokio::sync::Mutex::new(())),
+            task_resources_lock: Arc::new(tokio::sync::Mutex::new(())),
             transition_boundary_signal: Arc::new(Mutex::new(None)),
             activation_continuation_boundary_signal: Arc::new(Mutex::new(None)),
             generation: Arc::new(std::sync::atomic::AtomicU64::new(0)),
@@ -892,12 +897,23 @@ impl Capsules {
     /// Drops one item from a task's captured payload. Deliberately does not
     /// touch pins: deleting the record of a thing and saying "never open this"
     /// are different requests, and only the first one exists in phase 1.
+    ///
+    /// This is a read-modify-write across two independent db lock
+    /// acquisitions (`task_resources` then `replace_task_resources`), so it
+    /// serializes under `task_resources_lock`: without that, two concurrent
+    /// removals for the same task and kind could both read the same
+    /// pre-image and the second write would silently undo the first
+    /// removal. The lock is held across the `spawn_blocking` await below,
+    /// which is safe here — `spawn_blocking` runs on a separate thread pool
+    /// and this function never calls back into anything that takes another
+    /// `Capsules` lock, so there is no cycle for it to deadlock with.
     pub async fn remove_captured_item(
         &self,
         task_id: &str,
         kind: &str,
         identity: &str,
     ) -> Result<(), String> {
+        let _serialized = self.task_resources_lock.lock().await;
         let db = self.db.clone();
         let (tid, k, id) = (task_id.to_string(), kind.to_string(), identity.to_string());
         tokio::task::spawn_blocking(move || -> Result<(), String> {
@@ -906,12 +922,21 @@ impl Capsules {
                 return Ok(());
             };
             let mut payload = r.payload.clone();
+            let mut removed = false;
             for field in ["tabs", "openFiles", "terminals"] {
                 if let Some(arr) = payload.get_mut(field).and_then(Value::as_array_mut) {
+                    let before = arr.len();
                     arr.retain(|item| identity_of(&k, item).as_deref() != Some(id.as_str()));
+                    removed |= arr.len() != before;
                 }
             }
-            db.replace_task_resources(&tid, &k, "workspace", &payload)
+            if !removed {
+                // Stale id or already removed: nothing changed, so nothing
+                // to write back. Also avoids re-deriving `resource_type`
+                // from a row we didn't actually touch.
+                return Ok(());
+            }
+            db.replace_task_resources(&tid, &k, &r.resource_type, &payload)
                 .map_err(|e| e.to_string())?;
             Ok(())
         })
