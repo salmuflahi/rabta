@@ -1707,12 +1707,17 @@ async fn removing_a_captured_item_leaves_pins_alone() {
 }
 
 #[tokio::test]
-async fn removing_a_captured_item_does_not_corrupt_a_git_resource_type() {
-    // `kind` is caller-supplied and is not restricted to chrome/vscode. A
-    // "git" row's resource_type is "branch", not "workspace" — writing back
-    // a hardcoded "workspace" would silently break activate_task's git
-    // lookup, which matches on connector_kind == "git" && resource_type ==
-    // "branch" to find the branch to check out.
+async fn removing_a_captured_item_for_an_unrecognized_kind_leaves_the_row_untouched() {
+    // `identity_of` only recognises "chrome" and "vscode". For any other
+    // kind — including the "git" virtual kind, whose row isn't a
+    // tab/file/terminal collection at all — it returns None for every item,
+    // so nothing is ever considered removed and `remove_captured_item`
+    // returns before the write-back line runs at all. This only proves that
+    // early-return path leaves the row alone; it does NOT exercise
+    // `db.replace_task_resources(&tid, &k, &r.resource_type, &payload)`, so
+    // it can't catch a regression to a hardcoded "workspace" there. For a
+    // test that actually reaches and checks that write, see
+    // `removing_a_captured_item_preserves_a_non_workspace_resource_type`.
     let (_hub, db, capsules, task_id, _dir) = setup().await;
     db.replace_task_resources(&task_id, "git", "branch", &json!({"branch": "main"}))
         .unwrap();
@@ -1726,4 +1731,39 @@ async fn removing_a_captured_item_does_not_corrupt_a_git_resource_type() {
     let git_row = rows.iter().find(|r| r.connector_kind == "git").unwrap();
     assert_eq!(git_row.resource_type, "branch");
     assert_eq!(git_row.payload["branch"], json!("main"));
+}
+
+#[tokio::test]
+async fn removing_a_captured_item_preserves_a_non_workspace_resource_type() {
+    // `remove_captured_item` writes back `&r.resource_type` — read off the
+    // row it just modified — rather than a hardcoded "workspace" literal.
+    // That only discriminates on a row whose resource_type differs from
+    // "workspace", so seed one directly (not via `save_capsule`, which
+    // always writes "workspace") for a kind `identity_of` DOES recognise,
+    // and drive an actual removal through it: two tabs in, remove one by
+    // identity, and require both that the removal really happened and that
+    // resource_type survived the write-back unchanged.
+    let (_hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        "not-workspace",
+        &tabs_state(&["https://keep.test/", "https://drop.test/"]),
+    )
+    .unwrap();
+
+    capsules
+        .remove_captured_item(&task_id, "chrome", "https://drop.test/")
+        .await
+        .unwrap();
+
+    let rows = db.task_resources(&task_id).unwrap();
+    let chrome_row = rows.iter().find(|r| r.connector_kind == "chrome").unwrap();
+    let tabs = chrome_row.payload["tabs"].as_array().unwrap();
+    assert_eq!(tabs.len(), 1, "captured item should be gone: {tabs:?}");
+    assert_eq!(tabs[0]["url"], "https://keep.test/");
+    assert_eq!(
+        chrome_row.resource_type, "not-workspace",
+        "write-back must preserve the row's own resource_type, not hardcode \"workspace\""
+    );
 }
