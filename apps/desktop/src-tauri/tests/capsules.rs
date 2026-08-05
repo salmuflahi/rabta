@@ -1767,3 +1767,39 @@ async fn removing_a_captured_item_preserves_a_non_workspace_resource_type() {
         "write-back must preserve the row's own resource_type, not hardcode \"workspace\""
     );
 }
+
+#[tokio::test]
+async fn a_task_with_no_pins_restores_exactly_as_before() {
+    // Phase 1 adds a layer; it must not move anything underneath it. A task
+    // that has never been curated (no pins at all) has to issue the
+    // identical command sequence it always did: exactly the captured urls,
+    // in capture order, nothing added and nothing dropped.
+    let (hub, _db, capsules, task_id, _dir) = setup().await;
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector_kind(&hub, "chrome", tx, |name, _| match name {
+        "workspace.state" => tabs_state(&["https://a.test/", "https://b.test/"]),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    capsules.save_capsule(&task_id).await.unwrap();
+    while rx.try_recv().is_ok() {} // drain the workspace.state call from the save
+
+    capsules.activate_task(&task_id).await.unwrap();
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    let opened: Vec<String> = names
+        .into_iter()
+        .filter(|(n, _)| n == "tabs.open")
+        .map(|(_, a)| a["url"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(
+        opened,
+        vec!["https://a.test/".to_string(), "https://b.test/".to_string()],
+        "an uncurated task must restore exactly what it captured, in order"
+    );
+}
