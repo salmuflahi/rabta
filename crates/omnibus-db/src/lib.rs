@@ -19,7 +19,8 @@ pub use activity::{EventRow, KnownConnector};
 
 mod records;
 pub use records::{
-    NewProject, NewTask, NewTaskResource, Project, Task, TaskResource, TaskStatus, PROJECT_ICONS,
+    NewProject, NewTask, NewTaskResource, Project, Task, TaskPin, TaskResource, TaskStatus,
+    PROJECT_ICONS,
 };
 
 mod recorder;

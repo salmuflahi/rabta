@@ -105,7 +105,8 @@ pub struct TaskResource {
 
 /// An item a user marked "always open this" for a task. Authored, never
 /// captured — which is why it lives outside task_resources.payload.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskPin {
     pub id: String,
     pub task_id: String,
@@ -793,7 +794,10 @@ impl Db {
     }
 
     /// Upsert: re-pinning an identity refreshes its payload and keeps one row,
-    /// so a title change does not accumulate duplicates.
+    /// so a title change does not accumulate duplicates. `id` and `created_at`
+    /// are proposed here only for the insert path — on conflict the existing
+    /// row keeps its own, so the values returned always come from `RETURNING`
+    /// rather than from what this call happened to propose.
     pub fn add_task_pin(
         &self,
         task_id: &str,
@@ -801,33 +805,36 @@ impl Db {
         identity: &str,
         payload: &Value,
     ) -> Result<TaskPin> {
-        let r = TaskPin {
-            id: new_id(),
-            task_id: task_id.to_string(),
-            connector_kind: connector_kind.to_string(),
-            identity: identity.to_string(),
-            payload: payload.clone(),
-            created_at: now(),
-        };
+        let candidate_id = new_id();
+        let candidate_created_at = now();
         let conn = self
             .conn
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        conn.execute(
+        let (id, created_at) = conn.query_row(
             "INSERT INTO task_pins (id, task_id, connector_kind, identity, payload, created_at) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6) \
              ON CONFLICT (task_id, connector_kind, identity) \
-             DO UPDATE SET payload = excluded.payload",
+             DO UPDATE SET payload = excluded.payload \
+             RETURNING id, created_at",
             params![
-                r.id,
-                r.task_id,
-                r.connector_kind,
-                r.identity,
-                r.payload.to_string(),
-                r.created_at
+                candidate_id,
+                task_id,
+                connector_kind,
+                identity,
+                payload.to_string(),
+                candidate_created_at
             ],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
         )?;
-        Ok(r)
+        Ok(TaskPin {
+            id,
+            task_id: task_id.to_string(),
+            connector_kind: connector_kind.to_string(),
+            identity: identity.to_string(),
+            payload: payload.clone(),
+            created_at,
+        })
     }
 
     /// True when a pin was actually removed; false when there was none.
@@ -848,6 +855,7 @@ impl Db {
         Ok(n > 0)
     }
 
+    /// Pins for one task, in pin order.
     pub fn task_pins(&self, task_id: &str) -> Result<Vec<TaskPin>> {
         let conn = self
             .conn
@@ -864,7 +872,10 @@ impl Db {
                 task_id: row.get(1)?,
                 connector_kind: row.get(2)?,
                 identity: row.get(3)?,
-                payload: serde_json::from_str(&raw).unwrap_or(Value::Null),
+                payload: serde_json::from_str(&raw).unwrap_or_else(|e| {
+                    log::warn!("task_pins: corrupt task_pins.payload: {e}");
+                    Value::Null
+                }),
                 created_at: row.get(5)?,
             })
         })?;

@@ -703,3 +703,52 @@ fn task_pins_upsert_list_and_remove() {
         .unwrap());
     assert_eq!(db.task_pins(&task.id).unwrap().len(), 1);
 }
+
+#[test]
+fn re_pinning_returns_the_existing_rows_id_and_created_at() {
+    let db = db();
+    let p = a_project(&db, "omnibus");
+    let task = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+
+    let first = db
+        .add_task_pin(
+            &task.id,
+            "chrome",
+            "https://a.test/",
+            &json!({"url": "https://a.test/", "title": "A"}),
+        )
+        .unwrap();
+
+    // Re-pin the same identity with a different payload. The row is updated
+    // in place (ON CONFLICT DO UPDATE), so the id and created_at must come
+    // from the existing row, not from a freshly minted id()/now() pair.
+    let second = db
+        .add_task_pin(
+            &task.id,
+            "chrome",
+            "https://a.test/",
+            &json!({"url": "https://a.test/", "title": "A renamed"}),
+        )
+        .unwrap();
+
+    assert_eq!(
+        second.id, first.id,
+        "re-pin must return the existing row's id, not a fabricated one"
+    );
+    assert_eq!(
+        second.created_at, first.created_at,
+        "re-pin must return the existing row's created_at, not a fabricated one"
+    );
+
+    let stored = &db.task_pins(&task.id).unwrap()[0];
+    assert_eq!(stored.id, first.id, "returned id must match the stored row");
+    assert_eq!(
+        stored.created_at, first.created_at,
+        "returned created_at must match the stored row"
+    );
+}
