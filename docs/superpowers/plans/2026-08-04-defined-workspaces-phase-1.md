@@ -687,7 +687,7 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: (...a: unknown[]) => invoke(...
 
 const resources = [
   {
-    connector_kind: "chrome",
+    connectorKind: "chrome",
     payload: { tabs: [{ url: "https://a.test/", title: "Alpha" }] },
   },
 ] as never;
@@ -766,7 +766,9 @@ export interface CapsuleItem {
 
 export interface CapsuleItemsProps {
   taskId: string;
-  resources: { connector_kind: string; payload: Record<string, unknown> }[];
+  /** The store's TaskResource. camelCase — the Rust struct carries
+   *  serde(rename_all = "camelCase") like every other record type. */
+  resources: { connectorKind: string; payload: Record<string, unknown> }[];
   /** Straight from the `task_pins` command; camelCase, like every other record type. */
   pins: { connectorKind: string; identity: string }[];
   onChanged: () => void;
@@ -792,7 +794,7 @@ function itemsOf(
   const pinned = new Set(pins.map((p) => `${p.connectorKind}${p.identity}`));
   const out: CapsuleItem[] = [];
   for (const r of resources) {
-    const kind = r.connector_kind;
+    const kind = r.connectorKind;
     if (kind !== "chrome" && kind !== "vscode") continue;
     const groups: unknown[] = [
       ...((r.payload.tabs as unknown[]) ?? []),
