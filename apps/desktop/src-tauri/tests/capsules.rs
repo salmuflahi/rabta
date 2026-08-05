@@ -1570,3 +1570,92 @@ async fn continuation_recheck_stops_mid_apply_on_newer_activation() {
         "terminal.create must not have been sent once superseded: {names:?}"
     );
 }
+
+#[test]
+fn merge_pins_appends_missing_and_never_duplicates() {
+    use rabta_desktop_lib::capsules::{identity_of, merge_pins};
+    use rabta_db::TaskPin;
+    use serde_json::json;
+
+    let pin = |kind: &str, identity: &str, payload: serde_json::Value| TaskPin {
+        id: "p".into(),
+        task_id: "t".into(),
+        connector_kind: kind.into(),
+        identity: identity.into(),
+        payload,
+        created_at: "2026-08-04T00:00:00Z".into(),
+    };
+
+    // chrome: a pinned tab that is closed gets appended; one already open does not duplicate.
+    let captured = json!({"tabs": [{"url": "https://open.test/", "title": "Open"}]});
+    let pins = vec![
+        pin("chrome", "https://open.test/", json!({"url": "https://open.test/", "title": "Open"})),
+        pin("chrome", "https://closed.test/", json!({"url": "https://closed.test/", "title": "Closed"})),
+    ];
+    let merged = merge_pins("chrome", &captured, &pins);
+    let tabs = merged["tabs"].as_array().unwrap();
+    assert_eq!(tabs.len(), 2, "expected the closed pin appended once: {tabs:?}");
+    assert_eq!(tabs[0]["url"], "https://open.test/", "captured order comes first");
+    assert_eq!(tabs[1]["url"], "https://closed.test/");
+
+    // vscode: openFiles is a bare string array.
+    let captured = json!({"workspaceFolder": "/repo", "openFiles": ["/repo/a.ts"], "activeFile": null, "terminals": []});
+    let pins = vec![pin("vscode", "/repo/b.ts", json!("/repo/b.ts"))];
+    let merged = merge_pins("vscode", &captured, &pins);
+    assert_eq!(
+        merged["openFiles"].as_array().unwrap(),
+        &vec![json!("/repo/a.ts"), json!("/repo/b.ts")]
+    );
+
+    // terminal identity is name + NUL + cwd, so two terminals named the same in
+    // different directories are different items.
+    let a = json!({"name": "zsh", "cwd": "/repo/a"});
+    let b = json!({"name": "zsh", "cwd": "/repo/b"});
+    assert_ne!(identity_of("vscode", &a), identity_of("vscode", &b));
+    assert_eq!(identity_of("chrome", &json!({"url": "https://x.test/"})), Some("https://x.test/".to_string()));
+    assert_eq!(identity_of("chrome", &json!({"no": "url"})), None);
+}
+
+#[tokio::test]
+async fn a_pinned_tab_reopens_after_being_closed_and_saved_over() {
+    // The rule: pins survive auto-save. Pin a tab, close it, save the capsule
+    // (so the captured payload no longer contains it), then activate — it
+    // must still be opened. If this fails, a pin means "until I close it
+    // once" instead of "always here".
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.add_task_pin(
+        &task_id,
+        "chrome",
+        "https://pinned.test/",
+        &json!({"url": "https://pinned.test/", "title": "Pinned"}),
+    )
+    .unwrap();
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector_kind(&hub, "chrome", tx, |name, _| match name {
+        "workspace.state" => tabs_state(&[]), // the pinned tab was closed before save
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    capsules.save_capsule(&task_id).await.unwrap();
+    while rx.try_recv().is_ok() {} // drain the workspace.state call from the save
+
+    let summary = capsules.activate_task(&task_id).await.unwrap();
+    assert!(
+        summary.applied.contains(&"chrome".to_string()),
+        "got {summary:?}"
+    );
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        names
+            .iter()
+            .any(|(n, a)| n == "tabs.open" && a["url"] == "https://pinned.test/"),
+        "pinned tab was not reopened: {names:?}"
+    );
+}
