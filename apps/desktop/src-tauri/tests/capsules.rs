@@ -1659,3 +1659,49 @@ async fn a_pinned_tab_reopens_after_being_closed_and_saved_over() {
         "pinned tab was not reopened: {names:?}"
     );
 }
+
+#[tokio::test]
+async fn removing_a_captured_item_leaves_pins_alone() {
+    // Deleting the record of a thing and saying "never open this" are
+    // different requests: removing a captured item must drop it from the
+    // captured payload but must not touch an existing pin for that identity.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    let (tx, _rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector_kind(&hub, "chrome", tx, |name, _| match name {
+        "workspace.state" => tabs_state(&["https://keep.test/", "https://drop.test/"]),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    capsules.save_capsule(&task_id).await.unwrap();
+    db.add_task_pin(
+        &task_id,
+        "chrome",
+        "https://drop.test/",
+        &json!({"url": "https://drop.test/", "title": "Drop"}),
+    )
+    .unwrap();
+
+    capsules
+        .remove_captured_item(&task_id, "chrome", "https://drop.test/")
+        .await
+        .unwrap();
+
+    let res = db.task_resources(&task_id).unwrap();
+    let tabs = res
+        .iter()
+        .find(|r| r.connector_kind == "chrome")
+        .unwrap()
+        .payload["tabs"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert_eq!(tabs.len(), 1, "captured item should be gone: {tabs:?}");
+    assert_eq!(tabs[0]["url"], "https://keep.test/");
+    assert_eq!(
+        db.task_pins(&task_id).unwrap().len(),
+        1,
+        "removing a record must not unpin"
+    );
+}

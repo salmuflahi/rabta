@@ -889,6 +889,36 @@ impl Capsules {
         any_succeeded
     }
 
+    /// Drops one item from a task's captured payload. Deliberately does not
+    /// touch pins: deleting the record of a thing and saying "never open this"
+    /// are different requests, and only the first one exists in phase 1.
+    pub async fn remove_captured_item(
+        &self,
+        task_id: &str,
+        kind: &str,
+        identity: &str,
+    ) -> Result<(), String> {
+        let db = self.db.clone();
+        let (tid, k, id) = (task_id.to_string(), kind.to_string(), identity.to_string());
+        tokio::task::spawn_blocking(move || -> Result<(), String> {
+            let resources = db.task_resources(&tid).map_err(|e| e.to_string())?;
+            let Some(r) = resources.iter().find(|r| r.connector_kind == k) else {
+                return Ok(());
+            };
+            let mut payload = r.payload.clone();
+            for field in ["tabs", "openFiles", "terminals"] {
+                if let Some(arr) = payload.get_mut(field).and_then(Value::as_array_mut) {
+                    arr.retain(|item| identity_of(&k, item).as_deref() != Some(id.as_str()));
+                }
+            }
+            db.replace_task_resources(&tid, &k, "workspace", &payload)
+                .map_err(|e| e.to_string())?;
+            Ok(())
+        })
+        .await
+        .map_err(|e| e.to_string())?
+    }
+
     /// Starts the reconnect continuation on Tauri's runtime (app path).
     pub fn spawn_continuation(&self) {
         let me = self.clone();
