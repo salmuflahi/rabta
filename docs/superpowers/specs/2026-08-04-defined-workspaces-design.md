@@ -54,11 +54,10 @@ These were settled deliberately; each had a cheaper option that was rejected.
 
 ### The stash is free
 
-Capture is already unfiltered. Chrome's `workspace.state` calls
-`chrome.tabs.query({})` — every tab. VS Code's `snapshot()` walks
-`window.tabGroups.all` and `window.terminals` — every editor tab, every
-terminal. And `activate` already auto-saves the outgoing task before switching
-(`saved_previous` in `ActivateSummary`).
+Capture never asks whether an item belongs to the task. Chrome's
+`workspace.state` queries `chrome.tabs.query({})`; VS Code's `snapshot()` walks
+`window.tabGroups.all` and `window.terminals`. And `activate` already auto-saves
+the outgoing task before switching (`saved_previous` in `ActivateSummary`).
 
 So the outgoing capsule **already holds your strays today**. Stashing requires
 no new capture code. Getting things back is just resuming that task.
@@ -66,9 +65,14 @@ no new capture code. Getting things back is just resuming that task.
 This is why "stash then close" costs no more than "close": the stash is a thing
 that already happens.
 
-## Data model
+It is not a raw dump, though — `snapshotTabs` drops incognito tabs, anything
+that is not http/https, and duplicate URLs before the state goes on the wire.
+A stray article tab is captured; a `chrome://` page is not. This matters for
+reconcile: anything the connector never reports cannot be diffed, which is
+exactly why incognito needs an explicit close-side guard rather than relying on
+its absence from the capsule.
 
-Each capsule item gains `pinned: bool`, defaulting to `false`.
+## Data model
 
 One rule carries the entire feature:
 
@@ -77,7 +81,46 @@ One rule carries the entire feature:
 
 That is what makes a pin mean *always here* rather than *here until I close it
 once*. Without it, closing a pinned tab and switching away would silently
-un-pin it. This rule is the most likely place for a bug and gets its own test.
+un-pin it.
+
+**Pins live in their own table, not as a field on the captured payload.**
+
+```sql
+CREATE TABLE task_pins (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  connector_kind TEXT NOT NULL,
+  identity TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (task_id, connector_kind, identity)
+);
+```
+
+The alternative — adding `pinned: bool` to each item inside
+`task_resources.payload` — was rejected for three reasons:
+
+- `task_resources.payload` is a faithful record of what a connector reported.
+  Writing an authored flag into it makes it no longer a record.
+- `replace_task_resources` **replaces**. Preserving pins would mean a
+  read-merge-write on every capture, which is both racy and the exact place the
+  rule would eventually break.
+- It would change the connector wire shapes (`TabsState`, `WorkspaceState`),
+  and Phase 1's whole value is that it needs no connector release.
+
+With a separate table the rule holds **by construction**: capture never touches
+pins, because they are not in the thing capture writes. Restore takes the union
+of the captured payload and the pins, deduped by identity.
+
+**Identity** is what makes an item the same item across captures:
+
+| Kind | Identity |
+|---|---|
+| chrome | the tab URL |
+| vscode file | the `fsPath` |
+| vscode terminal | `name` + `\0` + `cwd ?? ""` |
+
+The rule still gets its own test — by construction is a claim, not a guarantee.
 
 ## Curating
 
