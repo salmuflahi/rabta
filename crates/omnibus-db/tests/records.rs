@@ -651,3 +651,55 @@ fn get_task_and_project_by_id() {
     assert!(db.get_project("nope").unwrap().is_none());
     assert!(db.get_task("nope").unwrap().is_none());
 }
+
+#[test]
+fn task_pins_upsert_list_and_remove() {
+    let db = db();
+    let p = a_project(&db, "omnibus");
+    let task = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+
+    let pin = db
+        .add_task_pin(
+            &task.id,
+            "chrome",
+            "https://a.test/",
+            &json!({"url": "https://a.test/", "title": "A"}),
+        )
+        .unwrap();
+    assert_eq!(pin.identity, "https://a.test/");
+
+    // Re-pinning the same identity replaces the payload rather than duplicating.
+    db.add_task_pin(
+        &task.id,
+        "chrome",
+        "https://a.test/",
+        &json!({"url": "https://a.test/", "title": "A renamed"}),
+    )
+    .unwrap();
+    let pins = db.task_pins(&task.id).unwrap();
+    assert_eq!(pins.len(), 1, "re-pinning must not duplicate: {pins:?}");
+    assert_eq!(pins[0].payload["title"], "A renamed");
+
+    // Same identity under a different connector kind is a different pin.
+    db.add_task_pin(
+        &task.id,
+        "vscode",
+        "https://a.test/",
+        &json!({"path": "/x"}),
+    )
+    .unwrap();
+    assert_eq!(db.task_pins(&task.id).unwrap().len(), 2);
+
+    assert!(db
+        .remove_task_pin(&task.id, "chrome", "https://a.test/")
+        .unwrap());
+    assert!(!db
+        .remove_task_pin(&task.id, "chrome", "https://a.test/")
+        .unwrap());
+    assert_eq!(db.task_pins(&task.id).unwrap().len(), 1);
+}

@@ -6,12 +6,12 @@ fn migrates_fresh_database_and_is_idempotent() {
     let path = dir.path().join("omnibus.db");
 
     let db = Db::open(&path, DbConfig::default()).unwrap();
-    assert_eq!(db.schema_version().unwrap(), 3);
+    assert_eq!(db.schema_version().unwrap(), 4);
     drop(db);
 
     // Re-opening must not re-apply migrations or fail.
     let db = Db::open(&path, DbConfig::default()).unwrap();
-    assert_eq!(db.schema_version().unwrap(), 3);
+    assert_eq!(db.schema_version().unwrap(), 4);
 }
 
 #[test]
@@ -39,6 +39,7 @@ fn in_memory_database_has_all_tables() {
         "projects",
         "tasks",
         "task_resources",
+        "task_pins",
         "connectors",
         "events",
     ] {

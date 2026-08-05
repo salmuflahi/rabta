@@ -11,6 +11,7 @@ const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/001_init.sql"),
     include_str!("../migrations/002_track_b_core.sql"),
     include_str!("../migrations/003_connector_version.sql"),
+    include_str!("../migrations/004_task_pins.sql"),
 ];
 
 mod activity;
@@ -222,7 +223,7 @@ mod tests {
 
         drop(conn);
         let db = Db::open(&path, DbConfig::default()).unwrap();
-        assert_eq!(db.schema_version().unwrap(), 3);
+        assert_eq!(db.schema_version().unwrap(), MIGRATIONS.len() as i64);
 
         let conn = db
             .conn

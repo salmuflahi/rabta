@@ -103,6 +103,18 @@ pub struct TaskResource {
     pub created_at: String,
 }
 
+/// An item a user marked "always open this" for a task. Authored, never
+/// captured — which is why it lives outside task_resources.payload.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TaskPin {
+    pub id: String,
+    pub task_id: String,
+    pub connector_kind: String,
+    pub identity: String,
+    pub payload: Value,
+    pub created_at: String,
+}
+
 fn project_from_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
     Ok(Project {
         id: r.get(0)?,
@@ -778,5 +790,85 @@ impl Db {
         )?;
         tx.commit()?;
         Ok(r)
+    }
+
+    /// Upsert: re-pinning an identity refreshes its payload and keeps one row,
+    /// so a title change does not accumulate duplicates.
+    pub fn add_task_pin(
+        &self,
+        task_id: &str,
+        connector_kind: &str,
+        identity: &str,
+        payload: &Value,
+    ) -> Result<TaskPin> {
+        let r = TaskPin {
+            id: new_id(),
+            task_id: task_id.to_string(),
+            connector_kind: connector_kind.to_string(),
+            identity: identity.to_string(),
+            payload: payload.clone(),
+            created_at: now(),
+        };
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        conn.execute(
+            "INSERT INTO task_pins (id, task_id, connector_kind, identity, payload, created_at) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6) \
+             ON CONFLICT (task_id, connector_kind, identity) \
+             DO UPDATE SET payload = excluded.payload",
+            params![
+                r.id,
+                r.task_id,
+                r.connector_kind,
+                r.identity,
+                r.payload.to_string(),
+                r.created_at
+            ],
+        )?;
+        Ok(r)
+    }
+
+    /// True when a pin was actually removed; false when there was none.
+    pub fn remove_task_pin(
+        &self,
+        task_id: &str,
+        connector_kind: &str,
+        identity: &str,
+    ) -> Result<bool> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let n = conn.execute(
+            "DELETE FROM task_pins WHERE task_id = ?1 AND connector_kind = ?2 AND identity = ?3",
+            params![task_id, connector_kind, identity],
+        )?;
+        Ok(n > 0)
+    }
+
+    pub fn task_pins(&self, task_id: &str) -> Result<Vec<TaskPin>> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut stmt = conn.prepare(
+            "SELECT id, task_id, connector_kind, identity, payload, created_at \
+             FROM task_pins WHERE task_id = ?1 ORDER BY created_at",
+        )?;
+        let rows = stmt.query_map(params![task_id], |row| {
+            let raw: String = row.get(4)?;
+            Ok(TaskPin {
+                id: row.get(0)?,
+                task_id: row.get(1)?,
+                connector_kind: row.get(2)?,
+                identity: row.get(3)?,
+                payload: serde_json::from_str(&raw).unwrap_or(Value::Null),
+                created_at: row.get(5)?,
+            })
+        })?;
+        rows.collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(Into::into)
     }
 }
