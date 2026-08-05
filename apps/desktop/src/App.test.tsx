@@ -66,6 +66,13 @@ describe("App global keyboard shortcuts", () => {
     // path itself is covered by CapsulesPage.test.tsx.
     expect(useStore.getState().newTaskRequest).toBe(true);
     expect(useStore.getState().newProjectRequest).toBe(false);
+
+    // CapsulesPage's own mount-effect data fetch (list_projects/list_tasks/
+    // task_resources/task_pins, all still against the default empty-array
+    // mock) settles after these assertions rather than before — flush it
+    // within act() so its state updates don't land post-test, same as the
+    // ⌘R test above.
+    await act(async () => {});
   });
 
   it("⌘N (no shift) navigates to Projects, opens the register dialog, and clears newProjectRequest", async () => {

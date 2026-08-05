@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CapsuleItems } from "@/features/capsules/CapsuleItems";
 import { formatDuration, humanizeCapsule } from "@/lib/humanize";
 import { cn } from "@/lib/utils";
 import { toastErr, toastOk } from "@/lib/toast";
@@ -129,11 +130,18 @@ function CapsulesSkeleton() {
  * committing to Resume — no modal, no new invoke, Resume itself is
  * untouched and stays one click. */
 function CapsuleSummary({
+  taskId,
   resources,
+  pins,
   lastSessionSeconds,
+  onChanged,
 }: {
+  taskId: string;
   resources: TaskResource[];
+  /** Straight from the `task_pins` command; camelCase, like every other record type. */
+  pins: { connectorKind: string; identity: string }[];
   lastSessionSeconds?: number;
+  onChanged: () => void;
 }) {
   // Humanize each resource once; both the inline summary and the popover
   // rows below reuse it rather than recomputing per render.
@@ -199,6 +207,7 @@ function CapsuleSummary({
             ))}
           </div>
         )}
+        <CapsuleItems taskId={taskId} resources={resources} pins={pins} onChanged={onChanged} />
         {typeof lastSessionSeconds === "number" && lastSessionSeconds > 0 ? (
           <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
             Last session {formatDuration(lastSessionSeconds)}
@@ -226,6 +235,9 @@ export function CapsulesPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasksByProject, setTasksByProject] = useState<Record<string, Task[]>>({});
   const [resources, setResources] = useState<Record<string, TaskResource[]>>({});
+  // Which items are pinned ("always open this"), per task — loaded alongside
+  // resources so the curate list (CapsuleItems) can mark each captured item.
+  const [pins, setPins] = useState<Record<string, { connectorKind: string; identity: string }[]>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [renameTarget, setRenameTarget] = useState<Task | null>(null);
   const [renameTitle, setRenameTitle] = useState("");
@@ -270,10 +282,21 @@ export function CapsulesPage() {
     );
     setTasksByProject(Object.fromEntries(perProject));
     const allTasks = perProject.flatMap(([, tasks]) => tasks);
+    // One Promise.all over both reads per task (not a separate Promise.all
+    // for resources and another for pins) — an empty allTasks then resolves
+    // in exactly the shape this always had, instead of nesting an extra
+    // Promise.all layer that'd add a tick even when there's nothing to fetch.
     const entries = await Promise.all(
-      allTasks.map(async (t) => [t.id, await invoke<TaskResource[]>("task_resources", { taskId: t.id })] as const)
+      allTasks.map(async (t) => {
+        const [taskResources, taskPins] = await Promise.all([
+          invoke<TaskResource[]>("task_resources", { taskId: t.id }),
+          invoke<{ connectorKind: string; identity: string }[]>("task_pins", { taskId: t.id }),
+        ]);
+        return [t.id, taskResources, taskPins] as const;
+      })
     );
-    setResources(Object.fromEntries(entries));
+    setResources(Object.fromEntries(entries.map(([id, taskResources]) => [id, taskResources] as const)));
+    setPins(Object.fromEntries(entries.map(([id, , taskPins]) => [id, taskPins] as const)));
   };
 
   const refresh = async () => {
@@ -586,7 +609,13 @@ export function CapsulesPage() {
                                   </p>
                                   {isActive && <Badge className="shrink-0">Active</Badge>}
                                 </div>
-                                <CapsuleSummary resources={resources[t.id] ?? []} lastSessionSeconds={p.activeSeconds} />
+                                <CapsuleSummary
+                                  taskId={t.id}
+                                  resources={resources[t.id] ?? []}
+                                  pins={pins[t.id] ?? []}
+                                  lastSessionSeconds={p.activeSeconds}
+                                  onChanged={refresh}
+                                />
                               </div>
                               <div className="flex shrink-0 items-center gap-1.5">
                                 <Button
