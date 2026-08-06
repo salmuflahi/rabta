@@ -183,18 +183,26 @@ export function CapsuleItems({ taskId, resources, pins, onChanged }: CapsuleItem
               {it.label}
               {it.captured ? null : " (not open)"}
             </span>
+            {/* aria-disabled rather than disabled: the base button class carries
+                disabled:pointer-events-none, so a truly disabled button can never
+                fire its title tooltip, and it drops out of tab order too — which
+                means the one thing this control has to say ("why can't I pin
+                this?") reaches nobody who is looking at it. Left focusable and
+                hoverable, refusing the click instead. */}
             <Button
               type="button"
               size="icon"
               variant="ghost"
-              disabled={pinDisabled}
+              aria-disabled={pinDisabled || undefined}
+              className={cn(pinDisabled && "cursor-not-allowed opacity-50")}
               aria-label={pinLabel}
               title={pinDisabled ? pinLabel : undefined}
-              onClick={() =>
-                it.pinned
+              onClick={() => {
+                if (pinDisabled) return;
+                return it.pinned
                   ? run("unpin_task_item", { taskId, connectorKind: it.kind, identity: it.identity })
-                  : run("pin_task_item", { taskId, connectorKind: it.kind, payload: it.payload })
-              }
+                  : run("pin_task_item", { taskId, connectorKind: it.kind, payload: it.payload });
+              }}
             >
               {it.pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
             </Button>

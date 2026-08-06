@@ -94,7 +94,16 @@ describe("CapsuleItems", () => {
     expect(screen.getByText("zsh")).toBeInTheDocument();
 
     const pinButton = screen.getByRole("button", { name: /can.?t always open zsh/i });
-    expect(pinButton).toBeDisabled();
+    // aria-disabled, not disabled: a disabled button gets pointer-events-none from
+    // the base class and leaves the tab order, so its title — the only place the
+    // reason is written — could never reach anyone looking at it.
+    expect(pinButton).toHaveAttribute("aria-disabled", "true");
+    expect(pinButton).not.toHaveAttribute("disabled");
+    expect(pinButton).toHaveAttribute("title", expect.stringMatching(/can.?t always open zsh/i));
+
+    // Refusing the click is what makes aria-disabled honest.
+    fireEvent.click(pinButton);
+    expect(invoke).not.toHaveBeenCalled();
 
     // remove must stay fully available
     expect(screen.getByRole("button", { name: /remove zsh from this capsule/i })).toBeEnabled();
