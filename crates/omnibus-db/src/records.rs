@@ -103,6 +103,19 @@ pub struct TaskResource {
     pub created_at: String,
 }
 
+/// An item a user marked "always open this" for a task. Authored, never
+/// captured — which is why it lives outside task_resources.payload.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskPin {
+    pub id: String,
+    pub task_id: String,
+    pub connector_kind: String,
+    pub identity: String,
+    pub payload: Value,
+    pub created_at: String,
+}
+
 fn project_from_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
     Ok(Project {
         id: r.get(0)?,
@@ -778,5 +791,95 @@ impl Db {
         )?;
         tx.commit()?;
         Ok(r)
+    }
+
+    /// Upsert: re-pinning an identity refreshes its payload and keeps one row,
+    /// so a title change does not accumulate duplicates. `id` and `created_at`
+    /// are proposed here only for the insert path — on conflict the existing
+    /// row keeps its own, so the values returned always come from `RETURNING`
+    /// rather than from what this call happened to propose.
+    pub fn add_task_pin(
+        &self,
+        task_id: &str,
+        connector_kind: &str,
+        identity: &str,
+        payload: &Value,
+    ) -> Result<TaskPin> {
+        let candidate_id = new_id();
+        let candidate_created_at = now();
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let (id, created_at) = conn.query_row(
+            "INSERT INTO task_pins (id, task_id, connector_kind, identity, payload, created_at) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6) \
+             ON CONFLICT (task_id, connector_kind, identity) \
+             DO UPDATE SET payload = excluded.payload \
+             RETURNING id, created_at",
+            params![
+                candidate_id,
+                task_id,
+                connector_kind,
+                identity,
+                payload.to_string(),
+                candidate_created_at
+            ],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )?;
+        Ok(TaskPin {
+            id,
+            task_id: task_id.to_string(),
+            connector_kind: connector_kind.to_string(),
+            identity: identity.to_string(),
+            payload: payload.clone(),
+            created_at,
+        })
+    }
+
+    /// True when a pin was actually removed; false when there was none.
+    pub fn remove_task_pin(
+        &self,
+        task_id: &str,
+        connector_kind: &str,
+        identity: &str,
+    ) -> Result<bool> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let n = conn.execute(
+            "DELETE FROM task_pins WHERE task_id = ?1 AND connector_kind = ?2 AND identity = ?3",
+            params![task_id, connector_kind, identity],
+        )?;
+        Ok(n > 0)
+    }
+
+    /// Pins for one task, in pin order.
+    pub fn task_pins(&self, task_id: &str) -> Result<Vec<TaskPin>> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut stmt = conn.prepare(
+            "SELECT id, task_id, connector_kind, identity, payload, created_at \
+             FROM task_pins WHERE task_id = ?1 ORDER BY created_at",
+        )?;
+        let rows = stmt.query_map(params![task_id], |row| {
+            let raw: String = row.get(4)?;
+            Ok(TaskPin {
+                id: row.get(0)?,
+                task_id: row.get(1)?,
+                connector_kind: row.get(2)?,
+                identity: row.get(3)?,
+                payload: serde_json::from_str(&raw).unwrap_or_else(|e| {
+                    log::warn!("task_pins: corrupt task_pins.payload: {e}");
+                    Value::Null
+                }),
+                created_at: row.get(5)?,
+            })
+        })?;
+        rows.collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(Into::into)
     }
 }

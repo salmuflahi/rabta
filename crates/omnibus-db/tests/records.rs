@@ -651,3 +651,163 @@ fn get_task_and_project_by_id() {
     assert!(db.get_project("nope").unwrap().is_none());
     assert!(db.get_task("nope").unwrap().is_none());
 }
+
+#[test]
+fn task_pins_upsert_list_and_remove() {
+    let db = db();
+    let p = a_project(&db, "omnibus");
+    let task = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+
+    let pin = db
+        .add_task_pin(
+            &task.id,
+            "chrome",
+            "https://a.test/",
+            &json!({"url": "https://a.test/", "title": "A"}),
+        )
+        .unwrap();
+    assert_eq!(pin.identity, "https://a.test/");
+
+    // Re-pinning the same identity replaces the payload rather than duplicating.
+    db.add_task_pin(
+        &task.id,
+        "chrome",
+        "https://a.test/",
+        &json!({"url": "https://a.test/", "title": "A renamed"}),
+    )
+    .unwrap();
+    let pins = db.task_pins(&task.id).unwrap();
+    assert_eq!(pins.len(), 1, "re-pinning must not duplicate: {pins:?}");
+    assert_eq!(pins[0].payload["title"], "A renamed");
+
+    // Same identity under a different connector kind is a different pin.
+    db.add_task_pin(
+        &task.id,
+        "vscode",
+        "https://a.test/",
+        &json!({"path": "/x"}),
+    )
+    .unwrap();
+    assert_eq!(db.task_pins(&task.id).unwrap().len(), 2);
+
+    assert!(db
+        .remove_task_pin(&task.id, "chrome", "https://a.test/")
+        .unwrap());
+    assert!(!db
+        .remove_task_pin(&task.id, "chrome", "https://a.test/")
+        .unwrap());
+    assert_eq!(db.task_pins(&task.id).unwrap().len(), 1);
+}
+
+#[test]
+fn re_pinning_returns_the_existing_rows_id_and_created_at() {
+    let db = db();
+    let p = a_project(&db, "omnibus");
+    let task = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+
+    let first = db
+        .add_task_pin(
+            &task.id,
+            "chrome",
+            "https://a.test/",
+            &json!({"url": "https://a.test/", "title": "A"}),
+        )
+        .unwrap();
+
+    // Re-pin the same identity with a different payload. The row is updated
+    // in place (ON CONFLICT DO UPDATE), so the id and created_at must come
+    // from the existing row, not from a freshly minted id()/now() pair.
+    let second = db
+        .add_task_pin(
+            &task.id,
+            "chrome",
+            "https://a.test/",
+            &json!({"url": "https://a.test/", "title": "A renamed"}),
+        )
+        .unwrap();
+
+    assert_eq!(
+        second.id, first.id,
+        "re-pin must return the existing row's id, not a fabricated one"
+    );
+    assert_eq!(
+        second.created_at, first.created_at,
+        "re-pin must return the existing row's created_at, not a fabricated one"
+    );
+
+    let stored = &db.task_pins(&task.id).unwrap()[0];
+    assert_eq!(stored.id, first.id, "returned id must match the stored row");
+    assert_eq!(
+        stored.created_at, first.created_at,
+        "returned created_at must match the stored row"
+    );
+}
+
+#[test]
+fn task_pin_identity_containing_a_nul_byte_round_trips() {
+    // A vscode terminal's identity is `name + NUL + cwd` (see
+    // capsules::identity_of on the desktop side) — NUL is chosen as the
+    // separator specifically because it cannot occur in either field. Prove
+    // sqlite storage and the exact-match SELECT/DELETE comparisons carry the
+    // whole byte string through intact rather than truncating at the NUL,
+    // the way a naive C-string-style comparison would.
+    let db = db();
+    let p = a_project(&db, "omnibus");
+    let task = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+
+    let identity = "zsh\0/repo";
+    let pin = db
+        .add_task_pin(
+            &task.id,
+            "vscode",
+            identity,
+            &json!({"name": "zsh", "cwd": "/repo"}),
+        )
+        .unwrap();
+    assert_eq!(
+        pin.identity, identity,
+        "the NUL byte and everything after it must survive the insert round trip"
+    );
+
+    let pins = db.task_pins(&task.id).unwrap();
+    assert_eq!(pins.len(), 1);
+    assert_eq!(
+        pins[0].identity, identity,
+        "NUL byte must survive storage intact"
+    );
+
+    // A truncating comparison (anything that treats NUL as a C-string
+    // terminator) would match on "zsh" alone. It must not: the byte after
+    // the NUL is part of the identity, so a lookup missing it is a
+    // *different* pin and must not remove the real one.
+    assert!(
+        !db.remove_task_pin(&task.id, "vscode", "zsh").unwrap(),
+        "a truncated identity must not match the NUL-containing one"
+    );
+    assert_eq!(
+        db.task_pins(&task.id).unwrap().len(),
+        1,
+        "the real pin must still be there after the truncated lookup"
+    );
+
+    assert!(
+        db.remove_task_pin(&task.id, "vscode", identity).unwrap(),
+        "remove must match the full identity including the bytes after the NUL"
+    );
+    assert!(db.task_pins(&task.id).unwrap().is_empty());
+}

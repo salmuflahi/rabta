@@ -606,7 +606,9 @@ async fn task_pins(task_id: String, db: State<'_, DbHandle>) -> Result<Vec<TaskP
 }
 ```
 
-Add `use rabta_db::TaskPin;` to `lib.rs` if it is not already imported. `TaskPin` derives `Serialize` (Task 1), so it crosses the Tauri boundary as-is — the TS side receives `{ id, task_id, connector_kind, identity, payload, created_at }` with **snake_case** keys, because that struct has no `#[serde(rename_all)]`. Task 4 depends on that exact casing.
+Add `use rabta_db::TaskPin;` to `lib.rs` if it is not already imported, and re-export it from the db crate's `lib.rs` (`pub use records::{… TaskPin …}`) — Task 1 deliberately scoped its `lib.rs` edit to the `MIGRATIONS` array, so the type is not yet visible outside `rabta-db`.
+
+`TaskPin` carries `#[serde(rename_all = "camelCase")]` like every sibling record type, so the TS side receives `{ id, taskId, connectorKind, identity, payload, createdAt }`. Task 4 depends on that exact casing.
 
 Use whatever the file's existing capsule commands use for the DB and `Capsules` state types — read one of them first and copy its `State<'_, …>` parameter exactly rather than assuming `DbHandle` / `CapsulesHandle`.
 
@@ -662,8 +664,8 @@ export interface CapsuleItem {
 export interface CapsuleItemsProps {
   taskId: string;
   resources: TaskResource[];
-  /** Straight from the `task_pins` command, so these keys are snake_case. */
-  pins: { connector_kind: string; identity: string }[];
+  /** Straight from the `task_pins` command; camelCase, like every other record type. */
+  pins: { connectorKind: string; identity: string }[];
   onChanged: () => void;
 }
 ```
@@ -685,7 +687,7 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: (...a: unknown[]) => invoke(...
 
 const resources = [
   {
-    connector_kind: "chrome",
+    connectorKind: "chrome",
     payload: { tabs: [{ url: "https://a.test/", title: "Alpha" }] },
   },
 ] as never;
@@ -712,7 +714,7 @@ describe("CapsuleItems", () => {
       <CapsuleItems
         taskId="t1"
         resources={resources}
-        pins={[{ connector_kind: "chrome", identity: "https://a.test/" }]}
+        pins={[{ connectorKind: "chrome", identity: "https://a.test/" }]}
         onChanged={vi.fn()}
       />,
     );
@@ -764,9 +766,11 @@ export interface CapsuleItem {
 
 export interface CapsuleItemsProps {
   taskId: string;
-  resources: { connector_kind: string; payload: Record<string, unknown> }[];
-  /** Straight from the `task_pins` command, so these keys are snake_case. */
-  pins: { connector_kind: string; identity: string }[];
+  /** The store's TaskResource. camelCase — the Rust struct carries
+   *  serde(rename_all = "camelCase") like every other record type. */
+  resources: { connectorKind: string; payload: Record<string, unknown> }[];
+  /** Straight from the `task_pins` command; camelCase, like every other record type. */
+  pins: { connectorKind: string; identity: string }[];
   onChanged: () => void;
 }
 
@@ -787,12 +791,10 @@ function itemsOf(
   resources: CapsuleItemsProps["resources"],
   pins: CapsuleItemsProps["pins"],
 ): CapsuleItem[] {
-  // snake_case: this comes back from the task_pins command, not from an invoke
-  // argument list. Tauri maps camelCase params on the way in, not on the way out.
-  const pinned = new Set(pins.map((p) => `${p.connector_kind}${p.identity}`));
+  const pinned = new Set(pins.map((p) => `${p.connectorKind}${p.identity}`));
   const out: CapsuleItem[] = [];
   for (const r of resources) {
-    const kind = r.connector_kind;
+    const kind = r.connectorKind;
     if (kind !== "chrome" && kind !== "vscode") continue;
     const groups: unknown[] = [
       ...((r.payload.tabs as unknown[]) ?? []),
@@ -899,7 +901,7 @@ In `apps/desktop/src/pages/CapsulesPage.tsx`, inside the existing per-task capsu
 />
 ```
 
-Load pins alongside resources with `invoke<{ connector_kind: string; identity: string }[]>("task_pins", { taskId })` — Task 3 created that command. Reuse whatever the page already calls to refresh resources for `onChanged`.
+Load pins alongside resources with `invoke<{ connectorKind: string; identity: string }[]>("task_pins", { taskId })` — Task 3 created that command. Reuse whatever the page already calls to refresh resources for `onChanged`.
 
 - [ ] **Step 6: Run the full desktop suite**
 

@@ -1570,3 +1570,421 @@ async fn continuation_recheck_stops_mid_apply_on_newer_activation() {
         "terminal.create must not have been sent once superseded: {names:?}"
     );
 }
+
+#[test]
+fn merge_pins_appends_missing_and_never_duplicates() {
+    use rabta_desktop_lib::capsules::{identity_of, merge_pins};
+    use rabta_db::TaskPin;
+    use serde_json::json;
+
+    let pin = |kind: &str, identity: &str, payload: serde_json::Value| TaskPin {
+        id: "p".into(),
+        task_id: "t".into(),
+        connector_kind: kind.into(),
+        identity: identity.into(),
+        payload,
+        created_at: "2026-08-04T00:00:00Z".into(),
+    };
+
+    // chrome: a pinned tab that is closed gets appended; one already open does not duplicate.
+    let captured = json!({"tabs": [{"url": "https://open.test/", "title": "Open"}]});
+    let pins = vec![
+        pin("chrome", "https://open.test/", json!({"url": "https://open.test/", "title": "Open"})),
+        pin("chrome", "https://closed.test/", json!({"url": "https://closed.test/", "title": "Closed"})),
+    ];
+    let merged = merge_pins("chrome", &captured, &pins);
+    let tabs = merged["tabs"].as_array().unwrap();
+    assert_eq!(tabs.len(), 2, "expected the closed pin appended once: {tabs:?}");
+    assert_eq!(tabs[0]["url"], "https://open.test/", "captured order comes first");
+    assert_eq!(tabs[1]["url"], "https://closed.test/");
+
+    // vscode: openFiles is a bare string array.
+    let captured = json!({"workspaceFolder": "/repo", "openFiles": ["/repo/a.ts"], "activeFile": null, "terminals": []});
+    let pins = vec![pin("vscode", "/repo/b.ts", json!("/repo/b.ts"))];
+    let merged = merge_pins("vscode", &captured, &pins);
+    assert_eq!(
+        merged["openFiles"].as_array().unwrap(),
+        &vec![json!("/repo/a.ts"), json!("/repo/b.ts")]
+    );
+
+    // terminal identity is name + NUL + cwd, so two terminals named the same in
+    // different directories are different items.
+    let a = json!({"name": "zsh", "cwd": "/repo/a"});
+    let b = json!({"name": "zsh", "cwd": "/repo/b"});
+    assert_ne!(identity_of("vscode", &a), identity_of("vscode", &b));
+    assert_eq!(identity_of("chrome", &json!({"url": "https://x.test/"})), Some("https://x.test/".to_string()));
+    assert_eq!(identity_of("chrome", &json!({"no": "url"})), None);
+}
+
+#[test]
+fn merge_pins_appends_a_missing_terminal_and_never_duplicates_one_already_captured() {
+    // The `out["terminals"]` block is its own merge, separate from the
+    // `openFiles` one above — a terminal pin must land in `terminals`, must
+    // append when its identity (name + NUL + cwd) isn't already captured,
+    // and must not duplicate when it is.
+    use rabta_desktop_lib::capsules::merge_pins;
+    use rabta_db::TaskPin;
+    use serde_json::json;
+
+    let pin = |identity: &str, payload: serde_json::Value| TaskPin {
+        id: "p".into(),
+        task_id: "t".into(),
+        connector_kind: "vscode".into(),
+        identity: identity.into(),
+        payload,
+        created_at: "2026-08-04T00:00:00Z".into(),
+    };
+
+    let captured = json!({
+        "workspaceFolder": "/repo",
+        "openFiles": [],
+        "activeFile": null,
+        "terminals": [{"name": "zsh", "cwd": "/repo/a"}]
+    });
+    let pins = vec![
+        // Same name+cwd identity as the terminal already in `terminals`.
+        pin("zsh\0/repo/a", json!({"name": "zsh", "cwd": "/repo/a"})),
+        // A different terminal, closed since capture: must be appended.
+        pin("build\0/repo/b", json!({"name": "build", "cwd": "/repo/b"})),
+    ];
+
+    let merged = merge_pins("vscode", &captured, &pins);
+    let terminals = merged["terminals"].as_array().unwrap();
+    assert_eq!(
+        terminals.len(),
+        2,
+        "expected the captured terminal kept once and the closed one appended: {terminals:?}"
+    );
+    assert_eq!(terminals[0]["cwd"], "/repo/a", "captured order comes first");
+    assert_eq!(terminals[1]["name"], "build");
+    assert_eq!(terminals[1]["cwd"], "/repo/b");
+}
+
+#[test]
+fn merge_pins_returns_a_non_object_payload_unchanged_instead_of_panicking() {
+    // A connector's workspace.state reply is untrusted shape. Before pins,
+    // an unexpected shape (array/string/number/bool instead of an object)
+    // was only ever read-indexed elsewhere, which is harmless. merge_pins
+    // write-indexes (`out[field] = ...`), and serde_json's IndexMut panics
+    // for a string key on any non-object Value. None of these may panic.
+    use rabta_desktop_lib::capsules::merge_pins;
+    use rabta_db::TaskPin;
+    use serde_json::json;
+
+    let pin = TaskPin {
+        id: "p".into(),
+        task_id: "t".into(),
+        connector_kind: "chrome".into(),
+        identity: "https://pinned.test/".into(),
+        payload: json!({"url": "https://pinned.test/"}),
+        created_at: "2026-08-04T00:00:00Z".into(),
+    };
+
+    for bogus in [json!([1, 2, 3]), json!("oops"), json!(42), json!(true)] {
+        let merged = merge_pins("chrome", &bogus, std::slice::from_ref(&pin));
+        assert_eq!(
+            merged, bogus,
+            "a non-object captured payload must be returned unchanged, not mutated"
+        );
+    }
+
+    // vscode goes through the second write-index too (`out["terminals"]`).
+    for bogus in [json!([1, 2, 3]), json!("oops"), json!(42), json!(true)] {
+        let merged = merge_pins("vscode", &bogus, &[]);
+        assert_eq!(merged, bogus);
+    }
+}
+
+#[tokio::test]
+async fn a_pinned_tab_reopens_after_being_closed_and_saved_over() {
+    // The rule: pins survive auto-save. Pin a tab, close it, save the capsule
+    // (so the captured payload no longer contains it), then activate — it
+    // must still be opened. If this fails, a pin means "until I close it
+    // once" instead of "always here".
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.add_task_pin(
+        &task_id,
+        "chrome",
+        "https://pinned.test/",
+        &json!({"url": "https://pinned.test/", "title": "Pinned"}),
+    )
+    .unwrap();
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector_kind(&hub, "chrome", tx, |name, _| match name {
+        "workspace.state" => tabs_state(&[]), // the pinned tab was closed before save
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    capsules.save_capsule(&task_id).await.unwrap();
+    while rx.try_recv().is_ok() {} // drain the workspace.state call from the save
+
+    let summary = capsules.activate_task(&task_id).await.unwrap();
+    assert!(
+        summary.applied.contains(&"chrome".to_string()),
+        "got {summary:?}"
+    );
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        names
+            .iter()
+            .any(|(n, a)| n == "tabs.open" && a["url"] == "https://pinned.test/"),
+        "pinned tab was not reopened: {names:?}"
+    );
+}
+
+#[tokio::test]
+async fn a_pinned_terminal_reopens_after_being_closed_and_saved_over() {
+    // Same rule as the chrome equivalent above, but for a vscode terminal:
+    // pin one with a real cwd, close it, save over it (the captured
+    // terminals no longer include it), then activate — restore must still
+    // create it. This is the layer the chrome test can't reach: merge_pins's
+    // separate `out["terminals"]` block and identity_of's name+NUL+cwd
+    // branch, driven end to end through pin -> save -> activate.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.add_task_pin(
+        &task_id,
+        "vscode",
+        "build\0/repo/a",
+        &json!({"name": "build", "cwd": "/repo/a"}),
+    )
+    .unwrap();
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector(&hub, tx, |name, _| match name {
+        // Same folder both times; no terminals open at save time (the
+        // pinned one was closed before save, and nothing else was open).
+        "workspace.state" => json!({
+            "workspaceFolder": "/repo/a",
+            "openFiles": [],
+            "activeFile": null,
+            "terminals": []
+        }),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    capsules.save_capsule(&task_id).await.unwrap();
+    while rx.try_recv().is_ok() {} // drain the workspace.state call from the save
+
+    let summary = capsules.activate_task(&task_id).await.unwrap();
+    assert_eq!(summary.applied, vec!["vscode"], "got {summary:?}");
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        names
+            .iter()
+            .any(|(n, a)| n == "terminal.create" && a["cwd"] == "/repo/a" && a["name"] == "build"),
+        "pinned terminal was not reopened: {names:?}"
+    );
+}
+
+#[tokio::test]
+async fn removing_a_captured_item_leaves_pins_alone() {
+    // Deleting the record of a thing and saying "never open this" are
+    // different requests: removing a captured item must drop it from the
+    // captured payload but must not touch an existing pin for that identity.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    let (tx, _rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector_kind(&hub, "chrome", tx, |name, _| match name {
+        "workspace.state" => tabs_state(&["https://keep.test/", "https://drop.test/"]),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    capsules.save_capsule(&task_id).await.unwrap();
+    db.add_task_pin(
+        &task_id,
+        "chrome",
+        "https://drop.test/",
+        &json!({"url": "https://drop.test/", "title": "Drop"}),
+    )
+    .unwrap();
+
+    capsules
+        .remove_captured_item(&task_id, "chrome", "https://drop.test/")
+        .await
+        .unwrap();
+
+    let res = db.task_resources(&task_id).unwrap();
+    let tabs = res
+        .iter()
+        .find(|r| r.connector_kind == "chrome")
+        .unwrap()
+        .payload["tabs"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert_eq!(tabs.len(), 1, "captured item should be gone: {tabs:?}");
+    assert_eq!(tabs[0]["url"], "https://keep.test/");
+    assert_eq!(
+        db.task_pins(&task_id).unwrap().len(),
+        1,
+        "removing a record must not unpin"
+    );
+}
+
+#[tokio::test]
+async fn removing_a_captured_item_for_an_unrecognized_kind_leaves_the_row_untouched() {
+    // `identity_of` only recognises "chrome" and "vscode". For any other
+    // kind — including the "git" virtual kind, whose row isn't a
+    // tab/file/terminal collection at all — it returns None for every item,
+    // so nothing is ever considered removed and `remove_captured_item`
+    // returns before the write-back line runs at all. This only proves that
+    // early-return path leaves the row alone; it does NOT exercise
+    // `db.replace_task_resources(&tid, &k, &r.resource_type, &payload)`, so
+    // it can't catch a regression to a hardcoded "workspace" there. For a
+    // test that actually reaches and checks that write, see
+    // `removing_a_captured_item_preserves_a_non_workspace_resource_type`.
+    let (_hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(&task_id, "git", "branch", &json!({"branch": "main"}))
+        .unwrap();
+
+    capsules
+        .remove_captured_item(&task_id, "git", "some-identity")
+        .await
+        .unwrap();
+
+    let rows = db.task_resources(&task_id).unwrap();
+    let git_row = rows.iter().find(|r| r.connector_kind == "git").unwrap();
+    assert_eq!(git_row.resource_type, "branch");
+    assert_eq!(git_row.payload["branch"], json!("main"));
+}
+
+#[tokio::test]
+async fn removing_a_captured_item_preserves_a_non_workspace_resource_type() {
+    // `remove_captured_item` writes back `&r.resource_type` — read off the
+    // row it just modified — rather than a hardcoded "workspace" literal.
+    // That only discriminates on a row whose resource_type differs from
+    // "workspace", so seed one directly (not via `save_capsule`, which
+    // always writes "workspace") for a kind `identity_of` DOES recognise,
+    // and drive an actual removal through it: two tabs in, remove one by
+    // identity, and require both that the removal really happened and that
+    // resource_type survived the write-back unchanged.
+    let (_hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        "not-workspace",
+        &tabs_state(&["https://keep.test/", "https://drop.test/"]),
+    )
+    .unwrap();
+
+    capsules
+        .remove_captured_item(&task_id, "chrome", "https://drop.test/")
+        .await
+        .unwrap();
+
+    let rows = db.task_resources(&task_id).unwrap();
+    let chrome_row = rows.iter().find(|r| r.connector_kind == "chrome").unwrap();
+    let tabs = chrome_row.payload["tabs"].as_array().unwrap();
+    assert_eq!(tabs.len(), 1, "captured item should be gone: {tabs:?}");
+    assert_eq!(tabs[0]["url"], "https://keep.test/");
+    assert_eq!(
+        chrome_row.resource_type, "not-workspace",
+        "write-back must preserve the row's own resource_type, not hardcode \"workspace\""
+    );
+}
+
+#[tokio::test]
+async fn a_task_with_no_pins_restores_exactly_as_before() {
+    // Phase 1 adds a layer; it must not move anything underneath it. A task
+    // that has never been curated (no pins at all) has to issue the
+    // identical command sequence it always did: exactly the captured urls,
+    // in capture order, nothing added and nothing dropped.
+    let (hub, _db, capsules, task_id, _dir) = setup().await;
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector_kind(&hub, "chrome", tx, |name, _| match name {
+        "workspace.state" => tabs_state(&["https://a.test/", "https://b.test/"]),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    capsules.save_capsule(&task_id).await.unwrap();
+    while rx.try_recv().is_ok() {} // drain the workspace.state call from the save
+
+    capsules.activate_task(&task_id).await.unwrap();
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    let opened: Vec<String> = names
+        .into_iter()
+        .filter(|(n, _)| n == "tabs.open")
+        .map(|(_, a)| a["url"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(
+        opened,
+        vec!["https://a.test/".to_string(), "https://b.test/".to_string()],
+        "an uncurated task must restore exactly what it captured, in order"
+    );
+}
+
+#[tokio::test]
+async fn a_vscode_task_with_no_pins_restores_exactly_as_before() {
+    // Same guarantee as `a_task_with_no_pins_restores_exactly_as_before`,
+    // but for vscode — the harder merge_pins case: two merged fields
+    // (openFiles, terminals) plus the activeFile reordering that moves the
+    // active file to the end of openFiles so editor focus lands on it. An
+    // uncurated task (no pins at all) has to issue the exact same ordered
+    // command sequence it always did.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(
+        &task_id,
+        "vscode",
+        "workspace",
+        &state("/repo/a", &["/repo/a/x.ts", "/repo/a/y.ts"]),
+    )
+    .unwrap();
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector(&hub, tx, |name, _| match name {
+        "workspace.state" => state("/repo/a", &[]), // same folder; nothing open live
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let summary = capsules.activate_task(&task_id).await.unwrap();
+    assert_eq!(summary.applied, vec!["vscode"], "got {summary:?}");
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    let commands: Vec<(String, String)> = names
+        .into_iter()
+        .filter(|(n, _)| n != "workspace.state")
+        .map(|(n, a)| {
+            (
+                n,
+                a["path"].as_str().or(a["cwd"].as_str()).unwrap_or("").to_string(),
+            )
+        })
+        .collect();
+
+    // `state("/repo/a", &["x.ts", "y.ts"])` makes x.ts the activeFile, so
+    // restore_vscode moves it to the back of openFiles: y.ts opens first,
+    // x.ts (active) opens last, then the one captured terminal.
+    assert_eq!(
+        commands,
+        vec![
+            ("editor.openFile".to_string(), "/repo/a/y.ts".to_string()),
+            ("editor.openFile".to_string(), "/repo/a/x.ts".to_string()),
+            ("terminal.create".to_string(), "/repo/a".to_string()),
+        ],
+        "an uncurated vscode task must restore exactly what it captured, in the same order, with activeFile last: {commands:?}"
+    );
+}

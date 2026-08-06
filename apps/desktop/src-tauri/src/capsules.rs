@@ -4,7 +4,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use rabta_db::{Db, Project};
+use rabta_db::{Db, Project, TaskPin};
 use rabta_hub::protocol::ConnectorKind;
 use rabta_hub::{ConnectorInfo, Hub, HubEvent};
 use serde::Serialize;
@@ -107,6 +107,10 @@ pub struct Capsules {
     transition_lock: Arc<tokio::sync::Mutex<()>>,
     activation_archive_lock: Arc<tokio::sync::Mutex<()>>,
     continuation_lock: Arc<tokio::sync::Mutex<()>>,
+    /// Serializes `remove_captured_item`'s read-modify-write of a task's
+    /// resource row so two concurrent removals can't both read the same
+    /// pre-image and have one write silently undo the other.
+    task_resources_lock: Arc<tokio::sync::Mutex<()>>,
     transition_boundary_signal: Arc<Mutex<Option<tokio::sync::oneshot::Sender<()>>>>,
     activation_continuation_boundary_signal: Arc<Mutex<Option<tokio::sync::oneshot::Sender<()>>>>,
     generation: Arc<std::sync::atomic::AtomicU64>,
@@ -166,6 +170,7 @@ impl Capsules {
             transition_lock: Arc::new(tokio::sync::Mutex::new(())),
             activation_archive_lock: Arc::new(tokio::sync::Mutex::new(())),
             continuation_lock: Arc::new(tokio::sync::Mutex::new(())),
+            task_resources_lock: Arc::new(tokio::sync::Mutex::new(())),
             transition_boundary_signal: Arc::new(Mutex::new(None)),
             activation_continuation_boundary_signal: Arc::new(Mutex::new(None)),
             generation: Arc::new(std::sync::atomic::AtomicU64::new(0)),
@@ -578,6 +583,17 @@ impl Capsules {
         drop(continuation);
 
         let resources = target.1;
+        // Pins are authored, not captured, so they live outside the rows
+        // above and are merged into each kind's payload just before restore
+        // — a pin survives even a save that happened after it was closed.
+        let pins = {
+            let db = self.db.clone();
+            let tid = task_id.to_string();
+            tokio::task::spawn_blocking(move || db.task_pins(&tid))
+                .await
+                .map_err(|e| e.to_string())?
+                .map_err(|e| e.to_string())?
+        };
         let mut applied = vec![];
         let mut pending = vec![];
         let mut skipped = vec![];
@@ -634,8 +650,9 @@ impl Capsules {
             };
             match r.connector_kind.as_str() {
                 "vscode" => {
+                    let payload = merge_pins(&r.connector_kind, &r.payload, &pins);
                     match self
-                        .restore_vscode(conn, &r.payload, generation, &mut errors)
+                        .restore_vscode(conn, &payload, generation, &mut errors)
                         .await
                     {
                         RestoreOutcome::Applied => applied.push("vscode".into()),
@@ -661,7 +678,8 @@ impl Capsules {
                     }
                 }
                 "chrome" => {
-                    if self.restore_chrome(conn, &r.payload, &mut errors).await {
+                    let payload = merge_pins(&r.connector_kind, &r.payload, &pins);
+                    if self.restore_chrome(conn, &payload, &mut errors).await {
                         applied.push("chrome".to_string());
                     } else {
                         skipped.push("chrome".to_string());
@@ -876,6 +894,56 @@ impl Capsules {
         any_succeeded
     }
 
+    /// Drops one item from a task's captured payload. Deliberately does not
+    /// touch pins: deleting the record of a thing and saying "never open this"
+    /// are different requests, and only the first one exists in phase 1.
+    ///
+    /// This is a read-modify-write across two independent db lock
+    /// acquisitions (`task_resources` then `replace_task_resources`), so it
+    /// serializes under `task_resources_lock`: without that, two concurrent
+    /// removals for the same task and kind could both read the same
+    /// pre-image and the second write would silently undo the first
+    /// removal. The lock is held across the `spawn_blocking` await below,
+    /// which is safe here — `spawn_blocking` runs on a separate thread pool
+    /// and this function never calls back into anything that takes another
+    /// `Capsules` lock, so there is no cycle for it to deadlock with.
+    pub async fn remove_captured_item(
+        &self,
+        task_id: &str,
+        kind: &str,
+        identity: &str,
+    ) -> Result<(), String> {
+        let _serialized = self.task_resources_lock.lock().await;
+        let db = self.db.clone();
+        let (tid, k, id) = (task_id.to_string(), kind.to_string(), identity.to_string());
+        tokio::task::spawn_blocking(move || -> Result<(), String> {
+            let resources = db.task_resources(&tid).map_err(|e| e.to_string())?;
+            let Some(r) = resources.iter().find(|r| r.connector_kind == k) else {
+                return Ok(());
+            };
+            let mut payload = r.payload.clone();
+            let mut removed = false;
+            for field in ["tabs", "openFiles", "terminals"] {
+                if let Some(arr) = payload.get_mut(field).and_then(Value::as_array_mut) {
+                    let before = arr.len();
+                    arr.retain(|item| identity_of(&k, item).as_deref() != Some(id.as_str()));
+                    removed |= arr.len() != before;
+                }
+            }
+            if !removed {
+                // Stale id or already removed: nothing changed, so nothing
+                // to write back. Also avoids re-deriving `resource_type`
+                // from a row we didn't actually touch.
+                return Ok(());
+            }
+            db.replace_task_resources(&tid, &k, &r.resource_type, &payload)
+                .map_err(|e| e.to_string())?;
+            Ok(())
+        })
+        .await
+        .map_err(|e| e.to_string())?
+    }
+
     /// Starts the reconnect continuation on Tauri's runtime (app path).
     pub fn spawn_continuation(&self) {
         let me = self.clone();
@@ -981,4 +1049,90 @@ impl Capsules {
 enum RestoreOutcome {
     Applied,
     Pending,
+}
+
+/// What makes an item the same item across two captures. A tab is its URL, a
+/// file is its path, and a terminal is its name and directory together —
+/// two shells both called "zsh" in different folders are different terminals.
+/// NUL is the separator because it cannot occur in either field.
+pub fn identity_of(kind: &str, item: &Value) -> Option<String> {
+    match kind {
+        "chrome" => item.get("url")?.as_str().map(str::to_string),
+        "vscode" => {
+            if let Some(path) = item.as_str() {
+                return Some(path.to_string());
+            }
+            let name = item.get("name")?.as_str()?;
+            let cwd = item.get("cwd").and_then(Value::as_str).unwrap_or("");
+            Some(format!("{name}\0{cwd}"))
+        }
+        _ => None,
+    }
+}
+
+/// The captured payload plus any pinned item that is not already in it.
+/// Captured order is preserved and pins are appended, so restore opens what
+/// was open first and the always-there items after.
+pub fn merge_pins(kind: &str, captured: &Value, pins: &[TaskPin]) -> Value {
+    let field = match kind {
+        "chrome" => "tabs",
+        "vscode" => "openFiles",
+        _ => return captured.clone(),
+    };
+    // `captured` is a connector's `workspace.state` reply — arbitrary,
+    // untrusted shape. Before this function existed, the payload was only
+    // ever *read*-indexed (`payload["field"]`), which returns `&Value::Null`
+    // harmlessly for anything unexpected. The *write*-indexing below
+    // (`out[field] = ...`) uses serde_json's `IndexMut`, which panics for a
+    // string key on any non-object Value (array, string, number, bool) — it
+    // only auto-vivifies `Null`. A misbehaving connector replying with, say,
+    // `[]` would otherwise be stored verbatim and then panic the next time
+    // this task activates. Bail out before that ever runs.
+    if !captured.is_object() {
+        return captured.clone();
+    }
+    let mut out = captured.clone();
+    let mut items = captured
+        .get(field)
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let mut seen: std::collections::HashSet<String> = items
+        .iter()
+        .filter_map(|i| identity_of(kind, i))
+        .collect();
+
+    for p in pins.iter().filter(|p| p.connector_kind == kind) {
+        // A vscode terminal pin belongs to `terminals`, not `openFiles`.
+        let is_terminal = kind == "vscode" && p.payload.get("name").is_some();
+        if is_terminal {
+            continue;
+        }
+        if seen.insert(p.identity.clone()) {
+            items.push(p.payload.clone());
+        }
+    }
+    out[field] = Value::Array(items);
+
+    if kind == "vscode" {
+        let mut terms = captured
+            .get("terminals")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        let mut tseen: std::collections::HashSet<String> = terms
+            .iter()
+            .filter_map(|i| identity_of(kind, i))
+            .collect();
+        for p in pins
+            .iter()
+            .filter(|p| p.connector_kind == kind && p.payload.get("name").is_some())
+        {
+            if tseen.insert(p.identity.clone()) {
+                terms.push(p.payload.clone());
+            }
+        }
+        out["terminals"] = Value::Array(terms);
+    }
+    out
 }

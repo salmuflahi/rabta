@@ -3,7 +3,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use rabta_db::{
-    Db, DbConfig, EventRow, KnownConnector, Project, Recorder, Task, TaskResource, TaskStatus,
+    Db, DbConfig, EventRow, KnownConnector, Project, Recorder, Task, TaskPin, TaskResource,
+    TaskStatus,
 };
 use rabta_hub::{ConnectorInfo, Hub, HubConfig};
 use serde::Serialize;
@@ -212,6 +213,67 @@ async fn session_update(
 #[tauri::command]
 async fn session_heartbeat(caps: State<'_, CapsulesHandle>) -> Result<(), String> {
     caps.0.session_heartbeat().await
+}
+
+/// Marks one item "always open this" for a task.
+#[tauri::command]
+async fn pin_task_item(
+    task_id: String,
+    connector_kind: String,
+    payload: serde_json::Value,
+    db: State<'_, DbHandle>,
+) -> Result<(), String> {
+    let identity = crate::capsules::identity_of(&connector_kind, &payload)
+        .ok_or_else(|| format!("cannot identify a {connector_kind} item from {payload}"))?;
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        db.add_task_pin(&task_id, &connector_kind, &identity, &payload)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map(|_| ())
+    .map_err(|e| e.to_string())
+}
+
+/// Removes a pin; returns whether one actually existed.
+#[tauri::command]
+async fn unpin_task_item(
+    task_id: String,
+    connector_kind: String,
+    identity: String,
+    db: State<'_, DbHandle>,
+) -> Result<bool, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        db.remove_task_pin(&task_id, &connector_kind, &identity)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())
+}
+
+/// Drops one item from a task's captured payload. Does not touch pins.
+#[tauri::command]
+async fn remove_task_item(
+    task_id: String,
+    connector_kind: String,
+    identity: String,
+    capsules: State<'_, CapsulesHandle>,
+) -> Result<(), String> {
+    capsules
+        .0
+        .remove_captured_item(&task_id, &connector_kind, &identity)
+        .await
+}
+
+/// Read side for the curate UI: which items this task has pinned.
+#[tauri::command]
+async fn task_pins(task_id: String, db: State<'_, DbHandle>) -> Result<Vec<TaskPin>, String> {
+    let db = db.0.clone();
+    tauri::async_runtime::spawn_blocking(move || db.task_pins(&task_id))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())
 }
 
 /// Creates a task under a project (status `open`).
@@ -605,6 +667,10 @@ pub fn run() {
             active_task,
             session_update,
             session_heartbeat,
+            pin_task_item,
+            unpin_task_item,
+            remove_task_item,
+            task_pins,
             create_task,
             list_tasks,
             set_task_status,

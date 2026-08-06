@@ -45,6 +45,8 @@ You work in tasks, not apps. Editors, browsers, terminals, and git connect once 
 - **Safe git.** Status, fetch, checkout, and branch creation — but Rabta *never* force-checkouts, resets, stashes, or discards. A checkout onto a dirty tree is refused with a message, never forced.
 - **GitHub, no credential stored.** Reads issues and starts a task+branch from one — through your own authenticated `gh` CLI. Rabta never sees or stores a GitHub token.
 
+Items in a capsule can be **pinned**. A pinned item opens every time you resume the task, even if it was closed when you last saved — that is the difference between "always here" and "here until I close it once". Everything else in a capsule is simply what was open, and comes back as it was.
+
 ## Privacy & security posture
 
 This is load-bearing, not a footnote — the whole value proposition depends on trust. Rabta stores **only the metadata needed to restore a task**:
