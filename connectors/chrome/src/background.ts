@@ -1,5 +1,5 @@
 import { Connection, nativeSocket } from "./connection";
-import { isRestorableUrl, snapshotTabs, type RawTab } from "./tabs";
+import { closeVerdict, isRestorableUrl, snapshotTabs, type RawTab } from "./tabs";
 import { installTabListeners } from "./tab-events";
 
 const DEFAULT_PORT = 17872;
@@ -72,6 +72,32 @@ async function connect(port: number) {
         }
         await chrome.tabs.create({ url });
         return { opened: url };
+      }
+      if (name === "tabs.close") {
+        const { url } = args as { url: string };
+        const matches = await chrome.tabs.query({ url });
+        if (matches.length === 0) return { kept: url, reason: "no longer open" };
+        const results: { closed?: string; kept?: string; reason?: string }[] = [];
+        for (const t of matches) {
+          const inWindow = await chrome.tabs.query({ windowId: t.windowId });
+          const verdict = closeVerdict(
+            { url: t.url ?? "", pinned: t.pinned ?? false, incognito: t.incognito ?? false },
+            inWindow.length,
+          );
+          if (!verdict.close) {
+            results.push({ kept: url, reason: verdict.reason });
+            continue;
+          }
+          if (t.id != null) {
+            await chrome.tabs.remove(t.id);
+            results.push({ closed: url });
+          }
+        }
+        // One url can be open in several tabs. If any copy was refused, the
+        // url is reported kept — saying "closed" while a copy survives would
+        // make the receipt a lie.
+        const refused = results.find((r) => r.kept);
+        return refused ?? { closed: url };
       }
       throw new Error(`no handler for ${name}`);
     },

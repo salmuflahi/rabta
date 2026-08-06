@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Rabta Connector",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Lets Rabta capture and restore your browser tabs as part of a task's workspace. Local-only — nothing leaves your machine.",
   "permissions": [
     "tabs",

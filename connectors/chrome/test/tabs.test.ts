@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isRestorableUrl, openedEventFor, snapshotTabs } from "../src/tabs";
+import { closeVerdict, isRestorableUrl, openedEventFor, snapshotTabs } from "../src/tabs";
 
 const tab = (url: string, incognito = false, title = url) => ({ url, title, incognito });
 
@@ -56,5 +56,55 @@ describe("openedEventFor", () => {
 
   it("does not emit when the url is missing (e.g. an unrelated tab update)", () => {
     expect(openedEventFor({ incognito: false })).toBeNull();
+  });
+});
+
+describe("closeVerdict", () => {
+  const tab = (over: Partial<{ url: string; pinned: boolean; incognito: boolean }> = {}) => ({
+    url: "https://a.test/",
+    pinned: false,
+    incognito: false,
+    ...over,
+  });
+
+  it("closes an ordinary tab when it is not the last in its window", () => {
+    expect(closeVerdict(tab(), 3)).toEqual({ close: true });
+  });
+
+  it("never closes a browser-pinned tab", () => {
+    // Pinning a tab in Chrome is an explicit "this stays", independent of any capsule.
+    expect(closeVerdict(tab({ pinned: true }), 3)).toEqual({
+      close: false,
+      reason: "pinned in the browser",
+    });
+  });
+
+  it("never closes an incognito tab", () => {
+    // Incognito is never captured, so it would read as unrelated and be closed.
+    // This exclusion is load-bearing, not incidental.
+    expect(closeVerdict(tab({ incognito: true }), 3)).toEqual({
+      close: false,
+      reason: "incognito",
+    });
+  });
+
+  it("never closes the last tab in a window, because that closes the window", () => {
+    expect(closeVerdict(tab(), 1)).toEqual({
+      close: false,
+      reason: "the last tab in its window",
+    });
+  });
+
+  it("never closes a url it would refuse to open", () => {
+    expect(closeVerdict(tab({ url: "chrome://extensions" }), 3)).toEqual({
+      close: false,
+      reason: "not an http(s) page",
+    });
+  });
+
+  it("reports the strongest reason when several apply", () => {
+    // A pinned incognito last tab is refused once, not three times.
+    const v = closeVerdict(tab({ pinned: true, incognito: true }), 1);
+    expect(v.close).toBe(false);
   });
 });

@@ -37,6 +37,30 @@ export function snapshotTabs(raw: RawTab[]): TabsState {
   return { tabs };
 }
 
+/** Why a tab was left alone. `close: false` is a refusal, not a failure — the
+ *  desktop records it as kept. */
+export type CloseVerdict = { close: true } | { close: false; reason: string };
+
+/**
+ * Whether focus mode may close this tab. Pure — no `chrome` import — so every
+ * guard is testable without a browser.
+ *
+ * These are the facts only the browser holds. The desktop decides what does not
+ * belong to a task; it cannot see that a tab is pinned, incognito, or the last
+ * one keeping a window open, and asking it to would leave a gap between the
+ * report and the close in which a window can empty.
+ */
+export function closeVerdict(
+  tab: { url: string; pinned: boolean; incognito: boolean },
+  tabsInWindow: number,
+): CloseVerdict {
+  if (tab.incognito) return { close: false, reason: "incognito" };
+  if (tab.pinned) return { close: false, reason: "pinned in the browser" };
+  if (!isRestorableUrl(tab.url)) return { close: false, reason: "not an http(s) page" };
+  if (tabsInWindow <= 1) return { close: false, reason: "the last tab in its window" };
+  return { close: true };
+}
+
 /** Decides whether a tab update should emit `tab.opened`: a committed
  * http/https, non-incognito url. Pure — no `chrome` import — so the
  * incognito exclusion and scheme filter are unit-testable without a
