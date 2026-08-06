@@ -184,13 +184,16 @@ async fn save_capsule(
     caps.0.save_capsule(&task_id).await
 }
 
-/// Auto-saves the outgoing task, restores this task's capsule, marks it active.
+/// Auto-saves the outgoing task, restores this task's capsule, marks it
+/// active. With `focus_mode`, also closes what is open but not in the
+/// capsule.
 #[tauri::command]
 async fn activate_task(
     caps: State<'_, CapsulesHandle>,
     task_id: String,
+    focus_mode: bool,
 ) -> Result<ActivateSummary, String> {
-    caps.0.activate_task(&task_id).await
+    caps.0.activate_task(&task_id, focus_mode).await
 }
 
 /// The in-memory active task id, if any.

@@ -75,6 +75,12 @@ pub struct ActivateSummary {
     pub skipped: Vec<String>,
     pub saved_previous: Option<String>,
     pub errors: Vec<String>,
+    /// Items focus mode closed. Empty whenever focus mode is off.
+    pub closed: Vec<String>,
+    /// Items focus mode left alone, and why. A refusal is not an error — a
+    /// browser-pinned tab or a terminal running a build is a correct outcome,
+    /// and the receipt says so rather than burying it.
+    pub kept: Vec<(String, String)>,
 }
 
 /// Durable project archive result plus best-effort capsule-save warnings.
@@ -488,8 +494,14 @@ impl Capsules {
     }
 
     /// Auto-saves the outgoing active task (if any), then restores `task_id`'s
-    /// capsule best-effort per connector, and marks it active.
-    pub async fn activate_task(&self, task_id: &str) -> Result<ActivateSummary, String> {
+    /// capsule best-effort per connector, and marks it active. With
+    /// `focus_mode`, also closes whatever is open but not in the capsule —
+    /// `false` reproduces today's purely-additive restore exactly.
+    pub async fn activate_task(
+        &self,
+        task_id: &str,
+        focus_mode: bool,
+    ) -> Result<ActivateSummary, String> {
         let _operation = self.activation_archive_lock.lock().await;
         let target = {
             let db = self.db.clone();
@@ -689,13 +701,112 @@ impl Capsules {
             }
         }
 
+        let mut closed = vec![];
+        let mut kept = vec![];
+        if focus_mode {
+            if errors.is_empty() {
+                self.reconcile(task_id, &mut closed, &mut kept, &mut errors)
+                    .await;
+            } else {
+                kept.push((
+                    "focus".to_string(),
+                    "skipped — the restore did not finish cleanly".to_string(),
+                ));
+            }
+        }
+
         Ok(ActivateSummary {
             applied,
             pending,
             skipped,
             saved_previous,
             errors,
+            closed,
+            kept,
         })
+    }
+
+    /// Closes what the incoming capsule does not contain, one item at a time.
+    ///
+    /// Runs only after a clean open phase, for two reasons: the destructive
+    /// half must never run on a restore that is already going wrong, and
+    /// diffing *after* the opens means everything the restore just placed is
+    /// by definition in the capsule, so this can never close its own work.
+    ///
+    /// The desktop decides only what is not in the capsule. Whether an item
+    /// is safe to close is the connector's call — it holds the facts
+    /// (pinned, incognito, dirty, busy, last in window) and answers in the
+    /// same call that closes, leaving no gap. A refusal comes back as `kept`.
+    async fn reconcile(
+        &self,
+        task_id: &str,
+        closed: &mut Vec<String>,
+        kept: &mut Vec<(String, String)>,
+        errors: &mut Vec<String>,
+    ) {
+        let resources = {
+            let db = self.db.clone();
+            let tid = task_id.to_string();
+            match tokio::task::spawn_blocking(move || db.task_resources(&tid)).await {
+                Ok(Ok(r)) => r,
+                // Either the blocking task panicked or the query failed. Both
+                // mean reconcile has nothing to diff against, and closing on
+                // a guess is exactly what this must never do — so record and
+                // stop.
+                Ok(Err(e)) => {
+                    errors.push(format!("reconcile: {e}"));
+                    return;
+                }
+                Err(e) => {
+                    errors.push(format!("reconcile: {e}"));
+                    return;
+                }
+            }
+        };
+        let pins = {
+            let db = self.db.clone();
+            let tid = task_id.to_string();
+            tokio::task::spawn_blocking(move || db.task_pins(&tid))
+                .await
+                .ok()
+                .and_then(Result::ok)
+                .unwrap_or_default()
+        };
+
+        for conn in self.hub.connectors().await {
+            let kind = kind_str(conn.kind);
+            if kind != "chrome" && kind != "vscode" {
+                continue;
+            }
+            let Some(resource) = resources.iter().find(|r| r.connector_kind == kind) else {
+                continue;
+            };
+            let wanted = merge_pins(kind, &resource.payload, &pins);
+            let live = match self
+                .hub
+                .send_command(&conn.id, "workspace.state", json!({}))
+                .await
+            {
+                Ok(v) => v,
+                Err(e) => {
+                    errors.push(format!("{kind}: reconcile state: {e}"));
+                    continue;
+                }
+            };
+
+            for (command, args, label) in close_targets(kind, &wanted, &live) {
+                match self.hub.send_command(&conn.id, &command, args).await {
+                    Ok(v) => {
+                        if let Some(reason) = v.get("reason").and_then(Value::as_str) {
+                            kept.push((label, reason.to_string()));
+                        } else {
+                            closed.push(label);
+                        }
+                    }
+                    Err(e) => errors.push(format!("{command} {label}: {e}")),
+                }
+            }
+        }
     }
 
     async fn restore_vscode(
@@ -1133,6 +1244,60 @@ pub fn merge_pins(kind: &str, captured: &Value, pins: &[TaskPin]) -> Value {
             }
         }
         out["terminals"] = Value::Array(terms);
+    }
+    out
+}
+
+/// Everything live that the capsule does not want, as ready-to-send commands.
+/// Pure, so the diff can be tested without a hub.
+pub fn close_targets(kind: &str, wanted: &Value, live: &Value) -> Vec<(String, Value, String)> {
+    let ids = |v: &Value, field: &str| -> std::collections::HashSet<String> {
+        v.get(field)
+            .and_then(Value::as_array)
+            .map(|a| a.iter().filter_map(|i| identity_of(kind, i)).collect())
+            .unwrap_or_default()
+    };
+    let mut out = vec![];
+    match kind {
+        "chrome" => {
+            let keep = ids(wanted, "tabs");
+            for t in live.get("tabs").and_then(Value::as_array).into_iter().flatten() {
+                let Some(id) = identity_of(kind, t) else { continue };
+                if !keep.contains(&id) {
+                    out.push(("tabs.close".into(), json!({ "url": id }), id));
+                }
+            }
+        }
+        "vscode" => {
+            let keep_files = ids(wanted, "openFiles");
+            // A file with unsaved changes is never a close candidate. The
+            // connector refuses it too; not asking is simply quieter.
+            let dirty: std::collections::HashSet<String> = live
+                .get("dirtyFiles")
+                .and_then(Value::as_array)
+                .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .unwrap_or_default();
+            for f in live.get("openFiles").and_then(Value::as_array).into_iter().flatten() {
+                let Some(id) = identity_of(kind, f) else { continue };
+                if !keep_files.contains(&id) && !dirty.contains(&id) {
+                    out.push(("editor.closeFile".into(), json!({ "path": id }), id));
+                }
+            }
+            let keep_terms = ids(wanted, "terminals");
+            for t in live.get("terminals").and_then(Value::as_array).into_iter().flatten() {
+                let Some(id) = identity_of(kind, t) else { continue };
+                if keep_terms.contains(&id) || t.get("busy").and_then(Value::as_bool) == Some(true) {
+                    continue;
+                }
+                let name = t.get("name").and_then(Value::as_str).unwrap_or_default();
+                out.push((
+                    "terminal.dispose".into(),
+                    json!({ "name": name, "cwd": t.get("cwd").cloned().unwrap_or(Value::Null) }),
+                    name.to_string(),
+                ));
+            }
+        }
+        _ => {}
     }
     out
 }
