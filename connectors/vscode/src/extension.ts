@@ -9,6 +9,12 @@ import {
 
 let connector: Connector | undefined;
 
+// vscode has no "is this terminal busy" property. The shell-execution events
+// wired in activate() are the only way to know a command is in flight — which
+// is what stops focus mode disposing a terminal running a dev server or a
+// build. Module-scoped (not local to activate) so terminalInfo can read it.
+const busyTerminals = new Set<vscode.Terminal>();
+
 /** Extracts plain data from the vscode API for the pure state module. */
 function snapshot() {
   const tabUris: UriLike[] = vscode.window.tabGroups.all
@@ -22,6 +28,9 @@ function snapshot() {
     tabUris,
     activeUri: active ? { scheme: active.scheme, fsPath: active.fsPath } : null,
     terminals: vscode.window.terminals.map(terminalInfo),
+    dirtyPaths: vscode.workspace.textDocuments
+      .filter((d) => d.isDirty && d.uri.scheme === "file")
+      .map((d) => d.uri.fsPath),
   });
 }
 
@@ -31,6 +40,7 @@ function terminalInfo(terminal: vscode.Terminal): TerminalInfo {
   return {
     name: terminal.name,
     cwd: typeof cwd === "string" ? cwd : cwd instanceof vscode.Uri ? cwd.fsPath : null,
+    busy: busyTerminals.has(terminal),
   };
 }
 
@@ -41,6 +51,15 @@ function terminalInfo(terminal: vscode.Terminal): TerminalInfo {
  */
 export function activate(context: vscode.ExtensionContext): void {
   const out = vscode.window.createOutputChannel("Rabta");
+
+  // These two events are stable only from 1.93 — the reason engines.vscode
+  // was raised. Track start/end plus close (a terminal killed mid-command
+  // never fires the end event) so busyTerminals never sticks stale.
+  context.subscriptions.push(
+    vscode.window.onDidStartTerminalShellExecution((e) => busyTerminals.add(e.terminal)),
+    vscode.window.onDidEndTerminalShellExecution((e) => busyTerminals.delete(e.terminal)),
+    vscode.window.onDidCloseTerminal((t) => busyTerminals.delete(t))
+  );
 
   connect(
     {
