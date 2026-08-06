@@ -1079,6 +1079,18 @@ pub fn merge_pins(kind: &str, captured: &Value, pins: &[TaskPin]) -> Value {
         "vscode" => "openFiles",
         _ => return captured.clone(),
     };
+    // `captured` is a connector's `workspace.state` reply — arbitrary,
+    // untrusted shape. Before this function existed, the payload was only
+    // ever *read*-indexed (`payload["field"]`), which returns `&Value::Null`
+    // harmlessly for anything unexpected. The *write*-indexing below
+    // (`out[field] = ...`) uses serde_json's `IndexMut`, which panics for a
+    // string key on any non-object Value (array, string, number, bool) — it
+    // only auto-vivifies `Null`. A misbehaving connector replying with, say,
+    // `[]` would otherwise be stored verbatim and then panic the next time
+    // this task activates. Bail out before that ever runs.
+    if !captured.is_object() {
+        return captured.clone();
+    }
     let mut out = captured.clone();
     let mut items = captured
         .get(field)

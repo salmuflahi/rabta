@@ -139,7 +139,7 @@ function CapsuleSummary({
   taskId: string;
   resources: TaskResource[];
   /** Straight from the `task_pins` command; camelCase, like every other record type. */
-  pins: { connectorKind: string; identity: string }[];
+  pins: { connectorKind: string; identity: string; payload: unknown }[];
   lastSessionSeconds?: number;
   onChanged: () => void;
 }) {
@@ -237,7 +237,7 @@ export function CapsulesPage() {
   const [resources, setResources] = useState<Record<string, TaskResource[]>>({});
   // Which items are pinned ("always open this"), per task — loaded alongside
   // resources so the curate list (CapsuleItems) can mark each captured item.
-  const [pins, setPins] = useState<Record<string, { connectorKind: string; identity: string }[]>>({});
+  const [pins, setPins] = useState<Record<string, { connectorKind: string; identity: string; payload: unknown }[]>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [renameTarget, setRenameTarget] = useState<Task | null>(null);
   const [renameTitle, setRenameTitle] = useState("");
@@ -290,7 +290,7 @@ export function CapsulesPage() {
       allTasks.map(async (t) => {
         const [taskResources, taskPins] = await Promise.all([
           invoke<TaskResource[]>("task_resources", { taskId: t.id }),
-          invoke<{ connectorKind: string; identity: string }[]>("task_pins", { taskId: t.id }),
+          invoke<{ connectorKind: string; identity: string; payload: unknown }[]>("task_pins", { taskId: t.id }),
         ]);
         return [t.id, taskResources, taskPins] as const;
       })

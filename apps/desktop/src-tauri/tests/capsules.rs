@@ -1616,6 +1616,85 @@ fn merge_pins_appends_missing_and_never_duplicates() {
     assert_eq!(identity_of("chrome", &json!({"no": "url"})), None);
 }
 
+#[test]
+fn merge_pins_appends_a_missing_terminal_and_never_duplicates_one_already_captured() {
+    // The `out["terminals"]` block is its own merge, separate from the
+    // `openFiles` one above — a terminal pin must land in `terminals`, must
+    // append when its identity (name + NUL + cwd) isn't already captured,
+    // and must not duplicate when it is.
+    use rabta_desktop_lib::capsules::merge_pins;
+    use rabta_db::TaskPin;
+    use serde_json::json;
+
+    let pin = |identity: &str, payload: serde_json::Value| TaskPin {
+        id: "p".into(),
+        task_id: "t".into(),
+        connector_kind: "vscode".into(),
+        identity: identity.into(),
+        payload,
+        created_at: "2026-08-04T00:00:00Z".into(),
+    };
+
+    let captured = json!({
+        "workspaceFolder": "/repo",
+        "openFiles": [],
+        "activeFile": null,
+        "terminals": [{"name": "zsh", "cwd": "/repo/a"}]
+    });
+    let pins = vec![
+        // Same name+cwd identity as the terminal already in `terminals`.
+        pin("zsh\0/repo/a", json!({"name": "zsh", "cwd": "/repo/a"})),
+        // A different terminal, closed since capture: must be appended.
+        pin("build\0/repo/b", json!({"name": "build", "cwd": "/repo/b"})),
+    ];
+
+    let merged = merge_pins("vscode", &captured, &pins);
+    let terminals = merged["terminals"].as_array().unwrap();
+    assert_eq!(
+        terminals.len(),
+        2,
+        "expected the captured terminal kept once and the closed one appended: {terminals:?}"
+    );
+    assert_eq!(terminals[0]["cwd"], "/repo/a", "captured order comes first");
+    assert_eq!(terminals[1]["name"], "build");
+    assert_eq!(terminals[1]["cwd"], "/repo/b");
+}
+
+#[test]
+fn merge_pins_returns_a_non_object_payload_unchanged_instead_of_panicking() {
+    // A connector's workspace.state reply is untrusted shape. Before pins,
+    // an unexpected shape (array/string/number/bool instead of an object)
+    // was only ever read-indexed elsewhere, which is harmless. merge_pins
+    // write-indexes (`out[field] = ...`), and serde_json's IndexMut panics
+    // for a string key on any non-object Value. None of these may panic.
+    use rabta_desktop_lib::capsules::merge_pins;
+    use rabta_db::TaskPin;
+    use serde_json::json;
+
+    let pin = TaskPin {
+        id: "p".into(),
+        task_id: "t".into(),
+        connector_kind: "chrome".into(),
+        identity: "https://pinned.test/".into(),
+        payload: json!({"url": "https://pinned.test/"}),
+        created_at: "2026-08-04T00:00:00Z".into(),
+    };
+
+    for bogus in [json!([1, 2, 3]), json!("oops"), json!(42), json!(true)] {
+        let merged = merge_pins("chrome", &bogus, std::slice::from_ref(&pin));
+        assert_eq!(
+            merged, bogus,
+            "a non-object captured payload must be returned unchanged, not mutated"
+        );
+    }
+
+    // vscode goes through the second write-index too (`out["terminals"]`).
+    for bogus in [json!([1, 2, 3]), json!("oops"), json!(42), json!(true)] {
+        let merged = merge_pins("vscode", &bogus, &[]);
+        assert_eq!(merged, bogus);
+    }
+}
+
 #[tokio::test]
 async fn a_pinned_tab_reopens_after_being_closed_and_saved_over() {
     // The rule: pins survive auto-save. Pin a tab, close it, save the capsule
@@ -1657,6 +1736,56 @@ async fn a_pinned_tab_reopens_after_being_closed_and_saved_over() {
             .iter()
             .any(|(n, a)| n == "tabs.open" && a["url"] == "https://pinned.test/"),
         "pinned tab was not reopened: {names:?}"
+    );
+}
+
+#[tokio::test]
+async fn a_pinned_terminal_reopens_after_being_closed_and_saved_over() {
+    // Same rule as the chrome equivalent above, but for a vscode terminal:
+    // pin one with a real cwd, close it, save over it (the captured
+    // terminals no longer include it), then activate — restore must still
+    // create it. This is the layer the chrome test can't reach: merge_pins's
+    // separate `out["terminals"]` block and identity_of's name+NUL+cwd
+    // branch, driven end to end through pin -> save -> activate.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.add_task_pin(
+        &task_id,
+        "vscode",
+        "build\0/repo/a",
+        &json!({"name": "build", "cwd": "/repo/a"}),
+    )
+    .unwrap();
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector(&hub, tx, |name, _| match name {
+        // Same folder both times; no terminals open at save time (the
+        // pinned one was closed before save, and nothing else was open).
+        "workspace.state" => json!({
+            "workspaceFolder": "/repo/a",
+            "openFiles": [],
+            "activeFile": null,
+            "terminals": []
+        }),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    capsules.save_capsule(&task_id).await.unwrap();
+    while rx.try_recv().is_ok() {} // drain the workspace.state call from the save
+
+    let summary = capsules.activate_task(&task_id).await.unwrap();
+    assert_eq!(summary.applied, vec!["vscode"], "got {summary:?}");
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        names
+            .iter()
+            .any(|(n, a)| n == "terminal.create" && a["cwd"] == "/repo/a" && a["name"] == "build"),
+        "pinned terminal was not reopened: {names:?}"
     );
 }
 
@@ -1801,5 +1930,61 @@ async fn a_task_with_no_pins_restores_exactly_as_before() {
         opened,
         vec!["https://a.test/".to_string(), "https://b.test/".to_string()],
         "an uncurated task must restore exactly what it captured, in order"
+    );
+}
+
+#[tokio::test]
+async fn a_vscode_task_with_no_pins_restores_exactly_as_before() {
+    // Same guarantee as `a_task_with_no_pins_restores_exactly_as_before`,
+    // but for vscode — the harder merge_pins case: two merged fields
+    // (openFiles, terminals) plus the activeFile reordering that moves the
+    // active file to the end of openFiles so editor focus lands on it. An
+    // uncurated task (no pins at all) has to issue the exact same ordered
+    // command sequence it always did.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(
+        &task_id,
+        "vscode",
+        "workspace",
+        &state("/repo/a", &["/repo/a/x.ts", "/repo/a/y.ts"]),
+    )
+    .unwrap();
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector(&hub, tx, |name, _| match name {
+        "workspace.state" => state("/repo/a", &[]), // same folder; nothing open live
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let summary = capsules.activate_task(&task_id).await.unwrap();
+    assert_eq!(summary.applied, vec!["vscode"], "got {summary:?}");
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    let commands: Vec<(String, String)> = names
+        .into_iter()
+        .filter(|(n, _)| n != "workspace.state")
+        .map(|(n, a)| {
+            (
+                n,
+                a["path"].as_str().or(a["cwd"].as_str()).unwrap_or("").to_string(),
+            )
+        })
+        .collect();
+
+    // `state("/repo/a", &["x.ts", "y.ts"])` makes x.ts the activeFile, so
+    // restore_vscode moves it to the back of openFiles: y.ts opens first,
+    // x.ts (active) opens last, then the one captured terminal.
+    assert_eq!(
+        commands,
+        vec![
+            ("editor.openFile".to_string(), "/repo/a/y.ts".to_string()),
+            ("editor.openFile".to_string(), "/repo/a/x.ts".to_string()),
+            ("terminal.create".to_string(), "/repo/a".to_string()),
+        ],
+        "an uncurated vscode task must restore exactly what it captured, in the same order, with activeFile last: {commands:?}"
     );
 }

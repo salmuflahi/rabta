@@ -752,3 +752,62 @@ fn re_pinning_returns_the_existing_rows_id_and_created_at() {
         "returned created_at must match the stored row"
     );
 }
+
+#[test]
+fn task_pin_identity_containing_a_nul_byte_round_trips() {
+    // A vscode terminal's identity is `name + NUL + cwd` (see
+    // capsules::identity_of on the desktop side) — NUL is chosen as the
+    // separator specifically because it cannot occur in either field. Prove
+    // sqlite storage and the exact-match SELECT/DELETE comparisons carry the
+    // whole byte string through intact rather than truncating at the NUL,
+    // the way a naive C-string-style comparison would.
+    let db = db();
+    let p = a_project(&db, "omnibus");
+    let task = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+
+    let identity = "zsh\0/repo";
+    let pin = db
+        .add_task_pin(
+            &task.id,
+            "vscode",
+            identity,
+            &json!({"name": "zsh", "cwd": "/repo"}),
+        )
+        .unwrap();
+    assert_eq!(
+        pin.identity, identity,
+        "the NUL byte and everything after it must survive the insert round trip"
+    );
+
+    let pins = db.task_pins(&task.id).unwrap();
+    assert_eq!(pins.len(), 1);
+    assert_eq!(
+        pins[0].identity, identity,
+        "NUL byte must survive storage intact"
+    );
+
+    // A truncating comparison (anything that treats NUL as a C-string
+    // terminator) would match on "zsh" alone. It must not: the byte after
+    // the NUL is part of the identity, so a lookup missing it is a
+    // *different* pin and must not remove the real one.
+    assert!(
+        !db.remove_task_pin(&task.id, "vscode", "zsh").unwrap(),
+        "a truncated identity must not match the NUL-containing one"
+    );
+    assert_eq!(
+        db.task_pins(&task.id).unwrap().len(),
+        1,
+        "the real pin must still be there after the truncated lookup"
+    );
+
+    assert!(
+        db.remove_task_pin(&task.id, "vscode", identity).unwrap(),
+        "remove must match the full identity including the bytes after the NUL"
+    );
+    assert!(db.task_pins(&task.id).unwrap().is_empty());
+}
