@@ -1,5 +1,5 @@
 import { Connection, nativeSocket } from "./connection";
-import { closeVerdict, isRestorableUrl, snapshotTabs, type RawTab } from "./tabs";
+import { closePlan, isRestorableUrl, snapshotTabs, type CloseCandidate, type RawTab } from "./tabs";
 import { installTabListeners } from "./tab-events";
 
 const DEFAULT_PORT = 17872;
@@ -77,27 +77,26 @@ async function connect(port: number) {
         const { url } = args as { url: string };
         const matches = await chrome.tabs.query({ url });
         if (matches.length === 0) return { kept: url, reason: "no longer open" };
-        const results: { closed?: string; kept?: string; reason?: string }[] = [];
-        for (const t of matches) {
-          const inWindow = await chrome.tabs.query({ windowId: t.windowId });
-          const verdict = closeVerdict(
-            { url: t.url ?? "", pinned: t.pinned ?? false, incognito: t.incognito ?? false },
-            inWindow.length,
-          );
-          if (!verdict.close) {
-            results.push({ kept: url, reason: verdict.reason });
-            continue;
-          }
-          if (t.id != null) {
-            await chrome.tabs.remove(t.id);
-            results.push({ closed: url });
-          }
+
+        // The whole url's outcome must be known before anything closes (see
+        // closePlan): gather every match's window's tab count up front,
+        // rather than re-querying mid-loop.
+        const windowTabCounts: Record<number, number> = {};
+        for (const windowId of new Set(matches.map((t) => t.windowId))) {
+          windowTabCounts[windowId] = (await chrome.tabs.query({ windowId })).length;
         }
-        // One url can be open in several tabs. If any copy was refused, the
-        // url is reported kept — saying "closed" while a copy survives would
-        // make the receipt a lie.
-        const refused = results.find((r) => r.kept);
-        return refused ?? { closed: url };
+        const candidates: CloseCandidate[] = matches.map((t) => ({
+          id: t.id,
+          url: t.url ?? "",
+          pinned: t.pinned ?? false,
+          incognito: t.incognito ?? false,
+          windowId: t.windowId,
+        }));
+
+        const plan = closePlan(candidates, windowTabCounts);
+        if ("kept" in plan) return { kept: url, reason: plan.reason };
+        await chrome.tabs.remove(plan.close);
+        return { closed: url };
       }
       throw new Error(`no handler for ${name}`);
     },
