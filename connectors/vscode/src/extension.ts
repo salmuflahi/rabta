@@ -3,6 +3,7 @@ import { connect, type Connector } from "@rabta/connector-sdk";
 import {
   filePathOf,
   snapshotWorkspace,
+  terminalCloseVerdict,
   type TerminalInfo,
   type UriLike,
 } from "./state";
@@ -34,12 +35,18 @@ function snapshot() {
   });
 }
 
-/** cwd is knowable only for terminals created with an explicit one. */
-function terminalInfo(terminal: vscode.Terminal): TerminalInfo {
+/** cwd is knowable only for terminals created with an explicit one. Shared by
+ *  terminalInfo (reporting) and terminal.dispose (matching) so there is one
+ *  place that knows how a terminal's cwd is derived, not two. */
+function cwdOf(terminal: vscode.Terminal): string | null {
   const cwd = (terminal.creationOptions as vscode.TerminalOptions).cwd;
+  return typeof cwd === "string" ? cwd : cwd instanceof vscode.Uri ? cwd.fsPath : null;
+}
+
+function terminalInfo(terminal: vscode.Terminal): TerminalInfo {
   return {
     name: terminal.name,
-    cwd: typeof cwd === "string" ? cwd : cwd instanceof vscode.Uri ? cwd.fsPath : null,
+    cwd: cwdOf(terminal),
     busy: busyTerminals.has(terminal),
   };
 }
@@ -99,6 +106,29 @@ export function activate(context: vscode.ExtensionContext): void {
         const terminal = vscode.window.createTerminal({ cwd, name });
         terminal.show();
         return { created: terminal.name };
+      });
+      c.onCommand("editor.closeFile", async (args) => {
+        const { path } = args as { path: string };
+        const tab = vscode.window.tabGroups.all
+          .flatMap((g) => g.tabs)
+          .find((t) => t.input instanceof vscode.TabInputText && t.input.uri.fsPath === path);
+        if (!tab) return { kept: path, reason: "no longer open" };
+        // A dirty buffer holds work no capsule captured. Never close it, and do
+        // not prompt either — a resume is not the moment to ask.
+        if (tab.isDirty) return { kept: path, reason: "unsaved changes" };
+        await vscode.window.tabGroups.close(tab, false);
+        return { closed: path };
+      });
+      c.onCommand("terminal.dispose", (args) => {
+        const { name, cwd } = args as { name: string; cwd?: string | null };
+        const terminal = vscode.window.terminals.find(
+          (t) => t.name === name && (cwdOf(t) ?? "") === (cwd ?? ""),
+        );
+        if (!terminal) return { kept: name, reason: "no longer open" };
+        const verdict = terminalCloseVerdict({ busy: busyTerminals.has(terminal) });
+        if (!verdict.close) return { kept: name, reason: verdict.reason };
+        terminal.dispose();
+        return { closed: name };
       });
     }
   )

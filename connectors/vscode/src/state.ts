@@ -59,3 +59,9 @@ export function snapshotWorkspace(input: SnapshotInput): WorkspaceState {
 export function filePathOf(uri: UriLike | null | undefined): string | null {
   return uri && uri.scheme === "file" ? uri.fsPath : null;
 }
+
+/** Whether focus mode may dispose this terminal. Pure, so the guard is testable
+ *  without an editor. */
+export function terminalCloseVerdict(t: { busy: boolean }): { close: boolean; reason?: string } {
+  return t.busy ? { close: false, reason: "running something" } : { close: true };
+}
