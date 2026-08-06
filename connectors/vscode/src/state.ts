@@ -65,3 +65,22 @@ export function filePathOf(uri: UriLike | null | undefined): string | null {
 export function terminalCloseVerdict(t: { busy: boolean }): { close: boolean; reason?: string } {
   return t.busy ? { close: false, reason: "running something" } : { close: true };
 }
+
+/**
+ * Whether focus mode may close every tab open on a path. Pure — no `vscode`
+ * import — so the guard is testable without an editor.
+ *
+ * A path can be open in more than one tab at once (an ordinary split view).
+ * Judging and closing matches one at a time is how a dirty copy in the
+ * second group turns into "closed the clean one, left the dirty one open,
+ * told the desktop the file is closed" — a false report. So every match is
+ * judged together first: if any one of them is dirty, NONE close, and the
+ * whole path is reported kept.
+ */
+export function fileClosePlan(
+  tabs: { isDirty: boolean }[]
+): { close: true } | { close: false; reason: string } {
+  if (tabs.length === 0) return { close: false, reason: "no longer open" };
+  if (tabs.some((t) => t.isDirty)) return { close: false, reason: "unsaved changes" };
+  return { close: true };
+}

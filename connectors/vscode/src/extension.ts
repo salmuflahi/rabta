@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { connect, type Connector } from "@rabta/connector-sdk";
 import {
+  fileClosePlan,
   filePathOf,
   snapshotWorkspace,
   terminalCloseVerdict,
@@ -109,14 +110,18 @@ export function activate(context: vscode.ExtensionContext): void {
       });
       c.onCommand("editor.closeFile", async (args) => {
         const { path } = args as { path: string };
-        const tab = vscode.window.tabGroups.all
+        // A path can be open in more than one tab group at once (an ordinary
+        // split view). Every match must be gathered and judged together
+        // before any of them close — see fileClosePlan. A dirty buffer holds
+        // work no capsule captured; never close it, and never prompt either
+        // — a resume is not the moment to ask.
+        const tabs = vscode.window.tabGroups.all
           .flatMap((g) => g.tabs)
-          .find((t) => t.input instanceof vscode.TabInputText && t.input.uri.fsPath === path);
-        if (!tab) return { kept: path, reason: "no longer open" };
-        // A dirty buffer holds work no capsule captured. Never close it, and do
-        // not prompt either — a resume is not the moment to ask.
-        if (tab.isDirty) return { kept: path, reason: "unsaved changes" };
-        await vscode.window.tabGroups.close(tab, false);
+          .filter((t) => t.input instanceof vscode.TabInputText && t.input.uri.fsPath === path);
+        const verdict = fileClosePlan(tabs.map((t) => ({ isDirty: t.isDirty })));
+        if (!verdict.close) return { kept: path, reason: verdict.reason };
+        const allClosed = await vscode.window.tabGroups.close(tabs, false);
+        if (!allClosed) return { kept: path, reason: "the editor did not close it" };
         return { closed: path };
       });
       c.onCommand("terminal.dispose", (args) => {
