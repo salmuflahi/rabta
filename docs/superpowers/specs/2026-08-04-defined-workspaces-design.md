@@ -177,6 +177,24 @@ Two reasons, both load-bearing:
 Per-item failures are collected and never fatal, matching how `restore_chrome`
 already handles `tabs.open`.
 
+### Where a guard lives
+
+The desktop owns **policy** — what is not in the capsule. Each connector owns
+**safety** — what must never close regardless.
+
+That split is forced by the facts. Browser-pinned, incognito, last-tab-in-window,
+dirty and busy are all knowable only inside the connector; `RawTab` does not even
+carry `pinned`. Reporting them outward so the desktop could decide would widen
+three wire shapes and still leave a gap between the report and the close, in
+which a file can be edited or a window emptied. A guard checked in the same call
+that closes has no such gap.
+
+So `tabs.close`, `editor.closeFile` and `terminal.dispose` each refuse, and say
+why. The desktop records the refusal in `kept` rather than treating it as an
+error. This qualifies the earlier "connectors stay dumb": they stay dumb about
+*policy* — no connector ever decides what belongs to a task — and they are the
+only sensible home for a safety check on a fact they alone hold.
+
 ## Receipt
 
 `ActivateSummary` gains `closed: Vec<String>` and `kept: Vec<(String, String)>`
