@@ -15,6 +15,8 @@ function summary(overrides: Partial<ActivateSummary>): ActivateSummary {
     skipped: [],
     savedPrevious: null,
     errors: [],
+    closed: [],
+    kept: [],
     ...overrides,
   };
 }
@@ -105,5 +107,43 @@ describe("activateSummaryToResult", () => {
   it("a tool whose kind isn't mentioned anywhere is treated as skipped, never fabricated as applied", () => {
     const result = activateSummaryToResult(summary({ applied: ["vscode"] }), TOOLS);
     expect(result.tools.find((t) => t.id === "chrome-1")).toEqual({ id: "chrome-1", status: "skipped" });
+  });
+
+  it("closed and kept carry straight through onto the result, untouched", () => {
+    const result = activateSummaryToResult(
+      summary({
+        applied: ["vscode"],
+        closed: ["https://stray.test/"],
+        kept: [["zsh", "still running something"]],
+      }),
+      TOOLS
+    );
+    expect(result.closed).toEqual(["https://stray.test/"]);
+    expect(result.kept).toEqual([["zsh", "still running something"]]);
+  });
+
+  it("empty closed/kept produce an empty (not missing) result", () => {
+    const result = activateSummaryToResult(summary({ applied: ["vscode"] }), TOOLS);
+    expect(result.closed).toEqual([]);
+    expect(result.kept).toEqual([]);
+  });
+
+  it("a reconcile-stage error is never mistaken for that tool's own restore failure", () => {
+    // The put-away step re-checking a connector's live state can fail after
+    // that connector's OWN restore already applied cleanly (e.g. the
+    // re-check times out). Backend wording for this stage deliberately does
+    // NOT start with "chrome:" — only "reconcile: ..." — so attributedTool
+    // cannot match it to the chrome tool and mark an otherwise-clean restore
+    // FAILED.
+    const result = activateSummaryToResult(
+      summary({
+        applied: ["chrome"],
+        errors: ["reconcile: could not check chrome's current state: timeout"],
+      }),
+      TOOLS
+    );
+    expect(result.tools.find((t) => t.id === "chrome-1")).toEqual({ id: "chrome-1", status: "applied" });
+    expect(result.overall).toBe("partial"); // applied + an unattributed error alongside it
+    expect(result.error).toBe("reconcile: could not check chrome's current state: timeout");
   });
 });

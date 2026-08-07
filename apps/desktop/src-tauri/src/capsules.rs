@@ -14,6 +14,41 @@ use serde_json::{json, Value};
 const CAPTURABLE: &[&str] = &["vscode", "fake", "chrome"];
 const MAX_SESSION_GAP: Duration = Duration::from_secs(30);
 
+/// The lowest connector product version with focus mode's close/dispose
+/// handlers. Both stores can keep serving older builds for a while after a
+/// desktop release, so the common day-one state is a new desktop talking to
+/// an old connector with no handler for `tabs.close`, `editor.closeFile`, or
+/// `terminal.dispose` at all — every one of those would otherwise throw "no
+/// handler for ...", turning a clean restore into a wall of per-item errors.
+const MIN_RECONCILE_VERSION: (u32, u32, u32) = (0, 2, 0);
+
+/// Whether a connector's self-reported product `version` is new enough to
+/// have focus mode's close/dispose handlers. Absent or unparseable versions
+/// (older connectors that never sent one, or a malformed string) are treated
+/// as too old — the safe default when the answer is unknown is to skip
+/// reconcile for that connector, never to guess that it can handle a
+/// destructive command.
+fn version_supports_reconcile(version: Option<&str>) -> bool {
+    let Some(version) = version else {
+        return false;
+    };
+    // Compare only the release core (major.minor.patch); a pre-release or
+    // build-metadata suffix (`-beta`, `+build`) never lowers what the
+    // version itself already promises.
+    let core = version
+        .split(['-', '+'])
+        .next()
+        .unwrap_or(version);
+    let mut parts = core.split('.');
+    let component = |p: Option<&str>| p.and_then(|p| p.parse::<u32>().ok()).unwrap_or(0);
+    let actual = (
+        component(parts.next()),
+        component(parts.next()),
+        component(parts.next()),
+    );
+    actual >= MIN_RECONCILE_VERSION
+}
+
 /// Time source for session persistence. Monotonic time measures elapsed work;
 /// UTC time is used only for durable project metadata.
 pub trait SessionClock: Send + Sync {
@@ -75,6 +110,12 @@ pub struct ActivateSummary {
     pub skipped: Vec<String>,
     pub saved_previous: Option<String>,
     pub errors: Vec<String>,
+    /// Items focus mode closed. Empty whenever focus mode is off.
+    pub closed: Vec<String>,
+    /// Items focus mode left alone, and why. A refusal is not an error — a
+    /// browser-pinned tab or a terminal running a build is a correct outcome,
+    /// and the receipt says so rather than burying it.
+    pub kept: Vec<(String, String)>,
 }
 
 /// Durable project archive result plus best-effort capsule-save warnings.
@@ -488,8 +529,14 @@ impl Capsules {
     }
 
     /// Auto-saves the outgoing active task (if any), then restores `task_id`'s
-    /// capsule best-effort per connector, and marks it active.
-    pub async fn activate_task(&self, task_id: &str) -> Result<ActivateSummary, String> {
+    /// capsule best-effort per connector, and marks it active. With
+    /// `focus_mode`, also closes whatever is open but not in the capsule —
+    /// `false` reproduces today's purely-additive restore exactly.
+    pub async fn activate_task(
+        &self,
+        task_id: &str,
+        focus_mode: bool,
+    ) -> Result<ActivateSummary, String> {
         let _operation = self.activation_archive_lock.lock().await;
         let target = {
             let db = self.db.clone();
@@ -640,6 +687,16 @@ impl Capsules {
         }
 
         let connectors = self.hub.connectors().await;
+        // The exact connector each kind's restore actually used, so reconcile
+        // can target that SAME connector rather than re-deriving its own pick
+        // — see `reconcile`'s doc comment for why re-deriving is unsafe.
+        let mut restored_connectors: std::collections::HashMap<String, ConnectorInfo> =
+            std::collections::HashMap::new();
+        // Every url this activation's restore issued `tabs.open` for, so
+        // reconcile can exclude them from close targets outright — see
+        // `reconcile`'s doc comment for why a fresh live-vs-wanted diff alone
+        // is not enough.
+        let mut chrome_opened_urls: Vec<String> = vec![];
         for r in resources.iter().filter(|r| r.resource_type == "workspace") {
             let Some(conn) = connectors
                 .iter()
@@ -650,6 +707,7 @@ impl Capsules {
             };
             match r.connector_kind.as_str() {
                 "vscode" => {
+                    restored_connectors.insert("vscode".to_string(), conn.clone());
                     let payload = merge_pins(&r.connector_kind, &r.payload, &pins);
                     match self
                         .restore_vscode(conn, &payload, generation, &mut errors)
@@ -678,8 +736,12 @@ impl Capsules {
                     }
                 }
                 "chrome" => {
+                    restored_connectors.insert("chrome".to_string(), conn.clone());
                     let payload = merge_pins(&r.connector_kind, &r.payload, &pins);
-                    if self.restore_chrome(conn, &payload, &mut errors).await {
+                    if self
+                        .restore_chrome(conn, &payload, &mut chrome_opened_urls, &mut errors)
+                        .await
+                    {
                         applied.push("chrome".to_string());
                     } else {
                         skipped.push("chrome".to_string());
@@ -689,13 +751,173 @@ impl Capsules {
             }
         }
 
+        let mut closed = vec![];
+        let mut kept = vec![];
+        if focus_mode {
+            // Reconcile diffs LIVE state against the task's WANTED state, so
+            // it must only run once the open phase has actually finished:
+            // skip it on any error, exactly as before, and skip it the same
+            // way when a restore (e.g. a cross-folder vscode open) is still
+            // pending a reconnect continuation — the window still shows the
+            // OLD context then, and diffing that against the new task's
+            // capsule would be diffing the wrong live state entirely.
+            if errors.is_empty() && pending.is_empty() {
+                self.reconcile(
+                    task_id,
+                    &restored_connectors,
+                    &chrome_opened_urls,
+                    &mut closed,
+                    &mut kept,
+                    &mut errors,
+                )
+                .await;
+            } else {
+                kept.push((
+                    "focus".to_string(),
+                    "skipped — the restore did not finish cleanly".to_string(),
+                ));
+            }
+        }
+
         Ok(ActivateSummary {
             applied,
             pending,
             skipped,
             saved_previous,
             errors,
+            closed,
+            kept,
         })
+    }
+
+    /// Closes what the incoming capsule does not contain, one item at a time.
+    ///
+    /// Runs only after a clean open phase: the destructive half must never
+    /// run on a restore that is already going wrong. Diffing *after* the
+    /// opens means everything the restore just placed is, in the common
+    /// case, already in the capsule it was read from — but that is not a
+    /// guarantee for chrome: a tab can settle on a different url than the
+    /// one it was opened with (a redirect, or client-side navigation), and a
+    /// freshly re-read capsule can legitimately differ from the one restore
+    /// used if something else touched it mid-activation. So chrome closes
+    /// are additionally guarded by `chrome_opened_urls` below — the literal
+    /// urls this activation issued `tabs.open` for are never close targets,
+    /// independent of what a fresh diff would say.
+    ///
+    /// That guard covers the second case, not the first. A tab that redirects
+    /// is still reachable: the capsule wants `/dashboard`, the session has
+    /// expired, the tab settles on `/login`, and `/login` matches neither
+    /// `wanted` nor the opened url — so focus mode closes a tab this
+    /// activation opened seconds earlier. Closing it correctly is not
+    /// possible while identity is the url, because the url is the only thing
+    /// tying the two observations together and it is exactly what changed.
+    /// The fix is a tab id the connector remembers for the activation; until
+    /// then this is a known hole, not a covered case.
+    ///
+    /// Targets exactly the connector `restored_connectors` recorded for each
+    /// kind — the same one restore itself used — never any live connector of
+    /// that kind found some other way. Two windows of the same editor are two
+    /// connectors of the same kind; fanning out to "every connector of this
+    /// kind" would diff a completely unrelated window's live state against
+    /// this capsule and close whatever it has open that isn't in it. If a
+    /// kind has no entry (restore could not identify a connector for it),
+    /// that kind is skipped and recorded in `kept` — never guessed at from
+    /// the live connector list.
+    ///
+    /// The desktop decides only what is not in the capsule. Whether an item
+    /// is safe to close is the connector's call — it holds the facts
+    /// (pinned, incognito, dirty, busy, last in window) and answers in the
+    /// same call that closes, leaving no gap. A refusal comes back as `kept`.
+    ///
+    /// Before sending anything destructive, each connector's self-reported
+    /// `version` is checked against `MIN_RECONCILE_VERSION` — an old
+    /// connector with no close/dispose handlers gets one clear `kept` entry
+    /// instead of a "no handler for ..." error per stray item.
+    async fn reconcile(
+        &self,
+        task_id: &str,
+        restored_connectors: &std::collections::HashMap<String, ConnectorInfo>,
+        chrome_opened_urls: &[String],
+        closed: &mut Vec<String>,
+        kept: &mut Vec<(String, String)>,
+        errors: &mut Vec<String>,
+    ) {
+        let resources = {
+            let db = self.db.clone();
+            let tid = task_id.to_string();
+            match tokio::task::spawn_blocking(move || db.task_resources(&tid)).await {
+                Ok(Ok(r)) => r,
+                // Either the blocking task panicked or the query failed. Both
+                // mean reconcile has nothing to diff against, and closing on
+                // a guess is exactly what this must never do — so record and
+                // stop.
+                Ok(Err(e)) => {
+                    errors.push(format!("reconcile: {e}"));
+                    return;
+                }
+                Err(e) => {
+                    errors.push(format!("reconcile: {e}"));
+                    return;
+                }
+            }
+        };
+        let pins = {
+            let db = self.db.clone();
+            let tid = task_id.to_string();
+            tokio::task::spawn_blocking(move || db.task_pins(&tid))
+                .await
+                .ok()
+                .and_then(Result::ok)
+                .unwrap_or_default()
+        };
+
+        for kind in ["chrome", "vscode"] {
+            let Some(resource) = resources.iter().find(|r| r.connector_kind == kind) else {
+                continue;
+            };
+            let Some(conn) = restored_connectors.get(kind) else {
+                kept.push((kind.to_string(), "no connector to reconcile against".to_string()));
+                continue;
+            };
+            if !version_supports_reconcile(conn.version.as_deref()) {
+                kept.push((
+                    kind.to_string(),
+                    "connector needs updating to support focus mode".to_string(),
+                ));
+                continue;
+            }
+            let wanted = merge_pins(kind, &resource.payload, &pins);
+            let live = match self
+                .hub
+                .send_command(&conn.id, "workspace.state", json!({}))
+                .await
+            {
+                Ok(v) => v,
+                Err(e) => {
+                    errors.push(format!("reconcile: could not check {kind}'s current state: {e}"));
+                    continue;
+                }
+            };
+
+            for (command, args, label) in close_targets(kind, &wanted, &live) {
+                // Never close a url this activation itself just opened,
+                // regardless of what a freshly re-read capsule now says —
+                // see the doc comment above.
+                if kind == "chrome" && chrome_opened_urls.iter().any(|u| u == &label) {
+                    continue;
+                }
+                match self.hub.send_command(&conn.id, &command, args).await {
+                    Ok(v) => {
+                        if let Some(reason) = v.get("reason").and_then(Value::as_str) {
+                            kept.push((label, reason.to_string()));
+                        } else {
+                            closed.push(label);
+                        }
+                    }
+                    Err(e) => errors.push(format!("{command} {label}: {e}")),
+                }
+            }
+        }
     }
 
     async fn restore_vscode(
@@ -867,6 +1089,7 @@ impl Capsules {
         &self,
         conn: &ConnectorInfo,
         payload: &Value,
+        opened_urls: &mut Vec<String>,
         errors: &mut Vec<String>,
     ) -> bool {
         let urls: Vec<String> = payload["tabs"]
@@ -887,7 +1110,10 @@ impl Capsules {
                 .send_command(&conn.id, "tabs.open", json!({ "url": url }))
                 .await
             {
-                Ok(_) => any_succeeded = true,
+                Ok(_) => {
+                    any_succeeded = true;
+                    opened_urls.push(url);
+                }
                 Err(e) => errors.push(format!("tabs.open {url}: {e}")),
             }
         }
@@ -1133,6 +1359,84 @@ pub fn merge_pins(kind: &str, captured: &Value, pins: &[TaskPin]) -> Value {
             }
         }
         out["terminals"] = Value::Array(terms);
+    }
+    out
+}
+
+/// Everything live that the capsule does not want, as ready-to-send commands.
+/// Pure, so the diff can be tested without a hub.
+///
+/// A field the capsule captured *nothing* for (missing, or an empty array —
+/// `merge_pins` leaves it that way when there is nothing captured and no pin
+/// fills the gap) reads as "nothing to put away", never as "close
+/// everything live in this field". This mirrors `restore_chrome`'s own
+/// no-op when it has no urls to open: an empty capture means focus mode
+/// never touched this field, not that it wants a live browser or editor
+/// emptied out. Reachable with no corruption — e.g. a task saved while only
+/// `chrome://` pages were open captures `{tabs: []}`, since `snapshotTabs`
+/// filters them all.
+pub fn close_targets(kind: &str, wanted: &Value, live: &Value) -> Vec<(String, Value, String)> {
+    let ids = |v: &Value, field: &str| -> std::collections::HashSet<String> {
+        v.get(field)
+            .and_then(Value::as_array)
+            .map(|a| a.iter().filter_map(|i| identity_of(kind, i)).collect())
+            .unwrap_or_default()
+    };
+    let captured_nothing = |field: &str| -> bool {
+        wanted
+            .get(field)
+            .and_then(Value::as_array)
+            .map(Vec::is_empty)
+            .unwrap_or(true)
+    };
+    let mut out = vec![];
+    match kind {
+        "chrome" => {
+            if captured_nothing("tabs") {
+                return out;
+            }
+            let keep = ids(wanted, "tabs");
+            for t in live.get("tabs").and_then(Value::as_array).into_iter().flatten() {
+                let Some(id) = identity_of(kind, t) else { continue };
+                if !keep.contains(&id) {
+                    out.push(("tabs.close".into(), json!({ "url": id }), id));
+                }
+            }
+        }
+        "vscode" => {
+            // A file with unsaved changes is never a close candidate. The
+            // connector refuses it too; not asking is simply quieter.
+            let dirty: std::collections::HashSet<String> = live
+                .get("dirtyFiles")
+                .and_then(Value::as_array)
+                .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .unwrap_or_default();
+            if !captured_nothing("openFiles") {
+                let keep_files = ids(wanted, "openFiles");
+                for f in live.get("openFiles").and_then(Value::as_array).into_iter().flatten() {
+                    let Some(id) = identity_of(kind, f) else { continue };
+                    if !keep_files.contains(&id) && !dirty.contains(&id) {
+                        out.push(("editor.closeFile".into(), json!({ "path": id }), id));
+                    }
+                }
+            }
+            if !captured_nothing("terminals") {
+                let keep_terms = ids(wanted, "terminals");
+                for t in live.get("terminals").and_then(Value::as_array).into_iter().flatten() {
+                    let Some(id) = identity_of(kind, t) else { continue };
+                    if keep_terms.contains(&id) || t.get("busy").and_then(Value::as_bool) == Some(true) {
+                        continue;
+                    }
+                    let name = t.get("name").and_then(Value::as_str).unwrap_or_default();
+                    out.push((
+                        "terminal.dispose".into(),
+                        json!({ "name": name, "cwd": t.get("cwd").cloned().unwrap_or(Value::Null) }),
+                        name.to_string(),
+                    ));
+                }
+            }
+        }
+        _ => {}
     }
     out
 }

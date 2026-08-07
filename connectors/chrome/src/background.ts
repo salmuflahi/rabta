@@ -1,5 +1,12 @@
 import { Connection, nativeSocket } from "./connection";
-import { isRestorableUrl, snapshotTabs, type RawTab } from "./tabs";
+import {
+  closePlan,
+  isRestorableUrl,
+  snapshotTabs,
+  tabsMatchingUrlExactly,
+  type CloseCandidate,
+  type RawTab,
+} from "./tabs";
 import { installTabListeners } from "./tab-events";
 
 const DEFAULT_PORT = 17872;
@@ -72,6 +79,36 @@ async function connect(port: number) {
         }
         await chrome.tabs.create({ url });
         return { opened: url };
+      }
+      if (name === "tabs.close") {
+        const { url } = args as { url: string };
+        // `chrome.tabs.query({ url })` treats `url` as a match PATTERN, not
+        // a literal — fetch everything and filter to an exact match here
+        // instead (see `tabsMatchingUrlExactly`), the same way `readTabs`
+        // already fetches everything for capture.
+        const allTabs = await chrome.tabs.query({});
+        const candidates: CloseCandidate[] = allTabs.map((t) => ({
+          id: t.id,
+          url: t.url ?? "",
+          pinned: t.pinned ?? false,
+          incognito: t.incognito ?? false,
+          windowId: t.windowId,
+        }));
+        const matches = tabsMatchingUrlExactly(candidates, url);
+        if (matches.length === 0) return { kept: url, reason: "no longer open" };
+
+        // The whole url's outcome must be known before anything closes (see
+        // closePlan): gather every match's window's tab count up front,
+        // rather than re-querying mid-loop.
+        const windowTabCounts: Record<number, number> = {};
+        for (const windowId of new Set(matches.map((t) => t.windowId))) {
+          windowTabCounts[windowId] = (await chrome.tabs.query({ windowId })).length;
+        }
+
+        const plan = closePlan(matches, windowTabCounts);
+        if ("kept" in plan) return { kept: url, reason: plan.reason };
+        await chrome.tabs.remove(plan.close);
+        return { closed: url };
       }
       throw new Error(`no handler for ${name}`);
     },

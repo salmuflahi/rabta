@@ -76,7 +76,7 @@ async fn scripted_connector_kind(
         .await
         .unwrap();
     ws.send(
-        json!({"v":1,"id":"h","kind":"hello","payload":{"name":kind,"kind":kind,"protocolVersion":1,"capabilities":["workspace","editor","terminal"],"secret":hub.secret()}})
+        json!({"v":1,"id":"h","kind":"hello","payload":{"name":kind,"kind":kind,"protocolVersion":1,"capabilities":["workspace","editor","terminal"],"version":"0.2.0","secret":hub.secret()}})
             .to_string()
             .into(),
     )
@@ -364,7 +364,7 @@ async fn session_credits_only_focused_non_idle_time_and_caps_sleep_gaps() {
     let fixture = session_fixture().await;
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     assert_eq!(
@@ -412,13 +412,13 @@ async fn session_switch_flushes_the_previous_task_before_starting_the_next() {
         .unwrap();
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
     fixture.clock.advance(Duration::from_secs(12));
 
-    fixture.capsules.activate_task(&next_task.id).await.unwrap();
+    fixture.capsules.activate_task(&next_task.id, false).await.unwrap();
 
     assert_eq!(fixture.project().active_seconds, 12);
     let next = fixture.db.get_project(&next_project.id).unwrap().unwrap();
@@ -442,7 +442,7 @@ async fn session_reactivation_within_the_same_project_resets_duration() {
         .unwrap();
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
@@ -450,7 +450,7 @@ async fn session_reactivation_within_the_same_project_resets_duration() {
     fixture.capsules.session_heartbeat().await.unwrap();
     assert_eq!(fixture.project().active_seconds, 12);
 
-    fixture.capsules.activate_task(&next_task.id).await.unwrap();
+    fixture.capsules.activate_task(&next_task.id, false).await.unwrap();
 
     let project = fixture.project();
     assert_eq!(project.active_seconds, 0);
@@ -462,7 +462,7 @@ async fn session_archive_flushes_before_clearing_and_archiving() {
     let fixture = session_fixture().await;
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
@@ -484,7 +484,7 @@ async fn session_flush_persists_whole_seconds_and_repeated_flush_is_idempotent()
     let fixture = session_fixture().await;
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
@@ -502,7 +502,7 @@ async fn session_carries_fractional_eligible_time_across_successful_flushes() {
     let fixture = session_fixture().await;
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
@@ -521,7 +521,7 @@ async fn session_discards_ineligible_fractional_time() {
     let fixture = session_fixture().await;
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
 
@@ -542,7 +542,7 @@ async fn session_cap_discards_excess_but_keeps_new_fractional_time() {
     let fixture = session_fixture().await;
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
@@ -565,7 +565,7 @@ async fn session_failed_accrual_retries_all_eligible_time_without_clock_advance(
     let fixture = session_fixture().await;
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
@@ -585,7 +585,7 @@ async fn session_failed_focus_loss_retries_only_pre_transition_eligible_time() {
     let fixture = session_fixture().await;
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
@@ -610,7 +610,7 @@ async fn session_same_task_reactivation_resets_duration_and_fractional_carry() {
     let fixture = session_fixture().await;
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
@@ -620,7 +620,7 @@ async fn session_same_task_reactivation_resets_duration_and_fractional_carry() {
 
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     assert_eq!(fixture.project().active_seconds, 0);
@@ -654,7 +654,7 @@ async fn session_failed_begin_after_preload_preserves_active_and_continuation_st
     assert_eq!(fixture.hub.connectors().await.len(), 1);
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     while commands.try_recv().is_ok() {}
@@ -694,7 +694,7 @@ async fn session_failed_begin_after_preload_preserves_active_and_continuation_st
 
     let error = fixture
         .capsules
-        .activate_task(&target_task.id)
+        .activate_task(&target_task.id, false)
         .await
         .unwrap_err();
 
@@ -746,7 +746,7 @@ async fn session_heartbeat_serializes_with_activation() {
         .unwrap();
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
@@ -765,7 +765,7 @@ async fn session_heartbeat_serializes_with_activation() {
     let activation_capsules = fixture.capsules.clone();
     let target_task_id = target_task.id.clone();
     let activation =
-        tokio::spawn(async move { activation_capsules.activate_task(&target_task_id).await });
+        tokio::spawn(async move { activation_capsules.activate_task(&target_task_id, false).await });
     wait_for_signal(
         boundary_reached,
         "activation did not reach the session transition boundary",
@@ -804,7 +804,7 @@ async fn session_update_serializes_with_archive() {
     let fixture = session_fixture().await;
     fixture
         .capsules
-        .activate_task(&fixture.task_id)
+        .activate_task(&fixture.task_id, false)
         .await
         .unwrap();
     fixture.capsules.session_update(true, false).await.unwrap();
@@ -852,7 +852,7 @@ async fn activation_refuses_a_task_whose_project_is_archived() {
     let project_id = db.get_task(&task_id).unwrap().unwrap().project_id;
     db.archive_project(&project_id).unwrap();
 
-    let error = capsules.activate_task(&task_id).await.unwrap_err();
+    let error = capsules.activate_task(&task_id, false).await.unwrap_err();
 
     assert_eq!(
         error,
@@ -865,7 +865,7 @@ async fn activation_refuses_a_task_whose_project_is_archived() {
 async fn archiving_the_active_project_clears_activation_and_preserves_data() {
     let (_hub, db, capsules, task_id, _dir) = setup().await;
     let project_id = db.get_task(&task_id).unwrap().unwrap().project_id;
-    capsules.activate_task(&task_id).await.unwrap();
+    capsules.activate_task(&task_id, false).await.unwrap();
     assert_eq!(capsules.active_task().as_deref(), Some(task_id.as_str()));
 
     let result = capsules.archive_project(&project_id).await.unwrap();
@@ -888,7 +888,7 @@ async fn archiving_an_inactive_project_keeps_the_current_capsule_active() {
             default_branch: "main".into(),
         })
         .unwrap();
-    capsules.activate_task(&active_task_id).await.unwrap();
+    capsules.activate_task(&active_task_id, false).await.unwrap();
 
     capsules
         .archive_project(&inactive_project.id)
@@ -940,7 +940,7 @@ async fn activate_same_folder_opens_files_and_terminals() {
     .await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    let summary = capsules.activate_task(&task_id).await.unwrap();
+    let summary = capsules.activate_task(&task_id, false).await.unwrap();
     assert_eq!(summary.applied, vec!["vscode"]);
     assert!(summary.pending.is_empty());
     assert_eq!(capsules.active_task().as_deref(), Some(task_id.as_str()));
@@ -978,7 +978,7 @@ async fn activate_cross_folder_defers_and_continues_on_reconnect() {
     .await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    let summary = capsules.activate_task(&task_id).await.unwrap();
+    let summary = capsules.activate_task(&task_id, false).await.unwrap();
     assert_eq!(summary.pending, vec!["vscode"]);
     assert!(summary.applied.is_empty());
 
@@ -1026,8 +1026,8 @@ async fn activating_b_autosaves_active_a_first() {
     .await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    capsules.activate_task(&task_a).await.unwrap(); // A active (no capsule; fine)
-    let summary = capsules.activate_task(&task_b).await.unwrap();
+    capsules.activate_task(&task_a, false).await.unwrap(); // A active (no capsule; fine)
+    let summary = capsules.activate_task(&task_b, false).await.unwrap();
     assert_eq!(summary.saved_previous.as_deref(), Some(task_a.as_str()));
 
     let rows = db.task_resources(&task_a).unwrap();
@@ -1066,9 +1066,9 @@ async fn newer_activation_clears_stale_pending_restore() {
     .await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    let a = capsules.activate_task(&task_a).await.unwrap();
+    let a = capsules.activate_task(&task_a, false).await.unwrap();
     assert_eq!(a.pending, vec!["vscode"], "A defers cross-folder");
-    let b = capsules.activate_task(&task_b).await.unwrap();
+    let b = capsules.activate_task(&task_b, false).await.unwrap();
     assert!(b.pending.is_empty(), "B is same-folder");
 
     // Reconnect: the stale pending from A must NOT fire.
@@ -1100,7 +1100,7 @@ async fn activate_fake_capsule_opens_root_workspace() {
     let _conn = scripted_connector_kind(&hub, "fake", tx, |_, _| json!({})).await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    let summary = capsules.activate_task(&task_id).await.unwrap();
+    let summary = capsules.activate_task(&task_id, false).await.unwrap();
     assert_eq!(summary.applied, vec!["fake"]);
 
     let mut names = vec![];
@@ -1171,7 +1171,7 @@ async fn mid_settle_activation_supersedes_pending() {
     .await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    let a = capsules.activate_task(&task_a).await.unwrap();
+    let a = capsules.activate_task(&task_a, false).await.unwrap();
     assert_eq!(a.pending, vec!["vscode"], "A defers cross-folder");
 
     // Simulate the window reload: drop the connection, reconnect.
@@ -1188,7 +1188,7 @@ async fn mid_settle_activation_supersedes_pending() {
     // into that window, activate B: same-folder, so it applies immediately
     // and bumps the generation past A's pending.
     tokio::time::sleep(Duration::from_millis(100)).await;
-    let b = capsules.activate_task(&task_b).await.unwrap();
+    let b = capsules.activate_task(&task_b, false).await.unwrap();
     assert!(b.pending.is_empty(), "B is same-folder");
 
     // Total wait since reconnect is well past the 300ms settle window.
@@ -1256,7 +1256,7 @@ async fn activate_restores_branch_on_clean_tree() {
     // Move the repo off main; activation must bring it back.
     git(repo.path(), &["switch", "-c", "elsewhere"]).await;
 
-    let summary = capsules.activate_task(&task).await.unwrap();
+    let summary = capsules.activate_task(&task, false).await.unwrap();
     assert!(
         summary.applied.contains(&"git".to_string()),
         "got {summary:?}"
@@ -1296,7 +1296,7 @@ async fn activate_refuses_branch_switch_on_dirty_tree() {
     .await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    let summary = capsules.activate_task(&task).await.unwrap();
+    let summary = capsules.activate_task(&task, false).await.unwrap();
     assert!(
         summary.skipped.contains(&"git".to_string()),
         "got {summary:?}"
@@ -1360,7 +1360,7 @@ async fn activate_opens_chrome_tabs_additively() {
     let _c = scripted_connector_kind(&hub, "chrome", tx, |_, _| json!({})).await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    let summary = capsules.activate_task(&task_id).await.unwrap();
+    let summary = capsules.activate_task(&task_id, false).await.unwrap();
     assert!(
         summary.applied.contains(&"chrome".to_string()),
         "got {summary:?}"
@@ -1393,7 +1393,7 @@ async fn activate_chrome_without_browser_is_skipped() {
         &tabs_state(&["https://z.test"]),
     )
     .unwrap();
-    let summary = capsules.activate_task(&task_id).await.unwrap();
+    let summary = capsules.activate_task(&task_id, false).await.unwrap();
     assert!(
         summary.skipped.contains(&"chrome".to_string()),
         "got {summary:?}"
@@ -1474,7 +1474,7 @@ async fn continuation_recheck_stops_mid_apply_on_newer_activation() {
     .await;
     wait_for_connector_count(&hub, 1).await;
 
-    let a = capsules.activate_task(&task_a).await.unwrap();
+    let a = capsules.activate_task(&task_a, false).await.unwrap();
     assert_eq!(a.pending, vec!["vscode"], "A defers cross-folder");
 
     // Simulate the window reload: drop the connection, reconnect with a
@@ -1532,7 +1532,7 @@ async fn continuation_recheck_stops_mid_apply_on_newer_activation() {
     capsules.set_next_activation_continuation_boundary_signal_for_test(at_continuation_boundary);
     let capsules2 = capsules.clone();
     let task_b2 = task_b.clone();
-    let second_activation = tokio::spawn(async move { capsules2.activate_task(&task_b2).await });
+    let second_activation = tokio::spawn(async move { capsules2.activate_task(&task_b2, false).await });
     wait_for_signal(
         boundary_reached,
         "newer activation did not reach the session transition boundary",
@@ -1721,7 +1721,7 @@ async fn a_pinned_tab_reopens_after_being_closed_and_saved_over() {
     capsules.save_capsule(&task_id).await.unwrap();
     while rx.try_recv().is_ok() {} // drain the workspace.state call from the save
 
-    let summary = capsules.activate_task(&task_id).await.unwrap();
+    let summary = capsules.activate_task(&task_id, false).await.unwrap();
     assert!(
         summary.applied.contains(&"chrome".to_string()),
         "got {summary:?}"
@@ -1774,7 +1774,7 @@ async fn a_pinned_terminal_reopens_after_being_closed_and_saved_over() {
     capsules.save_capsule(&task_id).await.unwrap();
     while rx.try_recv().is_ok() {} // drain the workspace.state call from the save
 
-    let summary = capsules.activate_task(&task_id).await.unwrap();
+    let summary = capsules.activate_task(&task_id, false).await.unwrap();
     assert_eq!(summary.applied, vec!["vscode"], "got {summary:?}");
 
     let mut names = vec![];
@@ -1915,7 +1915,7 @@ async fn a_task_with_no_pins_restores_exactly_as_before() {
     capsules.save_capsule(&task_id).await.unwrap();
     while rx.try_recv().is_ok() {} // drain the workspace.state call from the save
 
-    capsules.activate_task(&task_id).await.unwrap();
+    capsules.activate_task(&task_id, false).await.unwrap();
 
     let mut names = vec![];
     while let Ok((name, args)) = rx.try_recv() {
@@ -1957,7 +1957,7 @@ async fn a_vscode_task_with_no_pins_restores_exactly_as_before() {
     .await;
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    let summary = capsules.activate_task(&task_id).await.unwrap();
+    let summary = capsules.activate_task(&task_id, false).await.unwrap();
     assert_eq!(summary.applied, vec!["vscode"], "got {summary:?}");
 
     let mut names = vec![];
@@ -1986,5 +1986,727 @@ async fn a_vscode_task_with_no_pins_restores_exactly_as_before() {
             ("terminal.create".to_string(), "/repo/a".to_string()),
         ],
         "an uncurated vscode task must restore exactly what it captured, in the same order, with activeFile last: {commands:?}"
+    );
+}
+
+// --- Phase 2: focus mode (the reconcile step) ------------------------------
+
+#[tokio::test]
+async fn focus_mode_closes_only_what_is_not_in_the_capsule() {
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    // Captured: one tab. Live: that tab plus a stray.
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector_kind(&hub, "chrome", tx, |name, _| match name {
+        "workspace.state" => tabs_state(&["https://keep.test/", "https://stray.test/"]),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    capsules.save_capsule(&task_id).await.unwrap();
+    while rx.try_recv().is_ok() {} // drain the workspace.state call from the save
+
+    // Re-point the capsule at only the first url, so the second is a stray.
+    let res = db.task_resources(&task_id).unwrap();
+    let chrome = res.iter().find(|r| r.connector_kind == "chrome").unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        &chrome.resource_type,
+        &tabs_state(&["https://keep.test/"]),
+    )
+    .unwrap();
+
+    let summary = capsules.activate_task(&task_id, true).await.unwrap();
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        names
+            .iter()
+            .any(|(n, a)| n == "tabs.close" && a["url"] == "https://stray.test/"),
+        "the stray should have been closed: {names:?}"
+    );
+    assert!(
+        !names
+            .iter()
+            .any(|(n, a)| n == "tabs.close" && a["url"] == "https://keep.test/"),
+        "a captured tab must never be closed: {names:?}"
+    );
+    assert!(summary.closed.iter().any(|c| c.contains("stray.test")));
+}
+
+#[tokio::test]
+async fn focus_mode_off_closes_nothing() {
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector_kind(&hub, "chrome", tx, |name, _| match name {
+        "workspace.state" => tabs_state(&["https://a.test/", "https://stray.test/"]),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    capsules.save_capsule(&task_id).await.unwrap();
+    while rx.try_recv().is_ok() {} // drain the workspace.state call from the save
+
+    let res = db.task_resources(&task_id).unwrap();
+    let chrome = res.iter().find(|r| r.connector_kind == "chrome").unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        &chrome.resource_type,
+        &tabs_state(&["https://a.test/"]),
+    )
+    .unwrap();
+
+    let summary = capsules.activate_task(&task_id, false).await.unwrap();
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        !names.iter().any(|(n, _)| n == "tabs.close"),
+        "focus off must close nothing: {names:?}"
+    );
+    assert!(summary.closed.is_empty() && summary.kept.is_empty());
+}
+
+#[tokio::test]
+async fn focus_off_issues_the_identical_command_sequence() {
+    // The whole phase is built to protect this. A user who never turns focus
+    // mode on must not be able to tell it was added.
+    //
+    // `focus_mode_off_closes_nothing` (above) already proves this for one
+    // chrome connector, checking only the literal "tabs.close". This test is
+    // deliberately broader, not a copy: chrome AND vscode are connected at
+    // once, each holding something a focus-mode-on reconcile would act on (a
+    // stray tab, a stray FILE, and a stray terminal), and the assertion
+    // checks an explicit set of every destructive command name this feature
+    // has — not a suffix pattern, which `editor.closeFile` does not match
+    // (it ends in neither ".close" nor ".dispose"). A gate that only forgot
+    // to cover vscode, or that closed through a command this test doesn't
+    // name explicitly, would still be caught here.
+    const DESTRUCTIVE_COMMANDS: &[&str] = &["tabs.close", "editor.closeFile", "terminal.dispose"];
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+
+    let (chrome_tx, mut chrome_rx) = mpsc::unbounded_channel();
+    let _chrome_conn = scripted_connector_kind(&hub, "chrome", chrome_tx, |name, _| match name {
+        "workspace.state" => tabs_state(&["https://a.test/", "https://stray.test/"]),
+        _ => json!({}),
+    })
+    .await;
+    let (vs_tx, mut vs_rx) = mpsc::unbounded_channel();
+    let _vs_conn = scripted_connector(&hub, vs_tx, |name, _| match name {
+        // A second, unpinned FILE and a second, unpinned terminal beyond
+        // what the capsule will want — both live-only, so a real reconcile
+        // would close/dispose them. Without a genuine stray file here, the
+        // editor.closeFile path could never fire even with focus mode ON,
+        // and this test would not actually be exercising it.
+        "workspace.state" => json!({
+            "workspaceFolder": "/repo/a",
+            "openFiles": ["/repo/a/x.ts", "/repo/a/stray.ts"],
+            "activeFile": "/repo/a/x.ts",
+            "terminals": [
+                {"name": "zsh", "cwd": "/repo/a"},
+                {"name": "stray-term", "cwd": "/repo/a"}
+            ]
+        }),
+        _ => json!({}),
+    })
+    .await;
+    wait_for_connector_count(&hub, 2).await;
+
+    capsules.save_capsule(&task_id).await.unwrap();
+    while chrome_rx.try_recv().is_ok() {} // drain the workspace.state call from the save
+    while vs_rx.try_recv().is_ok() {}
+
+    // Re-point each capsule at a subset of what's live: chrome loses the
+    // stray tab, vscode loses the stray file and the stray terminal.
+    // Same-folder vscode capsule, so the open phase applies immediately
+    // rather than deferring.
+    let res = db.task_resources(&task_id).unwrap();
+    let chrome = res.iter().find(|r| r.connector_kind == "chrome").unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        &chrome.resource_type,
+        &tabs_state(&["https://a.test/"]),
+    )
+    .unwrap();
+    let vscode = res.iter().find(|r| r.connector_kind == "vscode").unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "vscode",
+        &vscode.resource_type,
+        &json!({
+            "workspaceFolder": "/repo/a",
+            "openFiles": ["/repo/a/x.ts"],
+            "activeFile": "/repo/a/x.ts",
+            "terminals": [{"name": "zsh", "cwd": "/repo/a"}]
+        }),
+    )
+    .unwrap();
+
+    let summary = capsules.activate_task(&task_id, false).await.unwrap();
+    assert_eq!(summary.pending, Vec::<String>::new(), "got {summary:?}");
+    assert!(summary.errors.is_empty(), "got {summary:?}");
+
+    let mut names: Vec<String> = vec![];
+    while let Ok((name, _)) = chrome_rx.try_recv() {
+        names.push(name);
+    }
+    while let Ok((name, _)) = vs_rx.try_recv() {
+        names.push(name);
+    }
+    // Both nets, deliberately. The explicit list is what pins today's three
+    // commands — a suffix test alone missed `editor.closeFile` entirely. The
+    // suffix test is what catches a fourth destructive command added later by
+    // someone who does not know this list exists.
+    assert!(
+        !names.iter().any(|n| DESTRUCTIVE_COMMANDS.contains(&n.as_str())
+            || n.ends_with(".close")
+            || n.ends_with(".closeFile")
+            || n.ends_with(".dispose")),
+        "focus off must never close or dispose anything, on any connector: {names:?}"
+    );
+    assert!(
+        summary.closed.is_empty() && summary.kept.is_empty(),
+        "got {summary:?}"
+    );
+}
+
+#[tokio::test]
+async fn a_refusal_is_kept_not_an_error() {
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector_kind(&hub, "chrome", tx, |name, args| match name {
+        "workspace.state" => tabs_state(&["https://keep.test/", "https://pinned.test/"]),
+        "tabs.close" => json!({ "kept": args["url"], "reason": "pinned in the browser" }),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    capsules.save_capsule(&task_id).await.unwrap();
+    while rx.try_recv().is_ok() {} // drain the workspace.state call from the save
+
+    let res = db.task_resources(&task_id).unwrap();
+    let chrome = res.iter().find(|r| r.connector_kind == "chrome").unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        &chrome.resource_type,
+        &tabs_state(&["https://keep.test/"]),
+    )
+    .unwrap();
+
+    let summary = capsules.activate_task(&task_id, true).await.unwrap();
+    while rx.try_recv().is_ok() {} // drain: not the point of this test
+
+    assert!(
+        summary.closed.is_empty(),
+        "nothing was actually closed: {summary:?}"
+    );
+    assert_eq!(summary.kept.len(), 1, "the refusal should be kept: {summary:?}");
+    assert!(summary.kept[0].1.contains("pinned"));
+    assert!(
+        summary.errors.is_empty(),
+        "a refusal is not an error: {summary:?}"
+    );
+}
+
+#[tokio::test]
+async fn focus_mode_never_closes_a_pinned_item_the_restore_just_opened() {
+    // Pins are part of what the task WANTS: reconcile must diff live state
+    // against merge_pins(captured, pins), never the raw captured payload —
+    // otherwise it would close a pinned item the restore itself just opened
+    // a moment earlier.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.add_task_pin(
+        &task_id,
+        "chrome",
+        "https://pinned.test/",
+        &json!({"url": "https://pinned.test/", "title": "Pinned"}),
+    )
+    .unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        "workspace",
+        &tabs_state(&["https://kept.test/"]),
+    )
+    .unwrap();
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    // The live browser reports both tabs: the one that was captured, and
+    // the pinned one that restore's tabs.open just opened.
+    let _conn = scripted_connector_kind(&hub, "chrome", tx, |name, _| match name {
+        "workspace.state" => tabs_state(&["https://kept.test/", "https://pinned.test/"]),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let summary = capsules.activate_task(&task_id, true).await.unwrap();
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        !names.iter().any(|(n, _)| n == "tabs.close"),
+        "a pinned item the restore just opened must never even be considered for closing: {names:?}"
+    );
+    assert!(summary.closed.is_empty(), "got {summary:?}");
+    assert!(summary.kept.is_empty(), "got {summary:?}");
+}
+
+#[tokio::test]
+async fn reconcile_targets_only_the_connector_restore_used_not_every_connector_of_the_kind() {
+    // Two vscode connectors live at once — the extension activates per
+    // window, so two open windows are two connectors of the same kind.
+    // Restore picks exactly one of them (whichever `.find()` returns first;
+    // HashMap iteration order is not something this test may assume) to
+    // open the capsule into. If reconcile ever fanned out to every connector
+    // of the kind instead of reusing that exact pick, it would diff the
+    // OTHER, completely unrelated window's live state against this capsule
+    // too and close whatever that window happens to have open that isn't in
+    // it — an unrelated window's layout destroyed, nondeterministically.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(
+        &task_id,
+        "vscode",
+        "workspace",
+        &state("/repo/a", &["/repo/a/x.ts"]),
+    )
+    .unwrap();
+
+    let (tx_a, mut rx_a) = mpsc::unbounded_channel();
+    let _conn_a = scripted_connector(&hub, tx_a, |name, _| match name {
+        "workspace.state" => state("/repo/a", &["/repo/a/x.ts", "/repo/a/stray-a.ts"]),
+        _ => json!({}),
+    })
+    .await;
+    let (tx_b, mut rx_b) = mpsc::unbounded_channel();
+    let _conn_b = scripted_connector(&hub, tx_b, |name, _| match name {
+        // A totally unrelated window sharing nothing with the capsule but
+        // the folder: if reconcile ever reaches this connector, its own
+        // stray reads as one too.
+        "workspace.state" => state("/repo/a", &["/repo/a/x.ts", "/repo/a/stray-b.ts"]),
+        _ => json!({}),
+    })
+    .await;
+    wait_for_connector_count(&hub, 2).await;
+
+    let summary = capsules.activate_task(&task_id, true).await.unwrap();
+    assert!(summary.errors.is_empty(), "got {summary:?}");
+
+    let mut names_a = vec![];
+    while let Ok((name, args)) = rx_a.try_recv() {
+        names_a.push((name, args));
+    }
+    let mut names_b = vec![];
+    while let Ok((name, args)) = rx_b.try_recv() {
+        names_b.push((name, args));
+    }
+    let a_closed = names_a
+        .iter()
+        .any(|(n, a)| n == "editor.closeFile" && a["path"] == "/repo/a/stray-a.ts");
+    let b_closed = names_b
+        .iter()
+        .any(|(n, a)| n == "editor.closeFile" && a["path"] == "/repo/a/stray-b.ts");
+    assert!(
+        a_closed ^ b_closed,
+        "exactly one window's stray must close — whichever restore actually used — \
+         never both and never neither: a_closed={a_closed} b_closed={b_closed} \
+         names_a={names_a:?} names_b={names_b:?}"
+    );
+    assert_eq!(summary.closed.len(), 1, "got {summary:?}");
+}
+
+#[tokio::test]
+async fn reconcile_never_closes_a_url_this_activation_itself_just_opened() {
+    // Reconcile re-reads the capsule and pins fresh from the db rather than
+    // reusing what restore already computed. Under ordinary operation those
+    // two reads agree — but nothing enforces that they must, and this proves
+    // the guarantee holds even when they do not: the chrome connector's
+    // `tabs.open` handler here mutates the very capsule row reconcile will
+    // re-read, simulating something else touching it mid-activation (a
+    // concurrent save, a redirect settling on a different url — anything
+    // that could make a freshly re-read "wanted" disagree with what was
+    // actually just opened). The url restore opened must stay protected
+    // regardless.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        "workspace",
+        &tabs_state(&["https://a.test/"]),
+    )
+    .unwrap();
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let db_for_open = db.clone();
+    let task_for_open = task_id.clone();
+    let _conn = scripted_connector_kind(&hub, "chrome", tx, move |name, _| match name {
+        "workspace.state" => tabs_state(&["https://a.test/"]),
+        "tabs.open" => {
+            // Simulate the capsule changing out from under this activation
+            // between the open phase and reconcile's fresh re-read. Mutated
+            // to a DIFFERENT non-empty capture (not emptied outright) so
+            // this exercises the opened-urls exclusion specifically, not
+            // the separate "nothing captured" guard (which has its own
+            // dedicated test and would otherwise mask this one).
+            db_for_open
+                .replace_task_resources(
+                    &task_for_open,
+                    "chrome",
+                    "workspace",
+                    &tabs_state(&["https://unrelated.test/"]),
+                )
+                .unwrap();
+            json!({ "opened": "https://a.test/" })
+        }
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let summary = capsules.activate_task(&task_id, true).await.unwrap();
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        !names.iter().any(|(n, _)| n == "tabs.close"),
+        "a url this activation just opened must never be closed, even if a fresh \
+         capsule read no longer wants it: {names:?}"
+    );
+    assert!(summary.closed.is_empty(), "got {summary:?}");
+}
+
+#[tokio::test]
+async fn reconcile_skips_a_connector_too_old_to_have_close_handlers() {
+    // Both stores can keep serving an older connector build for a while
+    // after a desktop release, so the common day-one state is a new desktop
+    // talking to an OLD connector with no `tabs.close` handler at all. Every
+    // destructive command would otherwise throw "no handler for ...",
+    // turning a clean restore into a wall of per-item errors — the gate must
+    // catch this before sending anything destructive and record ONE clear
+    // `kept` entry instead.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        "workspace",
+        &tabs_state(&["https://keep.test/"]),
+    )
+    .unwrap();
+
+    // A hand-rolled hello (not the shared `scripted_connector_kind` helper,
+    // which reports today's version) reporting an explicit old version.
+    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port()))
+        .await
+        .unwrap();
+    ws.send(
+        json!({"v":1,"id":"h","kind":"hello","payload":{
+            "name":"chrome","kind":"chrome","protocolVersion":1,
+            "capabilities":["tabs"],"version":"0.1.4","secret":hub.secret()
+        }})
+        .to_string()
+        .into(),
+    )
+    .await
+    .unwrap();
+    tokio::time::timeout(TEST_WAIT, ws.next())
+        .await
+        .expect("connector welcome timed out")
+        .expect("connector closed before welcome")
+        .expect("connector welcome failed");
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    tokio::spawn(async move {
+        pump(ws, tx, |name, _| match name {
+            "workspace.state" => tabs_state(&["https://keep.test/", "https://stray.test/"]),
+            // An old connector would not even have a tabs.close handler.
+            _ => json!({}),
+        })
+        .await
+    });
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let summary = capsules.activate_task(&task_id, true).await.unwrap();
+
+    let mut names = vec![];
+    while let Ok((name, _)) = rx.try_recv() {
+        names.push(name);
+    }
+    assert!(
+        !names.iter().any(|n| n == "tabs.close"),
+        "must never send a destructive command to a connector too old to handle it: {names:?}"
+    );
+    assert!(
+        summary.errors.is_empty(),
+        "an old connector is a kept refusal, not a wall of errors: {summary:?}"
+    );
+    assert_eq!(
+        summary.kept,
+        vec![(
+            "chrome".to_string(),
+            "connector needs updating to support focus mode".to_string()
+        )],
+        "got {summary:?}"
+    );
+}
+
+#[tokio::test]
+async fn reconcile_is_skipped_when_the_restore_did_not_finish_cleanly() {
+    // The destructive half must never run on a restore already going wrong.
+    // Reuse the dirty-tree git refusal (proven elsewhere) to put an error in
+    // the open phase, and prove reconcile never fires because of it.
+    let (hub, db, capsules, _t, _dir) = setup().await;
+    let repo = repo_with_commit().await;
+    let task = project_with_repo(&db, repo.path()).await;
+    db.replace_task_resources(
+        &task,
+        "git",
+        "branch",
+        &serde_json::json!({"branch": "main"}),
+    )
+    .unwrap();
+    db.replace_task_resources(
+        &task,
+        "chrome",
+        "workspace",
+        &tabs_state(&["https://keep.test/"]),
+    )
+    .unwrap();
+    git(repo.path(), &["switch", "-c", "elsewhere"]).await;
+    std::fs::write(repo.path().join("a.txt"), "precious\n").unwrap();
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector_kind(&hub, "chrome", tx, |name, _| match name {
+        "workspace.state" => tabs_state(&["https://keep.test/", "https://stray.test/"]),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let summary = capsules.activate_task(&task, true).await.unwrap();
+
+    assert!(
+        summary.errors.iter().any(|e| e.contains("never discards")),
+        "expected the dirty-tree git refusal to still be reported: {summary:?}"
+    );
+    assert!(
+        summary.closed.is_empty(),
+        "nothing may close on a restore that did not finish cleanly: {summary:?}"
+    );
+    assert!(
+        summary
+            .kept
+            .iter()
+            .any(|(item, reason)| item == "focus" && reason.contains("skipped")),
+        "the summary must record that focus mode was skipped: {summary:?}"
+    );
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        !names.iter().any(|(n, _)| n == "tabs.close"),
+        "reconcile must never run after a restore that did not finish cleanly: {names:?}"
+    );
+}
+
+#[tokio::test]
+async fn reconcile_is_skipped_while_a_restore_is_still_pending() {
+    // A cross-folder vscode restore defers to a reconnect continuation: no
+    // error, but the open phase has explicitly NOT finished, and the window
+    // still shows the OLD folder's context. Prove reconcile never fires
+    // because of it — even with a chrome connector sitting right there with
+    // a stray tab it would otherwise happily close.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(
+        &task_id,
+        "vscode",
+        "workspace",
+        &state("/repo/b", &["/repo/b/z.ts"]),
+    )
+    .unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        "workspace",
+        &tabs_state(&["https://keep.test/"]),
+    )
+    .unwrap();
+
+    let (vs_tx, _vs_rx) = mpsc::unbounded_channel();
+    let _vs_conn = scripted_connector(&hub, vs_tx, |name, _| match name {
+        "workspace.state" => state("/repo/a", &[]), // WRONG folder -> defers
+        _ => json!({}),
+    })
+    .await;
+    let (chrome_tx, mut chrome_rx) = mpsc::unbounded_channel();
+    let _chrome_conn = scripted_connector_kind(&hub, "chrome", chrome_tx, |name, _| match name {
+        "workspace.state" => tabs_state(&["https://keep.test/", "https://stray.test/"]),
+        _ => json!({}),
+    })
+    .await;
+    wait_for_connector_count(&hub, 2).await;
+
+    let summary = capsules.activate_task(&task_id, true).await.unwrap();
+
+    assert_eq!(
+        summary.pending,
+        vec!["vscode"],
+        "vscode must defer cross-folder"
+    );
+    assert!(
+        summary.errors.is_empty(),
+        "this scenario has no errors, only a pending restore: {summary:?}"
+    );
+    assert!(
+        summary.closed.is_empty(),
+        "nothing may close while a restore is still pending: {summary:?}"
+    );
+    assert!(
+        summary
+            .kept
+            .iter()
+            .any(|(item, reason)| item == "focus" && reason.contains("skipped")),
+        "the summary must record that focus mode was skipped: {summary:?}"
+    );
+
+    let mut names = vec![];
+    while let Ok((name, args)) = chrome_rx.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        !names.iter().any(|(n, _)| n == "tabs.close"),
+        "reconcile must never run while a restore is still pending: {names:?}"
+    );
+}
+
+#[test]
+fn close_targets_never_targets_a_dirty_file_or_a_busy_terminal() {
+    use rabta_desktop_lib::capsules::close_targets;
+
+    // chrome: exactly what's missing from `wanted` becomes a close target.
+    let wanted = json!({"tabs": [{"url": "https://keep.test/"}]});
+    let live = json!({"tabs": [
+        {"url": "https://keep.test/"},
+        {"url": "https://stray.test/"}
+    ]});
+    let targets = close_targets("chrome", &wanted, &live);
+    assert_eq!(
+        targets,
+        vec![(
+            "tabs.close".to_string(),
+            json!({"url": "https://stray.test/"}),
+            "https://stray.test/".to_string()
+        )],
+        "got {targets:?}"
+    );
+
+    // vscode: a dirty file and a busy terminal are never close targets, even
+    // though neither is in `wanted` — asking the connector would draw the
+    // same refusal, and skipping the round trip means it never shows up in
+    // `kept` looking like something was actually considered and refused.
+    // `wanted` captures one file and one terminal (not empty — an empty
+    // capture is its own case, covered by
+    // `close_targets_skips_a_field_the_capsule_captured_nothing_for` below)
+    // so this stays a test of the dirty/busy exclusion, not of that guard.
+    let wanted = json!({
+        "openFiles": ["/repo/keep.ts"],
+        "terminals": [{"name": "keep-term", "cwd": "/repo"}]
+    });
+    let live = json!({
+        "openFiles": ["/repo/keep.ts", "/repo/a.ts", "/repo/dirty.ts"],
+        "dirtyFiles": ["/repo/dirty.ts"],
+        "terminals": [
+            {"name": "keep-term", "cwd": "/repo", "busy": false},
+            {"name": "idle", "cwd": "/repo", "busy": false},
+            {"name": "busy", "cwd": "/repo", "busy": true}
+        ]
+    });
+    let targets = close_targets("vscode", &wanted, &live);
+    assert_eq!(
+        targets,
+        vec![
+            (
+                "editor.closeFile".to_string(),
+                json!({"path": "/repo/a.ts"}),
+                "/repo/a.ts".to_string()
+            ),
+            (
+                "terminal.dispose".to_string(),
+                json!({"name": "idle", "cwd": "/repo"}),
+                "idle".to_string()
+            ),
+        ],
+        "dirty file and busy terminal must never be close targets: {targets:?}"
+    );
+}
+
+#[test]
+fn close_targets_skips_a_field_the_capsule_captured_nothing_for() {
+    use rabta_desktop_lib::capsules::close_targets;
+
+    // chrome: the capsule captured zero tabs (e.g. only chrome:// pages were
+    // open at save time, all filtered by snapshotTabs) — an empty capture
+    // must read as "nothing to put away", never as "close everything live".
+    let wanted = json!({"tabs": []});
+    let live = json!({"tabs": [{"url": "https://a.test/"}, {"url": "https://b.test/"}]});
+    assert_eq!(
+        close_targets("chrome", &wanted, &live),
+        Vec::new(),
+        "an empty tabs capture must close nothing"
+    );
+
+    // Also covers a capsule row missing the field entirely, not just an
+    // explicit empty array.
+    let wanted = json!({});
+    assert_eq!(
+        close_targets("chrome", &wanted, &live),
+        Vec::new(),
+        "a missing tabs field must close nothing, same as an explicit empty array"
+    );
+
+    // vscode: captured neither files nor terminals — both must be skipped.
+    let wanted = json!({"openFiles": [], "terminals": []});
+    let live = json!({
+        "openFiles": ["/repo/a.ts"],
+        "dirtyFiles": [],
+        "terminals": [{"name": "zsh", "cwd": "/repo", "busy": false}]
+    });
+    assert_eq!(
+        close_targets("vscode", &wanted, &live),
+        Vec::new(),
+        "an empty openFiles+terminals capture must close nothing"
+    );
+
+    // vscode: captured a file but no terminals — only the terminal side is
+    // skipped; file closing still proceeds normally against the stray.
+    let wanted = json!({"openFiles": ["/repo/keep.ts"], "terminals": []});
+    let live = json!({
+        "openFiles": ["/repo/keep.ts", "/repo/stray.ts"],
+        "dirtyFiles": [],
+        "terminals": [{"name": "stray-term", "cwd": "/repo", "busy": false}]
+    });
+    assert_eq!(
+        close_targets("vscode", &wanted, &live),
+        vec![(
+            "editor.closeFile".to_string(),
+            json!({"path": "/repo/stray.ts"}),
+            "/repo/stray.ts".to_string()
+        )],
+        "an empty terminals capture must not suppress file closing"
     );
 }

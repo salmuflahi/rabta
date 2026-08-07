@@ -174,4 +174,56 @@ describe("useRestore / RestoreExperience", () => {
     expect(screen.getAllByText("Restored")).toHaveLength(TOOLS.length);
     expect(screen.queryByText("Waiting")).not.toBeInTheDocument();
   });
+
+  it("renders the put-away receipt with the closed count and deduped kept reasons", async () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+
+    const result: RestoreResult = {
+      overall: "success",
+      tools: [
+        { id: "vscode-1", status: "applied" },
+        { id: "chrome-1", status: "applied" },
+      ],
+      closed: ["https://stray.test/"],
+      // Three kept items, only two distinct reasons — the receipt lists each
+      // reason once, not once per item.
+      kept: [
+        ["zsh", "still running something"],
+        ["bash", "still running something"],
+        ["https://pinned.test/", "pinned in the browser"],
+      ],
+    };
+    const run = vi.fn().mockResolvedValue(result);
+
+    renderWithProviders(<Harness run={run} />);
+    await advanceUntil(() => screen.queryByText("Workspace restored") !== null);
+
+    const receipt = screen.getByText(/put away/);
+    expect(receipt).toHaveTextContent(
+      "1 put away · 3 kept — still running something, pinned in the browser"
+    );
+  });
+
+  it("renders nothing extra when focus mode closed and kept nothing", async () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+
+    const result: RestoreResult = {
+      overall: "success",
+      tools: [
+        { id: "vscode-1", status: "applied" },
+        { id: "chrome-1", status: "applied" },
+      ],
+      closed: [],
+      kept: [],
+    };
+    const run = vi.fn().mockResolvedValue(result);
+
+    renderWithProviders(<Harness run={run} />);
+    await advanceUntil(() => screen.queryByText("Workspace restored") !== null);
+
+    expect(screen.queryByText(/put away/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/kept/)).not.toBeInTheDocument();
+  });
 });

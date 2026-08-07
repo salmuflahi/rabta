@@ -33,4 +33,17 @@ describe("SettingsPage", () => {
     fireEvent.click(screen.getByLabelText("Developer mode"));
     expect(await screen.findByText("Send command")).toBeInTheDocument();
   });
+
+  it("toggles focus mode, off by default", async () => {
+    renderWithProviders(<SettingsPage />);
+    await screen.findByText("Settings");
+
+    const toggle = screen.getByLabelText("Put away what isn't in the task");
+    expect(toggle).not.toBeChecked();
+    expect(useStore.getState().prefs.focusMode).toBe(false);
+
+    fireEvent.click(toggle);
+    expect(useStore.getState().prefs.focusMode).toBe(true);
+    expect(toggle).toBeChecked();
+  });
 });
