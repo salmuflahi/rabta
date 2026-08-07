@@ -704,7 +704,14 @@ impl Capsules {
         let mut closed = vec![];
         let mut kept = vec![];
         if focus_mode {
-            if errors.is_empty() {
+            // Reconcile diffs LIVE state against the task's WANTED state, so
+            // it must only run once the open phase has actually finished:
+            // skip it on any error, exactly as before, and skip it the same
+            // way when a restore (e.g. a cross-folder vscode open) is still
+            // pending a reconnect continuation — the window still shows the
+            // OLD context then, and diffing that against the new task's
+            // capsule would be diffing the wrong live state entirely.
+            if errors.is_empty() && pending.is_empty() {
                 self.reconcile(task_id, &mut closed, &mut kept, &mut errors)
                     .await;
             } else {

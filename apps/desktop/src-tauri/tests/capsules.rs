@@ -2222,6 +2222,76 @@ async fn reconcile_is_skipped_when_the_restore_did_not_finish_cleanly() {
     );
 }
 
+#[tokio::test]
+async fn reconcile_is_skipped_while_a_restore_is_still_pending() {
+    // A cross-folder vscode restore defers to a reconnect continuation: no
+    // error, but the open phase has explicitly NOT finished, and the window
+    // still shows the OLD folder's context. Prove reconcile never fires
+    // because of it — even with a chrome connector sitting right there with
+    // a stray tab it would otherwise happily close.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(
+        &task_id,
+        "vscode",
+        "workspace",
+        &state("/repo/b", &["/repo/b/z.ts"]),
+    )
+    .unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        "workspace",
+        &tabs_state(&["https://keep.test/"]),
+    )
+    .unwrap();
+
+    let (vs_tx, _vs_rx) = mpsc::unbounded_channel();
+    let _vs_conn = scripted_connector(&hub, vs_tx, |name, _| match name {
+        "workspace.state" => state("/repo/a", &[]), // WRONG folder -> defers
+        _ => json!({}),
+    })
+    .await;
+    let (chrome_tx, mut chrome_rx) = mpsc::unbounded_channel();
+    let _chrome_conn = scripted_connector_kind(&hub, "chrome", chrome_tx, |name, _| match name {
+        "workspace.state" => tabs_state(&["https://keep.test/", "https://stray.test/"]),
+        _ => json!({}),
+    })
+    .await;
+    wait_for_connector_count(&hub, 2).await;
+
+    let summary = capsules.activate_task(&task_id, true).await.unwrap();
+
+    assert_eq!(
+        summary.pending,
+        vec!["vscode"],
+        "vscode must defer cross-folder"
+    );
+    assert!(
+        summary.errors.is_empty(),
+        "this scenario has no errors, only a pending restore: {summary:?}"
+    );
+    assert!(
+        summary.closed.is_empty(),
+        "nothing may close while a restore is still pending: {summary:?}"
+    );
+    assert!(
+        summary
+            .kept
+            .iter()
+            .any(|(item, reason)| item == "focus" && reason.contains("skipped")),
+        "the summary must record that focus mode was skipped: {summary:?}"
+    );
+
+    let mut names = vec![];
+    while let Ok((name, args)) = chrome_rx.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        !names.iter().any(|(n, _)| n == "tabs.close"),
+        "reconcile must never run while a restore is still pending: {names:?}"
+    );
+}
+
 #[test]
 fn close_targets_never_targets_a_dirty_file_or_a_busy_terminal() {
     use rabta_desktop_lib::capsules::close_targets;
