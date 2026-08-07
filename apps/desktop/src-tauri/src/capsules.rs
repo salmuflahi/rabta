@@ -804,6 +804,16 @@ impl Capsules {
     /// urls this activation issued `tabs.open` for are never close targets,
     /// independent of what a fresh diff would say.
     ///
+    /// That guard covers the second case, not the first. A tab that redirects
+    /// is still reachable: the capsule wants `/dashboard`, the session has
+    /// expired, the tab settles on `/login`, and `/login` matches neither
+    /// `wanted` nor the opened url — so focus mode closes a tab this
+    /// activation opened seconds earlier. Closing it correctly is not
+    /// possible while identity is the url, because the url is the only thing
+    /// tying the two observations together and it is exactly what changed.
+    /// The fix is a tab id the connector remembers for the activation; until
+    /// then this is a known hole, not a covered case.
+    ///
     /// Targets exactly the connector `restored_connectors` recorded for each
     /// kind — the same one restore itself used — never any live connector of
     /// that kind found some other way. Two windows of the same editor are two

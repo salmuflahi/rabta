@@ -2162,8 +2162,15 @@ async fn focus_off_issues_the_identical_command_sequence() {
     while let Ok((name, _)) = vs_rx.try_recv() {
         names.push(name);
     }
+    // Both nets, deliberately. The explicit list is what pins today's three
+    // commands — a suffix test alone missed `editor.closeFile` entirely. The
+    // suffix test is what catches a fourth destructive command added later by
+    // someone who does not know this list exists.
     assert!(
-        !names.iter().any(|n| DESTRUCTIVE_COMMANDS.contains(&n.as_str())),
+        !names.iter().any(|n| DESTRUCTIVE_COMMANDS.contains(&n.as_str())
+            || n.ends_with(".close")
+            || n.ends_with(".closeFile")
+            || n.ends_with(".dispose")),
         "focus off must never close or dispose anything, on any connector: {names:?}"
     );
     assert!(
