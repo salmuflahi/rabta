@@ -2411,11 +2411,19 @@ fn close_targets_never_targets_a_dirty_file_or_a_busy_terminal() {
     // though neither is in `wanted` — asking the connector would draw the
     // same refusal, and skipping the round trip means it never shows up in
     // `kept` looking like something was actually considered and refused.
-    let wanted = json!({"openFiles": [], "terminals": []});
+    // `wanted` captures one file and one terminal (not empty — an empty
+    // capture is its own case, covered by
+    // `close_targets_skips_a_field_the_capsule_captured_nothing_for` below)
+    // so this stays a test of the dirty/busy exclusion, not of that guard.
+    let wanted = json!({
+        "openFiles": ["/repo/keep.ts"],
+        "terminals": [{"name": "keep-term", "cwd": "/repo"}]
+    });
     let live = json!({
-        "openFiles": ["/repo/a.ts", "/repo/dirty.ts"],
+        "openFiles": ["/repo/keep.ts", "/repo/a.ts", "/repo/dirty.ts"],
         "dirtyFiles": ["/repo/dirty.ts"],
         "terminals": [
+            {"name": "keep-term", "cwd": "/repo", "busy": false},
             {"name": "idle", "cwd": "/repo", "busy": false},
             {"name": "busy", "cwd": "/repo", "busy": true}
         ]
@@ -2436,5 +2444,61 @@ fn close_targets_never_targets_a_dirty_file_or_a_busy_terminal() {
             ),
         ],
         "dirty file and busy terminal must never be close targets: {targets:?}"
+    );
+}
+
+#[test]
+fn close_targets_skips_a_field_the_capsule_captured_nothing_for() {
+    use rabta_desktop_lib::capsules::close_targets;
+
+    // chrome: the capsule captured zero tabs (e.g. only chrome:// pages were
+    // open at save time, all filtered by snapshotTabs) — an empty capture
+    // must read as "nothing to put away", never as "close everything live".
+    let wanted = json!({"tabs": []});
+    let live = json!({"tabs": [{"url": "https://a.test/"}, {"url": "https://b.test/"}]});
+    assert_eq!(
+        close_targets("chrome", &wanted, &live),
+        Vec::new(),
+        "an empty tabs capture must close nothing"
+    );
+
+    // Also covers a capsule row missing the field entirely, not just an
+    // explicit empty array.
+    let wanted = json!({});
+    assert_eq!(
+        close_targets("chrome", &wanted, &live),
+        Vec::new(),
+        "a missing tabs field must close nothing, same as an explicit empty array"
+    );
+
+    // vscode: captured neither files nor terminals — both must be skipped.
+    let wanted = json!({"openFiles": [], "terminals": []});
+    let live = json!({
+        "openFiles": ["/repo/a.ts"],
+        "dirtyFiles": [],
+        "terminals": [{"name": "zsh", "cwd": "/repo", "busy": false}]
+    });
+    assert_eq!(
+        close_targets("vscode", &wanted, &live),
+        Vec::new(),
+        "an empty openFiles+terminals capture must close nothing"
+    );
+
+    // vscode: captured a file but no terminals — only the terminal side is
+    // skipped; file closing still proceeds normally against the stray.
+    let wanted = json!({"openFiles": ["/repo/keep.ts"], "terminals": []});
+    let live = json!({
+        "openFiles": ["/repo/keep.ts", "/repo/stray.ts"],
+        "dirtyFiles": [],
+        "terminals": [{"name": "stray-term", "cwd": "/repo", "busy": false}]
+    });
+    assert_eq!(
+        close_targets("vscode", &wanted, &live),
+        vec![(
+            "editor.closeFile".to_string(),
+            json!({"path": "/repo/stray.ts"}),
+            "/repo/stray.ts".to_string()
+        )],
+        "an empty terminals capture must not suppress file closing"
     );
 }

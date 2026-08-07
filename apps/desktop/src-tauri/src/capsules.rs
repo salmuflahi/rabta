@@ -1257,6 +1257,16 @@ pub fn merge_pins(kind: &str, captured: &Value, pins: &[TaskPin]) -> Value {
 
 /// Everything live that the capsule does not want, as ready-to-send commands.
 /// Pure, so the diff can be tested without a hub.
+///
+/// A field the capsule captured *nothing* for (missing, or an empty array —
+/// `merge_pins` leaves it that way when there is nothing captured and no pin
+/// fills the gap) reads as "nothing to put away", never as "close
+/// everything live in this field". This mirrors `restore_chrome`'s own
+/// no-op when it has no urls to open: an empty capture means focus mode
+/// never touched this field, not that it wants a live browser or editor
+/// emptied out. Reachable with no corruption — e.g. a task saved while only
+/// `chrome://` pages were open captures `{tabs: []}`, since `snapshotTabs`
+/// filters them all.
 pub fn close_targets(kind: &str, wanted: &Value, live: &Value) -> Vec<(String, Value, String)> {
     let ids = |v: &Value, field: &str| -> std::collections::HashSet<String> {
         v.get(field)
@@ -1264,9 +1274,19 @@ pub fn close_targets(kind: &str, wanted: &Value, live: &Value) -> Vec<(String, V
             .map(|a| a.iter().filter_map(|i| identity_of(kind, i)).collect())
             .unwrap_or_default()
     };
+    let captured_nothing = |field: &str| -> bool {
+        wanted
+            .get(field)
+            .and_then(Value::as_array)
+            .map(Vec::is_empty)
+            .unwrap_or(true)
+    };
     let mut out = vec![];
     match kind {
         "chrome" => {
+            if captured_nothing("tabs") {
+                return out;
+            }
             let keep = ids(wanted, "tabs");
             for t in live.get("tabs").and_then(Value::as_array).into_iter().flatten() {
                 let Some(id) = identity_of(kind, t) else { continue };
@@ -1276,7 +1296,6 @@ pub fn close_targets(kind: &str, wanted: &Value, live: &Value) -> Vec<(String, V
             }
         }
         "vscode" => {
-            let keep_files = ids(wanted, "openFiles");
             // A file with unsaved changes is never a close candidate. The
             // connector refuses it too; not asking is simply quieter.
             let dirty: std::collections::HashSet<String> = live
@@ -1284,24 +1303,29 @@ pub fn close_targets(kind: &str, wanted: &Value, live: &Value) -> Vec<(String, V
                 .and_then(Value::as_array)
                 .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
                 .unwrap_or_default();
-            for f in live.get("openFiles").and_then(Value::as_array).into_iter().flatten() {
-                let Some(id) = identity_of(kind, f) else { continue };
-                if !keep_files.contains(&id) && !dirty.contains(&id) {
-                    out.push(("editor.closeFile".into(), json!({ "path": id }), id));
+            if !captured_nothing("openFiles") {
+                let keep_files = ids(wanted, "openFiles");
+                for f in live.get("openFiles").and_then(Value::as_array).into_iter().flatten() {
+                    let Some(id) = identity_of(kind, f) else { continue };
+                    if !keep_files.contains(&id) && !dirty.contains(&id) {
+                        out.push(("editor.closeFile".into(), json!({ "path": id }), id));
+                    }
                 }
             }
-            let keep_terms = ids(wanted, "terminals");
-            for t in live.get("terminals").and_then(Value::as_array).into_iter().flatten() {
-                let Some(id) = identity_of(kind, t) else { continue };
-                if keep_terms.contains(&id) || t.get("busy").and_then(Value::as_bool) == Some(true) {
-                    continue;
+            if !captured_nothing("terminals") {
+                let keep_terms = ids(wanted, "terminals");
+                for t in live.get("terminals").and_then(Value::as_array).into_iter().flatten() {
+                    let Some(id) = identity_of(kind, t) else { continue };
+                    if keep_terms.contains(&id) || t.get("busy").and_then(Value::as_bool) == Some(true) {
+                        continue;
+                    }
+                    let name = t.get("name").and_then(Value::as_str).unwrap_or_default();
+                    out.push((
+                        "terminal.dispose".into(),
+                        json!({ "name": name, "cwd": t.get("cwd").cloned().unwrap_or(Value::Null) }),
+                        name.to_string(),
+                    ));
                 }
-                let name = t.get("name").and_then(Value::as_str).unwrap_or_default();
-                out.push((
-                    "terminal.dispose".into(),
-                    json!({ "name": name, "cwd": t.get("cwd").cloned().unwrap_or(Value::Null) }),
-                    name.to_string(),
-                ));
             }
         }
         _ => {}
