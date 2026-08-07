@@ -5,6 +5,7 @@ import {
   isRestorableUrl,
   openedEventFor,
   snapshotTabs,
+  tabsMatchingUrlExactly,
   type CloseCandidate,
 } from "../src/tabs";
 
@@ -119,6 +120,48 @@ describe("closeVerdict", () => {
       close: false,
       reason: "incognito",
     });
+  });
+});
+
+describe("tabsMatchingUrlExactly", () => {
+  const candidate = (over: Partial<CloseCandidate> = {}): CloseCandidate => ({
+    id: 1,
+    url: "https://a.test/",
+    pinned: false,
+    incognito: false,
+    windowId: 1,
+    ...over,
+  });
+
+  it("matches a url with a fragment literally, not stripped", () => {
+    // chrome.tabs.query({url}) never matches on the fragment — a match-
+    // pattern lookup for "https://a.test/#section" would ALSO match plain
+    // "https://a.test/". An exact-identity lookup must tell them apart.
+    const withFragment = candidate({ id: 1, url: "https://a.test/#section" });
+    const withoutFragment = candidate({ id: 2, url: "https://a.test/" });
+    expect(tabsMatchingUrlExactly([withFragment, withoutFragment], "https://a.test/#section")).toEqual([
+      withFragment,
+    ]);
+  });
+
+  it("treats a literal * in the url as a literal character, never a wildcard", () => {
+    // chrome.tabs.query({url}) treats "*" as a match-pattern wildcard — a
+    // captured url that happens to contain a literal "*" would otherwise
+    // match everything under it.
+    const withStar = candidate({ id: 1, url: "https://a.test/*" });
+    const other = candidate({ id: 2, url: "https://a.test/anything" });
+    expect(tabsMatchingUrlExactly([withStar, other], "https://a.test/*")).toEqual([withStar]);
+  });
+
+  it("returns every tab open on the exact url, not just the first", () => {
+    const first = candidate({ id: 1, windowId: 1 });
+    const second = candidate({ id: 2, windowId: 2 });
+    const unrelated = candidate({ id: 3, url: "https://b.test/" });
+    expect(tabsMatchingUrlExactly([first, second, unrelated], "https://a.test/")).toEqual([first, second]);
+  });
+
+  it("returns an empty list when nothing matches", () => {
+    expect(tabsMatchingUrlExactly([candidate({ url: "https://a.test/" })], "https://b.test/")).toEqual([]);
   });
 });
 

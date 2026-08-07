@@ -1,5 +1,12 @@
 import { Connection, nativeSocket } from "./connection";
-import { closePlan, isRestorableUrl, snapshotTabs, type CloseCandidate, type RawTab } from "./tabs";
+import {
+  closePlan,
+  isRestorableUrl,
+  snapshotTabs,
+  tabsMatchingUrlExactly,
+  type CloseCandidate,
+  type RawTab,
+} from "./tabs";
 import { installTabListeners } from "./tab-events";
 
 const DEFAULT_PORT = 17872;
@@ -75,7 +82,19 @@ async function connect(port: number) {
       }
       if (name === "tabs.close") {
         const { url } = args as { url: string };
-        const matches = await chrome.tabs.query({ url });
+        // `chrome.tabs.query({ url })` treats `url` as a match PATTERN, not
+        // a literal — fetch everything and filter to an exact match here
+        // instead (see `tabsMatchingUrlExactly`), the same way `readTabs`
+        // already fetches everything for capture.
+        const allTabs = await chrome.tabs.query({});
+        const candidates: CloseCandidate[] = allTabs.map((t) => ({
+          id: t.id,
+          url: t.url ?? "",
+          pinned: t.pinned ?? false,
+          incognito: t.incognito ?? false,
+          windowId: t.windowId,
+        }));
+        const matches = tabsMatchingUrlExactly(candidates, url);
         if (matches.length === 0) return { kept: url, reason: "no longer open" };
 
         // The whole url's outcome must be known before anything closes (see
@@ -85,15 +104,8 @@ async function connect(port: number) {
         for (const windowId of new Set(matches.map((t) => t.windowId))) {
           windowTabCounts[windowId] = (await chrome.tabs.query({ windowId })).length;
         }
-        const candidates: CloseCandidate[] = matches.map((t) => ({
-          id: t.id,
-          url: t.url ?? "",
-          pinned: t.pinned ?? false,
-          incognito: t.incognito ?? false,
-          windowId: t.windowId,
-        }));
 
-        const plan = closePlan(candidates, windowTabCounts);
+        const plan = closePlan(matches, windowTabCounts);
         if ("kept" in plan) return { kept: url, reason: plan.reason };
         await chrome.tabs.remove(plan.close);
         return { closed: url };

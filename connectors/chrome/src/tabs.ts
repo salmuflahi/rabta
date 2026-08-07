@@ -72,6 +72,21 @@ export interface CloseCandidate {
   windowId: number;
 }
 
+/**
+ * Filters an already-fetched tab list down to exact url matches.
+ *
+ * `chrome.tabs.query({ url })` treats `url` as a match PATTERN, not a
+ * literal: `*` is a wildcard, and match patterns never compare fragments —
+ * a lookup for `https://a.test/#x` would also match plain `https://a.test/`,
+ * and a captured url that happens to contain a literal `*` would match far
+ * more than itself. An exact-identity lookup (e.g. `tabs.close` by url) must
+ * fetch every tab and filter here, literally — pure, no `chrome` import, so
+ * both failure modes are provable without a browser.
+ */
+export function tabsMatchingUrlExactly(tabs: CloseCandidate[], url: string): CloseCandidate[] {
+  return tabs.filter((t) => t.url === url);
+}
+
 /** The outcome for every tab open on one `tabs.close` url: either every
  * matching id may be removed, or none of them may and the url is kept for
  * one reason. */
