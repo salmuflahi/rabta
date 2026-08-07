@@ -317,6 +317,8 @@ function RestoreOverlay({
   tools,
   statuses,
   resultError,
+  closed,
+  kept,
   reducedMotion,
   detailsOpen,
   onToggleDetails,
@@ -331,6 +333,10 @@ function RestoreOverlay({
   tools: RestoreTool[];
   statuses: Record<string, { status: ToolRestoreStatus; message?: string }>;
   resultError?: string;
+  /** Items focus mode closed / left alone this run. Always arrays (never
+   * undefined) — `useRestore` defaults a scripted result that omits them. */
+  closed: string[];
+  kept: [string, string][];
   reducedMotion: boolean;
   detailsOpen: boolean;
   onToggleDetails: () => void;
@@ -433,6 +439,15 @@ function RestoreOverlay({
             )}
           </div>
 
+          {(closed.length > 0 || kept.length > 0) && (
+            <p className="text-xs text-muted-foreground">
+              {closed.length > 0 && `${closed.length} put away`}
+              {closed.length > 0 && kept.length > 0 && " · "}
+              {kept.length > 0 &&
+                `${kept.length} kept — ${[...new Set(kept.map(([, r]) => r))].join(", ")}`}
+            </p>
+          )}
+
           <RestoreProgress stage={stage} reducedMotion={reducedMotion} />
 
           <RestoreActions
@@ -493,6 +508,12 @@ export function useRestore(): { start: (opts: StartOptions) => void; node: React
   const [toolsMeta, setToolsMeta] = useState<RestoreTool[]>([]);
   const [toolStatuses, setToolStatuses] = useState<ToolStatusMap>({});
   const [resultError, setResultError] = useState<string | undefined>(undefined);
+  // Items focus mode closed / left alone this run — carried alongside
+  // `resultError` from the resolved `RestoreResult`, same reset-per-run
+  // lifecycle. Default empty so a scripted result that omits them (the dev
+  // playground) renders no receipt line at all, not a crash.
+  const [closed, setClosed] = useState<string[]>([]);
+  const [kept, setKept] = useState<[string, string][]>([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
 
@@ -599,6 +620,8 @@ export function useRestore(): { start: (opts: StartOptions) => void; node: React
           });
         }
         setResultError(result.error);
+        setClosed(result.closed ?? []);
+        setKept(result.kept ?? []);
         runningRef.current = false;
         setStage(result.overall);
 
@@ -630,6 +653,8 @@ export function useRestore(): { start: (opts: StartOptions) => void; node: React
       setToolsMeta(opts.tools);
       setToolStatuses(Object.fromEntries(opts.tools.map((t) => [t.id, { status: "waiting" as ToolRestoreStatus }])));
       setResultError(undefined);
+      setClosed([]);
+      setKept([]);
       setDetailsOpen(false);
       setStage("opening");
 
@@ -692,6 +717,8 @@ export function useRestore(): { start: (opts: StartOptions) => void; node: React
         tools={toolsMeta}
         statuses={toolStatuses}
         resultError={resultError}
+        closed={closed}
+        kept={kept}
         reducedMotion={reducedMotion}
         detailsOpen={detailsOpen}
         onToggleDetails={() => setDetailsOpen((d) => !d)}

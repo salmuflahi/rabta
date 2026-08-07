@@ -74,6 +74,9 @@ export interface Prefs {
   resumeOnLaunch: boolean;
   /** Keep completed (done) capsules visible in the list. */
   keepCompleted: boolean;
+  /** On resume, also put away what does not belong to the task. Off by
+   *  default: every Resume today is non-destructive. */
+  focusMode: boolean;
   /** Reveal the raw connector-command console (Settings → Advanced). */
   developerMode: boolean;
 }
@@ -86,6 +89,7 @@ const DEFAULT_PREFS: Prefs = {
   landingPage: "capsules",
   resumeOnLaunch: false,
   keepCompleted: true,
+  focusMode: false,
   developerMode: false,
 };
 

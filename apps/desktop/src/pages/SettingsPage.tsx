@@ -157,6 +157,7 @@ function BehaviorCard() {
   const landingPage = useStore((s) => s.prefs.landingPage);
   const resumeOnLaunch = useStore((s) => s.prefs.resumeOnLaunch);
   const keepCompleted = useStore((s) => s.prefs.keepCompleted);
+  const focusMode = useStore((s) => s.prefs.focusMode);
   const setPref = useStore((s) => s.setPref);
 
   return (
@@ -189,6 +190,16 @@ function BehaviorCard() {
               checked={resumeOnLaunch}
               onCheckedChange={(v) => setPref("resumeOnLaunch", v)}
               aria-label="Resume last capsule on launch"
+            />
+          </SettingRow>
+          <SettingRow
+            title="Put away what isn't in the task"
+            description="On resume, close the tabs, files and terminals that don't belong to the task you're resuming. Never closes unsaved files, pinned tabs, or terminals that are running something."
+          >
+            <Switch
+              checked={focusMode}
+              onCheckedChange={(v) => setPref("focusMode", v)}
+              aria-label="Put away what isn't in the task"
             />
           </SettingRow>
           <SettingRow

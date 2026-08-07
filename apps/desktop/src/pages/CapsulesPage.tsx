@@ -224,6 +224,9 @@ export function CapsulesPage() {
   // Settings → Behavior. When off, finished (done) capsules drop out of the
   // list instead of lingering; the active one always stays regardless.
   const keepCompleted = useStore((s) => s.prefs.keepCompleted);
+  // Settings → Behavior. Threaded straight into every activate_task call
+  // below — off by default, since every Resume today is non-destructive.
+  const focusMode = useStore((s) => s.prefs.focusMode);
   const activationNonce = useStore((s) => s.activationNonce);
   const bumpActivation = useStore((s) => s.bumpActivation);
   const setView = useStore((s) => s.setView);
@@ -373,7 +376,7 @@ export function CapsulesPage() {
       subtitle: t.title,
       tools,
       run: async () => {
-        const summary = await invoke<ActivateSummary>("activate_task", { taskId: t.id });
+        const summary = await invoke<ActivateSummary>("activate_task", { taskId: t.id, focusMode });
         setActiveTaskId(t.id);
         // Activation may have auto-saved the previously-active task, which
         // can live in a different project — bump the global nonce so this

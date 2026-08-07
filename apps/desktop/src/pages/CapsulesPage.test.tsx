@@ -231,7 +231,7 @@ describe("CapsulesPage", () => {
       fireEvent.click(resumeButton);
 
       await waitFor(() =>
-        expect(mockInvoke).toHaveBeenCalledWith("activate_task", { taskId: FAKE_TASK.id })
+        expect(mockInvoke).toHaveBeenCalledWith("activate_task", { taskId: FAKE_TASK.id, focusMode: false })
       );
       await waitFor(() => expect(screen.getByText("Workspace restored")).toBeInTheDocument());
 
@@ -240,6 +240,78 @@ describe("CapsulesPage", () => {
       expect(await screen.findByText("Active")).toBeInTheDocument();
     } finally {
       restoreMatchMedia();
+    }
+  });
+
+  it("passes focusMode to activate_task", async () => {
+    // Off by default: every Resume today is non-destructive, and that is not
+    // a promise to withdraw quietly.
+    const restoreMatchMedia = stubReducedMotion();
+    mockCapsulesInvoke({
+      activateTask: async () => ({
+        applied: ["git"],
+        pending: [],
+        skipped: [],
+        savedPrevious: null,
+        errors: [],
+        closed: [],
+        kept: [],
+      }),
+    });
+
+    try {
+      renderWithProviders(<CapsulesPage />);
+
+      const resumeButton = await screen.findByRole("button", { name: "Resume" });
+      fireEvent.click(resumeButton);
+
+      await waitFor(() =>
+        expect(mockInvoke).toHaveBeenCalledWith("activate_task", {
+          taskId: FAKE_TASK.id,
+          focusMode: false,
+        })
+      );
+    } finally {
+      restoreMatchMedia();
+    }
+  });
+
+  it("passes focusMode: true to activate_task when the pref is on", async () => {
+    // The previous test alone can't rule out a hard-coded `false` — this
+    // proves the call site actually reads the pref.
+    const restoreMatchMedia = stubReducedMotion();
+    mockCapsulesInvoke({
+      activateTask: async () => ({
+        applied: ["git"],
+        pending: [],
+        skipped: [],
+        savedPrevious: null,
+        errors: [],
+        closed: [],
+        kept: [],
+      }),
+    });
+    act(() => {
+      useStore.getState().setPref("focusMode", true);
+    });
+
+    try {
+      renderWithProviders(<CapsulesPage />);
+
+      const resumeButton = await screen.findByRole("button", { name: "Resume" });
+      fireEvent.click(resumeButton);
+
+      await waitFor(() =>
+        expect(mockInvoke).toHaveBeenCalledWith("activate_task", {
+          taskId: FAKE_TASK.id,
+          focusMode: true,
+        })
+      );
+    } finally {
+      restoreMatchMedia();
+      act(() => {
+        useStore.getState().setPref("focusMode", false);
+      });
     }
   });
 
@@ -384,7 +456,7 @@ describe("CapsulesPage", () => {
       renderWithProviders(<CapsulesPage />);
 
       await waitFor(() =>
-        expect(mockInvoke).toHaveBeenCalledWith("activate_task", { taskId: FAKE_TASK.id })
+        expect(mockInvoke).toHaveBeenCalledWith("activate_task", { taskId: FAKE_TASK.id, focusMode: false })
       );
       const activateCalls = mockInvoke.mock.calls.filter(([cmd]) => cmd === "activate_task");
       expect(activateCalls).toHaveLength(1);
@@ -738,7 +810,7 @@ describe("CapsulesPage context menu", () => {
       fireEvent.click(resumeItem);
 
       await waitFor(() =>
-        expect(mockInvoke).toHaveBeenCalledWith("activate_task", { taskId: FAKE_TASK.id })
+        expect(mockInvoke).toHaveBeenCalledWith("activate_task", { taskId: FAKE_TASK.id, focusMode: false })
       );
       await waitFor(() => expect(screen.getByText("Workspace restored")).toBeInTheDocument());
     } finally {

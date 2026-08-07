@@ -15,6 +15,8 @@ function summary(overrides: Partial<ActivateSummary>): ActivateSummary {
     skipped: [],
     savedPrevious: null,
     errors: [],
+    closed: [],
+    kept: [],
     ...overrides,
   };
 }
@@ -105,5 +107,24 @@ describe("activateSummaryToResult", () => {
   it("a tool whose kind isn't mentioned anywhere is treated as skipped, never fabricated as applied", () => {
     const result = activateSummaryToResult(summary({ applied: ["vscode"] }), TOOLS);
     expect(result.tools.find((t) => t.id === "chrome-1")).toEqual({ id: "chrome-1", status: "skipped" });
+  });
+
+  it("closed and kept carry straight through onto the result, untouched", () => {
+    const result = activateSummaryToResult(
+      summary({
+        applied: ["vscode"],
+        closed: ["https://stray.test/"],
+        kept: [["zsh", "still running something"]],
+      }),
+      TOOLS
+    );
+    expect(result.closed).toEqual(["https://stray.test/"]);
+    expect(result.kept).toEqual([["zsh", "still running something"]]);
+  });
+
+  it("empty closed/kept produce an empty (not missing) result", () => {
+    const result = activateSummaryToResult(summary({ applied: ["vscode"] }), TOOLS);
+    expect(result.closed).toEqual([]);
+    expect(result.kept).toEqual([]);
   });
 });

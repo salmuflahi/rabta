@@ -15,6 +15,10 @@ export interface ActivateSummary {
   skipped: string[];
   savedPrevious: string | null;
   errors: string[];
+  /** Items focus mode closed. Empty when focus mode is off. */
+  closed: string[];
+  /** Items focus mode left alone, as [item, reason]. A refusal, not a failure. */
+  kept: [string, string][];
 }
 
 /** True when `error` clearly starts with `<kind>:` (case-insensitive) —
@@ -46,6 +50,9 @@ function attributedTool(error: string, tools: RestoreTool[]): RestoreTool | unde
  *   when there's no hard failure but a mix (some applied plus some
  *   skipped/pending/failed, or unattributed errors alongside applied
  *   tools).
+ * - `closed` and `kept` carry straight through onto the `RestoreResult`,
+ *   untouched. They describe individual items (tabs, files, terminals), not
+ *   tools, so — unlike everything above — they never map into `toolResults`.
  */
 export function activateSummaryToResult(summary: ActivateSummary, tools: RestoreTool[]): RestoreResult {
   const appliedSet = new Set(summary.applied.map((k) => k.toLowerCase()));
@@ -103,5 +110,7 @@ export function activateSummaryToResult(summary: ActivateSummary, tools: Restore
     overall,
     tools: toolResults,
     error: unattributedErrors.length > 0 ? unattributedErrors.join("; ") : undefined,
+    closed: summary.closed,
+    kept: summary.kept,
   };
 }

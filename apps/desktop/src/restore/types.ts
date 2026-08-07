@@ -49,4 +49,11 @@ export interface RestoreResult {
    * `errors` couldn't be attributed to a specific tool. A collapsible
    * "Technical details" section may show this verbatim. */
   error?: string;
+  /** Items focus mode closed. Optional (like `error`) so a hand-built result
+   * — e.g. the dev playground's scripted scenarios — need not set it;
+   * absence reads the same as empty. */
+  closed?: string[];
+  /** Items focus mode left alone, as [item, reason]. A refusal, not a
+   * failure. Optional for the same reason as `closed`. */
+  kept?: [string, string][];
 }
