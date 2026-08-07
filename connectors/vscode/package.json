@@ -6,6 +6,15 @@
   "version": "0.2.0",
   "publisher": "rabta-connect",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/salmuflahi/rabta.git",
+    "directory": "connectors/vscode"
+  },
+  "homepage": "https://rabta.build/",
+  "bugs": {
+    "url": "https://github.com/salmuflahi/rabta/issues"
+  },
   "engines": { "vscode": "^1.93.0" },
   "main": "./dist/extension.js",
   "activationEvents": ["onStartupFinished"],
