@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fileClosePlan, terminalCloseVerdict } from "../src/state";
+import { fileClosePlan, terminalClosePlan, terminalCloseVerdict } from "../src/state";
 
 describe("terminalCloseVerdict", () => {
   it("closes an idle terminal", () => {
@@ -47,6 +47,43 @@ describe("fileClosePlan", () => {
     expect(fileClosePlan([{ isDirty: true }, { isDirty: true }])).toEqual({
       close: false,
       reason: "unsaved changes",
+    });
+  });
+});
+
+describe("terminalClosePlan", () => {
+  it("keeps an identity with no matching terminals", () => {
+    expect(terminalClosePlan([])).toEqual({ close: false, reason: "no longer open" });
+  });
+
+  it("disposes a single idle terminal", () => {
+    expect(terminalClosePlan([{ busy: false }])).toEqual({ close: true });
+  });
+
+  it("disposes every terminal when several share one name+cwd identity and all are idle", () => {
+    // Two shells named "zsh" in the same folder are the same identity per
+    // phase 1's rule, so both must go together.
+    expect(terminalClosePlan([{ busy: false }, { busy: false }, { busy: false }])).toEqual({
+      close: true,
+    });
+  });
+
+  it("disposes nothing when one of several matches is busy", () => {
+    // The motivating bug: disposing the idle one while a busy duplicate
+    // keeps running, then reporting the identity closed, would silently
+    // kill unrelated shells while claiming success on the one running
+    // something — the same false-report shape fileClosePlan already guards
+    // against for a dirty split-view copy.
+    expect(terminalClosePlan([{ busy: false }, { busy: true }])).toEqual({
+      close: false,
+      reason: "running something",
+    });
+  });
+
+  it("keeps an identity where every match is busy", () => {
+    expect(terminalClosePlan([{ busy: true }, { busy: true }])).toEqual({
+      close: false,
+      reason: "running something",
     });
   });
 });

@@ -4,7 +4,7 @@ import {
   fileClosePlan,
   filePathOf,
   snapshotWorkspace,
-  terminalCloseVerdict,
+  terminalClosePlan,
   type TerminalInfo,
   type UriLike,
 } from "./state";
@@ -114,10 +114,19 @@ export function activate(context: vscode.ExtensionContext): void {
         // split view). Every match must be gathered and judged together
         // before any of them close — see fileClosePlan. A dirty buffer holds
         // work no capsule captured; never close it, and never prompt either
-        // — a resume is not the moment to ask.
+        // — a resume is not the moment to ask. Filtered to `scheme ===
+        // "file"`, the same filter `snapshot()` uses: a `git:` tab (e.g.
+        // VS Code's read-only "Open File (HEAD)" view) can share the same
+        // fsPath but was never captured or targeted, and must never be swept
+        // in just because its path matches.
         const tabs = vscode.window.tabGroups.all
           .flatMap((g) => g.tabs)
-          .filter((t) => t.input instanceof vscode.TabInputText && t.input.uri.fsPath === path);
+          .filter(
+            (t) =>
+              t.input instanceof vscode.TabInputText &&
+              t.input.uri.scheme === "file" &&
+              t.input.uri.fsPath === path,
+          );
         const verdict = fileClosePlan(tabs.map((t) => ({ isDirty: t.isDirty })));
         if (!verdict.close) return { kept: path, reason: verdict.reason };
         const allClosed = await vscode.window.tabGroups.close(tabs, false);
@@ -126,13 +135,19 @@ export function activate(context: vscode.ExtensionContext): void {
       });
       c.onCommand("terminal.dispose", (args) => {
         const { name, cwd } = args as { name: string; cwd?: string | null };
-        const terminal = vscode.window.terminals.find(
+        // Every terminal sharing this name+cwd identity must be gathered
+        // from one snapshot and judged together — see terminalClosePlan.
+        // `.find()` (first-match) judges one alone, so N terminals sharing
+        // an identity produced N identical dispose commands; worse,
+        // `Terminal.dispose()` removes from `window.terminals`
+        // asynchronously, so re-querying between dispose calls could
+        // re-find and re-dispose the same terminal.
+        const terminals = vscode.window.terminals.filter(
           (t) => t.name === name && (cwdOf(t) ?? "") === (cwd ?? ""),
         );
-        if (!terminal) return { kept: name, reason: "no longer open" };
-        const verdict = terminalCloseVerdict({ busy: busyTerminals.has(terminal) });
+        const verdict = terminalClosePlan(terminals.map((t) => ({ busy: busyTerminals.has(t) })));
         if (!verdict.close) return { kept: name, reason: verdict.reason };
-        terminal.dispose();
+        for (const terminal of terminals) terminal.dispose();
         return { closed: name };
       });
     }

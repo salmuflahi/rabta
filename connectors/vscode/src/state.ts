@@ -67,6 +67,34 @@ export function terminalCloseVerdict(t: { busy: boolean }): { close: boolean; re
 }
 
 /**
+ * Whether focus mode may dispose every terminal sharing one name+cwd
+ * identity. Pure — no `vscode` import — so the guard is testable without an
+ * editor. Mirrors `fileClosePlan`'s shape.
+ *
+ * Two terminals can share a name+cwd identity (two "zsh" shells in the same
+ * folder are the same identity per phase 1's rule). Judging and disposing
+ * matches one at a time — first-match instead of gather-all — is how a busy
+ * shell in the second slot turns into "disposed the idle one, left the busy
+ * one running, told the desktop the identity is closed": a false report.
+ * Worse, `Terminal.dispose()` removes from `window.terminals`
+ * asynchronously, so re-querying between dispose calls can re-find and
+ * re-dispose the SAME terminal object, reporting "closed" twice while an
+ * actual duplicate survives untouched. So every match must be gathered
+ * first, from one snapshot, and judged together: if any one of them is
+ * busy, NONE dispose, and the whole identity is reported kept.
+ */
+export function terminalClosePlan(
+  terminals: { busy: boolean }[]
+): { close: true } | { close: false; reason: string } {
+  if (terminals.length === 0) return { close: false, reason: "no longer open" };
+  for (const t of terminals) {
+    const verdict = terminalCloseVerdict(t);
+    if (!verdict.close) return { close: false, reason: verdict.reason ?? "running something" };
+  }
+  return { close: true };
+}
+
+/**
  * Whether focus mode may close every tab open on a path. Pure — no `vscode`
  * import — so the guard is testable without an editor.
  *
