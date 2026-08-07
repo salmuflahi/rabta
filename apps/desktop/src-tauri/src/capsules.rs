@@ -14,6 +14,41 @@ use serde_json::{json, Value};
 const CAPTURABLE: &[&str] = &["vscode", "fake", "chrome"];
 const MAX_SESSION_GAP: Duration = Duration::from_secs(30);
 
+/// The lowest connector product version with focus mode's close/dispose
+/// handlers. Both stores can keep serving older builds for a while after a
+/// desktop release, so the common day-one state is a new desktop talking to
+/// an old connector with no handler for `tabs.close`, `editor.closeFile`, or
+/// `terminal.dispose` at all — every one of those would otherwise throw "no
+/// handler for ...", turning a clean restore into a wall of per-item errors.
+const MIN_RECONCILE_VERSION: (u32, u32, u32) = (0, 2, 0);
+
+/// Whether a connector's self-reported product `version` is new enough to
+/// have focus mode's close/dispose handlers. Absent or unparseable versions
+/// (older connectors that never sent one, or a malformed string) are treated
+/// as too old — the safe default when the answer is unknown is to skip
+/// reconcile for that connector, never to guess that it can handle a
+/// destructive command.
+fn version_supports_reconcile(version: Option<&str>) -> bool {
+    let Some(version) = version else {
+        return false;
+    };
+    // Compare only the release core (major.minor.patch); a pre-release or
+    // build-metadata suffix (`-beta`, `+build`) never lowers what the
+    // version itself already promises.
+    let core = version
+        .split(['-', '+'])
+        .next()
+        .unwrap_or(version);
+    let mut parts = core.split('.');
+    let component = |p: Option<&str>| p.and_then(|p| p.parse::<u32>().ok()).unwrap_or(0);
+    let actual = (
+        component(parts.next()),
+        component(parts.next()),
+        component(parts.next()),
+    );
+    actual >= MIN_RECONCILE_VERSION
+}
+
 /// Time source for session persistence. Monotonic time measures elapsed work;
 /// UTC time is used only for durable project metadata.
 pub trait SessionClock: Send + Sync {
@@ -652,6 +687,16 @@ impl Capsules {
         }
 
         let connectors = self.hub.connectors().await;
+        // The exact connector each kind's restore actually used, so reconcile
+        // can target that SAME connector rather than re-deriving its own pick
+        // — see `reconcile`'s doc comment for why re-deriving is unsafe.
+        let mut restored_connectors: std::collections::HashMap<String, ConnectorInfo> =
+            std::collections::HashMap::new();
+        // Every url this activation's restore issued `tabs.open` for, so
+        // reconcile can exclude them from close targets outright — see
+        // `reconcile`'s doc comment for why a fresh live-vs-wanted diff alone
+        // is not enough.
+        let mut chrome_opened_urls: Vec<String> = vec![];
         for r in resources.iter().filter(|r| r.resource_type == "workspace") {
             let Some(conn) = connectors
                 .iter()
@@ -662,6 +707,7 @@ impl Capsules {
             };
             match r.connector_kind.as_str() {
                 "vscode" => {
+                    restored_connectors.insert("vscode".to_string(), conn.clone());
                     let payload = merge_pins(&r.connector_kind, &r.payload, &pins);
                     match self
                         .restore_vscode(conn, &payload, generation, &mut errors)
@@ -690,8 +736,12 @@ impl Capsules {
                     }
                 }
                 "chrome" => {
+                    restored_connectors.insert("chrome".to_string(), conn.clone());
                     let payload = merge_pins(&r.connector_kind, &r.payload, &pins);
-                    if self.restore_chrome(conn, &payload, &mut errors).await {
+                    if self
+                        .restore_chrome(conn, &payload, &mut chrome_opened_urls, &mut errors)
+                        .await
+                    {
                         applied.push("chrome".to_string());
                     } else {
                         skipped.push("chrome".to_string());
@@ -712,8 +762,15 @@ impl Capsules {
             // OLD context then, and diffing that against the new task's
             // capsule would be diffing the wrong live state entirely.
             if errors.is_empty() && pending.is_empty() {
-                self.reconcile(task_id, &mut closed, &mut kept, &mut errors)
-                    .await;
+                self.reconcile(
+                    task_id,
+                    &restored_connectors,
+                    &chrome_opened_urls,
+                    &mut closed,
+                    &mut kept,
+                    &mut errors,
+                )
+                .await;
             } else {
                 kept.push((
                     "focus".to_string(),
@@ -735,18 +792,42 @@ impl Capsules {
 
     /// Closes what the incoming capsule does not contain, one item at a time.
     ///
-    /// Runs only after a clean open phase, for two reasons: the destructive
-    /// half must never run on a restore that is already going wrong, and
-    /// diffing *after* the opens means everything the restore just placed is
-    /// by definition in the capsule, so this can never close its own work.
+    /// Runs only after a clean open phase: the destructive half must never
+    /// run on a restore that is already going wrong. Diffing *after* the
+    /// opens means everything the restore just placed is, in the common
+    /// case, already in the capsule it was read from — but that is not a
+    /// guarantee for chrome: a tab can settle on a different url than the
+    /// one it was opened with (a redirect, or client-side navigation), and a
+    /// freshly re-read capsule can legitimately differ from the one restore
+    /// used if something else touched it mid-activation. So chrome closes
+    /// are additionally guarded by `chrome_opened_urls` below — the literal
+    /// urls this activation issued `tabs.open` for are never close targets,
+    /// independent of what a fresh diff would say.
+    ///
+    /// Targets exactly the connector `restored_connectors` recorded for each
+    /// kind — the same one restore itself used — never any live connector of
+    /// that kind found some other way. Two windows of the same editor are two
+    /// connectors of the same kind; fanning out to "every connector of this
+    /// kind" would diff a completely unrelated window's live state against
+    /// this capsule and close whatever it has open that isn't in it. If a
+    /// kind has no entry (restore could not identify a connector for it),
+    /// that kind is skipped and recorded in `kept` — never guessed at from
+    /// the live connector list.
     ///
     /// The desktop decides only what is not in the capsule. Whether an item
     /// is safe to close is the connector's call — it holds the facts
     /// (pinned, incognito, dirty, busy, last in window) and answers in the
     /// same call that closes, leaving no gap. A refusal comes back as `kept`.
+    ///
+    /// Before sending anything destructive, each connector's self-reported
+    /// `version` is checked against `MIN_RECONCILE_VERSION` — an old
+    /// connector with no close/dispose handlers gets one clear `kept` entry
+    /// instead of a "no handler for ..." error per stray item.
     async fn reconcile(
         &self,
         task_id: &str,
+        restored_connectors: &std::collections::HashMap<String, ConnectorInfo>,
+        chrome_opened_urls: &[String],
         closed: &mut Vec<String>,
         kept: &mut Vec<(String, String)>,
         errors: &mut Vec<String>,
@@ -780,14 +861,21 @@ impl Capsules {
                 .unwrap_or_default()
         };
 
-        for conn in self.hub.connectors().await {
-            let kind = kind_str(conn.kind);
-            if kind != "chrome" && kind != "vscode" {
-                continue;
-            }
+        for kind in ["chrome", "vscode"] {
             let Some(resource) = resources.iter().find(|r| r.connector_kind == kind) else {
                 continue;
             };
+            let Some(conn) = restored_connectors.get(kind) else {
+                kept.push((kind.to_string(), "no connector to reconcile against".to_string()));
+                continue;
+            };
+            if !version_supports_reconcile(conn.version.as_deref()) {
+                kept.push((
+                    kind.to_string(),
+                    "connector needs updating to support focus mode".to_string(),
+                ));
+                continue;
+            }
             let wanted = merge_pins(kind, &resource.payload, &pins);
             let live = match self
                 .hub
@@ -796,12 +884,18 @@ impl Capsules {
             {
                 Ok(v) => v,
                 Err(e) => {
-                    errors.push(format!("{kind}: reconcile state: {e}"));
+                    errors.push(format!("reconcile: could not check {kind}'s current state: {e}"));
                     continue;
                 }
             };
 
             for (command, args, label) in close_targets(kind, &wanted, &live) {
+                // Never close a url this activation itself just opened,
+                // regardless of what a freshly re-read capsule now says —
+                // see the doc comment above.
+                if kind == "chrome" && chrome_opened_urls.iter().any(|u| u == &label) {
+                    continue;
+                }
                 match self.hub.send_command(&conn.id, &command, args).await {
                     Ok(v) => {
                         if let Some(reason) = v.get("reason").and_then(Value::as_str) {
@@ -985,6 +1079,7 @@ impl Capsules {
         &self,
         conn: &ConnectorInfo,
         payload: &Value,
+        opened_urls: &mut Vec<String>,
         errors: &mut Vec<String>,
     ) -> bool {
         let urls: Vec<String> = payload["tabs"]
@@ -1005,7 +1100,10 @@ impl Capsules {
                 .send_command(&conn.id, "tabs.open", json!({ "url": url }))
                 .await
             {
-                Ok(_) => any_succeeded = true,
+                Ok(_) => {
+                    any_succeeded = true;
+                    opened_urls.push(url);
+                }
                 Err(e) => errors.push(format!("tabs.open {url}: {e}")),
             }
         }

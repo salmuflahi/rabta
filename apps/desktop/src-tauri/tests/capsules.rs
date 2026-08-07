@@ -76,7 +76,7 @@ async fn scripted_connector_kind(
         .await
         .unwrap();
     ws.send(
-        json!({"v":1,"id":"h","kind":"hello","payload":{"name":kind,"kind":kind,"protocolVersion":1,"capabilities":["workspace","editor","terminal"],"secret":hub.secret()}})
+        json!({"v":1,"id":"h","kind":"hello","payload":{"name":kind,"kind":kind,"protocolVersion":1,"capabilities":["workspace","editor","terminal"],"version":"0.2.0","secret":hub.secret()}})
             .to_string()
             .into(),
     )
@@ -2256,6 +2256,204 @@ async fn focus_mode_never_closes_a_pinned_item_the_restore_just_opened() {
     );
     assert!(summary.closed.is_empty(), "got {summary:?}");
     assert!(summary.kept.is_empty(), "got {summary:?}");
+}
+
+#[tokio::test]
+async fn reconcile_targets_only_the_connector_restore_used_not_every_connector_of_the_kind() {
+    // Two vscode connectors live at once — the extension activates per
+    // window, so two open windows are two connectors of the same kind.
+    // Restore picks exactly one of them (whichever `.find()` returns first;
+    // HashMap iteration order is not something this test may assume) to
+    // open the capsule into. If reconcile ever fanned out to every connector
+    // of the kind instead of reusing that exact pick, it would diff the
+    // OTHER, completely unrelated window's live state against this capsule
+    // too and close whatever that window happens to have open that isn't in
+    // it — an unrelated window's layout destroyed, nondeterministically.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(
+        &task_id,
+        "vscode",
+        "workspace",
+        &state("/repo/a", &["/repo/a/x.ts"]),
+    )
+    .unwrap();
+
+    let (tx_a, mut rx_a) = mpsc::unbounded_channel();
+    let _conn_a = scripted_connector(&hub, tx_a, |name, _| match name {
+        "workspace.state" => state("/repo/a", &["/repo/a/x.ts", "/repo/a/stray-a.ts"]),
+        _ => json!({}),
+    })
+    .await;
+    let (tx_b, mut rx_b) = mpsc::unbounded_channel();
+    let _conn_b = scripted_connector(&hub, tx_b, |name, _| match name {
+        // A totally unrelated window sharing nothing with the capsule but
+        // the folder: if reconcile ever reaches this connector, its own
+        // stray reads as one too.
+        "workspace.state" => state("/repo/a", &["/repo/a/x.ts", "/repo/a/stray-b.ts"]),
+        _ => json!({}),
+    })
+    .await;
+    wait_for_connector_count(&hub, 2).await;
+
+    let summary = capsules.activate_task(&task_id, true).await.unwrap();
+    assert!(summary.errors.is_empty(), "got {summary:?}");
+
+    let mut names_a = vec![];
+    while let Ok((name, args)) = rx_a.try_recv() {
+        names_a.push((name, args));
+    }
+    let mut names_b = vec![];
+    while let Ok((name, args)) = rx_b.try_recv() {
+        names_b.push((name, args));
+    }
+    let a_closed = names_a
+        .iter()
+        .any(|(n, a)| n == "editor.closeFile" && a["path"] == "/repo/a/stray-a.ts");
+    let b_closed = names_b
+        .iter()
+        .any(|(n, a)| n == "editor.closeFile" && a["path"] == "/repo/a/stray-b.ts");
+    assert!(
+        a_closed ^ b_closed,
+        "exactly one window's stray must close — whichever restore actually used — \
+         never both and never neither: a_closed={a_closed} b_closed={b_closed} \
+         names_a={names_a:?} names_b={names_b:?}"
+    );
+    assert_eq!(summary.closed.len(), 1, "got {summary:?}");
+}
+
+#[tokio::test]
+async fn reconcile_never_closes_a_url_this_activation_itself_just_opened() {
+    // Reconcile re-reads the capsule and pins fresh from the db rather than
+    // reusing what restore already computed. Under ordinary operation those
+    // two reads agree — but nothing enforces that they must, and this proves
+    // the guarantee holds even when they do not: the chrome connector's
+    // `tabs.open` handler here mutates the very capsule row reconcile will
+    // re-read, simulating something else touching it mid-activation (a
+    // concurrent save, a redirect settling on a different url — anything
+    // that could make a freshly re-read "wanted" disagree with what was
+    // actually just opened). The url restore opened must stay protected
+    // regardless.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        "workspace",
+        &tabs_state(&["https://a.test/"]),
+    )
+    .unwrap();
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let db_for_open = db.clone();
+    let task_for_open = task_id.clone();
+    let _conn = scripted_connector_kind(&hub, "chrome", tx, move |name, _| match name {
+        "workspace.state" => tabs_state(&["https://a.test/"]),
+        "tabs.open" => {
+            // Simulate the capsule changing out from under this activation
+            // between the open phase and reconcile's fresh re-read. Mutated
+            // to a DIFFERENT non-empty capture (not emptied outright) so
+            // this exercises the opened-urls exclusion specifically, not
+            // the separate "nothing captured" guard (which has its own
+            // dedicated test and would otherwise mask this one).
+            db_for_open
+                .replace_task_resources(
+                    &task_for_open,
+                    "chrome",
+                    "workspace",
+                    &tabs_state(&["https://unrelated.test/"]),
+                )
+                .unwrap();
+            json!({ "opened": "https://a.test/" })
+        }
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let summary = capsules.activate_task(&task_id, true).await.unwrap();
+
+    let mut names = vec![];
+    while let Ok((name, args)) = rx.try_recv() {
+        names.push((name, args));
+    }
+    assert!(
+        !names.iter().any(|(n, _)| n == "tabs.close"),
+        "a url this activation just opened must never be closed, even if a fresh \
+         capsule read no longer wants it: {names:?}"
+    );
+    assert!(summary.closed.is_empty(), "got {summary:?}");
+}
+
+#[tokio::test]
+async fn reconcile_skips_a_connector_too_old_to_have_close_handlers() {
+    // Both stores can keep serving an older connector build for a while
+    // after a desktop release, so the common day-one state is a new desktop
+    // talking to an OLD connector with no `tabs.close` handler at all. Every
+    // destructive command would otherwise throw "no handler for ...",
+    // turning a clean restore into a wall of per-item errors — the gate must
+    // catch this before sending anything destructive and record ONE clear
+    // `kept` entry instead.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        "workspace",
+        &tabs_state(&["https://keep.test/"]),
+    )
+    .unwrap();
+
+    // A hand-rolled hello (not the shared `scripted_connector_kind` helper,
+    // which reports today's version) reporting an explicit old version.
+    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://127.0.0.1:{}", hub.port()))
+        .await
+        .unwrap();
+    ws.send(
+        json!({"v":1,"id":"h","kind":"hello","payload":{
+            "name":"chrome","kind":"chrome","protocolVersion":1,
+            "capabilities":["tabs"],"version":"0.1.4","secret":hub.secret()
+        }})
+        .to_string()
+        .into(),
+    )
+    .await
+    .unwrap();
+    tokio::time::timeout(TEST_WAIT, ws.next())
+        .await
+        .expect("connector welcome timed out")
+        .expect("connector closed before welcome")
+        .expect("connector welcome failed");
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    tokio::spawn(async move {
+        pump(ws, tx, |name, _| match name {
+            "workspace.state" => tabs_state(&["https://keep.test/", "https://stray.test/"]),
+            // An old connector would not even have a tabs.close handler.
+            _ => json!({}),
+        })
+        .await
+    });
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let summary = capsules.activate_task(&task_id, true).await.unwrap();
+
+    let mut names = vec![];
+    while let Ok((name, _)) = rx.try_recv() {
+        names.push(name);
+    }
+    assert!(
+        !names.iter().any(|n| n == "tabs.close"),
+        "must never send a destructive command to a connector too old to handle it: {names:?}"
+    );
+    assert!(
+        summary.errors.is_empty(),
+        "an old connector is a kept refusal, not a wall of errors: {summary:?}"
+    );
+    assert_eq!(
+        summary.kept,
+        vec![(
+            "chrome".to_string(),
+            "connector needs updating to support focus mode".to_string()
+        )],
+        "got {summary:?}"
+    );
 }
 
 #[tokio::test]
