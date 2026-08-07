@@ -47,6 +47,8 @@ You work in tasks, not apps. Editors, browsers, terminals, and git connect once 
 
 Items in a capsule can be **pinned**. A pinned item opens every time you resume the task, even if it was closed when you last saved — that is the difference between "always here" and "here until I close it once". Everything else in a capsule is simply what was open, and comes back as it was.
 
+Resuming is additive by default: nothing ever closes. **Focus mode** (Settings — off by default) makes resuming also put away what doesn't belong to the task: browser tabs and editor files/terminals the capsule didn't capture, closed one at a time through the connector that owns them, and only once the restore itself has finished cleanly. It never closes an unsaved file, a terminal running something, or anything pinned — those are reported back as *kept*, with the reason, rather than being silently skipped or forced closed. It only ever acts on tabs, files, and terminals inside the connectors Rabta manages — it does not hide other applications' windows or touch anything Rabta didn't open.
+
 ## Privacy & security posture
 
 This is load-bearing, not a footnote — the whole value proposition depends on trust. Rabta stores **only the metadata needed to restore a task**:

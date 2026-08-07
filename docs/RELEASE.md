@@ -8,11 +8,18 @@ hosted**; the editor extension is **published to Open VSX**; the Chrome
 extension is **live on the Web Store**. The only remaining channel is the
 Microsoft VS Code Marketplace.
 
+**The connectors have moved ahead of the app, to 0.2.0.** The desktop app
+itself is still v0.1.0 — 0.2.0 is a connector-only bump for focus mode's
+reconcile step (`tabs.close` / `editor.closeFile` / `terminal.dispose`).
+Neither store has this version yet: both listings below are still serving
+0.1.x until someone runs the publish steps in §2/§3 for 0.2.0. It also raises
+`engines.vscode` — see §3.
+
 | Channel | State |
 |---|---|
 | macOS DMG | ✅ Signed (Developer ID `86M2X6MUA3`), notarized, stapled, hosted |
-| Open VSX (Cursor / VSCodium / Windsurf) | ✅ Published — `rabta-connect.rabta-vscode` 0.1.0 |
-| Chrome Web Store | ✅ Live — [Rabta Connector](https://chromewebstore.google.com/detail/rabta-connector/aaombpafbhjkoinppogieaclijddlebo) 0.1.1; 0.1.2 packaged, awaiting upload |
+| Open VSX (Cursor / VSCodium / Windsurf) | ✅ Published — `rabta-connect.rabta-vscode` 0.1.0; 0.2.0 packaged, awaiting upload |
+| Chrome Web Store | ✅ Live — [Rabta Connector](https://chromewebstore.google.com/detail/rabta-connector/aaombpafbhjkoinppogieaclijddlebo) 0.1.1; 0.2.0 packaged, awaiting upload |
 | VS Code Marketplace (Microsoft) | ❌ Not published (blocked on Azure DevOps PAT) |
 | Trader / account verification (Google) | ⏳ Pending |
 
@@ -248,6 +255,15 @@ before first upload.
 
 Publish to **both** registries — the MS Marketplace serves VS Code; **Cursor,
 VSCodium, and Windsurf install from Open VSX.**
+
+**0.2.0 raises the floor.** `engines.vscode` moved from `^1.85.0` to
+`^1.93.0` — VS Code 1.85 through 1.92 can no longer install this extension.
+Focus mode's busy-terminal detection needs `onDidStartTerminalShellExecution`
+/ `onDidEndTerminalShellExecution`, stable only from 1.93; there's no
+fallback for older editors. Both registries enforce `engines.vscode`
+themselves, so this isn't a step to perform — it's what anyone still on
+1.85–1.92 loses the moment 0.2.0 goes live: they stop seeing updates until
+they upgrade the editor.
 
 **Marketplace (VS Code)** — ❌ **not published.** The `rabta-connect` publisher
 page exists, but publishing is blocked on Azure DevOps personal-access-token

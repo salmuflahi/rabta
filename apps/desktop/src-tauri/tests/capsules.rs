@@ -2076,6 +2076,100 @@ async fn focus_mode_off_closes_nothing() {
 }
 
 #[tokio::test]
+async fn focus_off_issues_the_identical_command_sequence() {
+    // The whole phase is built to protect this. A user who never turns focus
+    // mode on must not be able to tell it was added.
+    //
+    // `focus_mode_off_closes_nothing` (above) already proves this for one
+    // chrome connector, checking only the literal "tabs.close". This test is
+    // deliberately broader, not a copy: chrome AND vscode are connected at
+    // once, each holding something a focus-mode-on reconcile would act on (a
+    // stray tab, a stray terminal), and the assertion covers the full
+    // command-name space — anything shaped like a close or a dispose, on
+    // either connector kind — rather than one hardcoded command name on one
+    // connector. A gate that only forgot to cover vscode, or that closed
+    // through a command this test doesn't name explicitly, would still be
+    // caught here.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+
+    let (chrome_tx, mut chrome_rx) = mpsc::unbounded_channel();
+    let _chrome_conn = scripted_connector_kind(&hub, "chrome", chrome_tx, |name, _| match name {
+        "workspace.state" => tabs_state(&["https://a.test/", "https://stray.test/"]),
+        _ => json!({}),
+    })
+    .await;
+    let (vs_tx, mut vs_rx) = mpsc::unbounded_channel();
+    let _vs_conn = scripted_connector(&hub, vs_tx, |name, _| match name {
+        // A second, unpinned terminal beyond the one the capsule will want —
+        // live-only, so a real reconcile would dispose of it.
+        "workspace.state" => json!({
+            "workspaceFolder": "/repo/a",
+            "openFiles": ["/repo/a/x.ts"],
+            "activeFile": "/repo/a/x.ts",
+            "terminals": [
+                {"name": "zsh", "cwd": "/repo/a"},
+                {"name": "stray-term", "cwd": "/repo/a"}
+            ]
+        }),
+        _ => json!({}),
+    })
+    .await;
+    wait_for_connector_count(&hub, 2).await;
+
+    capsules.save_capsule(&task_id).await.unwrap();
+    while chrome_rx.try_recv().is_ok() {} // drain the workspace.state call from the save
+    while vs_rx.try_recv().is_ok() {}
+
+    // Re-point each capsule at a subset of what's live: chrome loses the
+    // stray tab, vscode loses the stray terminal. Same-folder vscode capsule,
+    // so the open phase applies immediately rather than deferring.
+    let res = db.task_resources(&task_id).unwrap();
+    let chrome = res.iter().find(|r| r.connector_kind == "chrome").unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "chrome",
+        &chrome.resource_type,
+        &tabs_state(&["https://a.test/"]),
+    )
+    .unwrap();
+    let vscode = res.iter().find(|r| r.connector_kind == "vscode").unwrap();
+    db.replace_task_resources(
+        &task_id,
+        "vscode",
+        &vscode.resource_type,
+        &json!({
+            "workspaceFolder": "/repo/a",
+            "openFiles": ["/repo/a/x.ts"],
+            "activeFile": "/repo/a/x.ts",
+            "terminals": [{"name": "zsh", "cwd": "/repo/a"}]
+        }),
+    )
+    .unwrap();
+
+    let summary = capsules.activate_task(&task_id, false).await.unwrap();
+    assert_eq!(summary.pending, Vec::<String>::new(), "got {summary:?}");
+    assert!(summary.errors.is_empty(), "got {summary:?}");
+
+    let mut names: Vec<String> = vec![];
+    while let Ok((name, _)) = chrome_rx.try_recv() {
+        names.push(name);
+    }
+    while let Ok((name, _)) = vs_rx.try_recv() {
+        names.push(name);
+    }
+    assert!(
+        !names
+            .iter()
+            .any(|n| n.ends_with(".close") || n.ends_with(".dispose")),
+        "focus off must never close or dispose anything, on any connector: {names:?}"
+    );
+    assert!(
+        summary.closed.is_empty() && summary.kept.is_empty(),
+        "got {summary:?}"
+    );
+}
+
+#[tokio::test]
 async fn a_refusal_is_kept_not_an_error() {
     let (hub, db, capsules, task_id, _dir) = setup().await;
     let (tx, mut rx) = mpsc::unbounded_channel();
