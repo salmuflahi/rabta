@@ -39,4 +39,4 @@ data folder from **Settings → Privacy & data → Reveal in Finder**.
 
 ## Contact
 
-Questions about this policy: sammyalmuflahi1@gmail.com
+Questions about this policy: support@rabta.build
