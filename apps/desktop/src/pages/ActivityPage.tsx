@@ -26,7 +26,6 @@ import { Section } from "@/components/ui/section";
 import { Surface } from "@/components/ui/surface";
 import { describeEvent, relativeTime } from "@/lib/humanize";
 import { cn } from "@/lib/utils";
-import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type LogEntry } from "@/store";
 
 const KINDS: { value: string; label: string }[] = [
@@ -138,7 +137,13 @@ export function ActivityPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <PageHeader eyebrow="HISTORY" title="Activity" subtitle={subtitle} />
+      {/* The toolbar now names the page (Task 11); this stays for the
+          existing findByText/getByText("Activity") contract and screen
+          readers. The total event count is genuinely useful — kept, but
+          moved onto the Events section below (as its action) rather than
+          restated up here, since it only means something once there is a
+          list of events under it. */}
+      <h2 className="sr-only">Activity</h2>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative">
@@ -198,7 +203,11 @@ export function ActivityPage() {
         />
       ) : (
         <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
-          <Section label="Events" className="pb-4">
+          <Section
+            label="Events"
+            className="pb-4"
+            action={<span className="text-meta text-muted-foreground">{subtitle}</span>}
+          >
             <Surface>
               {shown.map((e) => (
                 <LogRow key={e.seq} entry={e} resolveName={resolveName} />

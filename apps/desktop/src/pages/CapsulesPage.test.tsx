@@ -144,6 +144,23 @@ function mockCapsulesInvoke(opts: {
 }
 
 describe("CapsulesPage", () => {
+  // Task 11 moved the page name into the workspace Toolbar's <h1>; Task 12
+  // stripped Overview's own eyebrow/title stack to match. Capsules never got
+  // the same treatment, so it rendered "Capsules" a second time via its own
+  // PageHeader <h1> directly under the toolbar's. This page must not own an
+  // <h1> (or restate the "TASKS" eyebrow) — but the name still needs to
+  // resolve for screen readers and the findByText("Capsules") pattern
+  // other tests here rely on, via a visually-hidden heading.
+  it("does not render its own page title as a heading — the toolbar owns it", async () => {
+    renderWithProviders(<CapsulesPage />);
+    await screen.findByText("No capsules yet");
+
+    expect(document.querySelector("h1")).not.toBeInTheDocument();
+    expect(screen.queryByText("TASKS")).not.toBeInTheDocument();
+    // Accessible name preserved via a visually-hidden heading.
+    expect(screen.getByText("Capsules")).toBeInTheDocument();
+  });
+
   it("renders the no-projects empty state without throwing", async () => {
     // Default mockInvoke resolves [] for every command (see smoke-utils),
     // so list_projects -> [] exercises the empty-state path directly. Run

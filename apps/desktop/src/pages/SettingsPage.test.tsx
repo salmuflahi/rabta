@@ -12,6 +12,22 @@ describe("SettingsPage", () => {
     useStore.getState().resetPrefs();
   });
 
+  // Task 11 moved the page name into the workspace Toolbar's <h1>; Task 12
+  // stripped Overview's own eyebrow/title stack to match. Settings never got
+  // the same treatment, so it rendered "Settings" a second time via its own
+  // PageHeader <h1> directly under the toolbar's. This page must not own an
+  // <h1> (or restate the "PREFERENCES" eyebrow) — but the name still needs
+  // to resolve for screen readers, via a visually-hidden heading.
+  it("does not render its own page title as a heading — the toolbar owns it", async () => {
+    renderWithProviders(<SettingsPage />);
+    await screen.findByText("Appearance");
+
+    expect(document.querySelector("h1")).not.toBeInTheDocument();
+    expect(screen.queryByText("PREFERENCES")).not.toBeInTheDocument();
+    // Accessible name preserved via a visually-hidden heading.
+    expect(screen.getByText("Settings")).toBeInTheDocument();
+  });
+
   it("renders every product section without throwing", async () => {
     renderWithProviders(<SettingsPage />);
     expect(await screen.findByText("Settings")).toBeInTheDocument();

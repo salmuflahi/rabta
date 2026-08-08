@@ -7,6 +7,38 @@ import { renderWithProviders } from "@/test/smoke-utils";
 import { ConnectorsPage } from "./ConnectorsPage";
 
 describe("ConnectorsPage", () => {
+  // Task 11 moved the page name into the workspace Toolbar's <h1>; Task 12
+  // stripped Overview's own eyebrow/title stack to match. Connectors never
+  // got the same treatment, so it rendered "Connectors" a second time via
+  // its own PageHeader <h1> directly under the toolbar's — and its subtitle
+  // ("N connectors online") restated the exact count the toolbar's own
+  // connection indicator already shows on every page. This page must not
+  // own an <h1> (or restate the "CONNECTIONS" eyebrow or the online count)
+  // — but the name still needs to resolve for screen readers, via a
+  // visually-hidden heading.
+  it("does not render its own page title as a heading — the toolbar owns it", async () => {
+    useStore.setState({
+      connectors: [
+        {
+          id: "conn-1",
+          name: "VS Code",
+          kind: "vscode",
+          capabilities: [],
+          connected: true,
+          connectedSince: "2026-01-01T15:00:00.000Z",
+        },
+      ],
+    });
+    renderWithProviders(<ConnectorsPage />);
+    await screen.findByText("Connectors");
+
+    expect(document.querySelector("h1")).not.toBeInTheDocument();
+    expect(screen.queryByText("CONNECTIONS")).not.toBeInTheDocument();
+    expect(screen.queryByText(/connectors? online/)).not.toBeInTheDocument();
+    // Accessible name preserved via a visually-hidden heading.
+    expect(screen.getByText("Connectors")).toBeInTheDocument();
+  });
+
   it("renders a populated connector card and a pending pairing without throwing", async () => {
     useStore.setState({
       connectors: [

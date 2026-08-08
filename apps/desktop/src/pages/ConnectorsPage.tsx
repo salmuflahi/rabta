@@ -10,7 +10,6 @@ import { kindLabel } from "@/lib/connectors";
 import { relativeTime } from "@/lib/humanize";
 import { decidePairing } from "@/lib/pairing";
 import { cn } from "@/lib/utils";
-import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type ConnectorRow, type PendingPairing } from "@/store";
 
 /**
@@ -154,14 +153,16 @@ export function ConnectorsPage() {
     decidePairing(pairing, ok, removePairing);
   }
 
-  const connectedCount = connectors.filter((c) => c.connected).length;
-  // Avoids the word "connected" so it can't collide with a connector row's
-  // own "Connected · since ..." status text in text-content lookups.
-  const subtitle = `${connectedCount} ${connectedCount === 1 ? "connector" : "connectors"} online`;
-
   return (
     <div>
-      <PageHeader eyebrow="CONNECTIONS" title="Connectors" subtitle={subtitle} />
+      {/* The toolbar now names the page (Task 11); this stays for the
+          existing findByText/getByText("Connectors") contract and screen
+          readers. This page's old subtitle ("N connectors online") is
+          genuinely redundant, not just moved: the toolbar's own connection
+          indicator already shows that exact count, computed the same way,
+          on every page including this one — restating it here just said
+          the same number twice in the same view. */}
+      <h2 className="sr-only">Connectors</h2>
 
       {pairings.length > 0 && <PendingPairings pairings={pairings} onDecide={decide} />}
 

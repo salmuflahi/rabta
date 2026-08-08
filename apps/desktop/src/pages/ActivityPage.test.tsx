@@ -6,6 +6,36 @@ import { renderWithProviders } from "@/test/smoke-utils";
 import { ActivityPage } from "./ActivityPage";
 
 describe("ActivityPage", () => {
+  // Task 11 moved the page name into the workspace Toolbar's <h1>; Task 12
+  // stripped Overview's own eyebrow/title stack to match. Activity never got
+  // the same treatment, so it rendered "Activity" a second time via its own
+  // PageHeader <h1> directly under the toolbar's. This page must not own an
+  // <h1> (or restate the "HISTORY" eyebrow) — but the name still needs to
+  // resolve for screen readers, via a visually-hidden heading, and the total
+  // event count is genuinely useful, so it must survive somewhere on the
+  // page (moved into the Events section, not deleted).
+  it("does not render its own page title as a heading — the toolbar owns it", async () => {
+    useStore.setState({
+      log: [
+        {
+          seq: 1,
+          at: "2026-07-17T15:04:12.000Z",
+          type: "connectorConnected",
+          connector: { id: "conn-1", name: "VS Code" },
+        },
+      ],
+    });
+    renderWithProviders(<ActivityPage />);
+    await screen.findByText("Activity");
+
+    expect(document.querySelector("h1")).not.toBeInTheDocument();
+    expect(screen.queryByText("HISTORY")).not.toBeInTheDocument();
+    // Accessible name preserved via a visually-hidden heading.
+    expect(screen.getByText("Activity")).toBeInTheDocument();
+    // The event count is real, useful info — kept, not deleted.
+    expect(screen.getByText("1 event")).toBeInTheDocument();
+  });
+
   it("spends the accent at most once", async () => {
     const { container } = renderWithProviders(<ActivityPage />);
     await screen.findByText("Activity");

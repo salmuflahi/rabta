@@ -25,7 +25,6 @@ import { toastErr, toastOk } from "@/lib/toast";
 import { useRestore } from "@/restore/RestoreExperience";
 import type { RestoreTool } from "@/restore/types";
 import { NAV_ITEMS } from "@/shell/nav";
-import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type NavKey } from "@/store";
 
 // ─── Small shared building blocks ────────────────────────────────────────────
@@ -617,7 +616,15 @@ function CommandSenderPanel() {
 export function SettingsPage() {
   return (
     <div>
-      <PageHeader eyebrow="PREFERENCES" title="Settings" subtitle="Local preferences for this workspace." />
+      {/* The toolbar now names the page (Task 11); this stays for the
+          existing findByText/getByText("Settings") contract and screen
+          readers. The old subtitle ("Local preferences for this
+          workspace.") is genuinely redundant, not moved: every section
+          below is self-labelled (Appearance, Behavior, Privacy & data,
+          ...), and "local" is already stated by the sidebar's own "Data
+          stored locally" footer visible on every page — this line told the
+          user nothing they couldn't already see. */}
+      <h2 className="sr-only">Settings</h2>
 
       {/* Two balanced columns on wide viewports so the page fills the
           workspace instead of stranding the right side empty; a single

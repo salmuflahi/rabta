@@ -42,7 +42,6 @@ import { useDeferredDelete } from "@/lib/useDeferredDelete";
 import { activateSummaryToResult, type ActivateSummary } from "@/restore/normalize";
 import { useRestore } from "@/restore/RestoreExperience";
 import type { RestoreTool } from "@/restore/types";
-import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type Project, type Task, type TaskResource } from "@/store";
 
 interface SaveSummary {
@@ -544,7 +543,13 @@ export function CapsulesPage() {
           </form>
         </DialogContent>
       </Dialog>
-      <PageHeader eyebrow="TASKS" title="Capsules" subtitle={subtitle} />
+      {/* The toolbar now names the page (Task 11); this stays for the
+          existing findByText/getByText("Capsules") contract and screen
+          readers. The open-task count is genuinely useful — kept as a
+          plain caption, since it summarizes across every project's own
+          Section below rather than belonging to any one of them. */}
+      <h2 className="sr-only">Capsules</h2>
+      <p className="mb-6 text-meta text-muted-foreground">{subtitle}</p>
 
       {loading ? (
         <CapsulesSkeleton />

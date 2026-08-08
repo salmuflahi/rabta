@@ -62,6 +62,26 @@ describe("ProjectsPage", () => {
     expect(await screen.findByText("Projects")).toBeInTheDocument();
   });
 
+  // Task 11 moved the page name into the workspace Toolbar's <h1>; Task 12
+  // stripped Overview's own eyebrow/title stack to match. Projects never got
+  // the same treatment, so it rendered "Projects" a second time via its own
+  // PageHeader <h1> directly under the toolbar's. This page must not own an
+  // <h1> (or restate the "WORKSPACE" eyebrow) — but the name still needs to
+  // resolve for screen readers, via a visually-hidden heading, and its real
+  // page-level actions (Archived, Register Project) must still render.
+  it("does not render its own page title as a heading — the toolbar owns it", async () => {
+    renderWithProviders(<ProjectsPage />);
+    await screen.findByText("No projects yet");
+
+    expect(document.querySelector("h1")).not.toBeInTheDocument();
+    expect(screen.queryByText("WORKSPACE")).not.toBeInTheDocument();
+    // Accessible name preserved via a visually-hidden heading.
+    expect(screen.getByText("Projects")).toBeInTheDocument();
+    // The page's real actions survive the header stack's removal.
+    expect(screen.getByRole("button", { name: "Archived projects" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Register Project" }).length).toBeGreaterThan(0);
+  });
+
   it("spends the accent at most once", async () => {
     const { container } = renderWithProviders(<ProjectsPage />);
     await screen.findByText("Projects");

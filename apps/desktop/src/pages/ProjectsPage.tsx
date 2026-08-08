@@ -39,7 +39,6 @@ import { ProjectDialogs } from "@/features/projects/ProjectDialogs";
 import { moveProject, moveProjectBy } from "@/lib/project-order";
 import { toastErr, toastOk } from "@/lib/toast";
 import { useDeferredDelete } from "@/lib/useDeferredDelete";
-import { PageHeader } from "@/shell/PageHeader";
 import {
   useStore,
   type Project,
@@ -293,40 +292,43 @@ export function ProjectsPage() {
 
   const visibleProjects = projects.filter((p) => !pendingIds.has(p.id));
   const count = visibleProjects.length;
-  const subtitle = count === 0 ? "No projects registered yet" : `${count} ${count === 1 ? "project" : "projects"} registered`;
 
   return (
     <div>
-      <PageHeader
-        eyebrow="WORKSPACE"
-        title="Projects"
-        subtitle={subtitle}
-        actions={
-          <>
-            <Button
-              variant="outline"
-              aria-label="Archived projects"
-              onClick={() => setArchivedOpen(true)}
-            >
-              <ArchiveRestore />
-              Archived
-            </Button>
-            {/* This page's one primary action, always on screen — the
-                EmptyState below offers the same action again (a plain
-                outline duplicate, not a second primary) so a first-time
-                user isn't stuck reaching for the toolbar. */}
-            <Button
-              variant="primary"
-              onClick={() => {
-                resetForm();
-                setRegisterOpen(true);
-              }}
-            >
-              Register Project
-            </Button>
-          </>
-        }
-      />
+      {/* The toolbar now names the page (Task 11); this stays for the
+          existing findByText/getByText("Projects") contract and screen
+          readers. The registered-project count moves into the "All
+          projects" Section below (as its action, alongside every other
+          Section that reports a count there) rather than repeating here —
+          it doesn't apply while the page is loading, erroring, or empty,
+          so a page-level caption would have to hide itself in exactly
+          those states anyway. The real page-level actions (Archived,
+          Register Project) stay visible regardless of load state, just
+          without a title stack to sit under. */}
+      <h2 className="sr-only">Projects</h2>
+      <div className="mb-6 flex items-center justify-end gap-2">
+        <Button
+          variant="outline"
+          aria-label="Archived projects"
+          onClick={() => setArchivedOpen(true)}
+        >
+          <ArchiveRestore />
+          Archived
+        </Button>
+        {/* This page's one primary action, always on screen — the
+            EmptyState below offers the same action again (a plain
+            outline duplicate, not a second primary) so a first-time
+            user isn't stuck reaching for the toolbar. */}
+        <Button
+          variant="primary"
+          onClick={() => {
+            resetForm();
+            setRegisterOpen(true);
+          }}
+        >
+          Register Project
+        </Button>
+      </div>
 
       {loading ? (
         <ProjectsSkeleton />
@@ -350,7 +352,14 @@ export function ProjectsPage() {
           }
         />
       ) : (
-        <Section label="All projects">
+        <Section
+          label="All projects"
+          action={
+            <span className="text-meta text-muted-foreground">
+              {count} {count === 1 ? "project" : "projects"} registered
+            </span>
+          }
+        >
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
