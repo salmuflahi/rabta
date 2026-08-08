@@ -103,4 +103,24 @@ describe("ConnectorsPage", () => {
     // Not the raw unparseable locale string / "unknown" fallback.
     expect(screen.queryByText(/last seen unknown/)).not.toBeInTheDocument();
   });
+
+  it("shows only the first pairing card's Approve button with primary variant when multiple pairings are pending", async () => {
+    useStore.setState({
+      connectors: [],
+      pairings: [
+        { pairingId: "pair-1", name: "Chrome", kind: "browser" },
+        { pairingId: "pair-2", name: "Firefox", kind: "browser" },
+      ],
+    });
+
+    renderWithProviders(<ConnectorsPage />);
+
+    const approveButtons = screen.getAllByText("Approve");
+    expect(approveButtons).toHaveLength(2);
+
+    // Only the first Approve button should have bg-primary class
+    const buttonsWithPrimary = approveButtons.filter((btn) => btn.classList.contains("bg-primary"));
+    expect(buttonsWithPrimary).toHaveLength(1);
+    expect(buttonsWithPrimary[0]).toBe(approveButtons[0]);
+  });
 });

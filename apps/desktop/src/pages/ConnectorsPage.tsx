@@ -13,9 +13,11 @@ import { useStore, type ConnectorRow, type PendingPairing } from "@/store";
 function PairingCard({
   pairing,
   onDecide,
+  accented = false,
 }: {
   pairing: PendingPairing;
   onDecide: (pairing: PendingPairing, ok: boolean) => void;
+  accented?: boolean;
 }) {
   return (
     <Card className="mb-3 border-warning/30 bg-warning/10 p-4">
@@ -28,7 +30,7 @@ function PairingCard({
           <Button size="sm" variant="outline" onClick={() => onDecide(pairing, false)}>
             Deny
           </Button>
-          <Button size="sm" variant="primary" onClick={() => onDecide(pairing, true)}>
+          <Button size="sm" variant={accented ? "primary" : "secondary"} onClick={() => onDecide(pairing, true)}>
             Approve
           </Button>
         </div>
@@ -140,8 +142,8 @@ export function ConnectorsPage() {
 
       {pairings.length > 0 && (
         <div className="mb-6">
-          {pairings.map((p) => (
-            <PairingCard key={p.pairingId} pairing={p} onDecide={decide} />
+          {pairings.map((p, i) => (
+            <PairingCard key={p.pairingId} pairing={p} onDecide={decide} accented={i === 0} />
           ))}
         </div>
       )}
