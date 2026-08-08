@@ -123,7 +123,7 @@ export function ProjectCard({
         <Card
           ref={setNodeRef}
           style={style}
-          className={`overflow-hidden p-0 hover:shadow-card-hover ${isDragging ? "opacity-60 shadow-card-hover" : ""}`}
+          className={`overflow-hidden p-0 hover:shadow-raised ${isDragging ? "opacity-60 shadow-raised" : ""}`}
         >
           <div className="flex items-start justify-between gap-4 p-4">
             <div className="flex min-w-0 items-start gap-3">

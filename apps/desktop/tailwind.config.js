@@ -97,12 +97,12 @@ export default {
         sidebar: "280ms",
       },
       boxShadow: {
-        soft: "0 2px 8px rgba(16,37,38,0.06)",
-        "soft-md": "0 8px 24px rgba(16,37,38,0.10)",
-        // Card surfaces: a soft drop plus a hairline inner top highlight so
-        // cards read as raised physical surfaces rather than outlined boxes.
-        card: "0 1px 2px rgba(16,37,38,0.05), 0 3px 10px rgba(16,37,38,0.045), inset 0 1px 0 rgba(255,255,255,0.55)",
-        "card-hover": "0 6px 20px rgba(16,37,38,0.10), inset 0 1px 0 rgba(255,255,255,0.55)",
+        // Theme-varying, so the values live in CSS variables — Tailwind
+        // shadow strings are static and cannot respond to .dark.
+        raised: "var(--shadow-raised)",
+        grouped: "var(--shadow-grouped)",
+        soft: "0 2px 8px rgba(0,0,0,0.06)",
+        "soft-md": "0 8px 24px rgba(0,0,0,0.10)",
       },
     },
   },
