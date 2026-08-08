@@ -3,6 +3,43 @@ import { describe, expect, it } from "vitest";
 import { Surface } from "./surface";
 import { Row } from "./row";
 
+/**
+ * Splits a class string into individual utility tokens.
+ */
+function classTokensOf(className: string): string[] {
+  return className.split(/\s+/).filter(Boolean);
+}
+
+/**
+ * Strips Tailwind variant prefixes (e.g., hover:, dark:, first:) off a token.
+ */
+function baseUtilityOf(token: string): string {
+  const parts = token.split(":");
+  return parts[parts.length - 1];
+}
+
+/**
+ * Returns true if the exact token (as a whole class) is present.
+ */
+function hasToken(className: string, token: string): boolean {
+  return classTokensOf(className).includes(token);
+}
+
+/**
+ * Returns true if a token with the given base utility is present.
+ * e.g., hasBaseUtility(className, "border-t") matches "border-t" or "first:border-t-0"
+ */
+function hasBaseUtility(className: string, baseUtil: string): boolean {
+  return classTokensOf(className).some((token) => baseUtilityOf(token) === baseUtil);
+}
+
+/**
+ * Returns true if NO token matches the given base utility.
+ */
+function lacksBaseUtility(className: string, baseUtil: string): boolean {
+  return !hasBaseUtility(className, baseUtil);
+}
+
 describe("Row", () => {
   it("renders title, subtitle, leading and trailing content", () => {
     render(
@@ -32,9 +69,22 @@ describe("Row", () => {
     );
     const rows = container.querySelectorAll("[data-row]");
     expect(rows).toHaveLength(2);
+
+    // First row: suppresses the hairline with first:border-t-0
     expect(rows[0].className).toMatch(/first:border-t-0/);
-    expect(rows[0].className).toMatch(/border-t/);
-    expect(rows[1].className).toMatch(/border-t/);
+    // First row: carries the standalone border-t token (not defeated by first:border-t-0 substring)
+    expect(hasToken(rows[0].className, "border-t")).toBe(true);
+    // First row: carries the hairline colour token
+    expect(hasToken(rows[0].className, "border-border/60")).toBe(true);
+    // First row: must NOT carry the full four-sided border token (the "box regression")
+    expect(lacksBaseUtility(rows[0].className, "border")).toBe(true);
+
+    // Second row: carries the top border
+    expect(hasToken(rows[1].className, "border-t")).toBe(true);
+    // Second row: carries the hairline colour token
+    expect(hasToken(rows[1].className, "border-border/60")).toBe(true);
+    // Second row: must NOT carry the full four-sided border token
+    expect(lacksBaseUtility(rows[1].className, "border")).toBe(true);
   });
 
   it("omits the subtitle element entirely when there is none", () => {
