@@ -406,7 +406,7 @@ function RestoreOverlay({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="relative w-full max-w-[440px] outline-none"
+        className="relative w-full max-w-[440px] outline-none focus-visible:ring-0"
         style={{ maxWidth: "calc(100vw - 32px)" }}
       >
         <div

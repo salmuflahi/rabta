@@ -76,3 +76,71 @@ export function expectNoBackground(el: Element): void {
     `expected no background utility classes, found: ${offenders.join(", ")}`,
   ).toBe(0);
 }
+
+/**
+ * Matches only a ring *width* utility (the bare `ring` utility, which is
+ * 3px, and the explicit `ring-0`/`ring-1`/`ring-2`/`ring-4`/`ring-8`
+ * widths) — never a ring *color* (`ring-ring`, `ring-primary/50`, ...),
+ * *offset* (`ring-offset-2`, `ring-offset-background`), or *inset*
+ * (`ring-inset`) utility, all of which also start with `ring` but are
+ * harmless without a nonzero width alongside them.
+ */
+function isRingWidthUtility(token: string): boolean {
+  const base = baseUtilityOf(token);
+  return base === "ring" || /^ring-(0|1|2|4|8)$/.test(base);
+}
+
+/**
+ * Fails if `el` carries a *nonzero* ring-width utility, in any variant
+ * (`ring-2`, `hover:ring`, `focus-visible:ring-4`, ...). `ring-0` itself is
+ * allowed — it is the idiom this file's callers use to neutralise a ring
+ * that would otherwise be painted by a global rule (see
+ * `expectFocusRingSuppressed` below), not a ring that will actually render.
+ */
+export function expectNoVisibleFocusRing(el: Element): void {
+  const offenders = classTokensOf(el).filter(
+    (token) => isRingWidthUtility(token) && baseUtilityOf(token) !== "ring-0",
+  );
+  expect(
+    offenders.length,
+    `expected no nonzero ring-width utility classes, found: ${offenders.join(", ")}`,
+  ).toBe(0);
+}
+
+/**
+ * Fails unless `el` explicitly neutralises the global `:focus-visible` ring
+ * (`src/index.css`'s `ring-2 ring-ring ring-offset-2 ring-offset-background`)
+ * via a `focus-visible:ring-0` class of its own, AND carries no other
+ * nonzero ring-width utility that could still paint one.
+ *
+ * For a non-interactive container that only ever receives *programmatic*
+ * focus (a dialog/sheet root moved there so Escape works and screen readers
+ * announce it — never a control a keyboard user tabbed to), `outline-none`
+ * alone does not suppress the ring: Tailwind's `ring-*` utilities render as
+ * a `box-shadow`, which `outline-none` (which only touches the `outline`
+ * property) cannot touch. The element needs its own ring utility — set to
+ * zero width — to out-specificity the global rule.
+ */
+export function expectFocusRingSuppressed(el: Element): void {
+  const tokens = classTokensOf(el);
+  expect(
+    tokens.includes("focus-visible:ring-0"),
+    `expected a "focus-visible:ring-0" class to neutralise the global :focus-visible ring, found: ${tokens.join(", ")}`,
+  ).toBe(true);
+  expectNoVisibleFocusRing(el);
+}
+
+/**
+ * Fails unless `el` carries the `focus-visible:ring-2` class that the app's
+ * interactive controls (buttons, etc.) rely on for a visible keyboard-focus
+ * indicator. Pair with `expectFocusRingSuppressed` on a dialog/sheet's own
+ * root: the container must give up its ring so a genuinely interactive
+ * control inside it can still show one.
+ */
+export function expectHasFocusRing(el: Element): void {
+  const tokens = classTokensOf(el);
+  expect(
+    tokens.includes("focus-visible:ring-2"),
+    `expected a "focus-visible:ring-2" class so keyboard focus stays visible, found: ${tokens.join(", ")}`,
+  ).toBe(true);
+}

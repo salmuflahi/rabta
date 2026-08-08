@@ -2,6 +2,7 @@ import { act, screen, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "@/test/smoke-utils";
+import { expectFocusRingSuppressed, expectHasFocusRing } from "@/test/no-box";
 import { useRestore, type StartOptions } from "./RestoreExperience";
 import type { RestoreResult } from "./types";
 
@@ -314,5 +315,52 @@ describe("useRestore / RestoreExperience", () => {
     // `shadow-raised`; neither should appear inside the receipt here.
     expect(receipt.querySelector("[data-row]")).toBeNull();
     expect(receipt.querySelector(".shadow-grouped")).toBeNull();
+  });
+
+  // The sheet moves focus to its own root programmatically (`sheetRef.current
+  // ?.focus()`) so Escape works and screen readers announce it — never
+  // because a keyboard user tabbed there. The app's global `:focus-visible`
+  // rule (src/index.css) paints a `ring-2 ring-ring` box-shadow on *any*
+  // focus-visible element, so without an explicit override the whole card
+  // gets wrapped in the orange accent ring, which is what
+  // website/assets/shots/restore-1024.png showed. The root must neutralise
+  // that ring for itself while every genuinely interactive control inside
+  // keeps its own — this dialog is modal, so those controls are the only
+  // thing a keyboard user has to orient by.
+  it("partial: the sheet root suppresses its auto-focus ring; Close and View details keep theirs", async () => {
+    stubMatchMedia(true);
+
+    const result: RestoreResult = {
+      overall: "partial",
+      tools: [
+        { id: "vscode-1", status: "applied" },
+        { id: "chrome-1", status: "skipped", message: "On next reload" },
+      ],
+    };
+    const run = vi.fn().mockResolvedValue(result);
+
+    renderWithProviders(<Harness run={run} forceReducedMotion />);
+
+    await waitFor(() => expect(screen.getByText("Workspace partially restored")).toBeInTheDocument());
+
+    expectFocusRingSuppressed(screen.getByRole("dialog"));
+    expectHasFocusRing(screen.getByRole("button", { name: "Close" }));
+    expectHasFocusRing(screen.getByRole("button", { name: "View details" }));
+  });
+
+  it("failure: the sheet root suppresses its auto-focus ring; Close and Try again keep theirs", async () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+
+    const boom = new Error("connector crashed");
+    const run = vi.fn().mockRejectedValue(boom);
+
+    renderWithProviders(<Harness run={run} />);
+
+    await advanceUntil(() => screen.queryByText("Couldn't restore workspace") !== null);
+
+    expectFocusRingSuppressed(screen.getByRole("dialog"));
+    expectHasFocusRing(screen.getByRole("button", { name: "Close" }));
+    expectHasFocusRing(screen.getByRole("button", { name: "Try again" }));
   });
 });
