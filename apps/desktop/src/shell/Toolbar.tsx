@@ -3,6 +3,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useStore, type ConnectorRow } from "@/store";
+import { NAV_ITEMS, SETTINGS_ITEM } from "./nav";
 
 /** Visible entry point to the ⌘K command palette. Without it the palette is
  * discoverable only by devs who already know the shortcut — so this both opens
@@ -116,16 +117,23 @@ function ConnectionIndicator() {
 }
 
 /** The workspace toolbar: a slim, mostly-draggable strip that begins at the
- * sidebar boundary. Global search now lives behind ⌘K (see CommandPalette),
- * so the only control here is the connection status. */
+ * sidebar boundary. It now also carries the page title, so pages no longer
+ * restate what the sidebar already shows. */
 export function Toolbar() {
+  const view = useStore((s) => s.view);
+  const title =
+    [...NAV_ITEMS, SETTINGS_ITEM].find((item) => item.key === view)?.label ?? "";
+
   return (
     <header
       data-tauri-drag-region
-      className="flex h-[60px] shrink-0 items-center justify-between gap-3 border-b border-border/50 bg-background px-4"
+      className="flex h-[38px] shrink-0 items-center gap-3 border-b border-border/60 bg-background px-3"
     >
-      <SearchTrigger />
+      <h1 className="truncate text-body font-semibold text-foreground">{title}</h1>
       <ConnectionIndicator />
+      <div className="ml-auto">
+        <SearchTrigger />
+      </div>
     </header>
   );
 }
