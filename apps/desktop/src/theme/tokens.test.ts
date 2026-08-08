@@ -74,4 +74,9 @@ describe("colour tokens", () => {
       lightnessOf(dark.get("--background")!),
     );
   });
+
+  it("keeps secondary and muted distinct in both themes", () => {
+    expect(light.get("--secondary")).not.toBe(light.get("--muted"));
+    expect(dark.get("--secondary")).not.toBe(dark.get("--muted"));
+  });
 });
