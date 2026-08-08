@@ -3,6 +3,9 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import markUrl from "@/assets/brand/rabta-mark.svg";
 import { Button } from "@/components/ui/button";
+import { Row } from "@/components/ui/row";
+import { Section } from "@/components/ui/section";
+import { Surface } from "@/components/ui/surface";
 import { RESTORE_SHEET_EASE, prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { RestoreResult, RestoreStage, RestoreTool, ToolRestoreStatus } from "./types";
@@ -440,12 +443,20 @@ function RestoreOverlay({
           </div>
 
           {(closed.length > 0 || kept.length > 0) && (
-            <p className="text-xs text-muted-foreground">
-              {closed.length > 0 && `${closed.length} put away`}
-              {closed.length > 0 && kept.length > 0 && " · "}
-              {kept.length > 0 &&
-                `${kept.length} kept — ${[...new Set(kept.map(([, r]) => r))].join(", ")}`}
-            </p>
+            <Section label={`${closed.length} put away`} className="mt-3">
+              <Surface>
+                {[...new Set(kept.map(([, reason]) => reason))].map((reason) => (
+                  <Row
+                    key={reason}
+                    title={kept
+                      .filter(([, r]) => r === reason)
+                      .map(([item]) => item)
+                      .join(", ")}
+                    subtitle={reason}
+                  />
+                ))}
+              </Surface>
+            </Section>
           )}
 
           <RestoreProgress stage={stage} reducedMotion={reducedMotion} />

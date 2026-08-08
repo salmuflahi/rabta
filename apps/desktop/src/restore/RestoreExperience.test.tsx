@@ -175,7 +175,7 @@ describe("useRestore / RestoreExperience", () => {
     expect(screen.queryByText("Waiting")).not.toBeInTheDocument();
   });
 
-  it("renders the put-away receipt with the closed count and deduped kept reasons", async () => {
+  it("lists what was put away and each distinct reason it kept something", async () => {
     stubMatchMedia(false);
     vi.useFakeTimers();
 
@@ -186,12 +186,13 @@ describe("useRestore / RestoreExperience", () => {
         { id: "chrome-1", status: "applied" },
       ],
       closed: ["https://stray.test/"],
-      // Three kept items, only two distinct reasons — the receipt lists each
-      // reason once, not once per item.
+      // Three kept items, only two distinct reasons — "unsaved changes" is
+      // shared by two of them, so this is the pair that actually proves
+      // dedupe: a naive one-row-per-item rendering would print it twice.
       kept: [
-        ["zsh", "still running something"],
-        ["bash", "still running something"],
-        ["https://pinned.test/", "pinned in the browser"],
+        ["draft.md", "unsaved changes"],
+        ["notes.md", "unsaved changes"],
+        ["zsh", "running something"],
       ],
     };
     const run = vi.fn().mockResolvedValue(result);
@@ -199,10 +200,43 @@ describe("useRestore / RestoreExperience", () => {
     renderWithProviders(<Harness run={run} />);
     await advanceUntil(() => screen.queryByText("Workspace restored") !== null);
 
-    const receipt = screen.getByText(/put away/);
-    expect(receipt).toHaveTextContent(
-      "1 put away · 3 kept — still running something, pinned in the browser"
-    );
+    // `findByRole` polls via real timers and would hang under fake timers
+    // (see the file-level comment on `advanceUntil`); the DOM has already
+    // settled by this point, so a synchronous query is correct here.
+    const receipt = screen.getByRole("region", { name: /put away/i });
+    expect(receipt).toHaveTextContent("1 put away");
+    // Three kept items, two distinct reasons — each reason listed once.
+    expect(receipt).toHaveTextContent("unsaved changes");
+    expect(receipt).toHaveTextContent("running something");
+    expect(receipt.textContent!.match(/unsaved changes/g)).toHaveLength(1);
+  });
+
+  it("reads as a plain report, not an error", async () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+
+    const result: RestoreResult = {
+      overall: "success",
+      tools: [
+        { id: "vscode-1", status: "applied" },
+        { id: "chrome-1", status: "applied" },
+      ],
+      closed: ["https://stray.test/"],
+      kept: [
+        ["draft.md", "unsaved changes"],
+        ["notes.md", "unsaved changes"],
+        ["zsh", "running something"],
+      ],
+    };
+    const run = vi.fn().mockResolvedValue(result);
+
+    renderWithProviders(<Harness run={run} />);
+    await advanceUntil(() => screen.queryByText("Workspace restored") !== null);
+
+    const receipt = screen.getByRole("region", { name: /put away/i });
+    // Refusing is a correct outcome. Nothing here may look like a failure.
+    expect(receipt.className).not.toMatch(/destructive|warning/);
+    expect(receipt.querySelector(".bg-primary")).toBeNull();
   });
 
   it("renders nothing extra when focus mode closed and kept nothing", async () => {
