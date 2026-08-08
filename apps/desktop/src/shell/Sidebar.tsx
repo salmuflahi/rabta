@@ -3,15 +3,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { useStore, type NavKey } from "@/store";
 import { NAV_ITEMS, SETTINGS_ITEM, type NavItem } from "./nav";
+import { NAV_ROW_GAP_CLASS, NAV_ROW_HEIGHT_CLASS, NAV_ROW_STRIDE_PX } from "./navRow";
 import {
   SIDEBAR_TITLEBAR_DIVIDER_HEIGHT_CLASS,
   SIDEBAR_TITLEBAR_SPACER_HEIGHT_CLASS,
 } from "./titlebar";
-
-// Row height (h-[25px]) + nav gap (gap-1 = 4px): the moving selection
-// surface is translated by activeIndex * ROW_STRIDE to sit behind the active
-// row.
-const ROW_STRIDE = 26;
 
 /** The mark, inlined so `currentColor` inherits the sidebar's ivory.
  * The tiled `rabta-mark.svg` stays the Dock icon, where it sits against
@@ -60,9 +56,10 @@ function NavRow({
           aria-current={active ? "page" : undefined}
           aria-label={collapsed ? `${item.label} (${item.shortcut})` : undefined}
           className={cn(
-            // Fixed 25px height. overflow-hidden keeps the label clipped to
-            // the row.
-            "group relative z-10 flex h-[25px] w-full items-center gap-2 overflow-hidden rounded-[10px]",
+            // Row height comes from the shared navRow module — overflow-hidden
+            // keeps the label clipped to the row.
+            NAV_ROW_HEIGHT_CLASS,
+            "group relative z-10 flex w-full items-center gap-2 overflow-hidden rounded-[10px]",
             "text-sm transition-colors duration-fast ease-standard",
             active
               ? "text-sidebar-accent-foreground"
@@ -188,18 +185,19 @@ export function Sidebar() {
       <BrandRow collapsed={collapsed} fullscreen={fullscreen} />
 
       {/* Navigation. */}
-      <nav className="relative flex flex-col gap-1 pt-3">
+      <nav className={cn("relative flex flex-col pt-3", NAV_ROW_GAP_CLASS)}>
         <div
           aria-hidden
           className={cn(
             // Moving selection surface. inset-x-0 means it fills the nav column
             // width in both states, so it morphs wide-pill → icon-tile as the
             // rail width animates; only its vertical slide is transitioned here.
-            "pointer-events-none absolute inset-x-0 top-3 h-[25px] rounded-[10px] bg-sidebar-accent",
+            "pointer-events-none absolute inset-x-0 top-3 rounded-[10px] bg-sidebar-accent",
+            NAV_ROW_HEIGHT_CLASS,
             "transition-transform duration-standard ease-standard",
             activeNavIndex < 0 && "opacity-0",
           )}
-          style={{ transform: `translateY(${Math.max(activeNavIndex, 0) * ROW_STRIDE}px)` }}
+          style={{ transform: `translateY(${Math.max(activeNavIndex, 0) * NAV_ROW_STRIDE_PX}px)` }}
         />
         {NAV_ITEMS.map((item) => (
           <NavRow

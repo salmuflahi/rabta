@@ -114,12 +114,6 @@
   .card-lift:hover {
     @apply -translate-y-0.5 shadow-raised;
   }
-  /* Stagger helper: children fade+rise in sequence. Set on a container;
-     each direct child animates with an increasing delay via --i. */
-  .stagger-children > * {
-    animation: card-in 220ms ease-out both;
-    animation-delay: calc(var(--i, 0) * 20ms);
-  }
 }
 
 /* Reduced motion — either the OS preference, or the app's own Motion setting

@@ -14,7 +14,6 @@ export default {
       // Mac type scale. Names are unchanged from the previous web scale so
       // all existing text-* usages retone without touching a className.
       fontSize: {
-        display: ["1.375rem", { lineHeight: "1.2", letterSpacing: "-0.02em" }],
         title: ["1.0625rem", { lineHeight: "1.3", letterSpacing: "-0.015em" }],
         card: ["0.9375rem", { lineHeight: "1.35", letterSpacing: "-0.01em" }],
         body: ["0.8125rem", { lineHeight: "1.25", letterSpacing: "-0.005em" }],
@@ -62,7 +61,6 @@ export default {
         // switches and, staggered, on card lists. Nothing should *look*
         // animated; it should just feel settled rather than snapping in.
         "page-in": { from: { opacity: "0", transform: "translateY(4px)" }, to: { opacity: "1", transform: "translateY(0)" } },
-        "card-in": { from: { opacity: "0", transform: "translateY(6px)" }, to: { opacity: "1", transform: "translateY(0)" } },
         // Restore Experience's reduced-motion PATH-B indeterminate progress —
         // a neutral full-width track with a gentle opacity-only pulse (no
         // width/transform movement, no fabricated percentage). See
@@ -84,7 +82,6 @@ export default {
         "restore-pulse": "restore-pulse 1.8s ease-in-out infinite",
         "live-ping": "live-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite",
         "page-in": "page-in 180ms ease-out both",
-        "card-in": "card-in 220ms ease-out both",
       },
       transitionTimingFunction: {
         brand: "cubic-bezier(0.2, 0.8, 0.2, 1)",
@@ -102,7 +99,6 @@ export default {
         raised: "var(--shadow-raised)",
         grouped: "var(--shadow-grouped)",
         soft: "0 2px 8px rgba(0,0,0,0.06)",
-        "soft-md": "0 8px 24px rgba(0,0,0,0.10)",
       },
     },
   },

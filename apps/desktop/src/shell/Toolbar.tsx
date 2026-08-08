@@ -122,8 +122,14 @@ function ConnectionIndicator() {
  * restate what the sidebar already shows. */
 export function Toolbar() {
   const view = useStore((s) => s.view);
+  // `view` traces back to `readPrefs()`'s unvalidated `JSON.parse` of
+  // `landingPage` (store.ts), which never checks the persisted value against
+  // `NavKey` — a stale/hand-edited localStorage value can produce a `view`
+  // that matches no NAV_ITEMS/SETTINGS_ITEM entry. Falling back to `""`
+  // would render a heading with no accessible name; NAV_ITEMS[0] is always
+  // present, so it's used as a known-good label instead.
   const title =
-    [...NAV_ITEMS, SETTINGS_ITEM].find((item) => item.key === view)?.label ?? "";
+    [...NAV_ITEMS, SETTINGS_ITEM].find((item) => item.key === view)?.label ?? NAV_ITEMS[0].label;
 
   return (
     <header

@@ -2,6 +2,7 @@ import { act, screen, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "@/test/smoke-utils";
+import { expectAtMostOneAccent } from "@/test/accent";
 import { expectFocusRingSuppressed, expectHasFocusRing } from "@/test/no-box";
 import { useRestore, type StartOptions } from "./RestoreExperience";
 import type { RestoreResult } from "./types";
@@ -362,5 +363,95 @@ describe("useRestore / RestoreExperience", () => {
     expectFocusRingSuppressed(screen.getByRole("dialog"));
     expectHasFocusRing(screen.getByRole("button", { name: "Close" }));
     expectHasFocusRing(screen.getByRole("button", { name: "Try again" }));
+  });
+
+  // The sheet renders a `bg-primary` folded-corner brand detail on every
+  // stage, and — in the failure stage only — a `bg-primary` "Try again"
+  // button. Two whole-token bg-primary fills at once would violate the
+  // one-accent-per-view rule, so the fold is a live/brand mark
+  // (`data-accent-mark`) that opts out of the count; the button is the
+  // page's one legitimate primary action and must stay counted.
+  describe("accent gate", () => {
+    it("restoring stage: at most one accent fill", async () => {
+      stubMatchMedia(false);
+      vi.useFakeTimers();
+
+      let resolveRun!: (result: RestoreResult) => void;
+      const run = vi.fn(
+        () =>
+          new Promise<RestoreResult>((resolve) => {
+            resolveRun = resolve;
+          })
+      );
+
+      const { container } = renderWithProviders(<Harness run={run} />);
+
+      // Past the sheet-open delay so the stage is definitely "restoring"
+      // (the `run` promise above never resolves on its own).
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+      expect(screen.getAllByText("Waiting")).toHaveLength(TOOLS.length);
+
+      expectAtMostOneAccent(container);
+
+      // Let the run settle so the test doesn't leave a dangling timer.
+      await act(async () => {
+        resolveRun({ overall: "success", tools: [] });
+      });
+    });
+
+    it("success stage: at most one accent fill", async () => {
+      stubMatchMedia(false);
+      vi.useFakeTimers();
+
+      const result: RestoreResult = {
+        overall: "success",
+        tools: [
+          { id: "vscode-1", status: "applied" },
+          { id: "chrome-1", status: "applied" },
+        ],
+      };
+      const run = vi.fn().mockResolvedValue(result);
+
+      const { container } = renderWithProviders(<Harness run={run} />);
+      await advanceUntil(() => screen.queryByText("Workspace restored") !== null);
+
+      expectAtMostOneAccent(container);
+    });
+
+    it("partial stage: at most one accent fill", async () => {
+      stubMatchMedia(true);
+
+      const result: RestoreResult = {
+        overall: "partial",
+        tools: [
+          { id: "vscode-1", status: "applied" },
+          { id: "chrome-1", status: "skipped", message: "On next reload" },
+        ],
+      };
+      const run = vi.fn().mockResolvedValue(result);
+
+      const { container } = renderWithProviders(<Harness run={run} forceReducedMotion />);
+      await waitFor(() => expect(screen.getByText("Workspace partially restored")).toBeInTheDocument());
+
+      expectAtMostOneAccent(container);
+    });
+
+    it("failure stage: at most one accent fill (the fold mark plus the legitimate Try again action)", async () => {
+      stubMatchMedia(false);
+      vi.useFakeTimers();
+
+      const boom = new Error("connector crashed");
+      const run = vi.fn().mockRejectedValue(boom);
+
+      const { container } = renderWithProviders(<Harness run={run} />);
+      await advanceUntil(() => screen.queryByText("Couldn't restore workspace") !== null);
+
+      // The fold mark is present and unmarked would double the count — this
+      // stage is the one where the gate actually has something to gate.
+      expect(container.querySelectorAll(".bg-primary").length).toBeGreaterThanOrEqual(1);
+      expectAtMostOneAccent(container);
+    });
   });
 });

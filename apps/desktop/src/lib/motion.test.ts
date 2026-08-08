@@ -1,7 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   prefersReducedMotion,
-  FOLD_MS,
   RESTORE_MIN_MS,
   UNFOLD_MS,
   FADE_MS,
@@ -45,7 +44,6 @@ describe("prefersReducedMotion", () => {
 
 describe("timing constants", () => {
   it("exports the expected millisecond values", () => {
-    expect(FOLD_MS).toBe(180);
     expect(RESTORE_MIN_MS).toBe(260);
     expect(UNFOLD_MS).toBe(180);
     expect(FADE_MS).toBe(120);

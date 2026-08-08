@@ -133,7 +133,7 @@ function StatusIndicator({
 
   return (
     <span
-      className={cn("flex items-center gap-1.5 text-xs", toneClass)}
+      className={cn("flex items-center gap-1.5 text-label", toneClass)}
       style={{
         opacity: reducedMotion ? 1 : settled ? 1 : 0.35,
         transform: reducedMotion ? "none" : settled ? "scale(1)" : "scale(0.8)",
@@ -182,7 +182,7 @@ function ToolRestoreRow({
         transitionDelay: reducedMotion ? "0ms" : `${index * ROW_STAGGER_MS}ms`,
       }}
     >
-      <span className="flex min-w-0 items-center gap-2 text-sm text-foreground">
+      <span className="flex min-w-0 items-center gap-2 text-body text-foreground">
         <Icon className="size-3.5 shrink-0 text-muted-foreground" />
         <span className="truncate">{tool.name}</span>
       </span>
@@ -236,10 +236,10 @@ function RestoreHeader({ title, subtitle, stage, titleId }: { title: string; sub
         )}
       </span>
       <span className="min-w-0">
-        <h2 id={titleId} className="truncate text-base font-semibold leading-tight text-foreground">
+        <h2 id={titleId} className="truncate text-title font-semibold leading-tight text-foreground">
           {headingFor(stage, title)}
         </h2>
-        {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
+        {subtitle && <p className="truncate text-meta text-muted-foreground">{subtitle}</p>}
       </span>
     </div>
   );
@@ -272,7 +272,7 @@ function RestoreActions({
           </Button>
         </div>
         {resultError && (
-          <div className="text-xs text-muted-foreground">
+          <div className="text-meta text-muted-foreground">
             <button
               type="button"
               onClick={onToggleDetails}
@@ -282,7 +282,7 @@ function RestoreActions({
               Technical details
             </button>
             {detailsOpen && (
-              <pre className="mt-1 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-2 font-mono text-[11px]">
+              <pre className="mt-1 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded-md bg-muted p-2 font-mono text-label">
                 {resultError}
               </pre>
             )}
@@ -303,7 +303,7 @@ function RestoreActions({
           </Button>
         </div>
         {detailsOpen && (
-          <div className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
+          <div className="rounded-md bg-muted p-2 text-meta text-muted-foreground">
             {resultError ?? "Some tools were skipped or couldn't be restored — see the list above."}
           </div>
         )}
@@ -392,7 +392,7 @@ function RestoreOverlay({
       <div
         className="absolute inset-0"
         style={{
-          backgroundColor: "rgba(16,37,38,0.18)",
+          backgroundColor: "hsl(var(--foreground) / 0.18)",
           opacity: backdropOpacity,
           transition: `opacity ${reducedMotion ? REDUCED_MS : 160}ms ${RESTORE_SHEET_EASE}`,
         }}
@@ -410,7 +410,7 @@ function RestoreOverlay({
         style={{ maxWidth: "calc(100vw - 32px)" }}
       >
         <div
-          className="relative rounded-2xl border border-foreground/10 bg-card p-6 shadow-[0_18px_50px_rgba(16,37,38,0.18)]"
+          className="relative rounded-2xl border border-foreground/10 bg-card p-6 shadow-raised"
           style={{
             clipPath,
             opacity: sheetOpacity,
@@ -424,7 +424,7 @@ function RestoreOverlay({
 
           <div role="status" aria-live="polite" className="mt-4">
             {tools.length === 0 ? (
-              <p className="py-2 text-sm text-muted-foreground">Nothing to restore for this task.</p>
+              <p className="py-2 text-body text-muted-foreground">Nothing to restore for this task.</p>
             ) : (
               tools.map((tool, index) => {
                 const entry = statuses[tool.id] ?? { status: "waiting" as ToolRestoreStatus };
@@ -488,6 +488,7 @@ function RestoreOverlay({
             tangerine fold element's opacity+scale animate in, per spec
             ("keep the clip STATIC ... reliability > complexity"). */}
         <div
+          data-accent-mark
           className="pointer-events-none absolute right-0 top-0 bg-primary"
           style={{
             width: FOLD_SIZE,
@@ -499,7 +500,7 @@ function RestoreOverlay({
             transition: reducedMotion
               ? `opacity ${REDUCED_MS}ms ${RESTORE_SHEET_EASE}`
               : `opacity ${FOLD_MS}ms ${RESTORE_SHEET_EASE}, transform ${FOLD_MS}ms ${RESTORE_SHEET_EASE}`,
-            boxShadow: "inset 1px 1px 0 rgba(16,37,38,0.15)",
+            boxShadow: "inset 1px 1px 0 hsl(var(--foreground) / 0.15)",
           }}
           aria-hidden="true"
         />

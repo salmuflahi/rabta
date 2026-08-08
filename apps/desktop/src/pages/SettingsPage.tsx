@@ -59,7 +59,7 @@ function Segmented<T extends string>({
             aria-checked={active}
             onClick={() => onChange(o.value)}
             className={cn(
-              "rounded-[7px] px-3 py-1 text-xs font-medium transition-colors duration-fast ease-standard",
+              "rounded-[7px] px-3 py-1 text-label font-medium transition-colors duration-fast ease-standard",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               active
                 ? "bg-card text-foreground shadow-soft"
@@ -313,8 +313,8 @@ function DeveloperSection() {
       {developerMode && (
         <div className="mt-4 flex flex-col gap-4">
           <div>
-            <p className="text-sm font-medium text-foreground">Command console</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="text-card font-medium text-foreground">Command console</p>
+            <p className="mt-0.5 text-meta text-muted-foreground">
               Send a raw command directly to a connected client.
             </p>
           </div>
@@ -322,8 +322,8 @@ function DeveloperSection() {
           {import.meta.env.DEV && (
             <div className="flex flex-col gap-4 border-t border-border pt-5">
               <div>
-                <p className="text-sm font-medium text-foreground">Restore Experience preview</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
+                <p className="text-card font-medium text-foreground">Restore Experience preview</p>
+                <p className="mt-0.5 text-meta text-muted-foreground">
                   Scripted previews of the restore sheet. Dev builds only.
                 </p>
               </div>
@@ -356,9 +356,9 @@ function AboutSection() {
       <img src={markUrl} alt="" className="size-11 shrink-0 rounded-[10px]" />
       <div className="min-w-0">
         <p className="text-card font-semibold text-foreground">
-          Rabta{version && <span className="ml-2 text-sm font-normal text-muted-foreground">v{version}</span>}
+          Rabta{version && <span className="ml-2 text-meta font-normal text-muted-foreground">v{version}</span>}
         </p>
-        <p className="mt-0.5 text-sm text-muted-foreground">
+        <p className="mt-0.5 text-meta text-muted-foreground">
           A local-first shared brain for your dev tools.
         </p>
       </div>
@@ -600,13 +600,13 @@ function CommandSenderPanel() {
           id="cmd-args"
           value={args}
           onChange={(e) => setArgs(e.target.value)}
-          className="min-h-[100px] w-full min-w-0 font-mono text-xs"
+          className="min-h-[100px] w-full min-w-0 font-mono text-label"
         />
       </div>
       <Button variant="secondary" onClick={send} disabled={!target} className="self-start">
         Send command
       </Button>
-      <pre className="max-h-48 min-h-[80px] min-w-0 overflow-auto whitespace-pre-wrap break-all rounded-md border border-border bg-muted p-3 font-mono text-xs text-muted-foreground">
+      <pre className="max-h-48 min-h-[80px] min-w-0 overflow-auto whitespace-pre-wrap break-all rounded-md border border-border bg-muted p-3 font-mono text-label text-muted-foreground">
         {result}
       </pre>
     </div>
