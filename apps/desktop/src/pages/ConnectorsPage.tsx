@@ -28,7 +28,7 @@ function PairingCard({
           <Button size="sm" variant="outline" onClick={() => onDecide(pairing, false)}>
             Deny
           </Button>
-          <Button size="sm" onClick={() => onDecide(pairing, true)}>
+          <Button size="sm" variant="primary" onClick={() => onDecide(pairing, true)}>
             Approve
           </Button>
         </div>

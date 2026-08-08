@@ -649,7 +649,7 @@ function CommandSenderCard() {
           className="min-h-[100px] w-full min-w-0 font-mono text-xs"
         />
       </div>
-      <Button onClick={send} disabled={!target} className="self-start">
+      <Button variant="secondary" onClick={send} disabled={!target} className="self-start">
         Send command
       </Button>
       <pre className="max-h-48 min-h-[80px] min-w-0 overflow-auto whitespace-pre-wrap break-all rounded-md border border-border bg-muted p-3 font-mono text-xs text-muted-foreground">

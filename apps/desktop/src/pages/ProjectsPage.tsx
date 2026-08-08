@@ -309,7 +309,12 @@ export function ProjectsPage() {
               <ArchiveRestore />
               Archived
             </Button>
+            {/* secondary: the EmptyState's Register Project (below) is this
+                page's primary when the list is empty; this toolbar copy of
+                the same action stays secondary so the two never both read as
+                primary at once. */}
             <Button
+              variant="secondary"
               onClick={() => {
                 resetForm();
                 setRegisterOpen(true);
@@ -332,6 +337,7 @@ export function ProjectsPage() {
           description="Register your first project and Rabta will remember your entire workflow — files, branches, tabs, and terminals."
           action={
             <Button
+              variant="primary"
               onClick={() => {
                 resetForm();
                 setRegisterOpen(true);
@@ -473,7 +479,7 @@ export function ProjectsPage() {
             >
               Cancel
             </Button>
-            <Button onClick={save} disabled={!name || !repoPath || !branch}>
+            <Button variant="primary" onClick={save} disabled={!name || !repoPath || !branch}>
               Register
             </Button>
           </DialogFooter>

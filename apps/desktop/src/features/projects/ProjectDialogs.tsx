@@ -84,7 +84,7 @@ export function ProjectDialogs({
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={renameDisabled}>
+              <Button type="submit" variant="primary" disabled={renameDisabled}>
                 Save changes
               </Button>
             </DialogFooter>

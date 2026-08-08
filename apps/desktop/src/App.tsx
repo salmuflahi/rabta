@@ -289,7 +289,10 @@ export default function App() {
             <span className="min-w-0 flex-1">
               <b>{p.name}</b> ({kindLabel(p.kind)}) wants to connect to Rabta
             </span>
-            <Button size="sm" onClick={() => decide(p, true)}>
+            {/* secondary, not primary: this banner overlays whichever page is
+                current, and Overview/Capsules already spend that page's one
+                primary on their own live action (Resume/Restore). */}
+            <Button size="sm" variant="secondary" onClick={() => decide(p, true)}>
               Approve
             </Button>
             <Button size="sm" variant="outline" onClick={() => decide(p, false)}>

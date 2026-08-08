@@ -264,7 +264,7 @@ function RestoreActions({
           <Button variant="ghost" size="sm" onClick={onClose}>
             Close
           </Button>
-          <Button size="sm" onClick={onRetry}>
+          <Button size="sm" variant="primary" onClick={onRetry}>
             Try again
           </Button>
         </div>

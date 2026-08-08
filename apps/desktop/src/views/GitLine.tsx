@@ -235,7 +235,7 @@ export function GitLine({
             <Button variant="outline" onClick={() => setNewBranchOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={createBranch} disabled={busy || !newBranch}>
+            <Button variant="primary" onClick={createBranch} disabled={busy || !newBranch}>
               Create
             </Button>
           </DialogFooter>

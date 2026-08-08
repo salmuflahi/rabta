@@ -534,7 +534,7 @@ export function CapsulesPage() {
               <Button type="button" variant="outline" onClick={() => setRenameTarget(null)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={busy || !renameTitle.trim()}>
+              <Button type="submit" variant="primary" disabled={busy || !renameTitle.trim()}>
                 Rename
               </Button>
             </DialogFooter>
@@ -552,7 +552,7 @@ export function CapsulesPage() {
           icon={<Layers />}
           title="No capsules yet"
           description="A capsule is a snapshot of a task's workspace — save and restore your editor, browser, and git state so switching tasks never costs you your place."
-          action={<Button onClick={() => setView("projects")}>Register a Project</Button>}
+          action={<Button variant="primary" onClick={() => setView("projects")}>Register a Project</Button>}
         />
       ) : (
         <div className="flex flex-col gap-8">
@@ -584,9 +584,10 @@ export function CapsulesPage() {
                   {tasks.map((t, ti) => {
                     const isActive = t.id === activeTaskId;
                     const actionsDisabled = busy || restoreActive;
-                    // Save comes before Resume: with no saved capsule there's
-                    // nothing to restore, so Save leads (primary) and Resume is
-                    // held back until a capsule exists.
+                    // Only the active task's own Resume gets this page's one
+                    // primary — every other row's Resume/Save State stays
+                    // outline/secondary, or a list of saved capsules would
+                    // light up orange all at once.
                     const hasCapsule = (resources[t.id] ?? []).length > 0;
                     return (
                       <ContextMenu key={t.id}>
@@ -623,7 +624,7 @@ export function CapsulesPage() {
                               <div className="flex shrink-0 items-center gap-1.5">
                                 <Button
                                   size="sm"
-                                  variant={hasCapsule ? "default" : "outline"}
+                                  variant={isActive && hasCapsule ? "primary" : "outline"}
                                   onClick={() => resume(t)}
                                   disabled={actionsDisabled || !hasCapsule}
                                   title={
@@ -646,7 +647,7 @@ export function CapsulesPage() {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant={hasCapsule ? "outline" : "default"}
+                                  variant="secondary"
                                   onClick={() => save(t.id)}
                                   disabled={actionsDisabled}
                                   title="Capture your current editor files, browser tabs, and git branch into this capsule"
@@ -756,7 +757,7 @@ export function CapsulesPage() {
                       placeholder="New task title"
                       className="max-w-sm"
                     />
-                    <Button onClick={() => addTask(p.id)} disabled={!(drafts[p.id] ?? "").trim() || busy || restoreActive}>
+                    <Button variant="secondary" onClick={() => addTask(p.id)} disabled={!(drafts[p.id] ?? "").trim() || busy || restoreActive}>
                       Add Task
                     </Button>
                   </div>

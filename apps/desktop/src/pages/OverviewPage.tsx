@@ -161,7 +161,11 @@ function GettingStarted({
                 )}
               </div>
               {isNext && step.action && (
-                <Button size="sm" onClick={step.action.onClick} className="shrink-0">
+                // secondary: the page's one primary is the active task's
+                // Resume (below), which can be visible at the same time as
+                // this onboarding nudge (e.g. a task exists but no connector
+                // is paired yet).
+                <Button size="sm" variant="secondary" onClick={step.action.onClick} className="shrink-0">
                   {step.action.label}
                 </Button>
               )}
@@ -429,7 +433,9 @@ export function OverviewPage() {
                   </p>
                   <p className="mt-0.5 truncate text-card font-semibold text-foreground">{activeTask.title}</p>
                 </div>
-                <Button size="sm" className="shrink-0" onClick={() => resumeTask(activeTask.id)}>
+                {/* Overview's one primary action: resuming the task you're
+                    actually in the middle of. */}
+                <Button size="sm" variant="primary" className="shrink-0" onClick={() => resumeTask(activeTask.id)}>
                   <Play className="size-3.5 fill-current" />
                   Resume
                 </Button>
@@ -464,8 +470,12 @@ export function OverviewPage() {
                         {task && <p className="mt-1 truncate text-meta text-muted-foreground">{task.title}</p>}
                       </div>
                       {task ? (
+                        // secondary, not primary: this list can render one of
+                        // these per continued project, and the active task's
+                        // Resume above already holds this page's one primary.
                         <Button
                           size="sm"
+                          variant="secondary"
                           aria-label={`Resume ${project.name}`}
                           onClick={() => resumeTask(task.id)}
                         >

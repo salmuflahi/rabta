@@ -104,7 +104,7 @@ function Section({
 }
 
 const buttonVariants = [
-  "default",
+  "primary",
   "secondary",
   "ghost",
   "destructive",
@@ -138,14 +138,14 @@ export function Gallery() {
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant={theme === "light" ? "default" : "outline"}
+            variant={theme === "light" ? "primary" : "outline"}
             size="sm"
             onClick={() => setTheme("light")}
           >
             <Sun /> Light
           </Button>
           <Button
-            variant={theme === "dark" ? "default" : "outline"}
+            variant={theme === "dark" ? "primary" : "outline"}
             size="sm"
             onClick={() => setTheme("dark")}
           >
@@ -205,11 +205,11 @@ export function Gallery() {
           ))}
           <div className="flex items-center gap-3">
             <span className="w-24 text-xs text-muted-foreground">disabled</span>
-            <Button disabled>Disabled</Button>
+            <Button variant="secondary" disabled>Disabled</Button>
           </div>
           <div className="flex items-center gap-3">
             <span className="w-24 text-xs text-muted-foreground">icon+label</span>
-            <Button>
+            <Button variant="secondary">
               <Download />
               Download
             </Button>
@@ -372,7 +372,7 @@ export function Gallery() {
             icon={<Inbox />}
             title="No connectors yet"
             description="Pair a client to see it appear here."
-            action={<Button size="sm">Pair a connector</Button>}
+            action={<Button size="sm" variant="primary">Pair a connector</Button>}
           />
 
           <div className="flex items-center gap-3">
