@@ -20,10 +20,11 @@ import { useStore, type ConnectorRow, type PendingPairing } from "@/store";
  * buttons (see the "shows only the first pairing card's Approve button..."
  * test, which pins this from both sides).
  *
- * `border` is applied explicitly alongside `border-warning/30`: Surface
- * (like Card, its thin alias) owns elevation via shadow, not a border
- * width, so the warning colour needs its own width utility or it renders
- * as nothing.
+ * Differentiated with `bg-warning/10` alone, on top of `variant="raised"`'s
+ * own `shadow-raised` elevation — never a border. Surface owns depth via a
+ * lit, elevated plane, not a drawn outline; that is the one rule that
+ * separates this redesign from the bordered-card dashboard look it
+ * replaces, and it holds even for a state as urgent as a pending pairing.
  */
 function PendingPairings({
   pairings,
@@ -33,7 +34,7 @@ function PendingPairings({
   onDecide: (pairing: PendingPairing, ok: boolean) => void;
 }) {
   return (
-    <Surface variant="raised" className="mb-6 border border-warning/30 bg-warning/10 p-4">
+    <Surface variant="raised" className="mb-6 bg-warning/10 p-4">
       <div className="flex flex-col divide-y divide-warning/20">
         {pairings.map((p, i) => (
           <div

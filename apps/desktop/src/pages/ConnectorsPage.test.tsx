@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { expectAtMostOneAccent } from "@/test/accent";
+import { expectNoBorder } from "@/test/no-box";
 import { useStore } from "@/store";
 import { renderWithProviders } from "@/test/smoke-utils";
 import { ConnectorsPage } from "./ConnectorsPage";
@@ -125,11 +126,14 @@ describe("ConnectorsPage", () => {
     expect(buttonsWithPrimary[0]).toBe(approveButtons[0]);
   });
 
-  // Card no longer applies a border by default (Surface owns elevation, not
-  // outlines), so a call site that layers on a border colour must also
-  // supply the border-width utility itself or the colour renders as
-  // nothing (Preflight resets border-width to 0).
-  it("gives the pending-pairing card an explicit border width alongside its warning colour", async () => {
+  // Surface's whole contract is that depth comes from a lit, elevated
+  // plane, never a drawn outline (see the comment above PendingPairings) —
+  // it is the one rule separating this redesign from the bordered-card
+  // dashboard look it replaces. The pending-pairings prompt must
+  // differentiate itself the same way every other Surface in the app
+  // does: `variant="raised"`'s own shadow-raised elevation plus its own
+  // bg-warning/10 tint — never a border, warning-coloured or otherwise.
+  it("renders the pending-pairing prompt as a raised Surface with no border", async () => {
     useStore.setState({
       connectors: [],
       pairings: [{ pairingId: "pair-1", name: "Chrome", kind: "browser" }],
@@ -138,9 +142,11 @@ describe("ConnectorsPage", () => {
     const { container } = renderWithProviders(<ConnectorsPage />);
     await screen.findByText("Approve");
 
-    const pairingCard = container.querySelector('[class*="border-warning"]');
-    expect(pairingCard).not.toBeNull();
-    expect(pairingCard!.className).toMatch(/(^|\s)border(\s|$)/);
+    const pairingSurface = container.querySelector('[class*="bg-warning"]');
+    expect(pairingSurface).not.toBeNull();
+    // Raised, not merely tinted — it still gets Surface's elevation.
+    expect(pairingSurface!.className).toMatch(/(^|\s)shadow-raised(\s|$)/);
+    expectNoBorder(pairingSurface!);
   });
 
   it("spends the accent at most once", async () => {

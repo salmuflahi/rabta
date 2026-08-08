@@ -7,6 +7,10 @@ import { Card } from "./card";
  * workspace. Critical for a local-first app: a read error must never be
  * rendered as "you have nothing" (which reads as data loss and invites
  * re-registering duplicates). Reassures that data is safe and offers a retry.
+ *
+ * No border: Card is a thin alias over Surface, and Surface owns depth via
+ * elevation (shadow), never a drawn outline — the destructive-tinted icon
+ * badge and copy carry the "something went wrong" signal instead.
  */
 export function LoadError({
   onRetry,
@@ -16,7 +20,7 @@ export function LoadError({
   entity?: string;
 }) {
   return (
-    <Card className="flex flex-col items-center gap-3 border border-dashed p-8 text-center">
+    <Card className="flex flex-col items-center gap-3 p-8 text-center">
       <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
         <AlertTriangle className="size-6" />
       </div>
