@@ -3,6 +3,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { useStore, type NavKey } from "@/store";
 import { NAV_ITEMS, SETTINGS_ITEM, type NavItem } from "./nav";
+import {
+  SIDEBAR_TITLEBAR_DIVIDER_HEIGHT_CLASS,
+  SIDEBAR_TITLEBAR_SPACER_HEIGHT_CLASS,
+} from "./titlebar";
 
 // Row height (h-[25px]) + nav gap (gap-1 = 4px): the moving selection
 // surface is translated by activeIndex * ROW_STRIDE to sit behind the active
@@ -154,16 +158,30 @@ export function Sidebar() {
     >
       {/* Row 1 — macOS traffic-light strip. Windowed only; the OS overlays the
           lights here. In fullscreen there are no lights, so the row is dropped
-          and the brand row moves up into this space (no empty band). Its height
-          matches the workspace Toolbar (h-[60px] border-b) so the titlebar
-          divider below lines up with the Toolbar's bottom border — one
-          continuous hairline across the whole app. */}
-      {!fullscreen && <div data-tauri-drag-region className="h-[59px] shrink-0" />}
+          and the brand row moves up into this space (no empty band). This
+          spacer plus the 1px divider below it total the workspace Toolbar's
+          height (src/shell/titlebar.ts, currently 38px) so the titlebar
+          divider lines up with the Toolbar's bottom border — one continuous
+          hairline across the whole app. The two heights are pulled from the
+          same shared constants module specifically because they've already
+          drifted apart once (the Toolbar went from 60px to 38px without a
+          matching edit here) — keep them wired to titlebar.ts rather than
+          hardcoding either number again. */}
+      {!fullscreen && (
+        <div data-tauri-drag-region className={cn(SIDEBAR_TITLEBAR_SPACER_HEIGHT_CLASS, "shrink-0")} />
+      )}
 
       {/* Titlebar divider — sets the window-controls row apart from the brand
           row below, aligned with the Toolbar border. Windowed only, since
           fullscreen has no light row above it. */}
-      {!fullscreen && <div className="-mx-[10px] h-px shrink-0 bg-sidebar-border/50" />}
+      {!fullscreen && (
+        <div
+          className={cn(
+            "-mx-[10px] shrink-0 bg-sidebar-border/50",
+            SIDEBAR_TITLEBAR_DIVIDER_HEIGHT_CLASS,
+          )}
+        />
+      )}
 
       {/* Row 2 — brand + collapse control. Flows straight into the nav; the
           only divider up top is the titlebar one under the traffic lights. */}

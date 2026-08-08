@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useStore, type ConnectorRow } from "@/store";
 import { NAV_ITEMS, SETTINGS_ITEM } from "./nav";
+import { TOOLBAR_HEIGHT_CLASS } from "./titlebar";
 
 /** Visible entry point to the ⌘K command palette. Without it the palette is
  * discoverable only by devs who already know the shortcut — so this both opens
@@ -127,7 +128,10 @@ export function Toolbar() {
   return (
     <header
       data-tauri-drag-region
-      className="flex h-[38px] shrink-0 items-center gap-3 border-b border-border/60 bg-background px-3"
+      className={cn(
+        TOOLBAR_HEIGHT_CLASS,
+        "flex shrink-0 items-center gap-3 border-b border-border/60 bg-background px-3",
+      )}
     >
       <h1 className="truncate text-body font-semibold text-foreground">{title}</h1>
       <ConnectionIndicator />
