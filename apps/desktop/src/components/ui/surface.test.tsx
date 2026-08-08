@@ -55,6 +55,16 @@ describe("Surface", () => {
     expect(screen.getByTestId("c").className).not.toMatch(BORDER_CLASS);
   });
 
+  // Card uses grouped elevation (the default), not raised. Raised is reserved
+  // for the single hero surface per screen; grouping six Cards as raised
+  // competing heroes is wrong. This pins the contract so Card naturally
+  // degrades when screens migrate to Surface.
+  it("renders Card with grouped elevation, not raised", () => {
+    render(<Card data-testid="c">legacy</Card>);
+    expect(screen.getByTestId("c").className).toMatch(/shadow-grouped/);
+    expect(screen.getByTestId("c").className).not.toMatch(/shadow-raised/);
+  });
+
   // The old Card explicitly coupled its text colour to the card surface
   // rather than letting it inherit ambient --foreground. Restated here so a
   // future divergence between --card-foreground and --foreground would be
