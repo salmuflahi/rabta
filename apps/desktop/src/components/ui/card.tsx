@@ -1,17 +1,13 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { Surface } from "./surface";
 
 export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "rounded-lg border border-border bg-card text-card-foreground shadow-grouped transition-[box-shadow,border-color,transform] duration-150 ease-brand",
-        className
-      )}
-      {...props}
-    />
-  )
+    // Kept as a thin alias over Surface so screens not yet migrated to the
+    // new primitives lose their borders automatically rather than breaking.
+    <Surface ref={ref} variant="raised" className={className} {...props} />
+  ),
 );
 Card.displayName = "Card";
 
