@@ -15,7 +15,7 @@ export interface FieldProps {
 export function Field({ label, description, htmlFor, className, children }: FieldProps) {
   return (
     <div
-      data-testid="field-root"
+      data-field
       className={cn(
         "flex items-center gap-4 border-t border-border/60 px-3 py-2.5 first:border-t-0",
         className,

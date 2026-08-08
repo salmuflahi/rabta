@@ -10,10 +10,33 @@ function classTokensOf(className: string): string[] {
 }
 
 /**
+ * Strips Tailwind variant prefixes (e.g., hover:, dark:, first:) off a token.
+ */
+function baseUtilityOf(token: string): string {
+  const parts = token.split(":");
+  return parts[parts.length - 1];
+}
+
+/**
  * Returns true if the exact token (as a whole class) is present.
  */
 function hasToken(className: string, token: string): boolean {
   return classTokensOf(className).includes(token);
+}
+
+/**
+ * Returns true if a token with the given base utility is present.
+ * e.g., hasBaseUtility(className, "border-t") matches "border-t" or "first:border-t-0"
+ */
+function hasBaseUtility(className: string, baseUtil: string): boolean {
+  return classTokensOf(className).some((token) => baseUtilityOf(token) === baseUtil);
+}
+
+/**
+ * Returns true if NO token matches the given base utility.
+ */
+function lacksBaseUtility(className: string, baseUtil: string): boolean {
+  return !hasBaseUtility(className, baseUtil);
 }
 
 describe("Field", () => {
@@ -64,7 +87,7 @@ describe("Field", () => {
       </div>,
     );
 
-    const fieldElements = container.querySelectorAll("[data-testid='field-root']");
+    const fieldElements = container.querySelectorAll("[data-field]");
     expect(fieldElements).toHaveLength(2);
 
     const firstField = fieldElements[0];
@@ -76,10 +99,14 @@ describe("Field", () => {
     expect(hasToken(firstField.className, "border-t")).toBe(true);
     // First Field: carries the hairline colour token
     expect(hasToken(firstField.className, "border-border/60")).toBe(true);
+    // First Field: must NOT carry the full four-sided border token (the "box regression")
+    expect(lacksBaseUtility(firstField.className, "border")).toBe(true);
 
     // Second Field: carries the top border
     expect(hasToken(secondField.className, "border-t")).toBe(true);
     // Second Field: carries the hairline colour token
     expect(hasToken(secondField.className, "border-border/60")).toBe(true);
+    // Second Field: must NOT carry the full four-sided border token
+    expect(lacksBaseUtility(secondField.className, "border")).toBe(true);
   });
 });
