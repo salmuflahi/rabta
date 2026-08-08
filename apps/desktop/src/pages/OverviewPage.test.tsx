@@ -85,9 +85,11 @@ describe("OverviewPage", () => {
     renderWithProviders(<OverviewPage />);
     await screen.findByText("Overview");
     // Counts live on the sidebar rows that own them. A tile here would be
-    // the same number in two places.
-    expect(screen.queryByText("PROJECTS")).toBeNull();
-    expect(screen.queryByText("OPEN TASKS")).toBeNull();
+    // the same number in two places. The removed tiles used Title Case
+    // ("Projects", "Open Tasks") — asserting the uppercase strings the
+    // tiles never used would pass even if the tiles came back.
+    expect(screen.queryByText("Projects")).toBeNull();
+    expect(screen.queryByText("Open Tasks")).toBeNull();
   });
 
   it("spends the accent at most once", async () => {
@@ -316,5 +318,44 @@ describe("OverviewPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "View Capsules" }));
     expect(useStore.getState().pendingResumeTaskId).toBeNull();
     expect(useStore.getState().view).toBe("capsules");
+  });
+
+  it("renders the active task's live marker and Resume action within the one-accent budget", async () => {
+    // The one scenario the accent-mark opt-out exists for: a real active
+    // task renders both the "you are here" marker (data-accent-mark) and
+    // the page's single primary action (Resume) side by side. Every other
+    // test in this file seeds `active_task: null`, so the raised Surface
+    // that holds both never mounts anywhere else.
+    const project = projectFixture({ id: "prj_atlas", name: "atlas-api" });
+    const activeTask: Task = {
+      id: "task_reconnect",
+      projectId: project.id,
+      title: "Wire the connector SDK reconnect",
+      status: "open",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+    mockInvoke.mockClear();
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "list_projects") return [project];
+      if (cmd === "list_tasks") return [activeTask];
+      if (cmd === "active_task") return activeTask.id;
+      return [];
+    });
+
+    const { container } = renderWithProviders(<OverviewPage />);
+
+    // (a) The Resume button actually renders — proving the raised Surface
+    // is on screen, otherwise the rest of this test would be vacuous.
+    const resumeButton = await screen.findByRole("button", { name: "Resume" });
+    expect(resumeButton).toBeInTheDocument();
+    expect(screen.getByText("Wire the connector SDK reconnect")).toBeInTheDocument();
+
+    // (b) The live marker renders and carries the opt-out attribute.
+    const marker = container.querySelector("[data-accent-mark]");
+    expect(marker).not.toBeNull();
+
+    // (c) With both present, the page still spends the accent at most once.
+    expectAtMostOneAccent(container);
   });
 });
