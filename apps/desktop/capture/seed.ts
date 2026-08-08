@@ -289,6 +289,20 @@ export const RESOURCES: Record<string, TaskResource[]> = {
   ],
 };
 
+// --------------------------------------------------------------------- pins
+//
+// "Always open this" markers a user set explicitly via the curate popover —
+// see `task_pins` on the Rust side (crates/omnibus-db/src/records.rs
+// TaskPin). Empty: no captured screen opens that popover, so a seeded pin
+// here would be untested surface area rather than truth. The command still
+// needs a real (if empty) answer — an unhandled "task_pins" throws in
+// mock-tauri.ts and CapsulesPage's initial load shows the read-error panel
+// instead of the page.
+export const PINS: Record<
+  string,
+  { id: string; taskId: string; connectorKind: string; identity: string; payload: unknown; createdAt: string }[]
+> = {};
+
 // -------------------------------------------------------------- connectors
 
 /** Live connectors, as the hub reports them. Only kinds that exist in

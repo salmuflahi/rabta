@@ -22,6 +22,7 @@ import {
   KNOWN_CONNECTORS,
   LIVE_CONNECTORS,
   PENDING_PAIRINGS,
+  PINS,
   PROJECTS,
   RESOURCES,
   SAVE_SUMMARY,
@@ -73,6 +74,10 @@ function handle(cmd: string, args: Args): unknown {
     case "task_resources": {
       const taskId = String(args?.taskId ?? "");
       return RESOURCES[taskId] ?? [];
+    }
+    case "task_pins": {
+      const taskId = String(args?.taskId ?? "");
+      return PINS[taskId] ?? [];
     }
     case "active_task":
       return activeTaskId;
