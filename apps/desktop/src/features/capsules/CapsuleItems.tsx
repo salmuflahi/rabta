@@ -1,6 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Pin, PinOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Row } from "@/components/ui/row";
+import { Section } from "@/components/ui/section";
+import { Surface } from "@/components/ui/surface";
 import { cn } from "@/lib/utils";
 import { toastErr } from "@/lib/toast";
 import type { TaskResource } from "@/store";
@@ -138,6 +141,34 @@ function itemsOf(resources: TaskResource[], pins: CapsuleItemsProps["pins"]): Ca
   return out;
 }
 
+/** The four pin states a curate row can be in, each with its own non-colour
+ * cue (an icon shape, not a hue) so the state reads even without colour:
+ *  - "pinned": part of the workspace definition — filled `Pin`.
+ *  - "loose": captured because it was open, never pinned — no icon.
+ *  - "gone": the pin outlived its captured item — outline `PinOff`, muted.
+ *  - "unpinnable": no reconstructable command — disabled pin + a tooltip
+ *    (and an accessible description) giving the reason.
+ * Pinned takes priority over unpinnable: pinning a vscode terminal is only
+ * blocked going forward — an item that's already pinned always keeps its
+ * (enabled) unpin control regardless of `pinnable`, matching `pinDisabled`
+ * below (`!pinned && !pinnable`). */
+type PinState = "pinned" | "loose" | "gone" | "unpinnable";
+
+function pinStateOf(it: CapsuleItem): PinState {
+  if (it.pinned) return it.captured ? "pinned" : "gone";
+  return it.pinnable ? "loose" : "unpinnable";
+}
+
+/** kind + payload shape -> which curate group a row belongs in. A vscode
+ * item's payload is a bare path string for a file, or a {name, cwd} object
+ * for a terminal — see identityOf's own kind split above. */
+function groupOf(it: CapsuleItem): "Tabs" | "Files" | "Terminals" {
+  if (it.kind === "chrome") return "Tabs";
+  return typeof it.payload === "string" ? "Files" : "Terminals";
+}
+
+const GROUP_ORDER = ["Tabs", "Files", "Terminals"] as const;
+
 /** The curate list inside a task's capsule popover (see CapsulesPage.tsx's
  * CapsuleSummary): one row per captured chrome tab / vscode file / vscode
  * terminal, plus one row for any pin that has outlived its captured item,
@@ -162,62 +193,107 @@ export function CapsuleItems({ taskId, resources, pins, onChanged }: CapsuleItem
     }
   }
 
+  const groups = GROUP_ORDER.map((label) => ({
+    label,
+    rows: items.filter((it) => groupOf(it) === label),
+  })).filter((g) => g.rows.length > 0);
+
   return (
-    <ul className="mt-3 flex flex-col gap-1 border-t pt-3">
-      {items.map((it) => {
-        const pinLabel = it.pinned
-          ? `stop always opening ${it.label}`
-          : it.pinnable
-            ? `always open ${it.label}`
-            : `can't always open ${it.label} — no saved folder to restore it in`;
-        const pinDisabled = !it.pinned && !it.pinnable;
-        return (
-          <li key={`${it.kind}\0${it.identity}`} className="flex items-center gap-1.5">
-            <span
-              className={cn(
-                "min-w-0 flex-1 truncate text-xs",
-                it.captured ? "text-popover-foreground" : "italic text-muted-foreground",
-              )}
-              title={it.captured ? it.identity : `${it.identity} — pinned, not currently open`}
-            >
-              {it.label}
-              {it.captured ? null : " (not open)"}
-            </span>
-            {/* aria-disabled rather than disabled: the base button class carries
-                disabled:pointer-events-none, so a truly disabled button can never
-                fire its title tooltip, and it drops out of tab order too — which
-                means the one thing this control has to say ("why can't I pin
-                this?") reaches nobody who is looking at it. Left focusable and
-                hoverable, refusing the click instead. */}
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              aria-disabled={pinDisabled || undefined}
-              className={cn(pinDisabled && "cursor-not-allowed opacity-50")}
-              aria-label={pinLabel}
-              title={pinDisabled ? pinLabel : undefined}
-              onClick={() => {
-                if (pinDisabled) return;
-                return it.pinned
-                  ? run("unpin_task_item", { taskId, connectorKind: it.kind, identity: it.identity })
-                  : run("pin_task_item", { taskId, connectorKind: it.kind, payload: it.payload });
-              }}
-            >
-              {it.pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
-            </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              aria-label={`remove ${it.label} from this capsule`}
-              onClick={() => run("remove_task_item", { taskId, connectorKind: it.kind, identity: it.identity })}
-            >
-              <X className="size-4" />
-            </Button>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="mt-3 flex flex-col gap-4 border-t pt-3">
+      {groups.map((group) => (
+        <Section key={group.label} label={group.label}>
+          <Surface>
+            {group.rows.map((it, idx) => {
+              const state = pinStateOf(it);
+              // "unpin" appears alongside the existing "stop always
+              // opening X" phrasing (rather than replacing it) so the
+              // accessible name still reads naturally and keeps matching
+              // every existing "stop always opening X" assertion.
+              const pinLabel = it.pinned
+                ? `stop always opening ${it.label} (unpin)`
+                : it.pinnable
+                  ? `always open ${it.label}`
+                  : `can't always open ${it.label} — no saved folder to restore it in`;
+              const pinDisabled = state === "unpinnable";
+              const descId = `capsule-item-pin-desc-${group.label}-${idx}`;
+              return (
+                <Row
+                  key={`${it.kind}\0${it.identity}`}
+                  data-pin-state={state}
+                  className="group px-3 py-1.5"
+                  leading={
+                    <>
+                      {pinDisabled && (
+                        <span id={descId} className="sr-only">
+                          This terminal has no command to reopen it, so pinning it would never do
+                          anything.
+                        </span>
+                      )}
+                      {/* aria-disabled rather than disabled: the base button class
+                          carries disabled:pointer-events-none, so a truly disabled
+                          button can never fire its title tooltip, and it drops out
+                          of tab order too — which means the one thing this control
+                          has to say ("why can't I pin this?") reaches nobody who is
+                          looking at it. Left focusable and hoverable, refusing the
+                          click instead. */}
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className={cn("size-7", pinDisabled && "cursor-not-allowed opacity-50")}
+                        aria-disabled={pinDisabled || undefined}
+                        aria-describedby={pinDisabled ? descId : undefined}
+                        aria-label={pinLabel}
+                        title={pinDisabled ? pinLabel : undefined}
+                        onClick={() => {
+                          if (pinDisabled) return;
+                          return it.pinned
+                            ? run("unpin_task_item", { taskId, connectorKind: it.kind, identity: it.identity })
+                            : run("pin_task_item", { taskId, connectorKind: it.kind, payload: it.payload });
+                        }}
+                      >
+                        {state === "pinned" && <Pin className="size-4 fill-current" />}
+                        {state === "gone" && <PinOff className="size-4 text-muted-foreground" />}
+                        {state === "unpinnable" && <Pin className="size-4" />}
+                        {/* "loose" (captured, never pinned): no icon is the cue
+                            itself — a faint pin only appears on hover/focus so the
+                            control stays reachable without competing with the
+                            pinned column at rest. */}
+                        {state === "loose" && (
+                          <Pin className="size-4 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100" />
+                        )}
+                      </Button>
+                    </>
+                  }
+                  title={
+                    <span
+                      className={cn(state === "gone" && "italic text-muted-foreground")}
+                      title={it.captured ? it.identity : `${it.identity} — pinned, not currently open`}
+                    >
+                      <span>{it.label}</span>
+                      {!it.captured && <span className="ml-1 text-muted-foreground">(not open)</span>}
+                    </span>
+                  }
+                  trailing={
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="size-7"
+                      aria-label={`remove ${it.label} from this capsule`}
+                      onClick={() =>
+                        run("remove_task_item", { taskId, connectorKind: it.kind, identity: it.identity })
+                      }
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  }
+                />
+              );
+            })}
+          </Surface>
+        </Section>
+      ))}
+    </div>
   );
 }

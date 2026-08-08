@@ -30,7 +30,10 @@ import { LoadError } from "@/components/ui/load-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Row } from "@/components/ui/row";
+import { Section } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Surface } from "@/components/ui/surface";
 import { CapsuleItems } from "@/features/capsules/CapsuleItems";
 import { formatDuration, humanizeCapsule } from "@/lib/humanize";
 import { cn } from "@/lib/utils";
@@ -201,7 +204,7 @@ function CapsuleSummary({
                   <p className="truncate text-xs text-popover-foreground">
                     {friendlyToolName(r.connectorKind)} — {h.summary}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">saved {h.savedAgo}</p>
+                  <p className="text-[11px] tabular-nums text-muted-foreground">saved {h.savedAgo}</p>
                 </div>
               </div>
             ))}
@@ -209,7 +212,7 @@ function CapsuleSummary({
         )}
         <CapsuleItems taskId={taskId} resources={resources} pins={pins} onChanged={onChanged} />
         {typeof lastSessionSeconds === "number" && lastSessionSeconds > 0 ? (
-          <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
+          <p className="mt-3 border-t pt-3 text-xs tabular-nums text-muted-foreground">
             Last session {formatDuration(lastSessionSeconds)}
           </p>
         ) : null}
@@ -563,191 +566,207 @@ export function CapsulesPage() {
                 (keepCompleted || t.status !== "done" || t.id === activeTaskId),
             );
             return (
-              <div key={p.id}>
-                <div className="mb-3 flex min-w-0 items-center gap-2">
-                  <h2 className="min-w-0 truncate text-body font-semibold text-foreground">{p.name}</h2>
-                  {p.defaultBranch ? (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 font-mono text-label text-muted-foreground">
+              <Section
+                key={p.id}
+                label={p.name}
+                action={
+                  p.defaultBranch ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 font-mono text-meta text-muted-foreground">
                       <GitBranch className="size-3" />
                       {p.defaultBranch}
                     </span>
-                  ) : null}
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  {tasks.length === 0 && (
-                    <p className="text-xs text-muted-foreground">
+                  ) : undefined
+                }
+              >
+                <div className="flex flex-col gap-3">
+                  {tasks.length === 0 ? (
+                    <p className="text-meta text-muted-foreground">
                       No tasks in {p.name} yet — add one below
                     </p>
-                  )}
-
-                  {tasks.map((t, ti) => {
-                    const isActive = t.id === activeTaskId;
-                    const actionsDisabled = busy || restoreActive;
-                    // Only the active task's own Resume gets this page's one
-                    // primary — every other row's Resume/Save State stays
-                    // outline/secondary, or a list of saved capsules would
-                    // light up orange all at once.
-                    const hasCapsule = (resources[t.id] ?? []).length > 0;
-                    return (
-                      <ContextMenu key={t.id}>
-                        <ContextMenuTrigger asChild>
-                          <Card
-                            style={{ animationDelay: `${Math.min(ti, 6) * 25}ms` }}
-                            className={cn(
-                              "card-lift animate-card-in p-4",
-                              isActive && "border-l-2 border-l-primary"
-                            )}
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="min-w-0">
-                                <div className="flex min-w-0 items-center gap-2">
-                                  <p
-                                    className={
-                                      t.status === "done"
-                                        ? "min-w-0 truncate text-card font-medium text-muted-foreground line-through"
-                                        : "min-w-0 truncate text-card font-medium text-foreground"
-                                    }
-                                  >
-                                    {t.title}
-                                  </p>
-                                  {isActive && <Badge className="shrink-0">Active</Badge>}
-                                </div>
-                                <CapsuleSummary
-                                  taskId={t.id}
-                                  resources={resources[t.id] ?? []}
-                                  pins={pins[t.id] ?? []}
-                                  lastSessionSeconds={p.activeSeconds}
-                                  onChanged={refresh}
-                                />
-                              </div>
-                              <div className="flex shrink-0 items-center gap-1.5">
-                                <Button
-                                  size="sm"
-                                  variant={isActive && hasCapsule ? "primary" : "outline"}
-                                  onClick={() => resume(t)}
-                                  disabled={actionsDisabled || !hasCapsule}
-                                  title={
-                                    hasCapsule
-                                      ? "Restore this workspace — reopens the saved files, tabs, and git branch"
-                                      : "Save a capsule first, then Resume brings the whole workspace back"
-                                  }
-                                >
-                                  {restoreActive ? (
-                                    <>
-                                      <Loader2 className="size-3.5 animate-spin" />
-                                      Restoring…
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Play className="size-3.5 fill-current" />
-                                      Resume
-                                    </>
-                                  )}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  onClick={() => save(t.id)}
-                                  disabled={actionsDisabled}
-                                  title="Capture your current editor files, browser tabs, and git branch into this capsule"
-                                >
-                                  {pendingAction?.taskId === t.id && pendingAction.kind === "save"
-                                    ? "Saving…"
-                                    : "Save State"}
-                                </Button>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className="size-8 text-muted-foreground"
-                                      aria-label={`More actions for ${t.title}`}
-                                      disabled={actionsDisabled}
-                                    >
-                                      <MoreHorizontal className="size-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-44">
-                                    <DropdownMenuItem onSelect={() => toggleStatus(t)}>
-                                      {t.status === "open" ? (
-                                        <Check className="mr-2 size-4" />
-                                      ) : (
-                                        <RotateCcw className="mr-2 size-4" />
+                  ) : (
+                    <Surface>
+                      {tasks.map((t) => {
+                        const isActive = t.id === activeTaskId;
+                        const actionsDisabled = busy || restoreActive;
+                        // Only the active task's own Resume gets this page's
+                        // one primary — every other row's Resume/Save State
+                        // stays outline/secondary, or a list of saved
+                        // capsules would light up orange all at once.
+                        const hasCapsule = (resources[t.id] ?? []).length > 0;
+                        return (
+                          <ContextMenu key={t.id}>
+                            <ContextMenuTrigger asChild>
+                              <Row
+                                leading={
+                                  // The "you are here" marker: legitimately
+                                  // orange (the live thing), but it is not an
+                                  // action, so it opts out of the one-accent
+                                  // budget the Resume button spends. Always
+                                  // rendered (transparent when not active) so
+                                  // every row's title lines up under the same
+                                  // left edge.
+                                  <span
+                                    data-accent-mark={isActive || undefined}
+                                    className={cn(
+                                      "size-2 shrink-0 rounded-full",
+                                      isActive ? "bg-primary" : "bg-transparent",
+                                    )}
+                                  />
+                                }
+                                title={
+                                  <span className="flex min-w-0 items-center gap-2">
+                                    <span
+                                      className={cn(
+                                        "truncate",
+                                        t.status === "done"
+                                          ? "text-muted-foreground line-through"
+                                          : "text-foreground",
                                       )}
-                                      {t.status === "open" ? "Mark done" : "Reopen"}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onSelect={() => {
-                                        setRenameTarget(t);
-                                        setRenameTitle(t.title);
-                                      }}
                                     >
-                                      <Pencil className="mr-2 size-4" />
-                                      Rename
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={() => duplicateTask(t)}>
-                                      <Copy className="mr-2 size-4" />
-                                      Duplicate
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                                      onSelect={() => requestDelete(t)}
+                                      {t.title}
+                                    </span>
+                                    {isActive && <Badge className="shrink-0">Active</Badge>}
+                                  </span>
+                                }
+                                subtitle={
+                                  <CapsuleSummary
+                                    taskId={t.id}
+                                    resources={resources[t.id] ?? []}
+                                    pins={pins[t.id] ?? []}
+                                    lastSessionSeconds={p.activeSeconds}
+                                    onChanged={refresh}
+                                  />
+                                }
+                                trailing={
+                                  <div className="flex shrink-0 items-center gap-1.5">
+                                    <Button
+                                      size="sm"
+                                      variant={isActive && hasCapsule ? "primary" : "outline"}
+                                      onClick={() => resume(t)}
+                                      disabled={actionsDisabled || !hasCapsule}
+                                      title={
+                                        hasCapsule
+                                          ? "Restore this workspace — reopens the saved files, tabs, and git branch"
+                                          : "Save a capsule first, then Resume brings the whole workspace back"
+                                      }
                                     >
-                                      <Trash2 className="mr-2 size-4" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </div>
-                          </Card>
-                        </ContextMenuTrigger>
-                        <ContextMenuContent>
-                          <ContextMenuItem onSelect={() => resume(t)} disabled={actionsDisabled}>
-                            <Play className="mr-2 size-4" />
-                            Resume
-                          </ContextMenuItem>
-                          <ContextMenuItem onSelect={() => save(t.id)} disabled={actionsDisabled}>
-                            <Save className="mr-2 size-4" />
-                            Save State
-                          </ContextMenuItem>
-                          <ContextMenuItem
-                            onSelect={() => {
-                              setRenameTarget(t);
-                              setRenameTitle(t.title);
-                            }}
-                            disabled={actionsDisabled}
-                          >
-                            <Pencil className="mr-2 size-4" />
-                            Rename
-                          </ContextMenuItem>
-                          <ContextMenuItem onSelect={() => duplicateTask(t)} disabled={actionsDisabled}>
-                            <Copy className="mr-2 size-4" />
-                            Duplicate
-                          </ContextMenuItem>
-                          <ContextMenuItem onSelect={() => toggleStatus(t)} disabled={actionsDisabled}>
-                            {t.status === "open" ? (
-                              <Check className="mr-2 size-4" />
-                            ) : (
-                              <RotateCcw className="mr-2 size-4" />
-                            )}
-                            {t.status === "open" ? "Done" : "Reopen"}
-                          </ContextMenuItem>
-                          <ContextMenuSeparator />
-                          <ContextMenuItem
-                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                            onSelect={() => requestDelete(t)}
-                            disabled={actionsDisabled}
-                          >
-                            <Trash2 className="mr-2 size-4" />
-                            Delete
-                          </ContextMenuItem>
-                        </ContextMenuContent>
-                      </ContextMenu>
-                    );
-                  })}
+                                      {restoreActive ? (
+                                        <>
+                                          <Loader2 className="size-3.5 animate-spin" />
+                                          Restoring…
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Play className="size-3.5 fill-current" />
+                                          Resume
+                                        </>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() => save(t.id)}
+                                      disabled={actionsDisabled}
+                                      title="Capture your current editor files, browser tabs, and git branch into this capsule"
+                                    >
+                                      {pendingAction?.taskId === t.id && pendingAction.kind === "save"
+                                        ? "Saving…"
+                                        : "Save State"}
+                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="size-8 text-muted-foreground"
+                                          aria-label={`More actions for ${t.title}`}
+                                          disabled={actionsDisabled}
+                                        >
+                                          <MoreHorizontal className="size-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-44">
+                                        <DropdownMenuItem onSelect={() => toggleStatus(t)}>
+                                          {t.status === "open" ? (
+                                            <Check className="mr-2 size-4" />
+                                          ) : (
+                                            <RotateCcw className="mr-2 size-4" />
+                                          )}
+                                          {t.status === "open" ? "Mark done" : "Reopen"}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onSelect={() => {
+                                            setRenameTarget(t);
+                                            setRenameTitle(t.title);
+                                          }}
+                                        >
+                                          <Pencil className="mr-2 size-4" />
+                                          Rename
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => duplicateTask(t)}>
+                                          <Copy className="mr-2 size-4" />
+                                          Duplicate
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                                          onSelect={() => requestDelete(t)}
+                                        >
+                                          <Trash2 className="mr-2 size-4" />
+                                          Delete
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                }
+                              />
+                            </ContextMenuTrigger>
+                            <ContextMenuContent>
+                              <ContextMenuItem onSelect={() => resume(t)} disabled={actionsDisabled}>
+                                <Play className="mr-2 size-4" />
+                                Resume
+                              </ContextMenuItem>
+                              <ContextMenuItem onSelect={() => save(t.id)} disabled={actionsDisabled}>
+                                <Save className="mr-2 size-4" />
+                                Save State
+                              </ContextMenuItem>
+                              <ContextMenuItem
+                                onSelect={() => {
+                                  setRenameTarget(t);
+                                  setRenameTitle(t.title);
+                                }}
+                                disabled={actionsDisabled}
+                              >
+                                <Pencil className="mr-2 size-4" />
+                                Rename
+                              </ContextMenuItem>
+                              <ContextMenuItem onSelect={() => duplicateTask(t)} disabled={actionsDisabled}>
+                                <Copy className="mr-2 size-4" />
+                                Duplicate
+                              </ContextMenuItem>
+                              <ContextMenuItem onSelect={() => toggleStatus(t)} disabled={actionsDisabled}>
+                                {t.status === "open" ? (
+                                  <Check className="mr-2 size-4" />
+                                ) : (
+                                  <RotateCcw className="mr-2 size-4" />
+                                )}
+                                {t.status === "open" ? "Done" : "Reopen"}
+                              </ContextMenuItem>
+                              <ContextMenuSeparator />
+                              <ContextMenuItem
+                                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                onSelect={() => requestDelete(t)}
+                                disabled={actionsDisabled}
+                              >
+                                <Trash2 className="mr-2 size-4" />
+                                Delete
+                              </ContextMenuItem>
+                            </ContextMenuContent>
+                          </ContextMenu>
+                        );
+                      })}
+                    </Surface>
+                  )}
 
                   <div className="flex gap-2">
                     <Input
@@ -762,7 +781,7 @@ export function CapsulesPage() {
                     </Button>
                   </div>
                 </div>
-              </div>
+              </Section>
             );
           })}
         </div>

@@ -149,6 +149,70 @@ describe("CapsuleItems", () => {
       }),
     );
   });
+
+  // A pin outlives the tab or file it was made from (merge_pins on the Rust
+  // side). If we stopped rendering it, the item would be "always open" on
+  // every resume with no control left to stop it.
+  it("still renders a pin whose item is gone, and still offers unpin", () => {
+    render(
+      <CapsuleItems
+        taskId="task-1"
+        resources={[]}
+        pins={[{ connectorKind: "chrome", identity: "https://gone.test/", payload: {} }]}
+        onChanged={() => {}}
+      />,
+    );
+    expect(screen.getByText("https://gone.test/")).toBeInTheDocument();
+    // aria-disabled, not disabled= — a previous arc fixed exactly this so the
+    // control keeps its tooltip and stays in tab order (commit c0340e9).
+    const unpin = screen.getByRole("button", { name: /unpin/i });
+    expect(unpin).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  // A control that cannot say why it refuses is a dead end.
+  it("explains why an unpinnable terminal cannot be pinned", () => {
+    render(
+      <CapsuleItems
+        taskId="task-1"
+        resources={
+          [
+            { connectorKind: "vscode", payload: { terminals: [{ name: "zsh", cwd: null }] } },
+          ] as never
+        }
+        pins={[]}
+        onChanged={() => {}}
+      />,
+    );
+    const pin = screen.getByRole("button", { name: /always open/i });
+    expect(pin).toHaveAttribute("aria-disabled", "true");
+    expect(pin).toHaveAccessibleDescription(/no command to reopen it/i);
+  });
+
+  it("distinguishes pinned from loose without relying on colour", () => {
+    const { container } = render(
+      <CapsuleItems
+        taskId="task-1"
+        resources={
+          [
+            {
+              connectorKind: "chrome",
+              payload: {
+                tabs: [
+                  { url: "https://pinned.test/", title: "Pinned Tab" },
+                  { url: "https://loose.test/", title: "Loose Tab" },
+                ],
+              },
+            },
+          ] as never
+        }
+        pins={[{ connectorKind: "chrome", identity: "https://pinned.test/", payload: {} }]}
+        onChanged={() => {}}
+      />,
+    );
+    // The cue is an icon, not a hue — colour is never the only signal.
+    expect(container.querySelectorAll("[data-pin-state='pinned']")).toHaveLength(1);
+    expect(container.querySelectorAll("[data-pin-state='loose']")).toHaveLength(1);
+  });
 });
 
 // MINOR 3 (defined-workspaces final review): the Rust `identity_of` returns

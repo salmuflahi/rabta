@@ -2,6 +2,7 @@ import type { InvokeArgs } from "@tauri-apps/api/core";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/sonner";
+import { expectAtMostOneAccent } from "@/test/accent";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { useStore, type Project, type Task, type TaskResource } from "@/store";
 import { CapsulesPage } from "./CapsulesPage";
@@ -465,6 +466,43 @@ describe("CapsulesPage", () => {
     } finally {
       restoreMatchMedia();
       useStore.setState({ pendingResumeTaskId: null });
+    }
+  });
+
+  it("spends the accent at most once with no active task", async () => {
+    mockCapsulesInvoke({ activateTask: async () => ({}) });
+    const { container } = renderWithProviders(<CapsulesPage />);
+    await screen.findByText(FAKE_TASK.title);
+    // No active task: Resume stays outline (this page's Restore-gating
+    // rule), and the leading marker dot renders transparent, not bg-primary.
+    expectAtMostOneAccent(container);
+  });
+
+  it("spends the accent at most once when a capsule's task is active (marker + primary Resume together)", async () => {
+    // Presets activeTaskId directly (rather than driving the real resume()
+    // flow) so the Restore Experience sheet — which carries its own
+    // internal bg-primary progress fill, a separate concern from this
+    // page's one-accent budget — never opens and contaminates the count.
+    mockCapsulesInvoke({ activateTask: async () => ({}) });
+    useStore.setState({ activeTaskId: FAKE_TASK.id });
+    try {
+      const { container } = renderWithProviders(<CapsulesPage />);
+      await screen.findByText(FAKE_TASK.title);
+      // Wait for the resource-derived render ("on main", from FAKE_RESOURCE)
+      // so the hasCapsule-gated Resume variant has actually settled before
+      // asserting on it.
+      expect(await screen.findByText("on main")).toBeInTheDocument();
+
+      // The active row's own "you are here" dot is a real bg-primary fill,
+      // exempted via data-accent-mark; the Resume button (variant="primary"
+      // because this task is both active and has a capsule) is the page's
+      // one real accent action.
+      const marker = container.querySelector("[data-accent-mark]");
+      expect(marker).not.toBeNull();
+
+      expectAtMostOneAccent(container);
+    } finally {
+      useStore.setState({ activeTaskId: null });
     }
   });
 });
