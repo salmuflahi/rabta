@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { Row } from "@/components/ui/row";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Section } from "@/components/ui/section";
+import { Surface } from "@/components/ui/surface";
 import { describeEvent, relativeTime } from "@/lib/humanize";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/shell/PageHeader";
@@ -67,33 +70,37 @@ function LogRow({
   const Icon = iconFor(entry, icon);
 
   return (
-    <div
-      className={cn(
-        "min-w-0 rounded-lg border border-border/60 bg-card/40 p-2.5 transition-colors hover:border-border",
-        entry.historical && "opacity-60",
-      )}
-    >
-      <div className="flex min-w-0 items-center gap-2.5">
+    <Row
+      className={cn(entry.historical && "opacity-60")}
+      leading={
         <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
           <Icon className="size-3.5" />
         </span>
-        <span className="min-w-0 flex-1 truncate text-meta text-foreground">{sentence}</span>
-        {entry.historical && (
-          <Badge variant="secondary" className="shrink-0 text-label">
-            Historical
-          </Badge>
-        )}
-        <span className="shrink-0 font-mono text-label text-muted-foreground">{relativeTime(entry.at)}</span>
-      </div>
-      <details className="group mt-1 min-w-0 pl-[34px]">
-        <summary className="cursor-pointer select-none rounded-sm text-label text-muted-foreground transition-colors duration-fast ease-standard hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          Details
-        </summary>
-        <pre className="mt-1 max-h-40 min-w-0 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted/40 p-2 font-mono text-label text-muted-foreground">
-          {JSON.stringify(entry, null, 2)}
-        </pre>
-      </details>
-    </div>
+      }
+      title={sentence}
+      subtitle={
+        <details className="group min-w-0">
+          <summary className="cursor-pointer select-none rounded-sm text-label text-muted-foreground transition-colors duration-fast ease-standard hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            Details
+          </summary>
+          <pre className="mt-1 max-h-40 min-w-0 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted/40 p-2 font-mono text-label text-muted-foreground">
+            {JSON.stringify(entry, null, 2)}
+          </pre>
+        </details>
+      }
+      trailing={
+        <div className="flex items-center gap-2">
+          {entry.historical && (
+            <Badge variant="secondary" className="text-label">
+              Historical
+            </Badge>
+          )}
+          <span className="font-mono text-label tabular-nums text-muted-foreground">
+            {relativeTime(entry.at)}
+          </span>
+        </div>
+      }
+    />
   );
 }
 
@@ -190,12 +197,14 @@ export function ActivityPage() {
           description="Connector events, commands, and responses will show up here as they happen."
         />
       ) : (
-        <div ref={scroller} className="flex-1 min-h-0 overflow-y-auto">
-          <div className="flex flex-col gap-2 pb-4">
-            {shown.map((e) => (
-              <LogRow key={e.seq} entry={e} resolveName={resolveName} />
-            ))}
-          </div>
+        <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
+          <Section label="Events" className="pb-4">
+            <Surface>
+              {shown.map((e) => (
+                <LogRow key={e.seq} entry={e} resolveName={resolveName} />
+              ))}
+            </Surface>
+          </Section>
         </div>
       )}
     </div>

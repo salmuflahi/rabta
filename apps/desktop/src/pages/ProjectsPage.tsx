@@ -29,7 +29,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { LoadError } from "@/components/ui/load-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Section } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Surface } from "@/components/ui/surface";
 import { toast } from "@/components/ui/sonner";
 import { ArchivedProjectsDialog } from "@/features/projects/ArchivedProjectsDialog";
 import { ProjectCard } from "@/features/projects/ProjectCard";
@@ -309,12 +311,12 @@ export function ProjectsPage() {
               <ArchiveRestore />
               Archived
             </Button>
-            {/* secondary: the EmptyState's Register Project (below) is this
-                page's primary when the list is empty; this toolbar copy of
-                the same action stays secondary so the two never both read as
-                primary at once. */}
+            {/* This page's one primary action, always on screen — the
+                EmptyState below offers the same action again (a plain
+                outline duplicate, not a second primary) so a first-time
+                user isn't stuck reaching for the toolbar. */}
             <Button
-              variant="secondary"
+              variant="primary"
               onClick={() => {
                 resetForm();
                 setRegisterOpen(true);
@@ -337,7 +339,7 @@ export function ProjectsPage() {
           description="Register your first project and Rabta will remember your entire workflow — files, branches, tabs, and terminals."
           action={
             <Button
-              variant="primary"
+              variant="outline"
               onClick={() => {
                 resetForm();
                 setRegisterOpen(true);
@@ -348,54 +350,56 @@ export function ProjectsPage() {
           }
         />
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext
-            items={visibleProjects.map((project) => project.id)}
-            strategy={verticalListSortingStrategy}
+        <Section label="All projects">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onDragEnd}
           >
-            <div className="flex flex-col gap-3">
-              {visibleProjects.map((project, index) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  actionsDisabled={busy || reorderBusy}
-                  gitRefreshKey={
-                    (startedNonce[project.id] ?? 0) +
-                    (gitOpNonce[project.id] ?? 0)
-                  }
-                  startedNonce={startedNonce[project.id] ?? 0}
-                  onGitChanged={() =>
-                    setGitOpNonce((nonces) => ({
-                      ...nonces,
-                      [project.id]: (nonces[project.id] ?? 0) + 1,
-                    }))
-                  }
-                  onIssueStarted={() =>
-                    setStartedNonce((nonces) => ({
-                      ...nonces,
-                      [project.id]: (nonces[project.id] ?? 0) + 1,
-                    }))
-                  }
-                  onRename={setRenameProject}
-                  onChangeIcon={setIconProject}
-                  onMove={(target, direction) =>
-                    void persistReorder((snapshot) =>
-                      moveProjectBy(snapshot, target.id, direction),
-                    )
-                  }
-                  canMoveUp={index > 0}
-                  canMoveDown={index < visibleProjects.length - 1}
-                  onArchive={(target) => void archiveProject(target)}
-                  onDelete={requestDelete}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+            <SortableContext
+              items={visibleProjects.map((project) => project.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <Surface>
+                {visibleProjects.map((project, index) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    actionsDisabled={busy || reorderBusy}
+                    gitRefreshKey={
+                      (startedNonce[project.id] ?? 0) +
+                      (gitOpNonce[project.id] ?? 0)
+                    }
+                    startedNonce={startedNonce[project.id] ?? 0}
+                    onGitChanged={() =>
+                      setGitOpNonce((nonces) => ({
+                        ...nonces,
+                        [project.id]: (nonces[project.id] ?? 0) + 1,
+                      }))
+                    }
+                    onIssueStarted={() =>
+                      setStartedNonce((nonces) => ({
+                        ...nonces,
+                        [project.id]: (nonces[project.id] ?? 0) + 1,
+                      }))
+                    }
+                    onRename={setRenameProject}
+                    onChangeIcon={setIconProject}
+                    onMove={(target, direction) =>
+                      void persistReorder((snapshot) =>
+                        moveProjectBy(snapshot, target.id, direction),
+                      )
+                    }
+                    canMoveUp={index > 0}
+                    canMoveDown={index < visibleProjects.length - 1}
+                    onArchive={(target) => void archiveProject(target)}
+                    onDelete={requestDelete}
+                  />
+                ))}
+              </Surface>
+            </SortableContext>
+          </DndContext>
+        </Section>
       )}
 
       <ProjectDialogs

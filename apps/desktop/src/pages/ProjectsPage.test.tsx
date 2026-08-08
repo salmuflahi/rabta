@@ -1,6 +1,7 @@
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/sonner";
+import { expectAtMostOneAccent } from "@/test/accent";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { useStore, type Project } from "@/store";
 import { ProjectsPage } from "./ProjectsPage";
@@ -59,6 +60,27 @@ describe("ProjectsPage", () => {
   it("renders without throwing (catches missing-provider crashes)", async () => {
     renderWithProviders(<ProjectsPage />);
     expect(await screen.findByText("Projects")).toBeInTheDocument();
+  });
+
+  it("spends the accent at most once", async () => {
+    const { container } = renderWithProviders(<ProjectsPage />);
+    await screen.findByText("Projects");
+    expectAtMostOneAccent(container);
+  });
+
+  // expectAtMostOneAccent alone is vacuous — it passes whether or not the
+  // primary action renders at all. Pin the lower bound too: the toolbar's
+  // "Register Project" (this page's one primary) must actually carry
+  // bg-primary, even though the empty state's own duplicate CTA (rendered
+  // alongside it here) shares the same accessible name.
+  it("marks the toolbar's Register Project action as the primary accent", async () => {
+    renderWithProviders(<ProjectsPage />);
+    await screen.findByText("Projects");
+    const registerButtons = screen.getAllByRole("button", { name: "Register Project" });
+    const primaryButtons = registerButtons.filter((button) =>
+      button.classList.contains("bg-primary"),
+    );
+    expect(primaryButtons).toHaveLength(1);
   });
 
   it("renders the educational empty-state copy and the Register Project CTA", async () => {
