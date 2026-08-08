@@ -51,3 +51,29 @@ describe("Sidebar collapse", () => {
     expect(screen.getByRole("button", { name: "Overview (⌘1)" })).toBeInTheDocument();
   });
 });
+
+describe("sidebar chrome", () => {
+  // The tiled mark is petrol on a petrol sidebar — invisible. Chrome uses
+  // an INLINE monochrome mark, not an <img>: rabta-mark-mono.svg is filled
+  // with currentColor, and an SVG loaded through <img src> is an isolated
+  // document where currentColor resolves to black. Inlining is what makes
+  // the fill inherit the sidebar's ivory.
+  it("inlines the mark so it inherits the sidebar's colour", () => {
+    const { container } = renderWithProviders(<Sidebar />);
+    expect(container.querySelector("img[alt='Rabta']")).toBeNull();
+    const svg = container.querySelector("svg[data-brand-mark]");
+    expect(svg).not.toBeNull();
+    expect(svg!.getAttribute("aria-label")).toBe("Rabta");
+    // currentColor is the whole point — a hardcoded fill would defeat it.
+    expect(svg!.innerHTML).toMatch(/currentColor/);
+    expect(svg!.innerHTML).not.toMatch(/#102526/);
+  });
+
+  // The Context Fold put a second permanent orange element on every screen,
+  // which is one more than the accent rule allows.
+  it("draws no context fold on nav rows", () => {
+    const { container } = renderWithProviders(<Sidebar />);
+    expect(container.querySelector("[data-context-fold]")).toBeNull();
+    expect(container.innerHTML).not.toMatch(/clip-path:polygon/);
+  });
+});

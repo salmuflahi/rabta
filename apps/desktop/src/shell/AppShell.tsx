@@ -7,10 +7,14 @@ import { Toolbar } from "./Toolbar";
 // single `--sidebar-width` custom property; collapsing animates that width with
 // the shared sidebar duration + settling ease, and the workspace (the
 // `minmax(0,1fr)` track) grows into the freed space in the very same
-// transition. The collapsed rail is exactly one icon-tile wide (88px) — wide
-// enough that the macOS traffic lights (overlaid at x≈18, ~52px wide) sit
-// centred in the collapsed rail and always land on the petrol with no spill.
-const EXPANDED_WIDTH = 280;
+// transition.
+const EXPANDED_WIDTH = 208;
+
+// The collapsed rail stays 88px: macOS overlays the traffic lights at x≈18
+// with a ~52px span, so anything narrower clips them. With the tighter row
+// metrics the icon tile no longer fills that rail, so icons centre in it and
+// shift ~17px during the transition — the previous "icons never move
+// horizontally" invariant is deliberately traded for the tighter open rail.
 const COLLAPSED_WIDTH = 88;
 
 export function AppShell({ children }: { children: ReactNode }) {

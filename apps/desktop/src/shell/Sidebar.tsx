@@ -1,42 +1,33 @@
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import markUrl from "@/assets/brand/rabta-mark.svg";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useStore, type NavKey } from "@/store";
 import { NAV_ITEMS, SETTINGS_ITEM, type NavItem } from "./nav";
 
-// Row height (h-10 = 40px) + nav gap (gap-1 = 4px): the moving selection
+// Row height (h-[25px]) + nav gap (gap-1 = 4px): the moving selection
 // surface is translated by activeIndex * ROW_STRIDE to sit behind the active
-// row. The aside keeps a constant 24px horizontal padding, so when collapsed
-// the content column is exactly one 40px icon tile wide — icons never shift
-// horizontally between states, and the active surface morphs wide-pill →
-// icon-tile purely by following the animating column width.
-const ROW_STRIDE = 44;
+// row.
+const ROW_STRIDE = 26;
 
-/** Context Fold — the folded-corner motif applied to nav rows. A restrained
- * orange triangle in the row's top-right corner: it grows from nothing on
- * hover, and the active row keeps a small fold at rest. The teal selection
- * surface underneath is preserved; the fold sits on top of it. Clipped by the
- * row's own rounded corner, so it hugs the geometry in both states. */
-function ContextFold({ active }: { active: boolean }) {
+/** The mark, inlined so `currentColor` inherits the sidebar's ivory.
+ * The tiled `rabta-mark.svg` stays the Dock icon, where it sits against
+ * the desktop and reads properly. */
+function BrandMark({ className }: { className?: string }) {
   return (
-    <span
-      aria-hidden
-      className={cn(
-        "pointer-events-none absolute right-0 top-0 bg-primary",
-        // Folded top-right corner. The row surface squares off its top-right
-        // (rounded-tr-none) so this triangle reads as a crisp fold instead of
-        // being swallowed by the corner radius. A hairline drop-shadow along
-        // the fold line gives it a subtle turned-page depth.
-        "[clip-path:polygon(100%_0,0_0,100%_100%)]",
-        "[filter:drop-shadow(-0.5px_0.5px_0.5px_rgb(0_0_0_/_0.3))]",
-        "transition-[width,height,opacity] duration-standard ease-standard",
-        // Active rows keep a small fold at rest; idle rows show none.
-        active ? "size-[6px] opacity-100" : "size-0 opacity-0",
-        // Hover deepens the fold (idle rows reveal it, active rows enlarge it).
-        "group-hover:size-[9px] group-hover:opacity-100",
-      )}
-    />
+    <svg
+      data-brand-mark
+      viewBox="0 0 64 64"
+      role="img"
+      aria-label="Rabta"
+      className={className}
+    >
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"
+      />
+      <path fill="currentColor" d="M41.5 8v14.5H56Z" />
+    </svg>
   );
 }
 
@@ -65,23 +56,23 @@ function NavRow({
           aria-current={active ? "page" : undefined}
           aria-label={collapsed ? `${item.label} (${item.shortcut})` : undefined}
           className={cn(
-            // Fixed 40px height; rounded except the top-right, which is
-            // squared so the Context Fold triangle reads crisp (a rounded
-            // corner there would eat it). overflow-hidden keeps the label
-            // clipped to the row.
-            "group relative z-10 flex h-10 w-full items-center gap-1 overflow-hidden rounded-[10px] rounded-tr-none",
+            // Fixed 25px height. overflow-hidden keeps the label clipped to
+            // the row.
+            "group relative z-10 flex h-[25px] w-full items-center gap-2 overflow-hidden rounded-[10px]",
             "text-sm transition-colors duration-fast ease-standard",
             active
               ? "text-sidebar-accent-foreground"
               : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
-            // Selected nav stays teal — orange is reserved for the fold/brand.
+            // Selected nav stays teal — orange is reserved for the brand.
             standalone && active && "bg-sidebar-accent",
           )}
         >
-          {/* Fixed icon rail: a 40px tile pinned to the row's left edge. Its
-              position is identical whether the sidebar is open or collapsed. */}
-          <span className="grid size-10 shrink-0 place-items-center">
-            <Icon className="size-[18px]" />
+          {/* Icon tile pinned to the row's left edge. At 25px rows it no
+              longer fills the collapsed rail, so icons re-centre rather than
+              staying pixel-identical between states (see COLLAPSED_WIDTH's
+              comment in AppShell.tsx for why that trade was made). */}
+          <span className="grid size-[18px] shrink-0 place-items-center">
+            <Icon className="size-[14px]" />
           </span>
           {/* Collapsible label column: fades + slides as the rail narrows. */}
           <span
@@ -93,7 +84,6 @@ function NavRow({
           >
             {item.label}
           </span>
-          <ContextFold active={active} />
         </button>
       </TooltipTrigger>
       {/* Label + shortcut on hover — the only way to read a row when collapsed. */}
@@ -123,8 +113,8 @@ function BrandRow({ collapsed, fullscreen }: { collapsed: boolean; fullscreen: b
           collapsed && "opacity-0",
         )}
       >
-        <img src={markUrl} alt="Rabta" className="size-6 shrink-0 rounded-[6px]" />
-        <span className="truncate text-[15px] font-semibold tracking-tight">Rabta</span>
+        <BrandMark className="size-4 shrink-0 text-sidebar-foreground" />
+        <span className="truncate text-body font-semibold tracking-tight">Rabta</span>
       </div>
       <div className="flex-1" />
       <Tooltip>
@@ -158,10 +148,9 @@ export function Sidebar() {
 
   return (
     <aside
-      // Fixed, non-scrolling frame region. Constant 24px side padding is what
-      // makes the collapsed content column exactly one icon tile wide, so the
-      // icon rail never shifts. One continuous petrol edge (border-r).
-      className="flex h-full min-h-0 flex-col overflow-hidden border-r border-sidebar-border/60 bg-sidebar px-[24px] text-sidebar-foreground"
+      // Fixed, non-scrolling frame region. One continuous petrol edge
+      // (border-r).
+      className="flex h-full min-h-0 flex-col overflow-hidden border-r border-sidebar-border/60 bg-sidebar px-[10px] text-sidebar-foreground"
     >
       {/* Row 1 — macOS traffic-light strip. Windowed only; the OS overlays the
           lights here. In fullscreen there are no lights, so the row is dropped
@@ -174,7 +163,7 @@ export function Sidebar() {
       {/* Titlebar divider — sets the window-controls row apart from the brand
           row below, aligned with the Toolbar border. Windowed only, since
           fullscreen has no light row above it. */}
-      {!fullscreen && <div className="-mx-[24px] h-px shrink-0 bg-sidebar-border/50" />}
+      {!fullscreen && <div className="-mx-[10px] h-px shrink-0 bg-sidebar-border/50" />}
 
       {/* Row 2 — brand + collapse control. Flows straight into the nav; the
           only divider up top is the titlebar one under the traffic lights. */}
@@ -188,7 +177,7 @@ export function Sidebar() {
             // Moving selection surface. inset-x-0 means it fills the nav column
             // width in both states, so it morphs wide-pill → icon-tile as the
             // rail width animates; only its vertical slide is transitioned here.
-            "pointer-events-none absolute inset-x-0 top-3 h-10 rounded-[10px] rounded-tr-none bg-sidebar-accent",
+            "pointer-events-none absolute inset-x-0 top-3 h-[25px] rounded-[10px] bg-sidebar-accent",
             "transition-transform duration-standard ease-standard",
             activeNavIndex < 0 && "opacity-0",
           )}
@@ -209,7 +198,7 @@ export function Sidebar() {
       <div className="flex-1" />
 
       {/* Footer divider. */}
-      <div className="-mx-[24px] h-px shrink-0 bg-sidebar-border/50" />
+      <div className="-mx-[10px] h-px shrink-0 bg-sidebar-border/50" />
 
       {/* Footer — Settings + the local-only assurance (expanded only). */}
       <div className="flex flex-col gap-1 pb-[18px] pt-2">
