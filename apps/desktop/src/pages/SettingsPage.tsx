@@ -4,10 +4,12 @@ import { appDataDir } from "@tauri-apps/api/path";
 import { useEffect, useState } from "react";
 import markUrl from "@/assets/brand/rabta-mark.svg";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
+import { Row } from "@/components/ui/row";
+import { Section } from "@/components/ui/section";
 import {
   Select,
   SelectContent,
@@ -15,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Surface } from "@/components/ui/surface";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -26,28 +29,6 @@ import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type NavKey } from "@/store";
 
 // ─── Small shared building blocks ────────────────────────────────────────────
-
-/** One preference: label + description on the left, its control on the right.
- * Stack several inside a `divide-y` group for a clean settings list. */
-function SettingRow({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-6 py-4 first:pt-0 last:pb-0">
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        {description && <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{description}</p>}
-      </div>
-      <div className="shrink-0">{children}</div>
-    </div>
-  );
-}
 
 /** Compact segmented control — a labelled group of mutually exclusive options.
  * Used for the small enumerated preferences (theme, motion) where a dropdown
@@ -96,64 +77,59 @@ function Segmented<T extends string>({
 
 // ─── Sections ────────────────────────────────────────────────────────────────
 
-function AppearanceCard() {
+function AppearanceSection() {
   const theme = useStore((s) => s.prefs.theme);
   const motion = useStore((s) => s.prefs.motion);
   const rememberSidebar = useStore((s) => s.prefs.rememberSidebar);
   const setPref = useStore((s) => s.setPref);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Appearance</CardTitle>
-        <CardDescription>How Rabta looks and moves on this device.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="divide-y divide-border">
-          <SettingRow title="Theme" description="Follow the system or lock to light or dark.">
-            <Segmented
-              ariaLabel="Theme"
-              value={theme}
-              onChange={(v) => setPref("theme", v)}
-              options={[
-                { value: "system", label: "System" },
-                { value: "light", label: "Light" },
-                { value: "dark", label: "Dark" },
-              ]}
-            />
-          </SettingRow>
-          <SettingRow
-            title="Motion"
-            description="Reduce animation for a calmer, faster-feeling interface."
-          >
-            <Segmented
-              ariaLabel="Motion"
-              value={motion}
-              onChange={(v) => setPref("motion", v)}
-              options={[
-                { value: "system", label: "System" },
-                { value: "full", label: "Full" },
-                { value: "reduced", label: "Reduced" },
-              ]}
-            />
-          </SettingRow>
-          <SettingRow
-            title="Remember sidebar state"
-            description="Reopen with the sidebar the way you left it — expanded or collapsed."
-          >
-            <Switch
-              checked={rememberSidebar}
-              onCheckedChange={(v) => setPref("rememberSidebar", v)}
-              aria-label="Remember sidebar state"
-            />
-          </SettingRow>
-        </div>
-      </CardContent>
-    </Card>
+    <Section label="Appearance">
+      <Surface>
+        <Field label="Theme" description="Follow the system or lock to light or dark.">
+          <Segmented
+            ariaLabel="Theme"
+            value={theme}
+            onChange={(v) => setPref("theme", v)}
+            options={[
+              { value: "system", label: "System" },
+              { value: "light", label: "Light" },
+              { value: "dark", label: "Dark" },
+            ]}
+          />
+        </Field>
+        <Field
+          label="Motion"
+          description="Reduce animation for a calmer, faster-feeling interface."
+        >
+          <Segmented
+            ariaLabel="Motion"
+            value={motion}
+            onChange={(v) => setPref("motion", v)}
+            options={[
+              { value: "system", label: "System" },
+              { value: "full", label: "Full" },
+              { value: "reduced", label: "Reduced" },
+            ]}
+          />
+        </Field>
+        <Field
+          label="Remember sidebar state"
+          description="Reopen with the sidebar the way you left it — expanded or collapsed."
+          htmlFor="remember-sidebar"
+        >
+          <Switch
+            id="remember-sidebar"
+            checked={rememberSidebar}
+            onCheckedChange={(v) => setPref("rememberSidebar", v)}
+          />
+        </Field>
+      </Surface>
+    </Section>
   );
 }
 
-function BehaviorCard() {
+function BehaviorSection() {
   const landingPage = useStore((s) => s.prefs.landingPage);
   const resumeOnLaunch = useStore((s) => s.prefs.resumeOnLaunch);
   const keepCompleted = useStore((s) => s.prefs.keepCompleted);
@@ -161,77 +137,78 @@ function BehaviorCard() {
   const setPref = useStore((s) => s.setPref);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Behavior</CardTitle>
-        <CardDescription>What Rabta does on launch and as you work.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="divide-y divide-border">
-          <SettingRow title="Open to" description="The section Rabta shows when it starts.">
-            <Select value={landingPage} onValueChange={(v) => setPref("landingPage", v as NavKey)}>
-              <SelectTrigger className="w-[168px]" aria-label="Default section">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {NAV_ITEMS.map((item) => (
-                  <SelectItem key={item.key} value={item.key}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </SettingRow>
-          <SettingRow
-            title="Resume last capsule on launch"
-            description="Reopen your most recent workspace automatically when Rabta starts."
-          >
-            <Switch
-              checked={resumeOnLaunch}
-              onCheckedChange={(v) => setPref("resumeOnLaunch", v)}
-              aria-label="Resume last capsule on launch"
-            />
-          </SettingRow>
-          <SettingRow
-            title="Put away what isn't in the task"
-            description="On resume, close the tabs, files and terminals that don't belong to the task you're resuming. Never closes unsaved files, pinned tabs, or terminals that are running something."
-          >
-            <Switch
-              checked={focusMode}
-              onCheckedChange={(v) => setPref("focusMode", v)}
-              aria-label="Put away what isn't in the task"
-            />
-          </SettingRow>
-          <SettingRow
-            title="Keep completed capsules"
-            description="Leave finished capsules in the list instead of clearing them."
-          >
-            <Switch
-              checked={keepCompleted}
-              onCheckedChange={(v) => setPref("keepCompleted", v)}
-              aria-label="Keep completed capsules"
-            />
-          </SettingRow>
-        </div>
-      </CardContent>
-    </Card>
+    <Section label="Behavior">
+      <Surface>
+        <Field label="Open to" description="The section Rabta shows when it starts.">
+          <Select value={landingPage} onValueChange={(v) => setPref("landingPage", v as NavKey)}>
+            <SelectTrigger className="w-[168px]" aria-label="Default section">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {NAV_ITEMS.map((item) => (
+                <SelectItem key={item.key} value={item.key}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field
+          label="Resume last capsule on launch"
+          description="Reopen your most recent workspace automatically when Rabta starts."
+          htmlFor="resume-on-launch"
+        >
+          <Switch
+            id="resume-on-launch"
+            checked={resumeOnLaunch}
+            onCheckedChange={(v) => setPref("resumeOnLaunch", v)}
+          />
+        </Field>
+        {/* Focus mode is destructive-feeling — it closes things. The
+            description states the guarantees that make that safe, in the
+            order a wary user needs them: what happens, what's protected
+            first, then the one thing that is never touched. Never say more
+            than the software actually does: it doesn't claim to protect
+            unsaved changes, pinned tabs, or the last tab in a window here,
+            because this copy only speaks to the two guarantees a resuming
+            task itself provides. */}
+        <Field
+          label="Focus mode"
+          description="Resuming a task will put away what it does not want. Everything is saved to the outgoing task first, and a terminal that is running something is never closed."
+          htmlFor="focus-mode"
+        >
+          <Switch
+            id="focus-mode"
+            checked={focusMode}
+            onCheckedChange={(v) => setPref("focusMode", v)}
+          />
+        </Field>
+        <Field
+          label="Keep completed capsules"
+          description="Leave finished capsules in the list instead of clearing them."
+          htmlFor="keep-completed"
+        >
+          <Switch
+            id="keep-completed"
+            checked={keepCompleted}
+            onCheckedChange={(v) => setPref("keepCompleted", v)}
+          />
+        </Field>
+      </Surface>
+    </Section>
   );
 }
 
-function ConnectorsCard() {
+function ConnectorsSection() {
   const connectors = useStore((s) => s.connectors);
   const setView = useStore((s) => s.setView);
   const connectedCount = connectors.filter((c) => c.connected).length;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Connectors</CardTitle>
-        <CardDescription>The tools Rabta talks to when it saves and restores a capsule.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <SettingRow
-          title="Connected tools"
+    <Section label="Connectors">
+      <Surface>
+        <Field
+          label="Connected tools"
           description={
             connectedCount > 0
               ? `${connectedCount} ${connectedCount === 1 ? "tool is" : "tools are"} connected right now.`
@@ -241,13 +218,13 @@ function ConnectorsCard() {
           <Button variant="outline" size="sm" onClick={() => setView("connectors")}>
             Open Connectors
           </Button>
-        </SettingRow>
-      </CardContent>
-    </Card>
+        </Field>
+      </Surface>
+    </Section>
   );
 }
 
-function PrivacyCard() {
+function PrivacySection() {
   const resetPrefs = useStore((s) => s.resetPrefs);
 
   async function revealDataFolder() {
@@ -265,36 +242,30 @@ function PrivacyCard() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Privacy &amp; data</CardTitle>
-        <CardDescription>Where your data lives and how to manage it.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Rabta runs entirely on your Mac. There's no cloud account and no telemetry — nothing you
-          work on ever leaves your device.
-        </p>
-        <div className="divide-y divide-border">
-          <SettingRow
-            title="Data folder"
-            description="Capsules, connector state, and preferences are stored here."
-          >
-            <Button variant="outline" size="sm" onClick={revealDataFolder}>
-              Reveal in Finder
-            </Button>
-          </SettingRow>
-          <SettingRow
-            title="Reset preferences"
-            description="Restore every setting on this page to its default. Your capsules and projects aren't touched."
-          >
-            <Button variant="outline" size="sm" onClick={resetPreferences}>
-              Reset
-            </Button>
-          </SettingRow>
-        </div>
-      </CardContent>
-    </Card>
+    <Section label="Privacy & data">
+      <p className="mb-3 text-body leading-relaxed text-muted-foreground">
+        Rabta runs entirely on your Mac. There's no cloud account and no telemetry — nothing you
+        work on ever leaves your device.
+      </p>
+      <Surface>
+        <Field
+          label="Data folder"
+          description="Capsules, connector state, and preferences are stored here."
+        >
+          <Button variant="outline" size="sm" onClick={revealDataFolder}>
+            Reveal in Finder
+          </Button>
+        </Field>
+        <Field
+          label="Reset preferences"
+          description="Restore every setting on this page to its default. Your capsules and projects aren't touched."
+        >
+          <Button variant="outline" size="sm" onClick={resetPreferences}>
+            Reset
+          </Button>
+        </Field>
+      </Surface>
+    </Section>
   );
 }
 
@@ -308,79 +279,65 @@ const SHORTCUTS: { combo: string; description: string }[] = [
   { combo: "⌘R", description: "Resume the last capsule" },
 ];
 
-function ShortcutsCard() {
+function ShortcutsSection() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Keyboard shortcuts</CardTitle>
-        <CardDescription>Move around Rabta without leaving the keyboard.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <dl className="grid grid-cols-1 gap-x-10 gap-y-1 sm:grid-cols-2">
-          {SHORTCUTS.map((s) => (
-            <div key={s.combo} className="flex items-center justify-between gap-4 py-1.5">
-              <dt className="text-sm text-muted-foreground">{s.description}</dt>
-              <dd>
-                <Kbd>{s.combo}</Kbd>
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </CardContent>
-    </Card>
+    <Section label="Keyboard shortcuts">
+      <Surface>
+        {SHORTCUTS.map((s) => (
+          <Row key={s.combo} title={s.description} trailing={<Kbd>{s.combo}</Kbd>} />
+        ))}
+      </Surface>
+    </Section>
   );
 }
 
-function DeveloperCard() {
+function DeveloperSection() {
   const developerMode = useStore((s) => s.prefs.developerMode);
   const setPref = useStore((s) => s.setPref);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Developer</CardTitle>
-        <CardDescription>Low-level tools for debugging connectors.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
-        <SettingRow
-          title="Developer mode"
+    <Section label="Developer">
+      <Surface>
+        <Field
+          label="Developer mode"
           description="Reveal the raw connector command console and other advanced tools."
+          htmlFor="developer-mode"
         >
           <Switch
+            id="developer-mode"
             checked={developerMode}
             onCheckedChange={(v) => setPref("developerMode", v)}
-            aria-label="Developer mode"
           />
-        </SettingRow>
+        </Field>
+      </Surface>
 
-        {developerMode && (
-          <div className="flex flex-col gap-4 border-t border-border pt-5">
-            <div>
-              <p className="text-sm font-medium text-foreground">Command console</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Send a raw command directly to a connected client.
-              </p>
-            </div>
-            <CommandSenderCard />
-            {import.meta.env.DEV && (
-              <div className="flex flex-col gap-4 border-t border-border pt-5">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Restore Experience preview</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Scripted previews of the restore sheet. Dev builds only.
-                  </p>
-                </div>
-                <RestoreExperiencePlayground />
-              </div>
-            )}
+      {developerMode && (
+        <div className="mt-4 flex flex-col gap-4">
+          <div>
+            <p className="text-sm font-medium text-foreground">Command console</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Send a raw command directly to a connected client.
+            </p>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <CommandSenderPanel />
+          {import.meta.env.DEV && (
+            <div className="flex flex-col gap-4 border-t border-border pt-5">
+              <div>
+                <p className="text-sm font-medium text-foreground">Restore Experience preview</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Scripted previews of the restore sheet. Dev builds only.
+                </p>
+              </div>
+              <RestoreExperiencePlayground />
+            </div>
+          )}
+        </div>
+      )}
+    </Section>
   );
 }
 
-function AboutCard() {
+function AboutSection() {
   const [version, setVersion] = useState("");
 
   useEffect(() => {
@@ -396,19 +353,17 @@ function AboutCard() {
   }, []);
 
   return (
-    <Card>
-      <CardContent className="flex items-center gap-4 py-6">
-        <img src={markUrl} alt="" className="size-11 shrink-0 rounded-[10px]" />
-        <div className="min-w-0">
-          <p className="text-card font-semibold text-foreground">
-            Rabta{version && <span className="ml-2 text-sm font-normal text-muted-foreground">v{version}</span>}
-          </p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            A local-first shared brain for your dev tools.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <Surface className="flex items-center gap-4 p-4">
+      <img src={markUrl} alt="" className="size-11 shrink-0 rounded-[10px]" />
+      <div className="min-w-0">
+        <p className="text-card font-semibold text-foreground">
+          Rabta{version && <span className="ml-2 text-sm font-normal text-muted-foreground">v{version}</span>}
+        </p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          A local-first shared brain for your dev tools.
+        </p>
+      </div>
+    </Surface>
   );
 }
 
@@ -586,7 +541,7 @@ function RestoreExperiencePlayground() {
 // Raw connector command console. The `send_command` invoke and its exact
 // { target, name, args } shape are preserved verbatim; only surfaced behind
 // the Developer-mode toggle now.
-function CommandSenderCard() {
+function CommandSenderPanel() {
   const connectors = useStore((s) => s.connectors);
   const [target, setTarget] = useState("");
   const [name, setName] = useState("workspace.open");
@@ -664,18 +619,25 @@ export function SettingsPage() {
     <div>
       <PageHeader eyebrow="PREFERENCES" title="Settings" subtitle="Local preferences for this workspace." />
 
-      {/* Cards flow into two balanced columns on wide viewports so the page
-          fills the workspace instead of stranding the right side empty; a
-          single readable column below xl. break-inside-avoid keeps each card
-          whole; mb-6 gives the vertical rhythm columns don't get from gap. */}
-      <div className="columns-1 gap-6 [&>*]:mb-6 [&>*]:break-inside-avoid xl:columns-2">
-        <AppearanceCard />
-        <BehaviorCard />
-        <ConnectorsCard />
-        <PrivacyCard />
-        <ShortcutsCard />
-        <DeveloperCard />
-        <AboutCard />
+      {/* Two balanced columns on wide viewports so the page fills the
+          workspace instead of stranding the right side empty; a single
+          readable column below xl. A real grid (not CSS multi-column) keeps
+          each side in its own top-to-bottom reading order. */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-start">
+        <div className="flex flex-col gap-6">
+          <AppearanceSection />
+          <BehaviorSection />
+          <ConnectorsSection />
+        </div>
+        <div className="flex flex-col gap-6">
+          <PrivacySection />
+          <ShortcutsSection />
+          <DeveloperSection />
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <AboutSection />
       </div>
     </div>
   );
