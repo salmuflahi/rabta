@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         }}
       >
         <Toolbar />
-        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none p-9">
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none p-4">
           {/* Only the workspace scrolls / transitions; the frame is fixed. */}
           <div key={view} className="animate-page-in">
             {children}

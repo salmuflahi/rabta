@@ -5,35 +5,27 @@ import {
   Code2,
   FolderGit2,
   Globe,
-  ListChecks,
   Play,
-  Plug,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadError } from "@/components/ui/load-error";
+import { Row } from "@/components/ui/row";
+import { Section } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PageHeader } from "@/shell/PageHeader";
+import { Surface } from "@/components/ui/surface";
 import { kindLabel } from "@/lib/connectors";
 import { describeEvent, formatDuration, relativeTime } from "@/lib/humanize";
 import { ProjectIcon } from "@/lib/project-icons";
 import { cn } from "@/lib/utils";
 import { useStore, type Project, type Task } from "@/store";
 
-/** A consistent section heading used across the command center. */
-function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
-  return (
-    <div className="mb-3 flex items-center justify-between gap-2">
-      <p className="text-body font-semibold text-foreground">{children}</p>
-      {action}
-    </div>
-  );
-}
-
+/** A muted trailing link used as a `Section` action — never a competing
+ * accent, just text. */
 function SectionLink({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
@@ -129,7 +121,11 @@ function GettingStarted({
               key={i}
               className={cn(
                 "h-1.5 w-8 rounded-full transition-colors duration-standard ease-standard",
-                s.done ? "bg-primary" : "bg-muted",
+                // Done is a status, not the live thing or the primary action,
+                // so it does not spend the page's one orange accent — two
+                // steps (e.g. project registered + connector paired) are
+                // routinely done at once, which would blow the accent budget.
+                s.done ? "bg-success" : "bg-muted",
               )}
             />
           ))}
@@ -141,7 +137,7 @@ function GettingStarted({
           return (
             <li key={i} className="flex items-center gap-3 rounded-lg px-1 py-2">
               {step.done ? (
-                <CheckCircle2 className="size-5 shrink-0 text-primary" />
+                <CheckCircle2 className="size-5 shrink-0 text-success" />
               ) : (
                 <Circle
                   className={cn("size-5 shrink-0", isNext ? "text-primary" : "text-muted-foreground/40")}
@@ -177,77 +173,34 @@ function GettingStarted({
   );
 }
 
-/** Command-center stat tile. The numeral is the hero (large, tabular so the
- * three tiles line up); the label recedes to an uppercase micro-eyebrow. One
- * tile can lead with the tangerine accent (`accent`) so the eye lands on what
- * matters (an active workspace) rather than treating all counts equally. */
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  accent = false,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: number;
-  accent?: boolean;
-}) {
-  return (
-    <Card className="relative overflow-hidden p-4">
-      {/* Hairline top sheen — gives the tile a lit, physical surface. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
-      />
-      <div className="flex items-center gap-3">
-        <div
-          className={cn(
-            "flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors",
-            accent ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
-          )}
-        >
-          <Icon className="size-4" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[30px] font-semibold leading-none tracking-tight tabular-nums text-foreground">
-            {value}
-          </p>
-          <p className="mt-1.5 truncate text-label font-medium uppercase tracking-wider text-muted-foreground">
-            {label}
-          </p>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
 /** Skeleton placeholder for the pre-first-load window only — approximates
- * the stat-card row plus the recent-activity card, matching real sizes so
- * there's no layout shift once list_projects resolves. */
+ * the active-task surface plus the two-column list cards, matching real
+ * sizes so there's no layout shift once list_projects resolves. */
 function OverviewSkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
-        {[0, 1, 2].map((i) => (
+      <Card className="p-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-10 shrink-0 rounded-lg" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <Skeleton className="h-8 w-20 shrink-0 rounded-md" />
+        </div>
+      </Card>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {[0, 1].map((i) => (
           <Card key={i} className="p-4">
-            <div className="flex items-center gap-3">
-              <Skeleton className="size-9 shrink-0 rounded-md" />
-              <div className="min-w-0 flex-1 space-y-2">
-                <Skeleton className="h-6 w-10" />
-                <Skeleton className="h-3 w-20" />
-              </div>
+            <Skeleton className="mb-3 h-4 w-32" />
+            <div className="flex flex-col gap-2">
+              {[0, 1, 2].map((j) => (
+                <Skeleton key={j} className="h-4 w-full max-w-xs" />
+              ))}
             </div>
           </Card>
         ))}
       </div>
-      <Card className="p-4">
-        <Skeleton className="mb-3 h-4 w-32" />
-        <div className="flex flex-col gap-2">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-4 w-full max-w-xs" />
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }
@@ -313,8 +266,6 @@ export function OverviewPage() {
     };
   }, [projects]);
 
-  const connectedCount = connectors.filter((c) => c.connected).length;
-  const openCount = tasks.filter((t) => t.status === "open").length;
   const resolveName = (id: string) => connectors.find((c) => c.id === id)?.name;
   const activeTask = tasks.find((t) => t.id === activeTaskId);
   const recentLog = [...log].slice(-5).reverse();
@@ -333,15 +284,9 @@ export function OverviewPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="WORKSPACE"
-        title="Overview"
-        subtitle={
-          projects.length === 0
-            ? "Nothing registered yet"
-            : "A snapshot of your projects, connectors, and recent activity"
-        }
-      />
+      {/* The toolbar now names the page (Task 11); this stays for the
+          existing findByText("Overview") contract and screen readers. */}
+      <h2 className="sr-only">Overview</h2>
 
       {loading ? (
         <OverviewSkeleton />
@@ -388,6 +333,37 @@ export function OverviewPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
+          {/* The active task leads the page: it is the one thing you were
+              already doing, so it is the first element and carries the
+              page's single primary action. */}
+          {activeTask && (
+            <Surface variant="raised" className="p-4">
+              <div className="flex items-center gap-3">
+                {/* The "you are here" marker: it is legitimately orange
+                    (the live thing), but it is not an action, so it opts out
+                    of the one-accent budget that the Resume button spends. */}
+                <span
+                  data-accent-mark
+                  className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+                >
+                  <Play className="size-4 fill-current" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono text-label font-medium uppercase tracking-widest text-muted-foreground">
+                    Active task
+                  </p>
+                  <p className="mt-0.5 truncate text-card font-semibold text-foreground">{activeTask.title}</p>
+                </div>
+                {/* Overview's one primary action: resuming the task you're
+                    actually in the middle of. */}
+                <Button size="sm" variant="primary" className="shrink-0" onClick={() => resumeTask(activeTask.id)}>
+                  <Play className="size-3.5 fill-current" />
+                  Resume
+                </Button>
+              </div>
+            </Surface>
+          )}
+
           {!(connectors.length > 0 && tasks.length > 0) && (
             <GettingStarted
               hasConnector={connectors.length > 0}
@@ -399,164 +375,125 @@ export function OverviewPage() {
               }}
             />
           )}
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
-            <StatCard icon={FolderGit2} label={projects.length === 1 ? "Project" : "Projects"} value={projects.length} />
-            <StatCard
-              icon={Plug}
-              label="Connected Apps"
-              value={connectedCount}
-              accent={connectedCount > 0 && openCount === 0}
-            />
-            <StatCard
-              icon={ListChecks}
-              label={openCount === 1 ? "Open Task" : "Open Tasks"}
-              value={openCount}
-              accent={openCount > 0}
-            />
-          </div>
-
-          {activeTask && (
-            <Card className="relative overflow-hidden border-l-2 border-l-primary p-4">
-              {/* Faint tangerine wash so the "you are here" anchor reads as the
-                  emotional centre of the dashboard, not a quiet aside. */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/[0.06] to-transparent"
-              />
-              <div className="relative flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
-                  <Play className="size-4 fill-current" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-mono text-label font-medium uppercase tracking-widest text-muted-foreground">
-                    Active Task
-                  </p>
-                  <p className="mt-0.5 truncate text-card font-semibold text-foreground">{activeTask.title}</p>
-                </div>
-                {/* Overview's one primary action: resuming the task you're
-                    actually in the middle of. */}
-                <Button size="sm" variant="primary" className="shrink-0" onClick={() => resumeTask(activeTask.id)}>
-                  <Play className="size-3.5 fill-current" />
-                  Resume
-                </Button>
-              </div>
-            </Card>
-          )}
 
           {continueProjects.length > 0 && (
-            <Card className="p-4">
-              <SectionTitle action={<SectionLink label="All capsules" onClick={() => setView("capsules")} />}>
-                Continue Working
-              </SectionTitle>
-              <div className="flex flex-col divide-y divide-border">
+            <Section label="Continue Working" action={<SectionLink label="All capsules" onClick={() => setView("capsules")} />}>
+              <Surface>
                 {continueProjects.map((project) => {
                   const task = project.lastTaskId
                     ? tasks.find((candidate) => candidate.id === project.lastTaskId && candidate.projectId === project.id)
                     : undefined;
 
                   return (
-                    <div key={project.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/5 text-primary">
-                        <ProjectIcon icon={project.icon} className="size-[18px]" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-body font-medium text-foreground">{project.name}</p>
-                        <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-label text-muted-foreground">
-                          <span>Opened {relativeTime(project.lastOpenedAt!)}</span>
-                          {project.activeSeconds > 0 && (
-                            <span>Last session {formatDuration(project.activeSeconds)}</span>
-                          )}
-                        </div>
-                        {task && <p className="mt-1 truncate text-meta text-muted-foreground">{task.title}</p>}
-                      </div>
-                      {task ? (
-                        // secondary, not primary: this list can render one of
-                        // these per continued project, and the active task's
-                        // Resume above already holds this page's one primary.
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          aria-label={`Resume ${project.name}`}
-                          onClick={() => resumeTask(task.id)}
-                        >
-                          <Play className="size-3.5 fill-current" />
-                          Resume
-                        </Button>
-                      ) : (
-                        <Button variant="outline" size="sm" onClick={() => setView("capsules")}>
-                          View Capsules
-                        </Button>
-                      )}
-                    </div>
+                    <Row
+                      key={project.id}
+                      leading={
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/5 text-primary">
+                          <ProjectIcon icon={project.icon} className="size-[18px]" />
+                        </span>
+                      }
+                      title={project.name}
+                      subtitle={
+                        <span className="flex flex-col gap-0.5">
+                          <span className="flex flex-wrap gap-x-3 gap-y-0.5">
+                            <span>Opened {relativeTime(project.lastOpenedAt!)}</span>
+                            {project.activeSeconds > 0 && (
+                              <span>Last session {formatDuration(project.activeSeconds)}</span>
+                            )}
+                          </span>
+                          {task && <span className="truncate">{task.title}</span>}
+                        </span>
+                      }
+                      trailing={
+                        task ? (
+                          // secondary, not primary: this list can render one
+                          // of these per continued project, and the active
+                          // task's Resume above already holds this page's
+                          // one primary.
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            aria-label={`Resume ${project.name}`}
+                            onClick={() => resumeTask(task.id)}
+                          >
+                            <Play className="size-3.5 fill-current" />
+                            Resume
+                          </Button>
+                        ) : (
+                          <Button variant="outline" size="sm" onClick={() => setView("capsules")}>
+                            View Capsules
+                          </Button>
+                        )
+                      }
+                    />
                   );
                 })}
-              </div>
-            </Card>
+              </Surface>
+            </Section>
           )}
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card className="p-4">
-              <SectionTitle action={<SectionLink label="Manage" onClick={() => setView("connectors")} />}>
-                Connected Apps
-              </SectionTitle>
+            <Section label="Connected Apps" action={<SectionLink label="Manage" onClick={() => setView("connectors")} />}>
               {connectors.length === 0 ? (
                 <p className="text-meta text-muted-foreground">
                   No tools linked yet — install the VS Code and Chrome extensions and they'll pair
                   with Rabta automatically.
                 </p>
               ) : (
-                <div className="flex flex-col gap-2.5">
+                <Surface>
                   {connectors.map((c) => (
-                    <div key={c.id} className="flex items-center gap-2.5 text-meta">
-                      <span
-                        className={cn(
-                          "size-2 shrink-0 rounded-full",
-                          c.connected ? "bg-success" : "bg-muted-foreground/40",
-                        )}
-                      />
-                      <span className="min-w-0 flex-1 truncate text-foreground">{c.name}</span>
-                      <Badge variant="outline" className="shrink-0 text-label">
-                        {kindLabel(c.kind)}
-                      </Badge>
-                      <span className="shrink-0 text-label text-muted-foreground">
-                        {c.connected ? "Connected" : "Offline"}
-                      </span>
-                    </div>
+                    <Row
+                      key={c.id}
+                      leading={
+                        <span
+                          className={cn(
+                            "size-2 shrink-0 rounded-full",
+                            c.connected ? "bg-success" : "bg-muted-foreground/40",
+                          )}
+                        />
+                      }
+                      title={c.name}
+                      trailing={
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-label">
+                            {kindLabel(c.kind)}
+                          </Badge>
+                          <span className="text-label text-muted-foreground">
+                            {c.connected ? "Connected" : "Offline"}
+                          </span>
+                        </div>
+                      }
+                    />
                   ))}
-                </div>
+                </Surface>
               )}
-            </Card>
+            </Section>
 
-            <Card className="p-4">
-              <SectionTitle
-                action={
-                  recentLog.length > 0 ? (
-                    <SectionLink label="View all" onClick={() => setView("activity")} />
-                  ) : undefined
-                }
-              >
-                Recent Activity
-              </SectionTitle>
+            <Section
+              label="Recent Activity"
+              action={
+                recentLog.length > 0 ? (
+                  <SectionLink label="View all" onClick={() => setView("activity")} />
+                ) : undefined
+              }
+            >
               {recentLog.length === 0 ? (
                 <p className="text-meta text-muted-foreground">
                   Nothing yet — actions from your connectors will appear here.
                 </p>
               ) : (
-                <div className="flex flex-col gap-2.5">
+                <Surface>
                   {recentLog.map((e) => (
-                    <div key={e.seq} className="flex items-center gap-2.5 text-meta">
-                      <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
-                      <span className="min-w-0 flex-1 truncate text-foreground/90">
-                        {describeEvent(e, resolveName).sentence}
-                      </span>
-                      <span className="shrink-0 text-label text-muted-foreground">
-                        {relativeTime(e.at)}
-                      </span>
-                    </div>
+                    <Row
+                      key={e.seq}
+                      leading={<span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/40" />}
+                      title={describeEvent(e, resolveName).sentence}
+                      trailing={<span className="text-label text-muted-foreground">{relativeTime(e.at)}</span>}
+                    />
                   ))}
-                </div>
+                </Surface>
               )}
-            </Card>
+            </Section>
           </div>
         </div>
       )}

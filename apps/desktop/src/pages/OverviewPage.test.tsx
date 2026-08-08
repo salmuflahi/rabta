@@ -2,6 +2,7 @@ import type { InvokeArgs } from "@tauri-apps/api/core";
 import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useStore, type Project, type Task } from "@/store";
+import { expectAtMostOneAccent } from "@/test/accent";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { OverviewPage } from "./OverviewPage";
 
@@ -31,7 +32,7 @@ describe("OverviewPage", () => {
     expect(screen.getByText("Welcome to Rabta")).toBeInTheDocument();
   });
 
-  it("renders stat cards and recent activity when data is seeded", async () => {
+  it("renders the connected apps and recent activity sections when data is seeded", async () => {
     // OverviewPage refetches projects/tasks itself via list_projects +
     // list_tasks (same invokes CapsulesPage already uses), so the mock
     // must resolve them — a bare useStore.setState would just get
@@ -73,10 +74,26 @@ describe("OverviewPage", () => {
 
     renderWithProviders(<OverviewPage />);
 
-    // "Connected Apps" appears twice — as the stat-card label and the section
-    // heading below it (summary → detail); both should render.
+    // The stat tile is gone; the section heading is the only "Connected Apps"
+    // left. The assertion stays >= 1 because that is the real contract —
+    // the section must render, however many times the words appear.
     expect((await screen.findAllByText("Connected Apps")).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Recent Activity")).toBeInTheDocument();
+  });
+
+  it("does not restate sidebar counts as stat tiles", async () => {
+    renderWithProviders(<OverviewPage />);
+    await screen.findByText("Overview");
+    // Counts live on the sidebar rows that own them. A tile here would be
+    // the same number in two places.
+    expect(screen.queryByText("PROJECTS")).toBeNull();
+    expect(screen.queryByText("OPEN TASKS")).toBeNull();
+  });
+
+  it("spends the accent at most once", async () => {
+    const { container } = renderWithProviders(<OverviewPage />);
+    await screen.findByText("Overview");
+    expectAtMostOneAccent(container);
   });
 
   it("omits Continue Working projects with malformed persisted lastOpenedAt timestamps", async () => {
