@@ -16,7 +16,7 @@ export function LoadError({
   entity?: string;
 }) {
   return (
-    <Card className="flex flex-col items-center gap-3 border-dashed p-8 text-center">
+    <Card className="flex flex-col items-center gap-3 border border-dashed p-8 text-center">
       <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
         <AlertTriangle className="size-6" />
       </div>

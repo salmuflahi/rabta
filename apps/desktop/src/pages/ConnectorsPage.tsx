@@ -20,7 +20,7 @@ function PairingCard({
   accented?: boolean;
 }) {
   return (
-    <Card className="mb-3 border-warning/30 bg-warning/10 p-4">
+    <Card className="mb-3 border border-warning/30 bg-warning/10 p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="min-w-0 truncate text-sm text-foreground">
           <span className="font-medium">{pairing.name}</span>{" "}

@@ -6,7 +6,10 @@ export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
   ({ className, ...props }, ref) => (
     // Kept as a thin alias over Surface so screens not yet migrated to the
     // new primitives lose their borders automatically rather than breaking.
-    <Surface ref={ref} variant="raised" className={className} {...props} />
+    // text-card-foreground is applied here (not on Surface) so it stays
+    // explicitly coupled to the card surface rather than Surface's generic
+    // bg-card/bg-muted split.
+    <Surface ref={ref} variant="raised" className={cn("text-card-foreground", className)} {...props} />
   ),
 );
 Card.displayName = "Card";

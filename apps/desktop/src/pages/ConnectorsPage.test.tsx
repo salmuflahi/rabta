@@ -123,4 +123,22 @@ describe("ConnectorsPage", () => {
     expect(buttonsWithPrimary).toHaveLength(1);
     expect(buttonsWithPrimary[0]).toBe(approveButtons[0]);
   });
+
+  // Card no longer applies a border by default (Surface owns elevation, not
+  // outlines), so a call site that layers on a border colour must also
+  // supply the border-width utility itself or the colour renders as
+  // nothing (Preflight resets border-width to 0).
+  it("gives the pending-pairing card an explicit border width alongside its warning colour", async () => {
+    useStore.setState({
+      connectors: [],
+      pairings: [{ pairingId: "pair-1", name: "Chrome", kind: "browser" }],
+    });
+
+    const { container } = renderWithProviders(<ConnectorsPage />);
+    await screen.findByText("Approve");
+
+    const pairingCard = container.querySelector('[class*="border-warning"]');
+    expect(pairingCard).not.toBeNull();
+    expect(pairingCard!.className).toMatch(/(^|\s)border(\s|$)/);
+  });
 });
