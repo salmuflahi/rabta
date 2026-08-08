@@ -39,13 +39,13 @@ describe("SettingsPage", () => {
     renderWithProviders(<SettingsPage />);
     await screen.findByText("Settings");
 
-    // Renamed from the old Card-era title ("Put away what isn't in the
-    // task") to the short "Focus mode" accessible name now that the
-    // guarantee itself lives in the Field's description — see the two
-    // tests below. This is a layout-era assertion, not a wiring one: the
-    // checked/onCheckedChange <-> store.setPref("focusMode", …) contract
-    // asserted here is untouched.
-    const toggle = screen.getByLabelText("Focus mode");
+    // Restore to the original label "Put away what isn't in the task"
+    // (from commit dd36604, which predates Task 16's redesign). The label
+    // names the behavior; the description states the guarantees. Together,
+    // they follow the project's copy rule: "Name what is true, then what
+    // to do about it." The wiring (checked/onCheckedChange <->
+    // store.setPref("focusMode", …)) is unchanged.
+    const toggle = screen.getByLabelText("Put away what isn't in the task");
     expect(toggle).not.toBeChecked();
     expect(useStore.getState().prefs.focusMode).toBe(false);
 
@@ -59,12 +59,14 @@ describe("SettingsPage", () => {
   it("states the focus mode guarantees at the point of decision", async () => {
     renderWithProviders(<SettingsPage />);
     expect(await screen.findByText(/never closed/i)).toBeInTheDocument();
-    expect(screen.getByText(/put away/i)).toBeInTheDocument();
+    // "what it does not want" is unique to the description, confirming the
+    // guarantees text is present (as opposed to just the label containing "put away").
+    expect(screen.getByText(/what it does not want/i)).toBeInTheDocument();
   });
 
   it("keeps the focus mode switch wired to the pref", async () => {
     renderWithProviders(<SettingsPage />);
-    const toggle = await screen.findByLabelText(/focus mode/i);
+    const toggle = await screen.findByLabelText("Put away what isn't in the task");
     expect(toggle).toBeInTheDocument();
   });
 

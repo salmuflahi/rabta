@@ -173,7 +173,7 @@ function BehaviorSection() {
             because this copy only speaks to the two guarantees a resuming
             task itself provides. */}
         <Field
-          label="Focus mode"
+          label="Put away what isn't in the task"
           description="Resuming a task will put away what it does not want. Everything is saved to the outgoing task first, and a terminal that is running something is never closed."
           htmlFor="focus-mode"
         >
