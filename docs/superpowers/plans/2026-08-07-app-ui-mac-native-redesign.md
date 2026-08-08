@@ -1384,12 +1384,19 @@ import { renderWithProviders } from "@/test/smoke-utils";
 
 describe("sidebar chrome", () => {
   // The tiled mark is petrol on a petrol sidebar — invisible. Chrome uses
-  // the monochrome mark; the tiled one stays the Dock icon.
-  it("uses the monochrome mark, not the tiled one", () => {
-    renderWithProviders(<Sidebar />);
-    const mark = screen.getByAltText("Rabta") as HTMLImageElement;
-    expect(mark.src).toMatch(/rabta-mark-mono\.svg/);
-    expect(mark.src).not.toMatch(/rabta-mark\.svg/);
+  // an INLINE monochrome mark, not an <img>: rabta-mark-mono.svg is filled
+  // with currentColor, and an SVG loaded through <img src> is an isolated
+  // document where currentColor resolves to black. Inlining is what makes
+  // the fill inherit the sidebar's ivory.
+  it("inlines the mark so it inherits the sidebar's colour", () => {
+    const { container } = renderWithProviders(<Sidebar />);
+    expect(container.querySelector("img[alt='Rabta']")).toBeNull();
+    const svg = container.querySelector("svg[data-brand-mark]");
+    expect(svg).not.toBeNull();
+    expect(svg!.getAttribute("aria-label")).toBe("Rabta");
+    // currentColor is the whole point — a hardcoded fill would defeat it.
+    expect(svg!.innerHTML).toMatch(/currentColor/);
+    expect(svg!.innerHTML).not.toMatch(/#102526/);
   });
 
   // The Context Fold put a second permanent orange element on every screen,
@@ -1414,16 +1421,42 @@ Expected: FAIL — the mark is `rabta-mark.svg`, and `ContextFold` renders a `cl
 
 In `src/shell/Sidebar.tsx`:
 
-1. Change the mark import on line 2:
+1. Delete the `markUrl` import on line 2 and replace the `<img src={markUrl} …>` on line 126 with an inline mark. **Do not use `<img>`** — `rabta-mark-mono.svg` is filled with `currentColor`, and an SVG loaded through `<img src>` is an isolated document where `currentColor` resolves to black, giving an invisible logo on the petrol sidebar. Add this component to the file:
+
    ```tsx
-   import markUrl from "@/assets/brand/rabta-mark-mono.svg";
+   /** The mark, inlined so `currentColor` inherits the sidebar's ivory.
+    * The tiled `rabta-mark.svg` stays the Dock icon, where it sits against
+    * the desktop and reads properly. */
+   function BrandMark({ className }: { className?: string }) {
+     return (
+       <svg
+         data-brand-mark
+         viewBox="0 0 64 64"
+         role="img"
+         aria-label="Rabta"
+         className={className}
+       >
+         <path
+           fill="currentColor"
+           fillRule="evenodd"
+           d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"
+         />
+         <path fill="currentColor" d="M41.5 8v14.5H56Z" />
+       </svg>
+     );
+   }
    ```
+
+   and render it as `<BrandMark className="size-4 shrink-0 text-sidebar-foreground" />`.
+
 2. Delete the entire `ContextFold` component (lines 21–41) and its `<ContextFold active={active} />` usage inside `NavRow`.
 3. In `NavRow`, change the button className: `h-10` becomes `h-[25px]`, and remove `rounded-tr-none` (it existed only so the fold read crisp). Change `gap-1` to `gap-2` and the icon tile `size-10` to `size-[18px]`, with the icon itself `size-[14px]`.
 4. Change `ROW_STRIDE` on line 14 from `44` to `26`.
 5. In the moving-indicator `div`, change `h-10` to `h-[25px]` and remove `rounded-tr-none`.
 6. Change the `aside` padding from `px-[24px]` to `px-[10px]`, and the two full-bleed dividers from `-mx-[24px]` to `-mx-[10px]`.
-7. In `BrandRow`, change the mark from `size-6` to `size-4` and the wordmark from `text-[15px]` to `text-body`.
+7. In `BrandRow`, the wordmark goes from `text-[15px]` to `text-body`.
+
+**Do not touch the other three `markUrl` usages** in `Gallery.tsx:126`, `SettingsPage.tsx:401` and `RestoreExperience.tsx:228`. Those render the tiled `rabta-mark.svg` against light or neutral surfaces where it reads correctly, and they are outside this task.
 
 In `src/shell/AppShell.tsx`, change line 13:
 
@@ -1652,6 +1685,29 @@ git commit -m "feat(ui): Overview leads with the active task, not stat tiles"
 - Consumes: `Surface`, `Section`, `Row`, `expectAtMostOneAccent`.
 - Produces: nothing later tasks depend on.
 
+**The real prop signature — use these names exactly.** Read `src/features/capsules/CapsuleItems.tsx:8-34` before writing a line. A previous arc lost a full review round on this component by inventing prop names that were self-consistent inside the test and matched zero real items:
+
+```ts
+export interface CapsuleItem {
+  kind: "chrome" | "vscode";     // NOT connectorKind
+  identity: string;
+  label: string;
+  payload: unknown;
+  pinned: boolean;
+  captured: boolean;             // NOT present
+  pinnable: boolean;
+}
+
+export interface CapsuleItemsProps {
+  taskId: string;
+  resources: TaskResource[];     // NOT items; TaskResource is camelCase
+  pins: { connectorKind: string; identity: string; payload: unknown }[];
+  onChanged: () => void;
+}
+```
+
+Note the asymmetry, which is real and deliberate: `CapsuleItem.kind` versus `pins[].connectorKind`. Do not "fix" either one — identity matching must keep agreeing with `capsules::identity_of` on the Rust side.
+
 The four item states and their non-colour cues, from the spec:
 
 | State | Meaning | Cue |
@@ -1665,51 +1721,51 @@ The four item states and their non-colour cues, from the spec:
 
 Append to `src/features/capsules/CapsuleItems.test.tsx`:
 
+Follow the fixture style already used in this file for `resources` — read the existing tests first and reuse their `TaskResource` builders rather than hand-rolling new shapes.
+
 ```tsx
   // A pin outlives the tab or file it was made from (merge_pins on the Rust
-  // side). If we stopped rendering it, the item would be "always open" with
-  // no control left to stop it.
+  // side). If we stopped rendering it, the item would be "always open" on
+  // every resume with no control left to stop it.
   it("still renders a pin whose item is gone, and still offers unpin", () => {
     render(
       <CapsuleItems
-        items={[]}
+        taskId="task-1"
+        resources={[]}
         pins={[{ connectorKind: "chrome", identity: "https://gone.test/", payload: {} }]}
+        onChanged={() => {}}
       />,
     );
     expect(screen.getByText("https://gone.test/")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /unpin/i })).toBeEnabled();
+    // aria-disabled, not disabled= — a previous arc fixed exactly this so the
+    // control keeps its tooltip and stays in tab order (commit c0340e9).
+    const unpin = screen.getByRole("button", { name: /unpin/i });
+    expect(unpin).not.toHaveAttribute("aria-disabled", "true");
   });
 
-  // A disabled control that cannot say why is a dead end.
-  it("explains why an unpinnable item cannot be pinned", () => {
+  // A control that cannot say why it refuses is a dead end.
+  it("explains why an unpinnable terminal cannot be pinned", () => {
     render(
       <CapsuleItems
-        items={[
-          {
-            connectorKind: "vscode",
-            identity: "term-1",
-            label: "zsh",
-            pinned: false,
-            pinnable: false,
-            present: true,
-          },
-        ]}
+        taskId="task-1"
+        resources={[/* a vscode terminal with no cwd — build it the way the
+                       existing tests in this file build resources */]}
         pins={[]}
+        onChanged={() => {}}
       />,
     );
-    const pin = screen.getByRole("button", { name: /pin/i });
-    expect(pin).toBeDisabled();
+    const pin = screen.getByRole("button", { name: /always open/i });
+    expect(pin).toHaveAttribute("aria-disabled", "true");
     expect(pin).toHaveAccessibleDescription(/no command to reopen it/i);
   });
 
   it("distinguishes pinned from loose without relying on colour", () => {
     const { container } = render(
       <CapsuleItems
-        items={[
-          { connectorKind: "chrome", identity: "a", label: "Pinned tab", pinned: true, pinnable: true, present: true },
-          { connectorKind: "chrome", identity: "b", label: "Loose tab", pinned: false, pinnable: true, present: true },
-        ]}
-        pins={[]}
+        taskId="task-1"
+        resources={[/* one chrome tab pinned, one loose — same builders */]}
+        pins={[{ connectorKind: "chrome", identity: "https://pinned.test/", payload: {} }]}
+        onChanged={() => {}}
       />,
     );
     // The cue is an icon, not a hue — colour is never the only signal.
@@ -1767,14 +1823,26 @@ git commit -m "feat(ui): curate surface with four pin states and non-colour cues
 
 - [ ] **Step 1: Write the failing tests**
 
-Append to each of the two test files, adjusting the component name and import path per file:
+Append to `src/pages/ProjectsPage.test.tsx`:
 
 ```tsx
 import { expectAtMostOneAccent } from "@/test/accent";
 
   it("spends the accent at most once", async () => {
     const { container } = renderWithProviders(<ProjectsPage />);
-    await screen.findByRole("heading", { level: 2 });
+    await screen.findByText("Projects");
+    expectAtMostOneAccent(container);
+  });
+```
+
+And append to `src/pages/ActivityPage.test.tsx`:
+
+```tsx
+import { expectAtMostOneAccent } from "@/test/accent";
+
+  it("spends the accent at most once", async () => {
+    const { container } = renderWithProviders(<ActivityPage />);
+    await screen.findByText("Activity");
     expectAtMostOneAccent(container);
   });
 ```
