@@ -294,7 +294,7 @@ export function OverviewPage() {
         <LoadError onRetry={loadProjects} />
       ) : projects.length === 0 ? (
         <div className="flex flex-col gap-6">
-          <Card className="flex flex-col items-center gap-3 border-dashed p-8 text-center">
+          <Card className="flex flex-col items-center gap-3 p-8 text-center">
             <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Sparkles className="size-6" />
             </div>

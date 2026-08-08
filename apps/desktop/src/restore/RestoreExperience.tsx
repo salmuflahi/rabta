@@ -443,19 +443,31 @@ function RestoreOverlay({
           </div>
 
           {(closed.length > 0 || kept.length > 0) && (
-            <Section label={`${closed.length} put away`} className="mt-3">
-              <Surface>
-                {[...new Set(kept.map(([, reason]) => reason))].map((reason) => (
-                  <Row
-                    key={reason}
-                    title={kept
-                      .filter(([, r]) => r === reason)
-                      .map(([item]) => item)
-                      .join(", ")}
-                    subtitle={reason}
-                  />
-                ))}
-              </Surface>
+            // Each half of the receipt is conditional on its own data: a
+            // count is only ever stated for the side that actually
+            // happened (never "0 put away"), and the Surface of kept
+            // reasons only renders when there's something to put in it
+            // (never an empty rounded, shadowed box). Either way the
+            // Section still carries a truthful label, so this never reads
+            // as a headerless box or a heading with nothing under it.
+            <Section
+              label={closed.length > 0 ? `${closed.length} put away` : `${kept.length} kept`}
+              className="mt-3"
+            >
+              {kept.length > 0 && (
+                <Surface>
+                  {[...new Set(kept.map(([, reason]) => reason))].map((reason) => (
+                    <Row
+                      key={reason}
+                      title={kept
+                        .filter(([, r]) => r === reason)
+                        .map(([item]) => item)
+                        .join(", ")}
+                      subtitle={reason}
+                    />
+                  ))}
+                </Surface>
+              )}
             </Section>
           )}
 

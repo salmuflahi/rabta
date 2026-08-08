@@ -260,4 +260,59 @@ describe("useRestore / RestoreExperience", () => {
     expect(screen.queryByText(/put away/)).not.toBeInTheDocument();
     expect(screen.queryByText(/kept/)).not.toBeInTheDocument();
   });
+
+  it("nothing was put away but something was kept: never claims '0 put away', still names the reason", async () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+
+    const result: RestoreResult = {
+      overall: "success",
+      tools: [
+        { id: "vscode-1", status: "applied" },
+        { id: "chrome-1", status: "applied" },
+      ],
+      closed: [],
+      kept: [["draft.md", "unsaved changes"]],
+    };
+    const run = vi.fn().mockResolvedValue(result);
+
+    renderWithProviders(<Harness run={run} />);
+    await advanceUntil(() => screen.queryByText("Workspace restored") !== null);
+
+    // Never state a count of zero — accurate but odd.
+    expect(screen.queryByText(/0 put away/)).not.toBeInTheDocument();
+    // The receipt still reads as one complete statement: a labelled region
+    // (not a headerless box) that actually names the kept reason.
+    const receipt = screen.getByRole("region", { name: /kept/i });
+    expect(receipt).toHaveTextContent("unsaved changes");
+    expect(receipt).toHaveTextContent("draft.md");
+  });
+
+  it("something was put away but nothing was kept: states the count with no empty box beneath it", async () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+
+    const result: RestoreResult = {
+      overall: "success",
+      tools: [
+        { id: "vscode-1", status: "applied" },
+        { id: "chrome-1", status: "applied" },
+      ],
+      closed: ["https://stray.test/"],
+      kept: [],
+    };
+    const run = vi.fn().mockResolvedValue(result);
+
+    renderWithProviders(<Harness run={run} />);
+    await advanceUntil(() => screen.queryByText("Workspace restored") !== null);
+
+    const receipt = screen.getByRole("region", { name: /put away/i });
+    expect(receipt).toHaveTextContent("1 put away");
+    // No Surface of kept reasons at all — there's nothing to list, and
+    // rendering an empty rounded, shadowed box would read as broken, not
+    // calm. Surface's own contract (surface.tsx) is `shadow-grouped` /
+    // `shadow-raised`; neither should appear inside the receipt here.
+    expect(receipt.querySelector("[data-row]")).toBeNull();
+    expect(receipt.querySelector(".shadow-grouped")).toBeNull();
+  });
 });

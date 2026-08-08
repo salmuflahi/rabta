@@ -3,6 +3,7 @@ import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useStore, type Project, type Task } from "@/store";
 import { expectAtMostOneAccent } from "@/test/accent";
+import { expectNoBorder } from "@/test/no-box";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { OverviewPage } from "./OverviewPage";
 
@@ -30,6 +31,23 @@ describe("OverviewPage", () => {
     renderWithProviders(<OverviewPage />);
     expect(await screen.findByText("Overview")).toBeInTheDocument();
     expect(screen.getByText("Welcome to Rabta")).toBeInTheDocument();
+  });
+
+  // The welcome empty-state is a Card (a Surface alias), which already owns
+  // depth via shadow-grouped elevation. A `border-dashed` there paints
+  // nothing (Preflight zeroes border-width, and no `border` width utility
+  // sits alongside it) and, per the redesign's rule, would be the wrong fix
+  // even if it did — depth comes from elevation, not drawn outlines. This
+  // is the same holdover already fixed the same way in ConnectorsPage.tsx's
+  // pending-pairing prompt and load-error.tsx's Card.
+  it("the welcome card carries no border utility classes — depth comes from elevation, not an orphaned border-dashed", async () => {
+    renderWithProviders(<OverviewPage />);
+    await screen.findByText("Overview");
+
+    const heading = screen.getByText("Welcome to Rabta");
+    const card = heading.parentElement!.parentElement!;
+    expect(card.className).toMatch(/shadow-grouped/);
+    expectNoBorder(card);
   });
 
   it("renders the connected apps and recent activity sections when data is seeded", async () => {
