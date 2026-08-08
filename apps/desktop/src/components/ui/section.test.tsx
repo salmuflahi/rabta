@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { expectNoBackground, expectNoBorder } from "@/test/no-box";
 import { Section } from "./section";
 
 describe("Section", () => {
@@ -41,7 +42,7 @@ describe("Section", () => {
       </Section>,
     );
     const region = container.querySelector("section")!;
-    expect(region.className).not.toMatch(/(^|\s)border(\s|$)/);
-    expect(region.className).not.toMatch(/bg-/);
+    expectNoBorder(region);
+    expectNoBackground(region);
   });
 });
