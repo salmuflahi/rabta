@@ -1,5 +1,6 @@
 import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { expectAtMostOneAccent } from "@/test/accent";
 import { useStore } from "@/store";
 import { renderWithProviders } from "@/test/smoke-utils";
 import { ConnectorsPage } from "./ConnectorsPage";
@@ -140,5 +141,48 @@ describe("ConnectorsPage", () => {
     const pairingCard = container.querySelector('[class*="border-warning"]');
     expect(pairingCard).not.toBeNull();
     expect(pairingCard!.className).toMatch(/(^|\s)border(\s|$)/);
+  });
+
+  it("spends the accent at most once", async () => {
+    useStore.setState({
+      connectors: [
+        {
+          id: "conn-1",
+          name: "VS Code",
+          kind: "vscode",
+          capabilities: ["files", "terminals"],
+          connected: true,
+          connectedSince: new Date().toISOString(),
+        },
+      ],
+      pairings: [
+        { pairingId: "pair-1", name: "Chrome", kind: "browser" },
+        { pairingId: "pair-2", name: "Firefox", kind: "browser" },
+      ],
+    });
+
+    const { container } = renderWithProviders(<ConnectorsPage />);
+    await screen.findByText(/connected/i);
+    expectAtMostOneAccent(container);
+  });
+
+  it("states connector status in words, not only colour", async () => {
+    useStore.setState({
+      connectors: [
+        {
+          id: "conn-1",
+          name: "VS Code",
+          kind: "vscode",
+          capabilities: [],
+          connected: true,
+          connectedSince: new Date().toISOString(),
+        },
+      ],
+      pairings: [],
+    });
+
+    renderWithProviders(<ConnectorsPage />);
+    // Colour is never the only signal.
+    expect(await screen.findByText(/Connected|Offline|Not connected/)).toBeInTheDocument();
   });
 });

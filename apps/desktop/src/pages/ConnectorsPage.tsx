@@ -3,6 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Row } from "@/components/ui/row";
+import { Section } from "@/components/ui/section";
+import { Surface } from "@/components/ui/surface";
 import { kindLabel } from "@/lib/connectors";
 import { relativeTime } from "@/lib/humanize";
 import { decidePairing } from "@/lib/pairing";
@@ -10,83 +13,100 @@ import { cn } from "@/lib/utils";
 import { PageHeader } from "@/shell/PageHeader";
 import { useStore, type ConnectorRow, type PendingPairing } from "@/store";
 
-function PairingCard({
-  pairing,
+/**
+ * The page's one raised surface, and the home of its one primary action.
+ * Every request gets Deny + Approve, but only the first Approve carries
+ * `variant="primary"` — N pending requests must never mean N orange
+ * buttons (see the "shows only the first pairing card's Approve button..."
+ * test, which pins this from both sides).
+ *
+ * `border` is applied explicitly alongside `border-warning/30`: Surface
+ * (like Card, its thin alias) owns elevation via shadow, not a border
+ * width, so the warning colour needs its own width utility or it renders
+ * as nothing.
+ */
+function PendingPairings({
+  pairings,
   onDecide,
-  accented = false,
 }: {
-  pairing: PendingPairing;
+  pairings: PendingPairing[];
   onDecide: (pairing: PendingPairing, ok: boolean) => void;
-  accented?: boolean;
 }) {
   return (
-    <Card className="mb-3 border border-warning/30 bg-warning/10 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="min-w-0 truncate text-sm text-foreground">
-          <span className="font-medium">{pairing.name}</span>{" "}
-          <span className="text-muted-foreground">({kindLabel(pairing.kind)})</span> wants to connect
-        </p>
-        <div className="flex shrink-0 items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => onDecide(pairing, false)}>
-            Deny
-          </Button>
-          <Button size="sm" variant={accented ? "primary" : "secondary"} onClick={() => onDecide(pairing, true)}>
-            Approve
-          </Button>
-        </div>
+    <Surface variant="raised" className="mb-6 border border-warning/30 bg-warning/10 p-4">
+      <div className="flex flex-col divide-y divide-warning/20">
+        {pairings.map((p, i) => (
+          <div
+            key={p.pairingId}
+            className={cn("flex items-center justify-between gap-3 py-2.5", i === 0 && "pt-0", "last:pb-0")}
+          >
+            <p className="min-w-0 truncate text-sm text-foreground">
+              <span className="font-medium">{p.name}</span>{" "}
+              <span className="text-muted-foreground">({kindLabel(p.kind)})</span> wants to connect
+            </p>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => onDecide(p, false)}>
+                Deny
+              </Button>
+              <Button size="sm" variant={i === 0 ? "primary" : "secondary"} onClick={() => onDecide(p, true)}>
+                Approve
+              </Button>
+            </div>
+          </div>
+        ))}
       </div>
-    </Card>
+    </Surface>
   );
 }
 
-function ConnectorCard({ connector }: { connector: ConnectorRow }) {
+function StatusDot({ connected }: { connected: boolean }) {
+  if (connected) {
+    // A live connection literally breathes — a slow halo behind a solid
+    // dot. Only rendered when actually connected, so it's honest.
+    return (
+      <span aria-hidden className="relative flex size-2.5 shrink-0 items-center justify-center">
+        <span className="absolute inline-flex size-full animate-live-ping rounded-full bg-success" />
+        <span className="relative inline-flex size-2.5 rounded-full bg-success ring-4 ring-success/15" />
+      </span>
+    );
+  }
+  return <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-muted-foreground/40" />;
+}
+
+function ConnectorListRow({ connector }: { connector: ConnectorRow }) {
+  // Colour is never the only signal: the dot carries the glance, the word
+  // carries the meaning.
+  const statusText = connector.connected
+    ? `Connected · since ${relativeTime(connector.connectedSince)}`
+    : `Offline · last seen ${relativeTime(connector.connectedSince)}`;
+
   return (
-    <Card className="card-lift p-4">
-      <div className="flex items-start gap-3">
-        {connector.connected ? (
-          // A live connection literally breathes — a slow halo behind a solid
-          // dot. Only rendered when actually connected, so it's honest.
-          <span aria-hidden className="relative mt-1.5 flex size-2.5 shrink-0 items-center justify-center">
-            <span className="absolute inline-flex size-full animate-live-ping rounded-full bg-success" />
-            <span className="relative inline-flex size-2.5 rounded-full bg-success ring-4 ring-success/15" />
-          </span>
-        ) : (
-          <span aria-hidden className="mt-1.5 size-2.5 shrink-0 rounded-full bg-muted-foreground/40" />
-        )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="min-w-0 truncate text-card font-medium text-foreground">{connector.name}</p>
-            <Badge variant="outline" className="shrink-0 text-label">
-              {kindLabel(connector.kind)}
-            </Badge>
-            {connector.version && (
-              <span className="shrink-0 rounded-full bg-muted/60 px-1.5 py-0.5 font-mono text-label text-muted-foreground">
-                v{connector.version}
-              </span>
-            )}
-          </div>
-          <p className={cn("mt-1 text-meta", connector.connected ? "text-success" : "text-muted-foreground")}>
-            {connector.connected
-              ? `Connected · since ${relativeTime(connector.connectedSince)}`
-              : `Offline · last seen ${relativeTime(connector.connectedSince)}`}
-          </p>
-          {connector.capabilities.length > 0 ? (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {connector.capabilities.map((cap) => (
-                <span
-                  key={cap}
-                  className="rounded-full border border-border bg-muted/40 px-2 py-0.5 text-label text-muted-foreground"
-                >
-                  {cap}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-2 text-label text-muted-foreground/70">No capabilities reported</p>
+    <Row
+      leading={<StatusDot connected={connector.connected} />}
+      title={
+        <div className="flex items-center gap-2">
+          <span className="min-w-0 truncate">{connector.name}</span>
+          <Badge variant="outline" className="shrink-0 text-label">
+            {kindLabel(connector.kind)}
+          </Badge>
+          {connector.version && (
+            <span className="shrink-0 rounded-full bg-muted/60 px-1.5 py-0.5 font-mono text-label text-muted-foreground">
+              v{connector.version}
+            </span>
           )}
         </div>
-      </div>
-    </Card>
+      }
+      subtitle={
+        <>
+          {statusText}
+          {connector.capabilities.length > 0 && (
+            <span className="ml-2 font-mono text-meta text-muted-foreground/80">
+              {connector.capabilities.join(" · ")}
+            </span>
+          )}
+        </>
+      }
+    />
   );
 }
 
@@ -134,19 +154,15 @@ export function ConnectorsPage() {
   }
 
   const connectedCount = connectors.filter((c) => c.connected).length;
-  const subtitle = `${connectedCount} connected`;
+  // Avoids the word "connected" so it can't collide with a connector row's
+  // own "Connected · since ..." status text in text-content lookups.
+  const subtitle = `${connectedCount} ${connectedCount === 1 ? "connector" : "connectors"} online`;
 
   return (
     <div>
       <PageHeader eyebrow="CONNECTIONS" title="Connectors" subtitle={subtitle} />
 
-      {pairings.length > 0 && (
-        <div className="mb-6">
-          {pairings.map((p, i) => (
-            <PairingCard key={p.pairingId} pairing={p} onDecide={decide} accented={i === 0} />
-          ))}
-        </div>
-      )}
+      {pairings.length > 0 && <PendingPairings pairings={pairings} onDecide={decide} />}
 
       {connectors.length === 0 ? (
         <div className="flex flex-col gap-4">
@@ -177,11 +193,13 @@ export function ConnectorsPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
-          {connectors.map((c) => (
-            <ConnectorCard key={c.id} connector={c} />
-          ))}
-        </div>
+        <Section label="Connections">
+          <Surface>
+            {connectors.map((c) => (
+              <ConnectorListRow key={c.id} connector={c} />
+            ))}
+          </Surface>
+        </Section>
       )}
     </div>
   );
