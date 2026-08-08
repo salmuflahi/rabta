@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import config from "../../tailwind.config.js";
 
 const css = readFileSync(resolve(__dirname, "../index.css"), "utf8");
-const shadows = (config as any).theme.extend.boxShadow as Record<string, string>;
+const shadows = config.theme.extend.boxShadow;
 
 function blockFor(selector: string): string {
   const start = css.indexOf(`${selector} {`);

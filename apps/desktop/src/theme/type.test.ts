@@ -3,10 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import config from "../../tailwind.config.js";
 
-const sizes = (config as any).theme.extend.fontSize as Record<
-  string,
-  [string, { lineHeight: string; letterSpacing?: string }]
->;
+const sizes = config.theme.extend.fontSize;
 
 /** rem string -> px number, at the 16px root the app never overrides. */
 const px = (rem: string) => Number(rem.replace("rem", "")) * 16;
@@ -27,7 +24,7 @@ describe("Mac type scale", () => {
   });
 
   it("uses the system face first, with no bundled webfont", () => {
-    const sans = (config as any).theme.extend.fontFamily.sans as string[];
+    const sans = config.theme.extend.fontFamily.sans;
     expect(sans[0]).toBe("-apple-system");
     expect(sans.join(" ")).not.toMatch(/Inter/i);
   });

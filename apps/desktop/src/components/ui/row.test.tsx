@@ -95,4 +95,15 @@ describe("Row", () => {
     );
     expect(container.querySelector("[data-row-subtitle]")).toBeNull();
   });
+
+  // `title` is typed as ReactNode (not the native HTML tooltip string) so
+  // callers can pass JSX — icons, spans, formatted fragments — not just text.
+  it("accepts a JSX title", () => {
+    render(
+      <Surface>
+        <Row title={<span data-testid="jsx-title">hello</span>} />
+      </Surface>,
+    );
+    expect(screen.getByTestId("jsx-title")).toBeInTheDocument();
+  });
 });

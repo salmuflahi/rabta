@@ -1,7 +1,10 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-export interface RowProps extends React.HTMLAttributes<HTMLDivElement> {
+// `title` is redeclared below as ReactNode (JSX content, not the native HTML
+// tooltip string), so the native `title?: string` attribute is omitted here
+// to avoid a conflicting override. Do not "fix" this back to string.
+export interface RowProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
   /** Icon, dot, or pin affordance. Leading so a column of them scans. */
   leading?: React.ReactNode;
   title: React.ReactNode;
