@@ -188,6 +188,41 @@ describe("CapsuleItems", () => {
     expect(pin).toHaveAccessibleDescription(/no command to reopen it/i);
   });
 
+  // The description id used to be built from group label + index only
+  // (capsule-item-pin-desc-${group.label}-${idx}), with no taskId. Two
+  // different tasks' capsule popovers open at once, each with an
+  // unpinnable terminal at the same group/index, would then emit the same
+  // DOM id twice — and aria-describedby is id-based, so the browser
+  // resolves it to whichever element happens to be first in the document,
+  // silently breaking the explanation for the other task's control.
+  it("qualifies the unpinnable description id by taskId, so two tasks' descriptions never collide", () => {
+    const noCwdResources = [
+      { connectorKind: "vscode", payload: { terminals: [{ name: "zsh", cwd: null }] } },
+    ] as never;
+
+    render(<CapsuleItems taskId="task-a" resources={noCwdResources} pins={[]} onChanged={() => {}} />);
+    render(<CapsuleItems taskId="task-b" resources={noCwdResources} pins={[]} onChanged={() => {}} />);
+
+    const pinButtons = screen.getAllByRole("button", { name: /can.?t always open zsh/i });
+    expect(pinButtons).toHaveLength(2);
+
+    const descIds = pinButtons.map((btn) => btn.getAttribute("aria-describedby"));
+    // Each button must actually reference a description id, and the two
+    // tasks' ids must differ.
+    expect(descIds[0]).toBeTruthy();
+    expect(descIds[1]).toBeTruthy();
+    expect(descIds[0]).not.toBe(descIds[1]);
+
+    // No duplicate ids anywhere in the document (the real symptom: a
+    // duplicate id makes aria-describedby resolve to the wrong element).
+    const allIds = Array.from(document.querySelectorAll("[id]")).map((el) => el.id);
+    expect(new Set(allIds).size).toBe(allIds.length);
+
+    // Each button's own accessible description still reads correctly.
+    expect(pinButtons[0]).toHaveAccessibleDescription(/no command to reopen it/i);
+    expect(pinButtons[1]).toHaveAccessibleDescription(/no command to reopen it/i);
+  });
+
   it("distinguishes pinned from loose without relying on colour", () => {
     const { container } = render(
       <CapsuleItems

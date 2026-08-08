@@ -470,12 +470,27 @@ describe("CapsulesPage", () => {
   });
 
   it("spends the accent at most once with no active task", async () => {
+    // activeTaskId is module-level store state shared across this file's
+    // tests; an earlier test (the real resume() flow, around line ~220)
+    // calls the production setActiveTaskId(t.id) and leaves it set to
+    // FAKE_TASK.id with no cleanup. Reset it explicitly so this test's own
+    // premise — "no active task" — actually holds, regardless of test
+    // execution order.
+    useStore.setState({ activeTaskId: null });
     mockCapsulesInvoke({ activateTask: async () => ({}) });
     const { container } = renderWithProviders(<CapsulesPage />);
     await screen.findByText(FAKE_TASK.title);
     // No active task: Resume stays outline (this page's Restore-gating
     // rule), and the leading marker dot renders transparent, not bg-primary.
     expectAtMostOneAccent(container);
+    // Direct half of the isActive && hasCapsule gate: this row has a
+    // capsule (default FAKE_RESOURCE) but is not the active task, so its
+    // Resume button must NOT carry the primary accent fill. Without this,
+    // a test that only budgets total accents can't tell "no active task"
+    // from "the gate is broken and Resume defaults to primary" — both
+    // would still pass expectAtMostOneAccent as long as nothing else
+    // accents.
+    expect(screen.getByRole("button", { name: "Resume" })).not.toHaveClass("bg-primary");
   });
 
   it("spends the accent at most once when a capsule's task is active (marker + primary Resume together)", async () => {
@@ -499,6 +514,17 @@ describe("CapsulesPage", () => {
       // one real accent action.
       const marker = container.querySelector("[data-accent-mark]");
       expect(marker).not.toBeNull();
+
+      // Direct half of the isActive && hasCapsule gate: prove the Resume
+      // button itself genuinely switched to the primary fill, rather than
+      // merely trusting the one-accent budget below. expectAtMostOneAccent
+      // alone can't distinguish "the gate correctly promoted Resume to
+      // primary" from "the gate is broken and Resume never accents at all"
+      // — both leave the page at <=1 accents. Paired with the negative
+      // assertion in the no-active-task test above (same hasCapsule=true
+      // row, isActive=false, Resume must NOT be bg-primary), this pins the
+      // gate from both sides.
+      expect(screen.getByRole("button", { name: "Resume" })).toHaveClass("bg-primary");
 
       expectAtMostOneAccent(container);
     } finally {

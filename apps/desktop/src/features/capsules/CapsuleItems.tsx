@@ -215,7 +215,12 @@ export function CapsuleItems({ taskId, resources, pins, onChanged }: CapsuleItem
                   ? `always open ${it.label}`
                   : `can't always open ${it.label} — no saved folder to restore it in`;
               const pinDisabled = state === "unpinnable";
-              const descId = `capsule-item-pin-desc-${group.label}-${idx}`;
+              // Qualified by taskId (not just group + idx): two different
+              // tasks' capsule views can be open at once, each with an
+              // unpinnable item at the same group/index, and a duplicate DOM
+              // id would break aria-describedby's mapping — which is what
+              // tells a screen-reader user why the pin is refused.
+              const descId = `capsule-item-pin-desc-${taskId}-${group.label}-${idx}`;
               return (
                 <Row
                   key={`${it.kind}\0${it.identity}`}
