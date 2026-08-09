@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import spriteSource from "@/assets/icons/rabta-icons.svg?raw";
 import { Icon, ICON_NAMES, IconSprite, type IconName } from "./icon";
 
@@ -64,13 +64,34 @@ describe("Icon", () => {
     }
   });
 
-  it("throws for an unknown icon name instead of rendering an empty box", () => {
+  it("renders a fallback glyph (alert) and logs console.error for an unknown icon name", () => {
     // Bypass the IconName union the way a value coming from outside the
     // type system would (config, a CMS field, a lucide->sprite migration
     // typo) — TypeScript can't stop this string at compile time, so the
-    // runtime guard is what has to catch it.
+    // runtime guard is what has to catch it. Instead of throwing (which
+    // unmounts the whole tree with no boundary), render a visible fallback
+    // and log console.error so the bug surfaces in dev and in logs.
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const bogus = "not-a-real-icon" as unknown as IconName;
-    expect(() => render(<Icon name={bogus} />)).toThrow(/unknown icon/i);
+    render(<Icon name={bogus} data-testid="icon" />);
+
+    // Should render, not throw.
+    const svg = screen.getByTestId("icon");
+    expect(svg).toBeTruthy();
+    expect(svg.tagName).toBe("svg");
+
+    // Should render the alert fallback glyph.
+    const use = svg.querySelector("use");
+    expect(use).not.toBeNull();
+    expect(use!.getAttribute("href")).toBe("#ic-alert");
+
+    // Should call console.error naming the unknown icon.
+    expect(consoleErrorSpy).toHaveBeenCalledOnce();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining(`unknown icon name "not-a-real-icon"`)
+    );
+
+    consoleErrorSpy.mockRestore();
   });
 
   it("ICON_NAMES lists exactly the 35 symbols the handoff sprite ships", () => {

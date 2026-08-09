@@ -101,21 +101,23 @@ export interface IconProps extends React.SVGAttributes<SVGSVGElement> {
  * `name` is typed as the closed `IconName` union, so a typo'd literal is a
  * compile error. The runtime check below exists for the case that escapes
  * that guarantee: a name arriving as a plain string forced past the union
- * (external config, a migrated lucide name, `as IconName`). Without it, an
- * unresolvable `<use>` renders nothing — an empty box with no error, the
- * failure mode that survives code review and ships. Throwing surfaces it
- * immediately instead, in dev and in production alike, the same way React
- * itself throws on an invalid element type rather than rendering silently.
+ * (external config, a migrated lucide name, `as IconName`). Without an error
+ * boundary in the tree, a thrown error unmounts the whole window. Instead,
+ * we log console.error (loud in dev and logs) and render a visible fallback
+ * glyph (alert), which surfaces the bug but keeps the UI running — matching
+ * how commit 9c4b942 handled a corrupt persisted accent (fail loud, degrade
+ * gracefully).
  */
 export function Icon({ name, className, ...props }: IconProps) {
+  const iconName = ICON_NAME_SET.has(name) ? name : "alert";
   if (!ICON_NAME_SET.has(name)) {
-    throw new Error(
+    console.error(
       `Icon: unknown icon name "${name}" — not one of the ${ICON_NAMES.length} symbols in rabta-icons.svg.`
     );
   }
   return (
     <svg aria-hidden="true" className={cn("h-4 w-4", className)} {...props}>
-      <use href={`#ic-${name}`} />
+      <use href={`#ic-${iconName}`} />
     </svg>
   );
 }
