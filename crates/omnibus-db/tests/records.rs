@@ -1099,6 +1099,146 @@ fn task_pins_upsert_list_and_remove() {
 }
 
 #[test]
+fn an_unpinned_item_stays_unpinned() {
+    // Removing a pin must tombstone the row (deleted_at set), not hard-delete
+    // it — a hard delete is exactly what would let a pin the user
+    // deliberately removed come back from a transfer to a new Mac.
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
+    let p = a_project(&db, "omnibus");
+    let task = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+    let pin = db
+        .add_task_pin(
+            &task.id,
+            "chrome",
+            "https://a.test/",
+            &json!({"url": "https://a.test/", "title": "A"}),
+        )
+        .unwrap();
+
+    assert!(db
+        .remove_task_pin(&task.id, "chrome", "https://a.test/")
+        .unwrap());
+
+    // Absent from the read path.
+    assert!(
+        db.task_pins(&task.id).unwrap().is_empty(),
+        "an unpinned item must not appear in task_pins reads"
+    );
+
+    // But the row itself survives, tombstoned.
+    let external = rusqlite::Connection::open(&path).unwrap();
+    let deleted_at: Option<String> = external
+        .query_row(
+            "SELECT deleted_at FROM task_pins WHERE id = ?1",
+            rusqlite::params![pin.id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(
+        deleted_at.is_some(),
+        "the removed pin must survive as a tombstone, not be hard-deleted"
+    );
+}
+
+#[test]
+fn re_pinning_revives_the_tombstone_rather_than_duplicating() {
+    // pin -> unpin -> pin again. This must revive the tombstoned row (clear
+    // deleted_at, bump rev) rather than either (a) insert a second row for
+    // the same (task_id, connector_kind, identity), which would look fine
+    // until a restore opened something twice, or (b) silently no-op and
+    // leave the tombstone dead, which would mean re-pinning does nothing.
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
+    let p = a_project(&db, "omnibus");
+    let task = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+
+    let first = db
+        .add_task_pin(
+            &task.id,
+            "chrome",
+            "https://a.test/",
+            &json!({"url": "https://a.test/", "title": "A"}),
+        )
+        .unwrap();
+
+    assert!(db
+        .remove_task_pin(&task.id, "chrome", "https://a.test/")
+        .unwrap());
+
+    let second = db
+        .add_task_pin(
+            &task.id,
+            "chrome",
+            "https://a.test/",
+            &json!({"url": "https://a.test/", "title": "A again"}),
+        )
+        .unwrap();
+
+    // Discriminator 1: exactly one row for this identity, live or dead. This
+    // alone would NOT catch a no-op revival (the tombstoned row would still
+    // be the only row), so it is not sufficient by itself — see below.
+    let external = rusqlite::Connection::open(&path).unwrap();
+    let count: i64 = external
+        .query_row(
+            "SELECT COUNT(*) FROM task_pins WHERE task_id = ?1 AND connector_kind = ?2 AND identity = ?3",
+            rusqlite::params![task.id, "chrome", "https://a.test/"],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(count, 1, "re-pinning must revive, not duplicate");
+
+    // Discriminator 2: the revived row must be the SAME row (same id), not a
+    // freshly minted one.
+    assert_eq!(
+        second.id, first.id,
+        "re-pinning after removal must revive the original row's id"
+    );
+
+    // Discriminator 3: the row must actually be live again (deleted_at
+    // cleared). This is what catches a no-op revival — a no-op would still
+    // pass the count check above, because the dead row alone satisfies
+    // COUNT = 1.
+    let deleted_at: Option<String> = external
+        .query_row(
+            "SELECT deleted_at FROM task_pins WHERE id = ?1",
+            rusqlite::params![first.id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(
+        deleted_at.is_none(),
+        "a revived pin must have deleted_at cleared, not stay tombstoned"
+    );
+
+    // Discriminator 4: rev must have advanced past the tombstone write, so a
+    // later merge can tell "revived" from "never touched again".
+    assert!(
+        second.rev > first.rev,
+        "reviving a tombstoned pin must bump rev"
+    );
+
+    // And, from the ordinary read path: exactly one live pin, with the
+    // re-pinned payload.
+    let pins = db.task_pins(&task.id).unwrap();
+    assert_eq!(pins.len(), 1, "exactly one live pin must be visible");
+    assert_eq!(pins[0].id, first.id);
+    assert_eq!(pins[0].payload["title"], "A again");
+}
+
+#[test]
 fn re_pinning_returns_the_existing_rows_id_and_created_at() {
     let db = db();
     let p = a_project(&db, "omnibus");

@@ -888,6 +888,14 @@ impl Db {
     /// are proposed here only for the insert path — on conflict the existing
     /// row keeps its own, so the values returned always come from `RETURNING`
     /// rather than from what this call happened to propose.
+    ///
+    /// The uniqueness expectation on `(task_id, connector_kind, identity)` is
+    /// table-wide, not filtered by `deleted_at`, so re-pinning something a
+    /// prior `remove_task_pin` tombstoned also lands on this same conflict
+    /// path. That is deliberate: the `DO UPDATE` clears `deleted_at` and
+    /// bumps `rev`, reviving the existing row instead of either failing the
+    /// unique constraint or leaving the tombstone dead underneath a payload
+    /// update that looks like it worked.
     pub fn add_task_pin(
         &self,
         task_id: &str,
@@ -905,7 +913,7 @@ impl Db {
             "INSERT INTO task_pins (id, task_id, connector_kind, identity, payload, created_at) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6) \
              ON CONFLICT (task_id, connector_kind, identity) \
-             DO UPDATE SET payload = excluded.payload, rev = rev + 1 \
+             DO UPDATE SET payload = excluded.payload, deleted_at = NULL, rev = rev + 1 \
              RETURNING id, created_at, rev",
             params![
                 candidate_id,
@@ -934,7 +942,14 @@ impl Db {
         })
     }
 
-    /// True when a pin was actually removed; false when there was none.
+    /// Tombstones a pin; true when a live pin was actually removed, false
+    /// when there was none. Pins are the workspace *definition* layer — the
+    /// strongest expression of user intent this app records, since a pinned
+    /// item opens on every restore whether or not it was captured. A hard
+    /// delete here would make a deliberately-removed pin indistinguishable
+    /// from one that simply never arrived, so a later transfer could
+    /// resurrect exactly what the user removed. Tombstoning keeps that fact
+    /// on the row instead.
     pub fn remove_task_pin(
         &self,
         task_id: &str,
@@ -946,13 +961,14 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let n = conn.execute(
-            "DELETE FROM task_pins WHERE task_id = ?1 AND connector_kind = ?2 AND identity = ?3",
-            params![task_id, connector_kind, identity],
+            "UPDATE task_pins SET deleted_at = ?4, rev = rev + 1 \
+             WHERE task_id = ?1 AND connector_kind = ?2 AND identity = ?3 AND deleted_at IS NULL",
+            params![task_id, connector_kind, identity, now()],
         )?;
         Ok(n > 0)
     }
 
-    /// Pins for one task, in pin order.
+    /// Live pins for one task, in pin order.
     pub fn task_pins(&self, task_id: &str) -> Result<Vec<TaskPin>> {
         let conn = self
             .conn
@@ -960,7 +976,7 @@ impl Db {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT id, task_id, connector_kind, identity, payload, created_at, rev \
-             FROM task_pins WHERE task_id = ?1 ORDER BY created_at",
+             FROM task_pins WHERE task_id = ?1 AND deleted_at IS NULL ORDER BY created_at",
         )?;
         let rows = stmt.query_map(params![task_id], |row| {
             let raw: String = row.get(4)?;
