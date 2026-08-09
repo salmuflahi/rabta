@@ -422,8 +422,8 @@ impl Db {
         }
         for (position, id) in ordered_ids.iter().enumerate() {
             tx.execute(
-                "UPDATE projects SET sort_order = ?2, rev = rev + 1 WHERE id = ?1",
-                params![id, position as i64],
+                "UPDATE projects SET sort_order = ?2, updated_at = ?3, rev = rev + 1 WHERE id = ?1",
+                params![id, position as i64, now()],
             )?;
         }
         tx.commit()?;
@@ -702,8 +702,8 @@ impl Db {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let tx = conn.unchecked_transaction()?;
         tx.execute(
-            "UPDATE projects SET last_task_id = NULL, rev = rev + 1 WHERE last_task_id = ?1",
-            params![id],
+            "UPDATE projects SET last_task_id = NULL, updated_at = ?2, rev = rev + 1 WHERE last_task_id = ?1",
+            params![id, now()],
         )?;
         tx.execute("DELETE FROM tasks WHERE id = ?1", params![id])?;
         tx.commit()?;

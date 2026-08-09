@@ -776,11 +776,18 @@ fn every_update_bumps_rev_and_touches_updated_at() {
     let unarchived = db.unarchive_project(&p.id).unwrap();
     assert_eq!(unarchived.rev, 4, "unarchive_project must advance rev by one");
 
+    let before_reorder = unarchived.updated_at.clone();
     db.reorder_projects(&[p.id.clone()]).unwrap();
     let reordered = db.get_project(&p.id).unwrap().unwrap();
     assert_eq!(
         reordered.rev, 5,
         "reorder_projects changes sort_order and must advance rev"
+    );
+    assert!(
+        reordered.updated_at > before_reorder,
+        "reorder_projects must update updated_at, but got {} <= {}",
+        reordered.updated_at,
+        before_reorder
     );
 
     let task = db
@@ -835,11 +842,18 @@ fn every_update_bumps_rev_and_touches_updated_at() {
         "re-pinning (the ON CONFLICT DO UPDATE path) must advance rev by one"
     );
 
+    let before_delete = after_seconds.updated_at.clone();
     db.delete_task(&task.id).unwrap();
     let after_delete = db.get_project(&p.id).unwrap().unwrap();
     assert_eq!(
         after_delete.rev, 8,
         "clearing last_task_id on delete_task must advance the project's rev"
+    );
+    assert!(
+        after_delete.updated_at > before_delete,
+        "delete_task must update updated_at (when clearing last_task_id), but got {} <= {}",
+        after_delete.updated_at,
+        before_delete
     );
 }
 
