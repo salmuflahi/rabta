@@ -754,6 +754,96 @@ fn re_pinning_returns_the_existing_rows_id_and_created_at() {
 }
 
 #[test]
+fn every_update_bumps_rev_and_touches_updated_at() {
+    // rev is a local monotonic counter, not a clock — it is what a later
+    // merge can trust when wall clocks between two Macs disagree. Every
+    // real mutation to a row in the four tables migration 005 touched
+    // must advance that row's rev by exactly one.
+    let db = db();
+    let p = a_project(&db, "Atlas");
+    assert_eq!(p.rev, 0);
+
+    let renamed = db.rename_project(&p.id, "Atlas API").unwrap();
+    assert_eq!(renamed.rev, 1, "rename_project must advance rev by one");
+    assert!(renamed.updated_at >= p.updated_at);
+
+    let iconed = db.set_project_icon(&p.id, Some("rocket")).unwrap();
+    assert_eq!(iconed.rev, 2, "set_project_icon must advance rev by one");
+
+    let archived = db.archive_project(&p.id).unwrap();
+    assert_eq!(archived.rev, 3, "archive_project must advance rev by one");
+
+    let unarchived = db.unarchive_project(&p.id).unwrap();
+    assert_eq!(unarchived.rev, 4, "unarchive_project must advance rev by one");
+
+    db.reorder_projects(&[p.id.clone()]).unwrap();
+    let reordered = db.get_project(&p.id).unwrap().unwrap();
+    assert_eq!(
+        reordered.rev, 5,
+        "reorder_projects changes sort_order and must advance rev"
+    );
+
+    let task = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "Ship".into(),
+        })
+        .unwrap();
+    assert_eq!(task.rev, 0);
+
+    db.begin_project_session_for_task(&task.id, "2026-07-23T12:00:00Z")
+        .unwrap();
+    let after_session = db.get_project(&p.id).unwrap().unwrap();
+    assert_eq!(
+        after_session.rev, 6,
+        "begin_project_session_for_task must advance the project's rev"
+    );
+
+    db.add_active_seconds_for_task(&task.id, 5).unwrap();
+    let after_seconds = db.get_project(&p.id).unwrap().unwrap();
+    assert_eq!(
+        after_seconds.rev, 7,
+        "add_active_seconds_for_task must advance the project's rev"
+    );
+
+    let renamed_task = db.rename_task(&task.id, "Ship it").unwrap();
+    assert_eq!(renamed_task.rev, 1, "rename_task must advance rev by one");
+
+    db.set_task_status(&task.id, TaskStatus::Done).unwrap();
+    let done_task = db.get_task(&task.id).unwrap().unwrap();
+    assert_eq!(done_task.rev, 2, "set_task_status must advance rev by one");
+
+    let pin = db
+        .add_task_pin(
+            &task.id,
+            "chrome",
+            "https://a.test/",
+            &json!({"a": 1}),
+        )
+        .unwrap();
+    assert_eq!(pin.rev, 0);
+    let repinned = db
+        .add_task_pin(
+            &task.id,
+            "chrome",
+            "https://a.test/",
+            &json!({"a": 2}),
+        )
+        .unwrap();
+    assert_eq!(
+        repinned.rev, 1,
+        "re-pinning (the ON CONFLICT DO UPDATE path) must advance rev by one"
+    );
+
+    db.delete_task(&task.id).unwrap();
+    let after_delete = db.get_project(&p.id).unwrap().unwrap();
+    assert_eq!(
+        after_delete.rev, 8,
+        "clearing last_task_id on delete_task must advance the project's rev"
+    );
+}
+
+#[test]
 fn task_pin_identity_containing_a_nul_byte_round_trips() {
     // A vscode terminal's identity is `name + NUL + cwd` (see
     // capsules::identity_of on the desktop side) — NUL is chosen as the

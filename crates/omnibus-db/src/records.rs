@@ -38,6 +38,7 @@ pub struct Project {
     pub sort_order: i64,
     pub created_at: String,
     pub updated_at: String,
+    pub rev: i64,
 }
 
 /// Input for creating a task under a project.
@@ -81,6 +82,7 @@ pub struct Task {
     pub status: TaskStatus,
     pub created_at: String,
     pub updated_at: String,
+    pub rev: i64,
 }
 
 /// Input for attaching a resource to a task.
@@ -101,6 +103,7 @@ pub struct TaskResource {
     pub resource_type: String,
     pub payload: Value,
     pub created_at: String,
+    pub rev: i64,
 }
 
 /// An item a user marked "always open this" for a task. Authored, never
@@ -114,6 +117,7 @@ pub struct TaskPin {
     pub identity: String,
     pub payload: Value,
     pub created_at: String,
+    pub rev: i64,
 }
 
 fn project_from_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
@@ -131,6 +135,7 @@ fn project_from_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
         sort_order: r.get(10)?,
         created_at: r.get(11)?,
         updated_at: r.get(12)?,
+        rev: r.get(13)?,
     })
 }
 
@@ -138,7 +143,7 @@ fn project_by_id(conn: &Connection, id: &str) -> Result<Option<Project>> {
     Ok(conn
         .query_row(
             "SELECT id, name, repo_path, dev_url, default_branch, icon, archived_at,
-                    last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at
+                    last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at, rev
              FROM projects WHERE id = ?1",
             params![id],
             project_from_row,
@@ -161,13 +166,14 @@ fn task_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Task> {
         status: TaskStatus::parse(&row.get::<_, String>(3)?),
         created_at: row.get(4)?,
         updated_at: row.get(5)?,
+        rev: row.get(6)?,
     })
 }
 
 fn task_by_id(conn: &Connection, id: &str) -> Result<Option<Task>> {
     Ok(conn
         .query_row(
-            "SELECT id, project_id, title, status, created_at, updated_at
+            "SELECT id, project_id, title, status, created_at, updated_at, rev
              FROM tasks WHERE id = ?1",
             params![id],
             task_from_row,
@@ -210,6 +216,7 @@ impl Db {
             sort_order,
             created_at: ts.clone(),
             updated_at: ts,
+            rev: 0,
         };
         conn.execute(
             "INSERT INTO projects (
@@ -243,7 +250,7 @@ impl Db {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT id, name, repo_path, dev_url, default_branch, icon, archived_at,
-                    last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at
+                    last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at, rev
              FROM projects
              WHERE archived_at IS NULL
              ORDER BY sort_order, lower(name), id",
@@ -275,7 +282,7 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let changed = conn.execute(
-            "UPDATE projects SET name = ?2, updated_at = ?3 WHERE id = ?1",
+            "UPDATE projects SET name = ?2, updated_at = ?3, rev = rev + 1 WHERE id = ?1",
             params![id, name, now()],
         )?;
         if changed == 0 {
@@ -302,7 +309,7 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let changed = conn.execute(
-            "UPDATE projects SET icon = ?2, updated_at = ?3 WHERE id = ?1",
+            "UPDATE projects SET icon = ?2, updated_at = ?3, rev = rev + 1 WHERE id = ?1",
             params![id, icon, now()],
         )?;
         if changed == 0 {
@@ -324,7 +331,7 @@ impl Db {
         let timestamp = now();
         let changed = conn.execute(
             "UPDATE projects
-             SET archived_at = COALESCE(archived_at, ?2), updated_at = ?2
+             SET archived_at = COALESCE(archived_at, ?2), updated_at = ?2, rev = rev + 1
              WHERE id = ?1",
             params![id, timestamp],
         )?;
@@ -354,7 +361,7 @@ impl Db {
         )?;
         let changed = tx.execute(
             "UPDATE projects
-             SET archived_at = NULL, sort_order = ?2, updated_at = ?3
+             SET archived_at = NULL, sort_order = ?2, updated_at = ?3, rev = rev + 1
              WHERE id = ?1 AND archived_at IS NOT NULL",
             params![id, sort_order, now()],
         )?;
@@ -374,7 +381,7 @@ impl Db {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT id, name, repo_path, dev_url, default_branch, icon, archived_at,
-                    last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at
+                    last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at, rev
              FROM projects
              WHERE archived_at IS NOT NULL
              ORDER BY archived_at DESC, lower(name), id",
@@ -415,7 +422,7 @@ impl Db {
         }
         for (position, id) in ordered_ids.iter().enumerate() {
             tx.execute(
-                "UPDATE projects SET sort_order = ?2 WHERE id = ?1",
+                "UPDATE projects SET sort_order = ?2, rev = rev + 1 WHERE id = ?1",
                 params![id, position as i64],
             )?;
         }
@@ -444,6 +451,7 @@ impl Db {
             status: TaskStatus::Open,
             created_at: ts.clone(),
             updated_at: ts,
+            rev: 0,
         };
         let conn = self
             .conn
@@ -471,7 +479,7 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
-            "SELECT id, project_id, title, status, created_at, updated_at \
+            "SELECT id, project_id, title, status, created_at, updated_at, rev \
              FROM tasks WHERE project_id = ?1 ORDER BY created_at DESC",
         )?;
         let rows = stmt.query_map(params![project_id], task_from_row)?;
@@ -498,7 +506,8 @@ impl Db {
              SET last_opened_at = ?2,
                  last_task_id = ?1,
                  active_seconds = 0,
-                 updated_at = ?2
+                 updated_at = ?2,
+                 rev = rev + 1
              WHERE id = (
                SELECT project_id FROM tasks WHERE id = ?1
              )
@@ -547,7 +556,8 @@ impl Db {
                    WHEN active_seconds >= ?4 - ?2 THEN ?4
                    ELSE active_seconds + ?2
                  END,
-                 updated_at = ?3
+                 updated_at = ?3,
+                 rev = rev + 1
              WHERE id = (
                SELECT project_id FROM tasks WHERE id = ?1
              )
@@ -577,7 +587,7 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let changed = conn.execute(
-            "UPDATE tasks SET title = ?2, updated_at = ?3 WHERE id = ?1",
+            "UPDATE tasks SET title = ?2, updated_at = ?3, rev = rev + 1 WHERE id = ?1",
             params![id, title, now()],
         )?;
         if changed == 0 {
@@ -620,6 +630,7 @@ impl Db {
             status: TaskStatus::Open,
             created_at: timestamp.clone(),
             updated_at: timestamp,
+            rev: 0,
         };
         tx.execute(
             "INSERT INTO tasks (id, project_id, title, status, created_at, updated_at)
@@ -677,7 +688,7 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
-            "UPDATE tasks SET status = ?2, updated_at = ?3 WHERE id = ?1",
+            "UPDATE tasks SET status = ?2, updated_at = ?3, rev = rev + 1 WHERE id = ?1",
             params![id, status.as_str(), now()],
         )?;
         Ok(())
@@ -691,7 +702,7 @@ impl Db {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let tx = conn.unchecked_transaction()?;
         tx.execute(
-            "UPDATE projects SET last_task_id = NULL WHERE last_task_id = ?1",
+            "UPDATE projects SET last_task_id = NULL, rev = rev + 1 WHERE last_task_id = ?1",
             params![id],
         )?;
         tx.execute("DELETE FROM tasks WHERE id = ?1", params![id])?;
@@ -708,6 +719,7 @@ impl Db {
             resource_type: new.resource_type,
             payload: new.payload,
             created_at: now(),
+            rev: 0,
         };
         let conn = self
             .conn
@@ -728,7 +740,7 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
-            "SELECT id, task_id, connector_kind, resource_type, payload, created_at \
+            "SELECT id, task_id, connector_kind, resource_type, payload, created_at, rev \
              FROM task_resources WHERE task_id = ?1 ORDER BY created_at",
         )?;
         let rows = stmt.query_map(params![task_id], |r| {
@@ -742,6 +754,7 @@ impl Db {
                     Value::Null
                 }),
                 created_at: r.get(5)?,
+                rev: r.get(6)?,
             })
         })?;
         Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
@@ -774,6 +787,7 @@ impl Db {
             resource_type: resource_type.to_string(),
             payload: payload.clone(),
             created_at: now(),
+            rev: 0,
         };
         let conn = self
             .conn
@@ -811,12 +825,12 @@ impl Db {
             .conn
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let (id, created_at) = conn.query_row(
+        let (id, created_at, rev) = conn.query_row(
             "INSERT INTO task_pins (id, task_id, connector_kind, identity, payload, created_at) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6) \
              ON CONFLICT (task_id, connector_kind, identity) \
-             DO UPDATE SET payload = excluded.payload \
-             RETURNING id, created_at",
+             DO UPDATE SET payload = excluded.payload, rev = rev + 1 \
+             RETURNING id, created_at, rev",
             params![
                 candidate_id,
                 task_id,
@@ -825,7 +839,13 @@ impl Db {
                 payload.to_string(),
                 candidate_created_at
             ],
-            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            },
         )?;
         Ok(TaskPin {
             id,
@@ -834,6 +854,7 @@ impl Db {
             identity: identity.to_string(),
             payload: payload.clone(),
             created_at,
+            rev,
         })
     }
 
@@ -862,7 +883,7 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
-            "SELECT id, task_id, connector_kind, identity, payload, created_at \
+            "SELECT id, task_id, connector_kind, identity, payload, created_at, rev \
              FROM task_pins WHERE task_id = ?1 ORDER BY created_at",
         )?;
         let rows = stmt.query_map(params![task_id], |row| {
@@ -877,6 +898,7 @@ impl Db {
                     Value::Null
                 }),
                 created_at: row.get(5)?,
+                rev: row.get(6)?,
             })
         })?;
         rows.collect::<std::result::Result<Vec<_>, _>>()

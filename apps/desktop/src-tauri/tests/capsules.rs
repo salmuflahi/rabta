@@ -1584,6 +1584,7 @@ fn merge_pins_appends_missing_and_never_duplicates() {
         identity: identity.into(),
         payload,
         created_at: "2026-08-04T00:00:00Z".into(),
+        rev: 0,
     };
 
     // chrome: a pinned tab that is closed gets appended; one already open does not duplicate.
@@ -1633,6 +1634,7 @@ fn merge_pins_appends_a_missing_terminal_and_never_duplicates_one_already_captur
         identity: identity.into(),
         payload,
         created_at: "2026-08-04T00:00:00Z".into(),
+        rev: 0,
     };
 
     let captured = json!({
@@ -1678,6 +1680,7 @@ fn merge_pins_returns_a_non_object_payload_unchanged_instead_of_panicking() {
         identity: "https://pinned.test/".into(),
         payload: json!({"url": "https://pinned.test/"}),
         created_at: "2026-08-04T00:00:00Z".into(),
+        rev: 0,
     };
 
     for bogus in [json!([1, 2, 3]), json!("oops"), json!(42), json!(true)] {
