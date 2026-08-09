@@ -348,4 +348,135 @@ mod tests {
         assert_eq!(deleted, None, "an existing row must migrate as not-deleted");
         assert_eq!(rev, 0, "an existing row must start at rev 0");
     }
+
+    #[test]
+    fn migration_005_preserves_every_table_from_a_real_pre_migration_database() {
+        // Task 6's most valuable check: the case that actually ships to
+        // existing users is a database that already has rows in *all four*
+        // tombstoned tables under the migration-004 schema (no deleted_at, no
+        // rev columns yet) — not a freshly built database that never
+        // exercises the in-place ALTERs. Build exactly that database, then
+        // open it with the current binary and confirm every row survives
+        // with deleted_at IS NULL and rev = 0, and that the app's normal
+        // read paths (list_projects, get_project, list_tasks, get_task,
+        // task_resources, task_pins) return them.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("rabta.db");
+
+        // Build at migration 004 (001..004 inclusive: init, track-b core,
+        // connector version, task_pins) — before deleted_at/rev exist.
+        let conn = Connection::open(&path).unwrap();
+        conn.pragma_update(None, "foreign_keys", "ON").unwrap();
+        let pre_005 = &MIGRATIONS[..4];
+        apply_migrations(&conn, pre_005).unwrap();
+
+        conn.execute(
+            "INSERT INTO projects
+             (id, name, repo_path, dev_url, default_branch, created_at, updated_at)
+             VALUES ('p1', 'Legacy', '/tmp/legacy', NULL, 'main',
+                     '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO tasks (id, project_id, title, status, created_at, updated_at)
+             VALUES ('t1', 'p1', 'Ship it', 'open',
+                     '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO task_resources
+             (id, task_id, connector_kind, resource_type, payload, created_at)
+             VALUES ('r1', 't1', 'git', 'branch', '{\"branch\":\"main\"}',
+                     '2026-01-01T00:00:00Z')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO task_pins
+             (id, task_id, connector_kind, identity, payload, created_at)
+             VALUES ('pin1', 't1', 'chrome', 'https://example.test/', '{}',
+                     '2026-01-01T00:00:00Z')",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+
+        // Open with the current binary: migration 005 applies in place.
+        let db = Db::open(&path, DbConfig::default()).unwrap();
+        assert_eq!(db.schema_version().unwrap(), MIGRATIONS.len() as i64);
+
+        // Raw check: every row survived with deleted_at IS NULL and rev = 0.
+        {
+            let conn = db
+                .conn
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let (deleted_at, rev): (Option<String>, i64) = conn
+                .query_row(
+                    "SELECT deleted_at, rev FROM projects WHERE id = 'p1'",
+                    [],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                )
+                .unwrap();
+            assert_eq!(deleted_at, None, "projects row must migrate as not-deleted");
+            assert_eq!(rev, 0, "projects row must start at rev 0");
+
+            let (deleted_at, rev): (Option<String>, i64) = conn
+                .query_row(
+                    "SELECT deleted_at, rev FROM tasks WHERE id = 't1'",
+                    [],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                )
+                .unwrap();
+            assert_eq!(deleted_at, None, "tasks row must migrate as not-deleted");
+            assert_eq!(rev, 0, "tasks row must start at rev 0");
+
+            let (deleted_at, rev): (Option<String>, i64) = conn
+                .query_row(
+                    "SELECT deleted_at, rev FROM task_resources WHERE id = 'r1'",
+                    [],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                )
+                .unwrap();
+            assert_eq!(
+                deleted_at, None,
+                "task_resources row must migrate as not-deleted"
+            );
+            assert_eq!(rev, 0, "task_resources row must start at rev 0");
+
+            let (deleted_at, rev): (Option<String>, i64) = conn
+                .query_row(
+                    "SELECT deleted_at, rev FROM task_pins WHERE id = 'pin1'",
+                    [],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                )
+                .unwrap();
+            assert_eq!(
+                deleted_at, None,
+                "task_pins row must migrate as not-deleted"
+            );
+            assert_eq!(rev, 0, "task_pins row must start at rev 0");
+        }
+
+        // The app's normal read paths must return every row.
+        let projects = db.list_projects().unwrap();
+        assert_eq!(projects.len(), 1);
+        assert_eq!(projects[0].id, "p1");
+        assert!(db.get_project("p1").unwrap().is_some());
+
+        let tasks = db.list_tasks("p1").unwrap();
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].id, "t1");
+        assert!(db.get_task("t1").unwrap().is_some());
+
+        let resources = db.task_resources("t1").unwrap();
+        assert_eq!(resources.len(), 1);
+        assert_eq!(resources[0].id, "r1");
+
+        let pins = db.task_pins("t1").unwrap();
+        assert_eq!(pins.len(), 1);
+        assert_eq!(pins[0].id, "pin1");
+    }
 }

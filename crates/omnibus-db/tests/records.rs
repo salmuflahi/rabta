@@ -94,6 +94,43 @@ fn session_operations_reject_missing_tasks_and_archived_projects() {
 }
 
 #[test]
+fn session_operations_reject_a_task_whose_project_was_deleted() {
+    // begin_project_session_for_task/add_active_seconds_for_task check
+    // tasks.deleted_at (via a subquery) and projects.archived_at, but never
+    // check projects.deleted_at directly — the JOIN pattern Task 6 audits
+    // for. That is only safe because delete_project always tombstones its
+    // tasks in the same transaction it tombstones itself, so a live task
+    // under a deleted project cannot exist. This test pins that invariant
+    // down: if a future change ever let a project become deleted without
+    // cascading to its tasks, this would start failing (Ok instead of
+    // NotFound), flagging that the missing projects.deleted_at filter has
+    // become reachable and needs to be added for real.
+    let db = db();
+    let p = a_project(&db, "Rabta");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "Ship".into(),
+        })
+        .unwrap();
+
+    db.delete_project(&p.id).unwrap();
+
+    assert!(matches!(
+        db.begin_project_session_for_task(&t.id, "2026-07-23T12:00:00Z"),
+        Err(DbError::NotFound { .. })
+    ));
+    assert!(matches!(
+        db.add_active_seconds_for_task(&t.id, 1),
+        Err(DbError::NotFound { .. })
+    ));
+    assert!(matches!(
+        db.add_active_seconds_for_task(&t.id, 0),
+        Err(DbError::NotFound { .. })
+    ));
+}
+
+#[test]
 fn zero_second_accrual_is_a_no_op_only_for_an_active_project_task() {
     let db = db();
     let p = a_project(&db, "Rabta");
@@ -393,6 +430,30 @@ fn task_crud_and_status() {
     let tasks = db.list_tasks(&p.id).unwrap();
     assert_eq!(tasks.len(), 1);
     assert_eq!(tasks[0].status, TaskStatus::Done);
+}
+
+#[test]
+fn set_task_status_on_a_tombstoned_task_is_invisible_not_erroring() {
+    // set_task_status has no deleted_at guard and no changed==0 check,
+    // unlike every sibling mutation in this file. Task 6 re-examined this
+    // and agrees it is pre-existing and not a leak: list_tasks and get_task
+    // both filter deleted_at IS NULL, so a status change on a tombstoned
+    // task can never surface through any read path. This test pins that
+    // judgement down rather than leaving it as an unverified claim.
+    let db = db();
+    let p = a_project(&db, "omnibus");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+    db.delete_task(&t.id).unwrap();
+
+    db.set_task_status(&t.id, TaskStatus::Done).unwrap();
+
+    assert!(db.get_task(&t.id).unwrap().is_none());
+    assert!(db.list_tasks(&p.id).unwrap().is_empty());
 }
 
 #[test]
