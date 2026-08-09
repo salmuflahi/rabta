@@ -365,6 +365,31 @@ describe("useRestore / RestoreExperience", () => {
     expectHasFocusRing(screen.getByRole("button", { name: "Try again" }));
   });
 
+  it("restore sheet header uses text-sheet type step, not text-title", async () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+
+    const result: RestoreResult = {
+      overall: "success",
+      tools: [
+        { id: "vscode-1", status: "applied" },
+        { id: "chrome-1", status: "applied" },
+      ],
+    };
+    const run = vi.fn().mockResolvedValue(result);
+
+    renderWithProviders(<Harness run={run} />);
+
+    await advanceUntil(() => screen.queryByText("Restoring workspace") !== null);
+
+    const header = screen.getByRole("heading", { name: /Restoring workspace/i });
+    const classTokens = (header.getAttribute("class") || "").split(/\s+/).filter(Boolean);
+
+    // Assert that the header has text-sheet and does NOT have text-title
+    expect(classTokens).toContain("text-sheet");
+    expect(classTokens).not.toContain("text-title");
+  });
+
   // The sheet renders a `bg-primary` folded-corner brand detail on every
   // stage, and — in the failure stage only — a `bg-primary` "Try again"
   // button. Two whole-token bg-primary fills at once would violate the

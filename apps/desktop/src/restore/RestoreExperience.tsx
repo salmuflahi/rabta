@@ -236,7 +236,7 @@ function RestoreHeader({ title, subtitle, stage, titleId }: { title: string; sub
         )}
       </span>
       <span className="min-w-0">
-        <h2 id={titleId} className="truncate text-title font-semibold leading-tight text-foreground">
+        <h2 id={titleId} className="truncate text-sheet font-semibold leading-tight text-foreground">
           {headingFor(stage, title)}
         </h2>
         {subtitle && <p className="truncate text-meta text-muted-foreground">{subtitle}</p>}
