@@ -35,6 +35,20 @@ export default {
         success: { DEFAULT: "hsl(var(--success))", foreground: "hsl(var(--success-foreground))" },
         warning: { DEFAULT: "hsl(var(--warning))", foreground: "hsl(var(--warning-foreground))" },
         info: { DEFAULT: "hsl(var(--info))", foreground: "hsl(var(--info-foreground))" },
+        // Console v2 Phase 1, Task 1 — new semantic + surface tokens from
+        // the design handoff. `ok`/`warn`/`bad`/`field` are bare HSL
+        // triplets in index.css, so they're wrapped in hsl(var(...)) like
+        // every other solid colour above. The alpha-carrying tokens
+        // (`*-soft`, `hover`, `shadow`, `shadow-lg`, `scrim`) are literal
+        // rgba() in index.css and are bound directly below — wrapping
+        // them in hsl() would compile to the nonsensical hsl(rgba(...)).
+        ok: { DEFAULT: "hsl(var(--ok))", soft: "var(--ok-soft)" },
+        warn: { DEFAULT: "hsl(var(--warn))", soft: "var(--warn-soft)" },
+        bad: "hsl(var(--bad))",
+        field: "hsl(var(--field))",
+        hover: "var(--hover)",
+        shadow: { DEFAULT: "var(--shadow)", lg: "var(--shadow-lg)" },
+        scrim: "var(--scrim)",
         card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
         popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
         sidebar: {
