@@ -13,6 +13,7 @@ declare module "*/tailwind.config.js" {
           sans: string[];
           mono: string[];
         };
+        fontWeight: Record<string, string>;
       };
     };
   }

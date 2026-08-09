@@ -9,16 +9,63 @@ export default {
         // (SF Text below 20px, SF Display above) — which is most of why a
         // window reads as native.
         sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', 'system-ui', 'sans-serif'],
+        // Paths, branch names, URLs, JSON payloads, capability names,
+        // keyboard shortcuts and the migration code only — never UI labels.
         mono: ['ui-monospace', '"SF Mono"', 'Menlo', 'monospace'],
       },
-      // Mac type scale. Names are unchanged from the previous web scale so
-      // all existing text-* usages retone without touching a className.
+      // Mac type scale, retoned to the Console v2 handoff's Typography
+      // table. Names are unchanged from the previous web scale so existing
+      // text-* usages retone without touching a className; `display`,
+      // `sheet`, `secondary` and `payload` are new, added only where the
+      // handoff's finer-grained scale has no existing step to carry it.
+      // Font *weight* is deliberately not baked into these tuples — the
+      // codebase's convention (~70 call sites) is to layer a separate
+      // font-medium/font-semibold/etc. class on top of a text-* size, so one
+      // size step can serve multiple handoff rows that differ only by
+      // weight (e.g. body text vs. its selected/emphasized state).
       fontSize: {
-        title: ["1.0625rem", { lineHeight: "1.3", letterSpacing: "-0.015em" }],
+        // Overview date (h1) — 24/640/-0.02em. Larger than `title`; nothing
+        // else in the scale reaches 24px, so this is a new step.
+        display: ["1.5rem", { lineHeight: "1.2", letterSpacing: "-0.02em" }],
+        // Screen title (h1) — 22/640/-0.02em. Was 17px; retoned up.
+        title: ["1.375rem", { lineHeight: "1.2", letterSpacing: "-0.02em" }],
+        // Sheet title (Migrate flow) — 16/640/-0.015em. New: a Migrate sheet
+        // header is a distinct architectural role from a card title, and
+        // the handoff lists it as its own row a full step above `card`.
+        sheet: ["1rem", { lineHeight: "1.25", letterSpacing: "-0.015em" }],
+        // Card title — 14-15/590. Already 15px; unchanged.
         card: ["0.9375rem", { lineHeight: "1.35", letterSpacing: "-0.01em" }],
-        body: ["0.8125rem", { lineHeight: "1.25", letterSpacing: "-0.005em" }],
-        meta: ["0.6875rem", { lineHeight: "1.3" }],
+        // Section label ("Recent", "Also open") 12/600 and secondary text
+        // 12-12.5/400 share a size step in the handoff's own numbers; only
+        // weight tells them apart, which lives outside this tuple. New
+        // step — nothing existing sits at 12px.
+        secondary: ["0.75rem", { lineHeight: "1.35" }],
+        // Body, list rows, nav (13/400/-0.003em); selected nav + list rows
+        // (13/510) and toolbar title (13/590/-0.005em) are the same 13px
+        // step with only weight (and, for toolbar title, a sub-pixel
+        // 0.002em tracking delta) different — absorbed here rather than
+        // forking a near-identical step.
+        body: ["0.8125rem", { lineHeight: "1.25", letterSpacing: "-0.003em" }],
+        // Meta/timestamps (11.5/400) and mono inline (11.5, untracked)
+        // share this step exactly. Retoned from 11px.
+        meta: ["0.71875rem", { lineHeight: "1.3" }],
+        // Group header (sidebar, palette) — 11/600. Status bar (11,
+        // untracked sentence-case) is close in size but wrong in kind for
+        // this key's deliberate +0.01em small-caps tracking, so it maps to
+        // `meta` instead (0.5px off, but tracking-correct). Unchanged.
         label: ["0.6875rem", { lineHeight: "1.3", letterSpacing: "0.01em" }],
+        // Payload <pre> — 10.5/lh 1.6. Smallest step in the scale, and the
+        // only one with a loose line-height (for wrapping JSON). New.
+        payload: ["0.65625rem", { lineHeight: "1.6" }],
+      },
+      // macOS system-font weights the handoff's scale reaches that
+      // Tailwind's default scale doesn't name (which stops at 800 in
+      // 100-steps): 510 and 590 are real macOS weights, not typos, and 640
+      // is this arc's new ceiling (the previous arc capped at 600).
+      fontWeight: {
+        510: "510",
+        590: "590",
+        640: "640",
       },
       colors: {
         border: "hsl(var(--border))",
