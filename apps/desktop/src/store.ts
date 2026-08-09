@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { MotionPref } from "@/lib/motion";
+import type { AccentId } from "@/theme/accent";
 
 export interface ConnectorInfo {
   id: string;
@@ -65,6 +66,9 @@ function readSidebarCollapsed(): boolean {
 export type ThemePref = "system" | "light" | "dark";
 export interface Prefs {
   theme: ThemePref;
+  /** Settings › Appearance. Which of the four accent colours (src/theme/accent.ts)
+   *  paints --primary/--primary-hover/--accent-text/--accent-soft. */
+  accent: AccentId;
   motion: MotionPref;
   /** Persist the collapsed rail across launches. */
   rememberSidebar: boolean;
@@ -84,6 +88,7 @@ export interface Prefs {
 const PREFS_KEY = "rabta.prefs";
 const DEFAULT_PREFS: Prefs = {
   theme: "system",
+  accent: "tangerine",
   motion: "system",
   rememberSidebar: true,
   landingPage: "capsules",
