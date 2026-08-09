@@ -360,6 +360,24 @@ fn reorder_requires_the_exact_active_project_set_and_rolls_back() {
 }
 
 #[test]
+fn reorder_projects_ignores_deleted_projects_in_the_active_set() {
+    // reorder_projects treats "every archived_at IS NULL row" as the active
+    // set it must be handed exactly. A deleted-but-not-archived project must
+    // not join that set, or reordering would demand callers name an id they
+    // can no longer see anywhere.
+    let db = db();
+    let a = a_project(&db, "A");
+    let b = a_project(&db, "B");
+    db.delete_project(&a.id).unwrap();
+
+    let reordered = db.reorder_projects(&[b.id.clone()]).unwrap();
+    assert_eq!(
+        reordered.into_iter().map(|p| p.id).collect::<Vec<_>>(),
+        vec![b.id]
+    );
+}
+
+#[test]
 fn task_crud_and_status() {
     let db = db();
     let p = a_project(&db, "omnibus");
@@ -545,8 +563,16 @@ fn deleting_last_opened_task_clears_the_project_soft_reference() {
 }
 
 #[test]
-fn deleting_project_cascades_to_tasks_and_resources() {
-    let db = db();
+fn deleting_project_tombstones_its_tasks_and_their_resources_and_pins() {
+    // Tombstoning (not hard-deleting) means the row survives with deleted_at
+    // set. task_resources/task_pins reads aren't filtered by deleted_at yet
+    // (that's a later, separately-scoped task), so we assert the disappear
+    // half only for the tables this task actually filters (tasks), and
+    // assert the survive-as-tombstone half by raw row for everything the
+    // delete cascades touch.
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
     let p = a_project(&db, "omnibus");
     let t = db
         .create_task(NewTask {
@@ -554,16 +580,190 @@ fn deleting_project_cascades_to_tasks_and_resources() {
             title: "t".into(),
         })
         .unwrap();
-    db.add_task_resource(NewTaskResource {
-        task_id: t.id.clone(),
-        connector_kind: "fake".into(),
-        resource_type: "file".into(),
-        payload: json!({"path": "src/main.ts"}),
-    })
-    .unwrap();
+    let resource = db
+        .add_task_resource(NewTaskResource {
+            task_id: t.id.clone(),
+            connector_kind: "fake".into(),
+            resource_type: "file".into(),
+            payload: json!({"path": "src/main.ts"}),
+        })
+        .unwrap();
+    let pin = db
+        .add_task_pin(&t.id, "chrome", "https://a.test/", &json!({"a": 1}))
+        .unwrap();
+
     db.delete_project(&p.id).unwrap();
+
     assert!(db.list_tasks(&p.id).unwrap().is_empty());
-    assert!(db.task_resources(&t.id).unwrap().is_empty());
+    assert!(db.get_task(&t.id).unwrap().is_none());
+
+    let external = rusqlite::Connection::open(&path).unwrap();
+    let task_deleted: Option<String> = external
+        .query_row(
+            "SELECT deleted_at FROM tasks WHERE id = ?1",
+            rusqlite::params![t.id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(
+        task_deleted.is_some(),
+        "task must survive as a tombstone, not vanish"
+    );
+
+    let resource_deleted: Option<String> = external
+        .query_row(
+            "SELECT deleted_at FROM task_resources WHERE id = ?1",
+            rusqlite::params![resource.id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(
+        resource_deleted.is_some(),
+        "resource must be tombstoned, not hard-deleted, when its project is deleted"
+    );
+
+    let pin_deleted: Option<String> = external
+        .query_row(
+            "SELECT deleted_at FROM task_pins WHERE id = ?1",
+            rusqlite::params![pin.id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(
+        pin_deleted.is_some(),
+        "pin must be tombstoned, not hard-deleted, when its project is deleted"
+    );
+}
+
+#[test]
+fn a_deleted_project_disappears_from_every_read_path() {
+    let db = db();
+    let p = a_project(&db, "Atlas");
+    db.delete_project(&p.id).unwrap();
+
+    assert!(db.list_projects().unwrap().iter().all(|x| x.id != p.id));
+    assert!(db.get_project(&p.id).unwrap().is_none());
+    assert!(db
+        .list_archived_projects()
+        .unwrap()
+        .iter()
+        .all(|x| x.id != p.id));
+}
+
+#[test]
+fn deleting_a_project_keeps_the_row_as_a_tombstone() {
+    // The whole point: "deleted here" must stay distinguishable from "never
+    // arrived", or a later transfer cheerfully resurrects it.
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
+    let p = a_project(&db, "Atlas");
+    db.delete_project(&p.id).unwrap();
+
+    let external = rusqlite::Connection::open(&path).unwrap();
+    let (count, deleted_at): (i64, Option<String>) = external
+        .query_row(
+            "SELECT COUNT(*), MAX(deleted_at) FROM projects WHERE id = ?1",
+            rusqlite::params![p.id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(count, 1, "the row must survive as a tombstone");
+    assert!(deleted_at.is_some());
+}
+
+#[test]
+fn a_deleted_task_disappears_from_every_read_path() {
+    let db = db();
+    let p = a_project(&db, "Atlas");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "Wire the reconnect".into(),
+        })
+        .unwrap();
+    db.delete_task(&t.id).unwrap();
+
+    assert!(db.list_tasks(&p.id).unwrap().iter().all(|x| x.id != t.id));
+    assert!(db.get_task(&t.id).unwrap().is_none());
+}
+
+#[test]
+fn deleting_a_task_keeps_the_row_as_a_tombstone() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
+    let p = a_project(&db, "Atlas");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "Wire the reconnect".into(),
+        })
+        .unwrap();
+    db.delete_task(&t.id).unwrap();
+
+    let external = rusqlite::Connection::open(&path).unwrap();
+    let (count, deleted_at): (i64, Option<String>) = external
+        .query_row(
+            "SELECT COUNT(*), MAX(deleted_at) FROM tasks WHERE id = ?1",
+            rusqlite::params![t.id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(count, 1, "the row must survive as a tombstone");
+    assert!(deleted_at.is_some());
+}
+
+#[test]
+fn deleting_a_task_tombstones_its_resources_and_pins_without_hard_deleting_them() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
+    let p = a_project(&db, "omnibus");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+    let resource = db
+        .add_task_resource(NewTaskResource {
+            task_id: t.id.clone(),
+            connector_kind: "fake".into(),
+            resource_type: "file".into(),
+            payload: json!({"path": "src/main.ts"}),
+        })
+        .unwrap();
+    let pin = db
+        .add_task_pin(&t.id, "chrome", "https://a.test/", &json!({"a": 1}))
+        .unwrap();
+
+    db.delete_task(&t.id).unwrap();
+
+    let external = rusqlite::Connection::open(&path).unwrap();
+    let resource_deleted: Option<String> = external
+        .query_row(
+            "SELECT deleted_at FROM task_resources WHERE id = ?1",
+            rusqlite::params![resource.id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(
+        resource_deleted.is_some(),
+        "resource must be tombstoned, not left live and not hard-deleted"
+    );
+
+    let pin_deleted: Option<String> = external
+        .query_row(
+            "SELECT deleted_at FROM task_pins WHERE id = ?1",
+            rusqlite::params![pin.id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(
+        pin_deleted.is_some(),
+        "pin must be tombstoned, not left live and not hard-deleted"
+    );
 }
 
 #[test]

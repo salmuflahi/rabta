@@ -144,7 +144,7 @@ fn project_by_id(conn: &Connection, id: &str) -> Result<Option<Project>> {
         .query_row(
             "SELECT id, name, repo_path, dev_url, default_branch, icon, archived_at,
                     last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at, rev
-             FROM projects WHERE id = ?1",
+             FROM projects WHERE id = ?1 AND deleted_at IS NULL",
             params![id],
             project_from_row,
         )
@@ -174,7 +174,7 @@ fn task_by_id(conn: &Connection, id: &str) -> Result<Option<Task>> {
     Ok(conn
         .query_row(
             "SELECT id, project_id, title, status, created_at, updated_at, rev
-             FROM tasks WHERE id = ?1",
+             FROM tasks WHERE id = ?1 AND deleted_at IS NULL",
             params![id],
             task_from_row,
         )
@@ -252,7 +252,7 @@ impl Db {
             "SELECT id, name, repo_path, dev_url, default_branch, icon, archived_at,
                     last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at, rev
              FROM projects
-             WHERE archived_at IS NULL
+             WHERE archived_at IS NULL AND deleted_at IS NULL
              ORDER BY sort_order, lower(name), id",
         )?;
         let rows = stmt.query_map([], project_from_row)?;
@@ -282,7 +282,8 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let changed = conn.execute(
-            "UPDATE projects SET name = ?2, updated_at = ?3, rev = rev + 1 WHERE id = ?1",
+            "UPDATE projects SET name = ?2, updated_at = ?3, rev = rev + 1
+             WHERE id = ?1 AND deleted_at IS NULL",
             params![id, name, now()],
         )?;
         if changed == 0 {
@@ -309,7 +310,8 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let changed = conn.execute(
-            "UPDATE projects SET icon = ?2, updated_at = ?3, rev = rev + 1 WHERE id = ?1",
+            "UPDATE projects SET icon = ?2, updated_at = ?3, rev = rev + 1
+             WHERE id = ?1 AND deleted_at IS NULL",
             params![id, icon, now()],
         )?;
         if changed == 0 {
@@ -383,7 +385,7 @@ impl Db {
             "SELECT id, name, repo_path, dev_url, default_branch, icon, archived_at,
                     last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at, rev
              FROM projects
-             WHERE archived_at IS NOT NULL
+             WHERE archived_at IS NOT NULL AND deleted_at IS NULL
              ORDER BY archived_at DESC, lower(name), id",
         )?;
         let rows = stmt.query_map([], project_from_row)?;
@@ -400,7 +402,7 @@ impl Db {
         let active_ids = {
             let mut stmt = tx.prepare(
                 "SELECT id FROM projects
-                 WHERE archived_at IS NULL
+                 WHERE archived_at IS NULL AND deleted_at IS NULL
                  ORDER BY sort_order, lower(name), id",
             )?;
             let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
@@ -431,13 +433,41 @@ impl Db {
         self.list_projects()
     }
 
-    /// Deletes a project; tasks and resources cascade.
+    /// Tombstones a project; its tasks (and their resources and pins)
+    /// tombstone with it rather than being hard-deleted, so a later Migrate
+    /// can still tell "deleted here" from "never arrived".
     pub fn delete_project(&self, id: &str) -> Result<()> {
         let conn = self
             .conn
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        conn.execute("DELETE FROM projects WHERE id = ?1", params![id])?;
+        let tx = conn.unchecked_transaction()?;
+        let ts = now();
+        tx.execute(
+            "UPDATE task_resources SET deleted_at = ?2, rev = rev + 1
+             WHERE deleted_at IS NULL AND task_id IN (
+                 SELECT id FROM tasks WHERE project_id = ?1 AND deleted_at IS NULL
+             )",
+            params![id, ts],
+        )?;
+        tx.execute(
+            "UPDATE task_pins SET deleted_at = ?2, rev = rev + 1
+             WHERE deleted_at IS NULL AND task_id IN (
+                 SELECT id FROM tasks WHERE project_id = ?1 AND deleted_at IS NULL
+             )",
+            params![id, ts],
+        )?;
+        tx.execute(
+            "UPDATE tasks SET deleted_at = ?2, rev = rev + 1, updated_at = ?2
+             WHERE project_id = ?1 AND deleted_at IS NULL",
+            params![id, ts],
+        )?;
+        tx.execute(
+            "UPDATE projects SET deleted_at = ?2, rev = rev + 1, updated_at = ?2
+             WHERE id = ?1 AND deleted_at IS NULL",
+            params![id, ts],
+        )?;
+        tx.commit()?;
         Ok(())
     }
 
@@ -480,7 +510,7 @@ impl Db {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT id, project_id, title, status, created_at, updated_at, rev \
-             FROM tasks WHERE project_id = ?1 ORDER BY created_at DESC",
+             FROM tasks WHERE project_id = ?1 AND deleted_at IS NULL ORDER BY created_at DESC",
         )?;
         let rows = stmt.query_map(params![project_id], task_from_row)?;
         Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
@@ -509,7 +539,7 @@ impl Db {
                  updated_at = ?2,
                  rev = rev + 1
              WHERE id = (
-               SELECT project_id FROM tasks WHERE id = ?1
+               SELECT project_id FROM tasks WHERE id = ?1 AND deleted_at IS NULL
              )
              AND archived_at IS NULL",
             params![task_id, opened_at],
@@ -535,7 +565,7 @@ impl Db {
                    SELECT 1
                    FROM tasks
                    JOIN projects ON projects.id = tasks.project_id
-                   WHERE tasks.id = ?1 AND projects.archived_at IS NULL
+                   WHERE tasks.id = ?1 AND tasks.deleted_at IS NULL AND projects.archived_at IS NULL
                  )",
                 params![task_id],
                 |row| row.get(0),
@@ -559,7 +589,7 @@ impl Db {
                  updated_at = ?3,
                  rev = rev + 1
              WHERE id = (
-               SELECT project_id FROM tasks WHERE id = ?1
+               SELECT project_id FROM tasks WHERE id = ?1 AND deleted_at IS NULL
              )
              AND archived_at IS NULL",
             params![task_id, seconds, now(), i64::MAX],
@@ -587,7 +617,8 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let changed = conn.execute(
-            "UPDATE tasks SET title = ?2, updated_at = ?3, rev = rev + 1 WHERE id = ?1",
+            "UPDATE tasks SET title = ?2, updated_at = ?3, rev = rev + 1
+             WHERE id = ?1 AND deleted_at IS NULL",
             params![id, title, now()],
         )?;
         if changed == 0 {
@@ -613,7 +644,7 @@ impl Db {
         let mut suffix = 2;
         while tx.query_row(
             "SELECT EXISTS(
-                SELECT 1 FROM tasks WHERE project_id = ?1 AND title = ?2
+                SELECT 1 FROM tasks WHERE project_id = ?1 AND title = ?2 AND deleted_at IS NULL
              )",
             params![source.project_id, copy_title],
             |row| row.get::<_, bool>(0),
@@ -694,18 +725,35 @@ impl Db {
         Ok(())
     }
 
-    /// Deletes a task; its resources cascade.
+    /// Tombstones a task; its resources and pins tombstone with it rather
+    /// than being hard-deleted, so a later Migrate can still tell "deleted
+    /// here" from "never arrived".
     pub fn delete_task(&self, id: &str) -> Result<()> {
         let conn = self
             .conn
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let tx = conn.unchecked_transaction()?;
+        let ts = now();
         tx.execute(
             "UPDATE projects SET last_task_id = NULL, updated_at = ?2, rev = rev + 1 WHERE last_task_id = ?1",
-            params![id, now()],
+            params![id, ts],
         )?;
-        tx.execute("DELETE FROM tasks WHERE id = ?1", params![id])?;
+        tx.execute(
+            "UPDATE task_resources SET deleted_at = ?2, rev = rev + 1
+             WHERE task_id = ?1 AND deleted_at IS NULL",
+            params![id, ts],
+        )?;
+        tx.execute(
+            "UPDATE task_pins SET deleted_at = ?2, rev = rev + 1
+             WHERE task_id = ?1 AND deleted_at IS NULL",
+            params![id, ts],
+        )?;
+        tx.execute(
+            "UPDATE tasks SET deleted_at = ?2, rev = rev + 1, updated_at = ?2
+             WHERE id = ?1 AND deleted_at IS NULL",
+            params![id, ts],
+        )?;
         tx.commit()?;
         Ok(())
     }
