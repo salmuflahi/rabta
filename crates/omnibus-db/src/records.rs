@@ -680,7 +680,7 @@ impl Db {
             let mut stmt = tx.prepare(
                 "SELECT connector_kind, resource_type, payload, created_at
                  FROM task_resources
-                 WHERE task_id = ?1
+                 WHERE task_id = ?1 AND deleted_at IS NULL
                  ORDER BY created_at, id",
             )?;
             let rows = stmt.query_map(params![id], |row| {
@@ -789,7 +789,7 @@ impl Db {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut stmt = conn.prepare(
             "SELECT id, task_id, connector_kind, resource_type, payload, created_at, rev \
-             FROM task_resources WHERE task_id = ?1 ORDER BY created_at",
+             FROM task_resources WHERE task_id = ?1 AND deleted_at IS NULL ORDER BY created_at",
         )?;
         let rows = stmt.query_map(params![task_id], |r| {
             Ok(TaskResource {
@@ -808,19 +808,38 @@ impl Db {
         Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
     }
 
-    /// Detaches one resource.
+    /// Detaches one resource. This is user intent — "I do not want this item
+    /// in this capsule" — so it tombstones rather than hard-deletes, the same
+    /// way `delete_task`/`delete_project` do, so a later merge can tell
+    /// removed-here from never-arrived.
     pub fn remove_task_resource(&self, id: &str) -> Result<()> {
         let conn = self
             .conn
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        conn.execute("DELETE FROM task_resources WHERE id = ?1", params![id])?;
+        conn.execute(
+            "UPDATE task_resources SET deleted_at = ?2, rev = rev + 1
+             WHERE id = ?1 AND deleted_at IS NULL",
+            params![id, now()],
+        )?;
         Ok(())
     }
 
     /// Replaces a task's resources for one connector kind with a single new
-    /// row (capsules are latest-only per kind). Atomic: delete + insert in
-    /// one transaction; rows for other kinds are untouched.
+    /// row (capsules are latest-only per kind). Atomic: purge + insert +
+    /// parent-task rev bump in one transaction; rows for other kinds are
+    /// untouched.
+    ///
+    /// Unlike `remove_task_resource`, this is a fresh capture superseding the
+    /// previous snapshot, not a user removal — the old rows have no
+    /// independent lifecycle worth remembering, so they are hard-purged
+    /// (including any already-tombstoned rows for this kind) rather than
+    /// tombstoned. Tombstoning here would grow this table without bound: every
+    /// capture would leave a full generation behind, forever. The new rows
+    /// are genuinely new rows (fresh id, rev 0), so what a later merge needs
+    /// to see is not "this row changed" but "this capsule's contents
+    /// changed" — that signal lives on the parent task's `rev`, which this
+    /// bumps in the same transaction.
     pub fn replace_task_resources(
         &self,
         task_id: &str,
@@ -842,6 +861,9 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let tx = conn.unchecked_transaction()?;
+        // No deleted_at filter here on purpose: this purges both live and
+        // already-tombstoned rows for this (task_id, connector_kind), which
+        // is what keeps recapture bounded.
         tx.execute(
             "DELETE FROM task_resources WHERE task_id = ?1 AND connector_kind = ?2",
             params![task_id, connector_kind],
@@ -850,6 +872,12 @@ impl Db {
             "INSERT INTO task_resources (id, task_id, connector_kind, resource_type, payload, created_at) \
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![r.id, r.task_id, r.connector_kind, r.resource_type, r.payload.to_string(), r.created_at],
+        )?;
+        let ts = now();
+        tx.execute(
+            "UPDATE tasks SET updated_at = ?2, rev = rev + 1
+             WHERE id = ?1 AND deleted_at IS NULL",
+            params![task_id, ts],
         )?;
         tx.commit()?;
         Ok(r)

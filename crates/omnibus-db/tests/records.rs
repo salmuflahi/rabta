@@ -837,6 +837,120 @@ fn replace_task_resources_replaces_only_that_kind() {
 }
 
 #[test]
+fn removing_one_resource_leaves_a_tombstone() {
+    // User intent — "I do not want this file in this capsule" — must survive
+    // as a tombstone, not vanish, so a later merge can tell removed-here from
+    // never-arrived.
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
+    let p = a_project(&db, "omnibus");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+    let r = db
+        .add_task_resource(NewTaskResource {
+            task_id: t.id.clone(),
+            connector_kind: "chrome".into(),
+            resource_type: "tab".into(),
+            payload: json!({"url": "https://docs.rs"}),
+        })
+        .unwrap();
+
+    db.remove_task_resource(&r.id).unwrap();
+
+    // Disappears from the read path...
+    assert!(db.task_resources(&t.id).unwrap().is_empty());
+
+    // ...but the row survives as a tombstone underneath.
+    let external = rusqlite::Connection::open(&path).unwrap();
+    let (deleted_at, rev): (Option<String>, i64) = external
+        .query_row(
+            "SELECT deleted_at, rev FROM task_resources WHERE id = ?1",
+            rusqlite::params![r.id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert!(
+        deleted_at.is_some(),
+        "removed resource must be tombstoned, not hard-deleted"
+    );
+    assert_eq!(rev, 1, "tombstoning must bump rev");
+}
+
+#[test]
+fn recapturing_does_not_accumulate_rows() {
+    // A snapshot replaced 50 times must not leave 50 generations behind —
+    // replace purges prior rows (live and tombstoned) for that
+    // (task_id, connector_kind) rather than tombstoning them.
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
+    let p = a_project(&db, "omnibus");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+
+    for i in 0..50 {
+        db.replace_task_resources(
+            &t.id,
+            "vscode",
+            "workspace",
+            &json!({"openFiles": [format!("file{i}.ts")]}),
+        )
+        .unwrap();
+    }
+
+    // Count every row for this task directly, tombstoned or not — the read
+    // path already filters deleted_at, so only a raw count can catch rows
+    // left behind as unbounded tombstones.
+    let external = rusqlite::Connection::open(&path).unwrap();
+    let total: i64 = external
+        .query_row(
+            "SELECT COUNT(*) FROM task_resources WHERE task_id = ?1",
+            rusqlite::params![t.id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(
+        total <= 10,
+        "replace must supersede, not accumulate: found {total} rows"
+    );
+}
+
+#[test]
+fn recapturing_bumps_the_parent_task_rev() {
+    // The capsule's contents changed; the task (not the resource row) is the
+    // thing whose rev a later merge should look at.
+    let db = db();
+    let p = a_project(&db, "omnibus");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+    let before = db.get_task(&t.id).unwrap().unwrap();
+    assert_eq!(before.rev, 0);
+
+    db.replace_task_resources(&t.id, "vscode", "workspace", &json!({"openFiles": []}))
+        .unwrap();
+
+    let after = db.get_task(&t.id).unwrap().unwrap();
+    assert_eq!(after.rev, 1, "replace must bump the parent task's rev");
+    assert!(
+        after.updated_at >= before.updated_at,
+        "replace must bump the parent task's updated_at"
+    );
+}
+
+#[test]
 fn get_task_and_project_by_id() {
     let db = db();
     let p = a_project(&db, "omnibus");
