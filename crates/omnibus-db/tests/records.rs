@@ -470,6 +470,86 @@ fn duplicate_task_rejects_a_missing_source() {
 }
 
 #[test]
+fn duplicate_task_excludes_removed_resources_to_prevent_resurrection() {
+    // Regression test: a previous fix added AND deleted_at IS NULL to the
+    // resource-copy query in duplicate_task. Without this filter, duplicating
+    // a task would resurrect resources the user had explicitly removed via
+    // remove_task_resource, causing information loss.
+    //
+    // This test proves the filter works: create a task with three resources,
+    // remove one, duplicate the task, and assert the duplicate contains only
+    // the two remaining resources (not the removed one).
+    let db = db();
+    let p = a_project(&db, "Rabta");
+    let source = db
+        .create_task(NewTask {
+            project_id: p.id,
+            title: "Original".into(),
+        })
+        .unwrap();
+
+    // Attach three resources in order.
+    let resources = [
+        ("git", "branch", json!({"branch": "main"})),
+        ("chrome", "tabs", json!({"urls": ["https://example.com"]})),
+        ("vscode", "workspace", json!({"openFiles": ["a.ts"]})),
+    ]
+    .into_iter()
+    .map(|(connector_kind, resource_type, payload)| {
+        db.add_task_resource(NewTaskResource {
+            task_id: source.id.clone(),
+            connector_kind: connector_kind.into(),
+            resource_type: resource_type.into(),
+            payload,
+        })
+        .unwrap()
+    })
+    .collect::<Vec<_>>();
+    assert_eq!(resources.len(), 3);
+    assert_eq!(db.task_resources(&source.id).unwrap().len(), 3);
+
+    // Remove the middle resource (chrome tabs).
+    db.remove_task_resource(&resources[1].id).unwrap();
+    assert_eq!(
+        db.task_resources(&source.id).unwrap().len(),
+        2,
+        "removed resource must disappear from the read path"
+    );
+
+    // Duplicate the task.
+    let copy = db.duplicate_task(&source.id).unwrap();
+    let copied_resources = db.task_resources(&copy.id).unwrap();
+
+    // The duplicate must contain exactly the two remaining resources in their
+    // original order, and must NOT contain the removed (chrome tabs) resource.
+    assert_eq!(
+        copied_resources.len(),
+        2,
+        "duplicate must contain only the non-removed resources"
+    );
+
+    // Assert the remaining resources are git and vscode, in order.
+    assert_eq!(copied_resources[0].connector_kind, "git");
+    assert_eq!(copied_resources[0].resource_type, "branch");
+    assert_eq!(copied_resources[0].payload, json!({"branch": "main"}));
+
+    assert_eq!(copied_resources[1].connector_kind, "vscode");
+    assert_eq!(copied_resources[1].resource_type, "workspace");
+    assert_eq!(
+        copied_resources[1].payload,
+        json!({"openFiles": ["a.ts"]})
+    );
+
+    // Verify chrome resource is truly absent.
+    assert!(
+        !copied_resources
+            .iter()
+            .any(|r| r.connector_kind == "chrome"),
+        "removed resource must not be resurrected in the duplicate"
+    );
+}
+
+#[test]
 fn rename_task_trims_and_validates_its_target() {
     let db = db();
     let project = a_project(&db, "Rabta");
