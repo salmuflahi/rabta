@@ -19,7 +19,7 @@
         "minHeight": 540,
         "resizable": true,
         "titleBarStyle": "Overlay",
-        "trafficLightPosition": { "x": 18.0, "y": 20.0 }
+        "trafficLightPosition": { "x": 18.0, "y": 17.0 }
       }
     ],
     "security": { "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'" }
