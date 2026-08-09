@@ -148,11 +148,21 @@ export default {
         brand: "cubic-bezier(0.2, 0.8, 0.2, 1)",
         // Standard settling ease (Part 17) — smooth ease-out, no overshoot.
         standard: "cubic-bezier(0.22, 1, 0.36, 1)",
+        // Console v2 Phase 1, Task 5 — the handoff's macOS motion curve.
+        // Shared by the Switch knob's translateX (this task) and, per the
+        // Motion table, the Migrate sheet's slide-down (Phase 2, same
+        // curve, 300ms instead of 170ms) — named for the platform, not the
+        // control, so that later consumer can reuse it.
+        mac: "cubic-bezier(0.32, 0.72, 0, 1)",
       },
       transitionDuration: {
         fast: "120ms",
         standard: "180ms",
         sidebar: "280ms",
+        // Console v2 Phase 1, Task 5 — Switch track fade + knob travel.
+        // 170ms is otherwise unused in the handoff's Motion table, so this
+        // is named for its one consumer rather than kept generic.
+        switch: "170ms",
       },
       boxShadow: {
         // Theme-varying, so the values live in CSS variables — Tailwind
@@ -165,6 +175,13 @@ export default {
         // (restore sheet, command palette) is the intended consumer.
         modal: "var(--shadow-modal)",
         soft: "0 2px 8px rgba(0,0,0,0.06)",
+        // Console v2 Phase 1, Task 5 — the Switch knob's own shadow. A
+        // fixed rgba (not a --shadow-* CSS variable) because the prototype
+        // keeps it identical in both themes (`0 1px 2px rgba(0,0,0,.3)`,
+        // Rabta - Console v2.dc.html support script, the toggle row's
+        // knobStyle) — the knob is white on both, so it needs its own
+        // constant lift rather than the theme-varying --shadow token.
+        knob: "0 1px 2px rgba(0,0,0,.3)",
       },
     },
   },
