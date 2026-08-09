@@ -122,6 +122,28 @@ describe("Swatch", () => {
     expect(onChange).toHaveBeenLastCalledWith("sand");
   });
 
+  it("calls onChange with the focused option's AccentId on Space", () => {
+    const onChange = vi.fn();
+    render(
+      <Swatch value="sand" onChange={onChange} theme="light" ariaLabel="Accent" />,
+    );
+    const petrol = screen.getByRole("radio", { name: "Petrol" });
+    petrol.focus();
+    fireEvent.keyDown(petrol, { key: " " });
+    expect(onChange).toHaveBeenCalledWith("petrol");
+  });
+
+  it("calls onChange with the focused option's AccentId on Enter", () => {
+    const onChange = vi.fn();
+    render(
+      <Swatch value="sand" onChange={onChange} theme="light" ariaLabel="Accent" />,
+    );
+    const sky = screen.getByRole("radio", { name: "Sky" });
+    sky.focus();
+    fireEvent.keyDown(sky, { key: "Enter" });
+    expect(onChange).toHaveBeenCalledWith("sky");
+  });
+
   it("moves keyboard focus onto the newly selected option", () => {
     function Controlled() {
       const [value, setValue] = useState<AccentId>("tangerine");

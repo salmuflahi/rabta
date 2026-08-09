@@ -29,7 +29,7 @@ export interface SwatchProps {
  * ring followed by a ring in the accent's own colour. The prototype's
  * `--raised` is this codebase's `--card` (the raised-surface token; see
  * surface.tsx), never this codebase's own `--accent` (an unrelated neutral
- * grey) — that trap is documented in segmented.tsx's precedent comment.
+ * grey) — that trap is documented in switch-mac.tsx's precedent comment.
  *
  * The ring is deliberately a real geometric change (the swatch's rendered
  * footprint grows), not a fill-colour swap: colour is never the only signal
