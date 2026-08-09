@@ -4,7 +4,7 @@
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use rusqlite::Connection;
+use rusqlite::{params, Connection, OptionalExtension};
 
 /// Embedded migrations, applied in order via SQLite's `user_version`.
 const MIGRATIONS: &[&str] = &[
@@ -12,6 +12,7 @@ const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/002_track_b_core.sql"),
     include_str!("../migrations/003_connector_version.sql"),
     include_str!("../migrations/004_task_pins.sql"),
+    include_str!("../migrations/005_data_foundations.sql"),
 ];
 
 mod activity;
@@ -105,6 +106,43 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         Ok(conn.query_row("PRAGMA user_version", [], |r| r.get(0))?)
+    }
+
+    /// A UUIDv4 identifying this installation, generated on first use and
+    /// stable thereafter.
+    ///
+    /// This is a per-database fact, not a per-user one — it says "this Mac",
+    /// never "this person". Nothing transmits it; it exists so that a record
+    /// can later be attributed to the machine that created it, which is what
+    /// the Migrate flow's collision review needs in order to tell you what
+    /// came from where.
+    pub fn install_id(&self) -> Result<String> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some(existing) = conn
+            .query_row(
+                "SELECT value FROM db_meta WHERE key = 'install_id'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .optional()?
+        {
+            return Ok(existing);
+        }
+        let fresh = new_id();
+        // INSERT OR IGNORE, then re-read: two threads racing first use must
+        // agree on one value rather than each returning its own.
+        conn.execute(
+            "INSERT OR IGNORE INTO db_meta (key, value) VALUES ('install_id', ?1)",
+            params![fresh],
+        )?;
+        Ok(conn.query_row(
+            "SELECT value FROM db_meta WHERE key = 'install_id'",
+            [],
+            |r| r.get(0),
+        )?)
     }
 
     /// Whether a table exists — used by tests and sanity checks.
@@ -255,5 +293,59 @@ mod tests {
             .unwrap(),
             1
         );
+    }
+
+    #[test]
+    fn install_id_is_stable_across_reopen_and_unique_per_database() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("t.sqlite3");
+
+        let first = {
+            Db::open(&path, DbConfig::default())
+                .unwrap()
+                .install_id()
+                .unwrap()
+        };
+        let again = {
+            Db::open(&path, DbConfig::default())
+                .unwrap()
+                .install_id()
+                .unwrap()
+        };
+        // Same database must keep its identity across restarts, or every launch
+        // would look like a different Mac.
+        assert_eq!(first, again);
+
+        let other_dir = tempfile::tempdir().unwrap();
+        let other = Db::open(&other_dir.path().join("t.sqlite3"), DbConfig::default())
+            .unwrap()
+            .install_id()
+            .unwrap();
+        assert_ne!(first, other, "a different database must be a different install");
+        assert_eq!(first.len(), 36, "expected a UUIDv4 string");
+    }
+
+    #[test]
+    fn migration_005_applies_to_a_database_created_at_the_previous_schema() {
+        // The case that actually ships: an existing install, not a fresh build.
+        let conn = Connection::open_in_memory().unwrap();
+        let older: Vec<&str> = MIGRATIONS[..MIGRATIONS.len() - 1].to_vec();
+        apply_migrations(&conn, &older).unwrap();
+        conn.execute(
+            "INSERT INTO projects (id, name, repo_path, dev_url, default_branch, created_at, updated_at)
+             VALUES ('p1','Legacy','/tmp/p','', 'main', '2026-01-01T00:00:00Z','2026-01-01T00:00:00Z')",
+            [],
+        )
+        .unwrap();
+
+        apply_migrations(&conn, MIGRATIONS).unwrap();
+
+        let (deleted, rev): (Option<String>, i64) = conn
+            .query_row("SELECT deleted_at, rev FROM projects WHERE id='p1'", [], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
+            .unwrap();
+        assert_eq!(deleted, None, "an existing row must migrate as not-deleted");
+        assert_eq!(rev, 0, "an existing row must start at rev 0");
     }
 }
