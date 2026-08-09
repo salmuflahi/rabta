@@ -202,6 +202,9 @@ impl Db {
             [],
             |r| r.get(0),
         )?;
+        // I6: stamp which install created this row, so a later Migrate
+        // collision review can tell where it came from.
+        let created_by_install = crate::install_id_with_conn(&conn)?;
         let p = Project {
             id: new_id(),
             name: new.name,
@@ -221,8 +224,9 @@ impl Db {
         conn.execute(
             "INSERT INTO projects (
                 id, name, repo_path, dev_url, default_branch, icon, archived_at,
-                last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                last_opened_at, last_task_id, active_seconds, sort_order, created_at, updated_at,
+                created_by_install
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
             params![
                 p.id,
                 p.name,
@@ -236,7 +240,8 @@ impl Db {
                 p.active_seconds,
                 p.sort_order,
                 p.created_at,
-                p.updated_at
+                p.updated_at,
+                created_by_install
             ],
         )?;
         Ok(p)
@@ -331,15 +336,22 @@ impl Db {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         require_project(&conn, id)?;
         let timestamp = now();
-        let changed = conn.execute(
+        // M6: archived_at is deliberately idempotent (COALESCE), and
+        // updated_at keeps moving on every call (matching the existing
+        // round-trip test, which pins updated_at advancing even on a
+        // repeat archive) — but rev must only advance on the call that
+        // actually transitions the project into the archived state. A
+        // repeat archive of an already-archived project changed nothing
+        // about *what* is archived, so it must be a no-op for the
+        // merge-trusted counter even though the timestamp still refreshes.
+        conn.execute(
             "UPDATE projects
-             SET archived_at = COALESCE(archived_at, ?2), updated_at = ?2, rev = rev + 1
+             SET archived_at = COALESCE(archived_at, ?2),
+                 updated_at = ?2,
+                 rev = CASE WHEN archived_at IS NULL THEN rev + 1 ELSE rev END
              WHERE id = ?1",
             params![id, timestamp],
         )?;
-        if changed == 0 {
-            return require_project(&conn, id);
-        }
         require_project(&conn, id)
     }
 
@@ -422,9 +434,18 @@ impl Db {
                 message: "must contain every active project exactly once".into(),
             });
         }
+        // M6: writing every id unconditionally meant a drag-and-drop that
+        // lands back on the same order bumped rev on every project. Gate
+        // both updated_at and rev on the position actually changing for
+        // that row, so dropping something back where it started is a true
+        // no-op, not just a no-op for sort_order.
         for (position, id) in ordered_ids.iter().enumerate() {
             tx.execute(
-                "UPDATE projects SET sort_order = ?2, updated_at = ?3, rev = rev + 1 WHERE id = ?1",
+                "UPDATE projects
+                 SET sort_order = ?2,
+                     updated_at = CASE WHEN sort_order != ?2 THEN ?3 ELSE updated_at END,
+                     rev = CASE WHEN sort_order != ?2 THEN rev + 1 ELSE rev END
+                 WHERE id = ?1",
                 params![id, position as i64, now()],
             )?;
         }
@@ -462,8 +483,12 @@ impl Db {
              WHERE project_id = ?1 AND deleted_at IS NULL",
             params![id, ts],
         )?;
+        // M5: also clears last_task_id — otherwise a tombstoned project is
+        // left pointing at a task this same call just tombstoned too.
+        // M5: also clears last_task_id — otherwise a tombstoned project is
+        // left pointing at a task this same call just tombstoned too.
         tx.execute(
-            "UPDATE projects SET deleted_at = ?2, rev = rev + 1, updated_at = ?2
+            "UPDATE projects SET deleted_at = ?2, rev = rev + 1, updated_at = ?2, last_task_id = NULL
              WHERE id = ?1 AND deleted_at IS NULL",
             params![id, ts],
         )?;
@@ -487,16 +512,18 @@ impl Db {
             .conn
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let created_by_install = crate::install_id_with_conn(&conn)?;
         conn.execute(
-            "INSERT INTO tasks (id, project_id, title, status, created_at, updated_at) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO tasks (id, project_id, title, status, created_at, updated_at, created_by_install) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
                 t.id,
                 t.project_id,
                 t.title,
                 t.status.as_str(),
                 t.created_at,
-                t.updated_at
+                t.updated_at,
+                created_by_install
             ],
         )?;
         Ok(t)
@@ -553,7 +580,19 @@ impl Db {
         Ok(())
     }
 
-    /// Adds focused, non-idle whole seconds to the active project owning `task_id`.
+    /// Adds focused, non-idle whole seconds to the active project owning
+    /// `task_id`.
+    ///
+    /// I3: this deliberately does NOT bump `rev`. The UI heartbeats every
+    /// ~15s (`useSessionTracking`), so treating each accrual as a rev-worthy
+    /// mutation made `projects.rev` answer "how long was this Mac open"
+    /// (~240 bumps/focused hour) while every sibling table's `rev` only
+    /// moves on genuine content change — two different units a later merge
+    /// could not meaningfully compare. `rev` is reserved for edits; session
+    /// accrual is metering, not an edit. `updated_at` still moves: the row's
+    /// `active_seconds` genuinely changed, and `updated_at`'s job is to say
+    /// "this row was last touched at this wall-clock time" — it was never
+    /// promised as a trustworthy merge counter the way `rev` is.
     pub fn add_active_seconds_for_task(&self, task_id: &str, seconds: u64) -> Result<()> {
         let conn = self
             .conn
@@ -586,8 +625,7 @@ impl Db {
                    WHEN active_seconds >= ?4 - ?2 THEN ?4
                    ELSE active_seconds + ?2
                  END,
-                 updated_at = ?3,
-                 rev = rev + 1
+                 updated_at = ?3
              WHERE id = (
                SELECT project_id FROM tasks WHERE id = ?1 AND deleted_at IS NULL
              )
@@ -638,6 +676,7 @@ impl Db {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let tx = conn.unchecked_transaction()?;
         let source = require_task(&tx, id)?;
+        let created_by_install = crate::install_id_with_conn(&tx)?;
 
         let base_title = format!("Copy of {}", source.title);
         let mut copy_title = base_title.clone();
@@ -664,15 +703,16 @@ impl Db {
             rev: 0,
         };
         tx.execute(
-            "INSERT INTO tasks (id, project_id, title, status, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO tasks (id, project_id, title, status, created_at, updated_at, created_by_install)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
                 copy.id,
                 copy.project_id,
                 copy.title,
                 copy.status.as_str(),
                 copy.created_at,
-                copy.updated_at
+                copy.updated_at,
+                created_by_install
             ],
         )?;
 
@@ -696,15 +736,16 @@ impl Db {
         for (connector_kind, resource_type, payload, created_at) in resources {
             tx.execute(
                 "INSERT INTO task_resources
-                 (id, task_id, connector_kind, resource_type, payload, created_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                 (id, task_id, connector_kind, resource_type, payload, created_at, created_by_install)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
                 params![
                     new_id(),
                     copy.id,
                     connector_kind,
                     resource_type,
                     payload,
-                    created_at
+                    created_at,
+                    created_by_install
                 ],
             )?;
         }
@@ -712,16 +753,28 @@ impl Db {
         Ok(copy)
     }
 
-    /// Updates a task's status and `updated_at`.
+    /// Updates a task's status and `updated_at`. Rejects a missing or
+    /// tombstoned task, matching every sibling mutation in this file — I2
+    /// previously left this the one mutation with no `deleted_at IS NULL`
+    /// filter and no `changed == 0` check, so it bumped `rev` and moved
+    /// `updated_at` on a tombstone and reported success for a write that
+    /// changed nothing.
     pub fn set_task_status(&self, id: &str, status: TaskStatus) -> Result<()> {
         let conn = self
             .conn
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        conn.execute(
-            "UPDATE tasks SET status = ?2, updated_at = ?3, rev = rev + 1 WHERE id = ?1",
+        let changed = conn.execute(
+            "UPDATE tasks SET status = ?2, updated_at = ?3, rev = rev + 1
+             WHERE id = ?1 AND deleted_at IS NULL",
             params![id, status.as_str(), now()],
         )?;
+        if changed == 0 {
+            return Err(DbError::NotFound {
+                entity: "task",
+                id: id.to_string(),
+            });
+        }
         Ok(())
     }
 
@@ -735,8 +788,12 @@ impl Db {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let tx = conn.unchecked_transaction()?;
         let ts = now();
+        // M5: guarded on deleted_at IS NULL — an already-tombstoned project
+        // is invisible to every read path, so bumping its rev/updated_at
+        // here would be pure noise, not a real edit.
         tx.execute(
-            "UPDATE projects SET last_task_id = NULL, updated_at = ?2, rev = rev + 1 WHERE last_task_id = ?1",
+            "UPDATE projects SET last_task_id = NULL, updated_at = ?2, rev = rev + 1
+             WHERE last_task_id = ?1 AND deleted_at IS NULL",
             params![id, ts],
         )?;
         tx.execute(
@@ -773,10 +830,11 @@ impl Db {
             .conn
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let created_by_install = crate::install_id_with_conn(&conn)?;
         conn.execute(
-            "INSERT INTO task_resources (id, task_id, connector_kind, resource_type, payload, created_at) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![r.id, r.task_id, r.connector_kind, r.resource_type, r.payload.to_string(), r.created_at],
+            "INSERT INTO task_resources (id, task_id, connector_kind, resource_type, payload, created_at, created_by_install) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![r.id, r.task_id, r.connector_kind, r.resource_type, r.payload.to_string(), r.created_at, created_by_install],
         )?;
         Ok(r)
     }
@@ -808,10 +866,29 @@ impl Db {
         Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
     }
 
-    /// Detaches one resource. This is user intent — "I do not want this item
-    /// in this capsule" — so it tombstones rather than hard-deletes, the same
-    /// way `delete_task`/`delete_project` do, so a later merge can tell
-    /// removed-here from never-arrived.
+    /// Detaches one resource by tombstoning its row (`deleted_at` set, not
+    /// hard-deleted) — the same shape `delete_task`/`delete_project` use, so
+    /// that *if* something called this to record "the user removed this
+    /// item", a later merge could tell removed-here from never-arrived.
+    ///
+    /// I4: that "if" does not hold today. This method has no production
+    /// caller — only tests exercise it. The desktop app's actual per-item
+    /// removal gesture is `Capsules::remove_captured_item`
+    /// (`apps/desktop/src-tauri/src/capsules.rs`), which reads a task's
+    /// resource row, drops the item from its JSON payload, and writes the
+    /// result back through `replace_task_resources` — the hard-purge path
+    /// that treats the whole row as a fresh capture, not this tombstoning
+    /// one. So a user removing a single captured tab or file today leaves no
+    /// record of that removal at all, and the very next automatic capture
+    /// can (and does) bring the item straight back. `remove_task_resource`
+    /// is also the wrong granularity to fix that as-is: a `task_resources`
+    /// row holds a whole connector kind's JSON array per task, so a
+    /// row-level `deleted_at` can never express "the user removed this one
+    /// tab out of several" — only "the user removed this entire kind's
+    /// capture". Changing the removal gesture to actually record intent is a
+    /// product change and is out of scope here; this comment exists so that
+    /// scope decision is not lost the next time someone reads "tombstone,
+    /// not hard-delete" and assumes it is already load-bearing.
     pub fn remove_task_resource(&self, id: &str) -> Result<()> {
         let conn = self
             .conn
@@ -861,6 +938,23 @@ impl Db {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let tx = conn.unchecked_transaction()?;
+        // C1: a tombstoned task must never gain a live child row — otherwise
+        // a caller-supplied task_id (e.g. save_capsule) can resurrect capsule
+        // contents under a task delete_task just tombstoned. Checked inside
+        // this same transaction so a concurrent delete_task cannot race
+        // between this check and the insert below.
+        let parent_live: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM tasks WHERE id = ?1 AND deleted_at IS NULL)",
+            params![task_id],
+            |row| row.get(0),
+        )?;
+        if !parent_live {
+            return Err(DbError::NotFound {
+                entity: "task",
+                id: task_id.to_string(),
+            });
+        }
+        let created_by_install = crate::install_id_with_conn(&tx)?;
         // No deleted_at filter here on purpose: this purges both live and
         // already-tombstoned rows for this (task_id, connector_kind), which
         // is what keeps recapture bounded.
@@ -869,9 +963,9 @@ impl Db {
             params![task_id, connector_kind],
         )?;
         tx.execute(
-            "INSERT INTO task_resources (id, task_id, connector_kind, resource_type, payload, created_at) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![r.id, r.task_id, r.connector_kind, r.resource_type, r.payload.to_string(), r.created_at],
+            "INSERT INTO task_resources (id, task_id, connector_kind, resource_type, payload, created_at, created_by_install) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![r.id, r.task_id, r.connector_kind, r.resource_type, r.payload.to_string(), r.created_at, created_by_install],
         )?;
         let ts = now();
         tx.execute(
@@ -909,9 +1003,29 @@ impl Db {
             .conn
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let (id, created_at, rev) = conn.query_row(
-            "INSERT INTO task_pins (id, task_id, connector_kind, identity, payload, created_at) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6) \
+        let tx = conn.unchecked_transaction()?;
+        // C1: same guard as replace_task_resources — without it, the
+        // ON CONFLICT DO UPDATE below clears deleted_at unconditionally,
+        // reviving a pin (or inserting a fresh one) under a task delete_task
+        // already tombstoned.
+        let parent_live: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM tasks WHERE id = ?1 AND deleted_at IS NULL)",
+            params![task_id],
+            |row| row.get(0),
+        )?;
+        if !parent_live {
+            return Err(DbError::NotFound {
+                entity: "task",
+                id: task_id.to_string(),
+            });
+        }
+        // I6: only the insert branch stamps created_by_install — the
+        // ON CONFLICT DO UPDATE deliberately does not touch it, since it
+        // records who created the row, not who most recently edited it.
+        let created_by_install = crate::install_id_with_conn(&tx)?;
+        let (id, created_at, rev) = tx.query_row(
+            "INSERT INTO task_pins (id, task_id, connector_kind, identity, payload, created_at, created_by_install) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) \
              ON CONFLICT (task_id, connector_kind, identity) \
              DO UPDATE SET payload = excluded.payload, deleted_at = NULL, rev = rev + 1 \
              RETURNING id, created_at, rev",
@@ -921,7 +1035,8 @@ impl Db {
                 connector_kind,
                 identity,
                 payload.to_string(),
-                candidate_created_at
+                candidate_created_at,
+                created_by_install
             ],
             |row| {
                 Ok((
@@ -931,6 +1046,7 @@ impl Db {
                 ))
             },
         )?;
+        tx.commit()?;
         Ok(TaskPin {
             id,
             task_id: task_id.to_string(),

@@ -76,6 +76,38 @@ pub(crate) fn new_id() -> String {
     uuid::Uuid::new_v4().to_string()
 }
 
+/// Looks up (creating if needed) this database's install id using an
+/// already-held connection or transaction. Shared by `Db::install_id` and
+/// every `records.rs` INSERT that stamps `created_by_install`, which must
+/// reuse the caller's already-locked connection rather than each acquiring
+/// its own — `Db::conn`'s mutex is not reentrant, so a nested `self
+/// .conn.lock()` from inside a function that already holds the lock would
+/// deadlock.
+pub(crate) fn install_id_with_conn(conn: &Connection) -> Result<String> {
+    if let Some(existing) = conn
+        .query_row(
+            "SELECT value FROM db_meta WHERE key = 'install_id'",
+            [],
+            |r| r.get::<_, String>(0),
+        )
+        .optional()?
+    {
+        return Ok(existing);
+    }
+    let fresh = new_id();
+    // INSERT OR IGNORE, then re-read: two threads racing first use must
+    // agree on one value rather than each returning its own.
+    conn.execute(
+        "INSERT OR IGNORE INTO db_meta (key, value) VALUES ('install_id', ?1)",
+        params![fresh],
+    )?;
+    Ok(conn.query_row(
+        "SELECT value FROM db_meta WHERE key = 'install_id'",
+        [],
+        |r| r.get(0),
+    )?)
+}
+
 impl Db {
     /// Opens (creating if needed) the database at `path`, enables WAL and
     /// foreign keys, and applies pending migrations.
@@ -121,28 +153,7 @@ impl Db {
             .conn
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if let Some(existing) = conn
-            .query_row(
-                "SELECT value FROM db_meta WHERE key = 'install_id'",
-                [],
-                |r| r.get::<_, String>(0),
-            )
-            .optional()?
-        {
-            return Ok(existing);
-        }
-        let fresh = new_id();
-        // INSERT OR IGNORE, then re-read: two threads racing first use must
-        // agree on one value rather than each returning its own.
-        conn.execute(
-            "INSERT OR IGNORE INTO db_meta (key, value) VALUES ('install_id', ?1)",
-            params![fresh],
-        )?;
-        Ok(conn.query_row(
-            "SELECT value FROM db_meta WHERE key = 'install_id'",
-            [],
-            |r| r.get(0),
-        )?)
+        install_id_with_conn(&conn)
     }
 
     /// Whether a table exists — used by tests and sanity checks.
@@ -363,11 +374,14 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("rabta.db");
 
-        // Build at migration 004 (001..004 inclusive: init, track-b core,
-        // connector version, task_pins) — before deleted_at/rev exist.
+        // Build at the schema before 005 (001..004 inclusive: init, track-b
+        // core, connector version, task_pins) — before deleted_at/rev exist.
+        // M2: MIGRATIONS[..MIGRATIONS.len() - 1] rather than a hardcoded
+        // [..4], so this keeps covering "the schema right before the newest
+        // migration" once 006 lands instead of silently freezing at 004.
         let conn = Connection::open(&path).unwrap();
         conn.pragma_update(None, "foreign_keys", "ON").unwrap();
-        let pre_005 = &MIGRATIONS[..4];
+        let pre_005 = &MIGRATIONS[..MIGRATIONS.len() - 1];
         apply_migrations(&conn, pre_005).unwrap();
 
         conn.execute(
@@ -478,5 +492,81 @@ mod tests {
         let pins = db.task_pins("t1").unwrap();
         assert_eq!(pins.len(), 1);
         assert_eq!(pins[0].id, "pin1");
+    }
+
+    #[test]
+    fn migration_005_leaves_created_by_install_null_for_pre_existing_rows() {
+        // I6: created_by_install is nullable specifically so a row that
+        // existed before attribution was added migrates as "unknown
+        // creator", never as falsely attributed to whichever install
+        // happens to run this migration. Same shape as Task 6's
+        // pre-migration test above, focused on the one column that test
+        // predates.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("rabta.db");
+
+        let conn = Connection::open(&path).unwrap();
+        conn.pragma_update(None, "foreign_keys", "ON").unwrap();
+        let pre_005 = &MIGRATIONS[..MIGRATIONS.len() - 1];
+        apply_migrations(&conn, pre_005).unwrap();
+
+        conn.execute(
+            "INSERT INTO projects
+             (id, name, repo_path, dev_url, default_branch, created_at, updated_at)
+             VALUES ('p1', 'Legacy', '/tmp/legacy', NULL, 'main',
+                     '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO tasks (id, project_id, title, status, created_at, updated_at)
+             VALUES ('t1', 'p1', 'Ship it', 'open',
+                     '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO task_resources
+             (id, task_id, connector_kind, resource_type, payload, created_at)
+             VALUES ('r1', 't1', 'git', 'branch', '{\"branch\":\"main\"}',
+                     '2026-01-01T00:00:00Z')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO task_pins
+             (id, task_id, connector_kind, identity, payload, created_at)
+             VALUES ('pin1', 't1', 'chrome', 'https://example.test/', '{}',
+                     '2026-01-01T00:00:00Z')",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+
+        let db = Db::open(&path, DbConfig::default()).unwrap();
+        assert_eq!(db.schema_version().unwrap(), MIGRATIONS.len() as i64);
+
+        let conn = db
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        for (table, id) in [
+            ("projects", "p1"),
+            ("tasks", "t1"),
+            ("task_resources", "r1"),
+            ("task_pins", "pin1"),
+        ] {
+            let created_by_install: Option<String> = conn
+                .query_row(
+                    &format!("SELECT created_by_install FROM {table} WHERE id = ?1"),
+                    [id],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(
+                created_by_install, None,
+                "{table} row migrated from before 005 must have created_by_install = NULL, not attributed to whichever install runs the migration"
+            );
+        }
     }
 }

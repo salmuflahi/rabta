@@ -167,12 +167,12 @@ async fn reorder_projects(
 }
 
 /// Deletes a project; its tasks and resources cascade (phase 5 schema).
+/// Goes through `Capsules` (not `DbHandle` directly) so a project holding
+/// the active task clears the in-memory activation cache — otherwise the
+/// next `activate_task` would auto-save against a tombstone.
 #[tauri::command]
-async fn delete_project(db: State<'_, DbHandle>, id: String) -> Result<(), String> {
-    let db = db.0.clone();
-    tauri::async_runtime::spawn_blocking(move || db.delete_project(&id).map_err(|e| e.to_string()))
-        .await
-        .map_err(|e| e.to_string())?
+async fn delete_project(caps: State<'_, CapsulesHandle>, id: String) -> Result<(), String> {
+    caps.0.delete_project(&id).await
 }
 
 /// Captures connected connectors' state into the task's capsule.
@@ -341,13 +341,13 @@ async fn duplicate_task(db: State<'_, DbHandle>, id: String) -> Result<Task, Str
         .map_err(|e| e.to_string())?
 }
 
-/// Deletes a task; its resources cascade.
+/// Deletes a task; its resources cascade. Goes through `Capsules` (not
+/// `DbHandle` directly) so deleting the active task clears the in-memory
+/// activation cache — otherwise the next `activate_task` would auto-save
+/// against a tombstone.
 #[tauri::command]
-async fn delete_task(db: State<'_, DbHandle>, id: String) -> Result<(), String> {
-    let db = db.0.clone();
-    tauri::async_runtime::spawn_blocking(move || db.delete_task(&id).map_err(|e| e.to_string()))
-        .await
-        .map_err(|e| e.to_string())?
+async fn delete_task(caps: State<'_, CapsulesHandle>, id: String) -> Result<(), String> {
+    caps.0.delete_task(&id).await
 }
 
 /// A task's capsule rows (for the UI summary).

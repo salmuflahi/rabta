@@ -528,6 +528,109 @@ impl Capsules {
         Ok(ArchiveProjectResult { project, warnings })
     }
 
+    /// Tombstones a task, clearing it from the active-task cache first if it
+    /// is the one currently active. Without this, the next `activate_task`
+    /// would try to auto-save the outgoing task against a row `delete_task`
+    /// just tombstoned — see the C1 finding. Mirrors how `archive_project`
+    /// already clears `active_task` when what's being archived is what's
+    /// active.
+    pub async fn delete_task(&self, task_id: &str) -> Result<(), String> {
+        let _operation = self.activation_archive_lock.lock().await;
+        let is_active = {
+            let _transition = self.lock_transition().await;
+            let is_active = self.active_task().as_deref() == Some(task_id);
+            if is_active {
+                self.flush_session_locked().await?;
+            }
+            is_active
+        };
+
+        let db = self.db.clone();
+        let tid = task_id.to_string();
+        tokio::task::spawn_blocking(move || db.delete_task(&tid))
+            .await
+            .map_err(|e| e.to_string())?
+            .map_err(|e| e.to_string())?;
+
+        if is_active {
+            let _transition = self.transition_lock.lock().await;
+            *self
+                .active_task
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+            *self
+                .pending
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+            self.generation
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let mut session = self
+                .session
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            session.pending_eligible = Duration::ZERO;
+            session.last_tick = self.clock.monotonic_now();
+        }
+        Ok(())
+    }
+
+    /// Tombstones a project (and its tasks/resources/pins), clearing the
+    /// active-task cache first if the active task belongs to it. Same
+    /// reasoning and the same shape as `delete_task`/`archive_project`.
+    pub async fn delete_project(&self, project_id: &str) -> Result<(), String> {
+        let _operation = self.activation_archive_lock.lock().await;
+        let active_belongs_to_project = {
+            let _transition = self.lock_transition().await;
+            let active_task = self.active_task();
+            let active_belongs_to_project = if let Some(task_id) = active_task.as_deref() {
+                let db = self.db.clone();
+                let task_id = task_id.to_string();
+                let project_id = project_id.to_string();
+                tokio::task::spawn_blocking(move || {
+                    db.get_task(&task_id)
+                        .map(|task| task.is_some_and(|task| task.project_id == project_id))
+                })
+                .await
+                .map_err(|e| e.to_string())?
+                .map_err(|e| e.to_string())?
+            } else {
+                false
+            };
+            if active_belongs_to_project {
+                self.flush_session_locked().await?;
+            }
+            active_belongs_to_project
+        };
+
+        let db = self.db.clone();
+        let pid = project_id.to_string();
+        tokio::task::spawn_blocking(move || db.delete_project(&pid))
+            .await
+            .map_err(|e| e.to_string())?
+            .map_err(|e| e.to_string())?;
+
+        if active_belongs_to_project {
+            let _transition = self.transition_lock.lock().await;
+            *self
+                .active_task
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+            *self
+                .pending
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+            self.generation
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let mut session = self
+                .session
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            session.pending_eligible = Duration::ZERO;
+            session.last_tick = self.clock.monotonic_now();
+        }
+        Ok(())
+    }
+
     /// Auto-saves the outgoing active task (if any), then restores `task_id`'s
     /// capsule best-effort per connector, and marks it active. With
     /// `focus_mode`, also closes whatever is open but not in the capsule —

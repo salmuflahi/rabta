@@ -878,6 +878,112 @@ async fn archiving_the_active_project_clears_activation_and_preserves_data() {
 }
 
 #[tokio::test]
+async fn deleting_the_active_task_clears_activation() {
+    // C1: delete_task/delete_project never cleared Capsules::active_task
+    // (unlike archive_project), so the next activate_task would auto-save
+    // against a tombstone. Proven here at the Capsules level: activate a
+    // task, delete it, and active_task() must come back None.
+    let (_hub, db, capsules, task_id, _dir) = setup().await;
+    capsules.activate_task(&task_id, false).await.unwrap();
+    assert_eq!(capsules.active_task().as_deref(), Some(task_id.as_str()));
+
+    capsules.delete_task(&task_id).await.unwrap();
+
+    assert_eq!(capsules.active_task(), None);
+    assert!(db.get_task(&task_id).unwrap().is_none());
+}
+
+#[tokio::test]
+async fn deleting_an_inactive_task_leaves_activation_untouched() {
+    let (_hub, db, capsules, task_id, _dir) = setup().await;
+    let project_id = db.get_task(&task_id).unwrap().unwrap().project_id;
+    let other = db
+        .create_task(NewTask {
+            project_id,
+            title: "other".into(),
+        })
+        .unwrap();
+    capsules.activate_task(&task_id, false).await.unwrap();
+
+    capsules.delete_task(&other.id).await.unwrap();
+
+    assert_eq!(capsules.active_task().as_deref(), Some(task_id.as_str()));
+}
+
+#[tokio::test]
+async fn deleting_the_active_project_clears_activation() {
+    let (_hub, db, capsules, task_id, _dir) = setup().await;
+    let project_id = db.get_task(&task_id).unwrap().unwrap().project_id;
+    capsules.activate_task(&task_id, false).await.unwrap();
+    assert_eq!(capsules.active_task().as_deref(), Some(task_id.as_str()));
+
+    capsules.delete_project(&project_id).await.unwrap();
+
+    assert_eq!(capsules.active_task(), None);
+    assert!(db.get_project(&project_id).unwrap().is_none());
+}
+
+#[tokio::test]
+async fn deleting_an_inactive_project_keeps_the_current_capsule_active() {
+    let (_hub, db, capsules, active_task_id, _dir) = setup().await;
+    let inactive_project = db
+        .create_project(NewProject {
+            name: "inactive-delete".into(),
+            repo_path: "/tmp/inactive-delete".into(),
+            dev_url: None,
+            default_branch: "main".into(),
+        })
+        .unwrap();
+    capsules.activate_task(&active_task_id, false).await.unwrap();
+
+    capsules.delete_project(&inactive_project.id).await.unwrap();
+
+    assert_eq!(
+        capsules.active_task().as_deref(),
+        Some(active_task_id.as_str())
+    );
+}
+
+#[tokio::test]
+async fn activating_after_deleting_the_previously_active_task_does_not_attempt_a_stale_autosave() {
+    // End-to-end proof, with a real connected connector so save_capsule has
+    // something to capture: without clearing active_task on delete, the
+    // next activate_task would call save_capsule against a tombstoned task,
+    // which (after the records.rs C1 fix in replace_task_resources) now
+    // surfaces as a spurious "auto-save of previous task failed: task not
+    // found" error instead of silently corrupting data — still wrong, since
+    // the user's own delete caused it. With the fix, activating a fresh
+    // task after deleting the active one must be clean.
+    let (hub, db, capsules, task_id, _dir) = setup().await;
+    let project_id = db.get_task(&task_id).unwrap().unwrap().project_id;
+    let other = db
+        .create_task(NewTask {
+            project_id,
+            title: "other".into(),
+        })
+        .unwrap();
+    let (tx, _rx) = mpsc::unbounded_channel();
+    let _conn = scripted_connector(&hub, tx, |name, _| match name {
+        "workspace.state" => state("/repo/a", &["/repo/a/x.ts"]),
+        _ => json!({}),
+    })
+    .await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    capsules.activate_task(&task_id, false).await.unwrap();
+    capsules.delete_task(&task_id).await.unwrap();
+
+    let summary = capsules.activate_task(&other.id, false).await.unwrap();
+
+    assert!(
+        summary.errors.iter().all(|e| !e.contains("auto-save")),
+        "must not attempt to auto-save a task just deleted: {:?}",
+        summary.errors
+    );
+    assert_eq!(capsules.active_task().as_deref(), Some(other.id.as_str()));
+}
+
+#[tokio::test]
 async fn archiving_an_inactive_project_keeps_the_current_capsule_active() {
     let (_hub, db, capsules, active_task_id, _dir) = setup().await;
     let inactive_project = db

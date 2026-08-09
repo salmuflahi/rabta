@@ -193,6 +193,143 @@ fn session_accrual_atomically_saturates_the_stored_sqlite_integer_sum() {
 }
 
 #[test]
+fn session_accrual_does_not_advance_the_projects_rev() {
+    // I3: rev is a local monotonic counter a later merge can trust; the UI
+    // heartbeats every 15s, so if accrual bumped rev the way every genuine
+    // edit does, rev would answer "how long was this Mac open" instead of
+    // "how many times was this row genuinely edited". Accrual is metering,
+    // not an edit, so it must leave rev untouched across many calls.
+    let db = db();
+    let p = a_project(&db, "Rabta");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "Ship".into(),
+        })
+        .unwrap();
+    db.begin_project_session_for_task(&t.id, "2026-07-23T12:00:00Z")
+        .unwrap();
+    let baseline = db.get_project(&p.id).unwrap().unwrap();
+
+    for _ in 0..5 {
+        db.add_active_seconds_for_task(&t.id, 15).unwrap();
+    }
+
+    let after = db.get_project(&p.id).unwrap().unwrap();
+    assert_eq!(
+        after.rev, baseline.rev,
+        "repeated heartbeats must not advance rev"
+    );
+    assert_eq!(after.active_seconds, 75, "sanity: accrual itself did happen");
+}
+
+#[test]
+fn fresh_rows_record_the_creating_install_id() {
+    // I6: "New rows record the install that created them" — the spec's own
+    // words. Every INSERT across the four tables migration 005 touched must
+    // stamp created_by_install with Db::install_id(), so a later Migrate
+    // collision review can tell which Mac created a given row.
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
+    let install = db.install_id().unwrap();
+
+    let p = a_project(&db, "omnibus");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+    let r = db
+        .add_task_resource(NewTaskResource {
+            task_id: t.id.clone(),
+            connector_kind: "git".into(),
+            resource_type: "branch".into(),
+            payload: json!({"branch": "main"}),
+        })
+        .unwrap();
+    let replaced = db
+        .replace_task_resources(&t.id, "vscode", "workspace", &json!({"openFiles": []}))
+        .unwrap();
+    let pin = db
+        .add_task_pin(&t.id, "chrome", "https://a.test/", &json!({"a": 1}))
+        .unwrap();
+
+    let external = rusqlite::Connection::open(&path).unwrap();
+    for (table, id) in [
+        ("projects", p.id.as_str()),
+        ("tasks", t.id.as_str()),
+        ("task_resources", r.id.as_str()),
+        ("task_resources", replaced.id.as_str()),
+        ("task_pins", pin.id.as_str()),
+    ] {
+        let created_by: Option<String> = external
+            .query_row(
+                &format!("SELECT created_by_install FROM {table} WHERE id = ?1"),
+                rusqlite::params![id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            created_by.as_deref(),
+            Some(install.as_str()),
+            "{table} row {id} must record the creating install"
+        );
+    }
+}
+
+#[test]
+fn re_pinning_does_not_overwrite_the_original_created_by_install() {
+    // The ON CONFLICT DO UPDATE path in add_task_pin must not touch
+    // created_by_install — it records who created the row, not who most
+    // recently edited it. A same-database re-pin cannot by itself
+    // distinguish "left alone" from "overwritten with the same value" (both
+    // observe this database's one install id), so this test manually stamps
+    // the row as though a *different* Mac created it — simulating a pin
+    // that arrived from another install — and proves re-pinning here does
+    // not silently reassign its provenance to this install.
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
+    let p = a_project(&db, "omnibus");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+    let first = db
+        .add_task_pin(&t.id, "chrome", "https://a.test/", &json!({"a": 1}))
+        .unwrap();
+
+    let external = rusqlite::Connection::open(&path).unwrap();
+    let other_install = "11111111-1111-1111-1111-111111111111";
+    external
+        .execute(
+            "UPDATE task_pins SET created_by_install = ?2 WHERE id = ?1",
+            rusqlite::params![first.id, other_install],
+        )
+        .unwrap();
+
+    db.add_task_pin(&t.id, "chrome", "https://a.test/", &json!({"a": 2}))
+        .unwrap();
+
+    let after: Option<String> = external
+        .query_row(
+            "SELECT created_by_install FROM task_pins WHERE id = ?1",
+            rusqlite::params![first.id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        after.as_deref(),
+        Some(other_install),
+        "re-pinning must not change who originally created the row"
+    );
+}
+
+#[test]
 fn newly_created_projects_append_to_the_persisted_order() {
     let db = db();
     let first = a_project(&db, "Zulu");
@@ -298,6 +435,57 @@ fn rename_archive_icon_and_unarchive_round_trip() {
             .collect::<Vec<_>>(),
         vec![tail.id, restored.id]
     );
+}
+
+#[test]
+fn re_archiving_an_already_archived_project_does_not_bump_rev() {
+    // M6: the spec asks for "rev does not move on a no-op write". archive_project's
+    // archived_at is deliberately idempotent (COALESCE), but the reviewer's rev
+    // bump was unconditional, so a repeat archive of an already-archived
+    // project still advanced rev — even though unarchive_project's own no-op
+    // path (an already-unarchived project) correctly does not.
+    let db = db();
+    let p = a_project(&db, "omnibus");
+
+    let archived = db.archive_project(&p.id).unwrap();
+    assert_eq!(archived.rev, 1, "the first archive is a real transition");
+
+    std::thread::sleep(std::time::Duration::from_millis(1));
+    let archived_again = db.archive_project(&p.id).unwrap();
+
+    assert_eq!(
+        archived_again.rev, archived.rev,
+        "re-archiving an already-archived project must not advance rev"
+    );
+}
+
+#[test]
+fn reordering_projects_back_to_their_current_positions_does_not_bump_rev() {
+    // M6: a drag-and-drop that lands back on the same order must be a
+    // true no-op for rev, not just for sort_order's stored value.
+    let db = db();
+    let a = a_project(&db, "A");
+    let b = a_project(&db, "B");
+    let before_a = db.get_project(&a.id).unwrap().unwrap();
+    let before_b = db.get_project(&b.id).unwrap().unwrap();
+
+    std::thread::sleep(std::time::Duration::from_millis(1));
+    let reordered = db
+        .reorder_projects(&[a.id.clone(), b.id.clone()])
+        .unwrap();
+
+    let after_a = reordered.iter().find(|p| p.id == a.id).unwrap();
+    let after_b = reordered.iter().find(|p| p.id == b.id).unwrap();
+    assert_eq!(
+        after_a.rev, before_a.rev,
+        "a project whose position did not change must not advance rev"
+    );
+    assert_eq!(
+        after_b.rev, before_b.rev,
+        "a project whose position did not change must not advance rev"
+    );
+    assert_eq!(after_a.updated_at, before_a.updated_at);
+    assert_eq!(after_b.updated_at, before_b.updated_at);
 }
 
 #[test]
@@ -433,14 +621,17 @@ fn task_crud_and_status() {
 }
 
 #[test]
-fn set_task_status_on_a_tombstoned_task_is_invisible_not_erroring() {
-    // set_task_status has no deleted_at guard and no changed==0 check,
-    // unlike every sibling mutation in this file. Task 6 re-examined this
-    // and agrees it is pre-existing and not a leak: list_tasks and get_task
-    // both filter deleted_at IS NULL, so a status change on a tombstoned
-    // task can never surface through any read path. This test pins that
-    // judgement down rather than leaving it as an unverified claim.
-    let db = db();
+fn set_task_status_on_a_tombstoned_task_errors_and_does_not_touch_the_row() {
+    // I2: set_task_status used to be a silent no-op on a tombstoned task —
+    // no deleted_at guard, no changed==0 check, unlike every sibling
+    // mutation in this file. It still wrote to the row (bumping rev, moving
+    // updated_at) while reporting success for a write that changed nothing
+    // real. This test proves both halves: the call now errors, AND the
+    // underlying row is untouched by it (rev/updated_at/status all
+    // unchanged), which a "just filter reads" fix would not guarantee.
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
     let p = a_project(&db, "omnibus");
     let t = db
         .create_task(NewTask {
@@ -450,10 +641,36 @@ fn set_task_status_on_a_tombstoned_task_is_invisible_not_erroring() {
         .unwrap();
     db.delete_task(&t.id).unwrap();
 
-    db.set_task_status(&t.id, TaskStatus::Done).unwrap();
+    let external = rusqlite::Connection::open(&path).unwrap();
+    let before: (String, String, i64) = external
+        .query_row(
+            "SELECT status, updated_at, rev FROM tasks WHERE id = ?1",
+            rusqlite::params![t.id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(1));
 
+    let result = db.set_task_status(&t.id, TaskStatus::Done);
+
+    assert!(
+        matches!(result, Err(DbError::NotFound { entity: "task", .. })),
+        "set_task_status on a tombstoned task must error, got {result:?}"
+    );
     assert!(db.get_task(&t.id).unwrap().is_none());
     assert!(db.list_tasks(&p.id).unwrap().is_empty());
+
+    let after: (String, String, i64) = external
+        .query_row(
+            "SELECT status, updated_at, rev FROM tasks WHERE id = ?1",
+            rusqlite::params![t.id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(
+        after, before,
+        "a refused write must not touch status, updated_at, or rev"
+    );
 }
 
 #[test]
@@ -676,6 +893,112 @@ fn duplicate_task_rolls_back_when_a_resource_copy_fails() {
 }
 
 #[test]
+fn delete_task_does_not_touch_an_already_tombstoned_projects_last_task_id() {
+    // M5: delete_task's `UPDATE projects SET last_task_id = NULL ...` had
+    // no `deleted_at IS NULL` guard, so it would bump rev/updated_at on an
+    // already-tombstoned project that happens to still reference the task
+    // being deleted. A tombstoned project is invisible to every read path,
+    // so touching it here is pure noise on rev — exactly the thing this
+    // whole branch exists to keep trustworthy.
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
+    let p = a_project(&db, "omnibus");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+
+    let external = rusqlite::Connection::open(&path).unwrap();
+    // Point the project at the task, then tombstone the project directly —
+    // reproducing "a project that is already deleted while still
+    // referencing this task" without relying on delete_project (which must
+    // remain independently testable/safe).
+    external
+        .execute(
+            "UPDATE projects SET last_task_id = ?2 WHERE id = ?1",
+            rusqlite::params![p.id, t.id],
+        )
+        .unwrap();
+    external
+        .execute(
+            "UPDATE projects SET deleted_at = ?2 WHERE id = ?1",
+            rusqlite::params![p.id, "2026-01-01T00:00:00Z"],
+        )
+        .unwrap();
+    let before: (i64, String) = external
+        .query_row(
+            "SELECT rev, updated_at FROM projects WHERE id = ?1",
+            rusqlite::params![p.id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(1));
+
+    db.delete_task(&t.id).unwrap();
+
+    let after: (i64, String, Option<String>) = external
+        .query_row(
+            "SELECT rev, updated_at, last_task_id FROM projects WHERE id = ?1",
+            rusqlite::params![p.id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(
+        after.0, before.0,
+        "delete_task must not bump rev on an already-tombstoned project"
+    );
+    assert_eq!(
+        after.1, before.1,
+        "delete_task must not touch updated_at on an already-tombstoned project"
+    );
+    assert_eq!(
+        after.2.as_deref(),
+        Some(t.id.as_str()),
+        "a tombstoned project's stale last_task_id is left alone, not rewritten"
+    );
+}
+
+#[test]
+fn delete_project_clears_its_own_last_task_id_reference() {
+    // M5, other half: delete_project never cleared last_task_id, leaving a
+    // tombstoned project pointing at a tombstoned task underneath it.
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("rabta.db");
+    let db = Db::open(&path, DbConfig::default()).unwrap();
+    let p = a_project(&db, "omnibus");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+    db.begin_project_session_for_task(&t.id, "2026-07-23T12:00:00Z")
+        .unwrap();
+    assert_eq!(
+        db.get_project(&p.id).unwrap().unwrap().last_task_id.as_deref(),
+        Some(t.id.as_str())
+    );
+
+    db.delete_project(&p.id).unwrap();
+
+    let external = rusqlite::Connection::open(&path).unwrap();
+    let last_task_id: Option<String> = external
+        .query_row(
+            "SELECT last_task_id FROM projects WHERE id = ?1",
+            rusqlite::params![p.id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        last_task_id, None,
+        "delete_project must clear last_task_id, not leave it pointing at a tombstoned task"
+    );
+}
+
+#[test]
 fn deleting_last_opened_task_clears_the_project_soft_reference() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("rabta.db");
@@ -706,11 +1029,10 @@ fn deleting_last_opened_task_clears_the_project_soft_reference() {
 #[test]
 fn deleting_project_tombstones_its_tasks_and_their_resources_and_pins() {
     // Tombstoning (not hard-deleting) means the row survives with deleted_at
-    // set. task_resources/task_pins reads aren't filtered by deleted_at yet
-    // (that's a later, separately-scoped task), so we assert the disappear
-    // half only for the tables this task actually filters (tasks), and
-    // assert the survive-as-tombstone half by raw row for everything the
-    // delete cascades touch.
+    // set. M1: task_resources/task_pins reads are now filtered by
+    // deleted_at too (P0-T4 and P0-T5 landed), so this asserts both halves
+    // for every table the delete cascades touch: disappearance from the
+    // normal read path, and survival as a tombstone underneath it.
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("rabta.db");
     let db = Db::open(&path, DbConfig::default()).unwrap();
@@ -737,6 +1059,14 @@ fn deleting_project_tombstones_its_tasks_and_their_resources_and_pins() {
 
     assert!(db.list_tasks(&p.id).unwrap().is_empty());
     assert!(db.get_task(&t.id).unwrap().is_none());
+    assert!(
+        db.task_resources(&t.id).unwrap().is_empty(),
+        "task_resources read path must not show a resource under a deleted project's task"
+    );
+    assert!(
+        db.task_pins(&t.id).unwrap().is_empty(),
+        "task_pins read path must not show a pin under a deleted project's task"
+    );
 
     let external = rusqlite::Connection::open(&path).unwrap();
     let task_deleted: Option<String> = external
@@ -1023,10 +1353,99 @@ fn removing_one_resource_leaves_a_tombstone() {
 }
 
 #[test]
+fn replace_task_resources_refuses_a_tombstoned_parent_task() {
+    // C1: save_capsule/replace_task_resources took no liveness check on the
+    // parent task. Proven at HEAD: delete_task(t) then
+    // replace_task_resources(t, ...) leaves a LIVE task_resources row under a
+    // tombstoned task, resurrecting exactly what delete_task tombstoned.
+    let db = db();
+    let p = a_project(&db, "omnibus");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+    db.delete_task(&t.id).unwrap();
+
+    let result = db.replace_task_resources(&t.id, "vscode", "workspace", &json!({"openFiles": []}));
+
+    assert!(
+        matches!(result, Err(DbError::NotFound { entity: "task", .. })),
+        "replace_task_resources must refuse a tombstoned parent task, got {result:?}"
+    );
+
+    // And no live row was left behind under the tombstoned task.
+    assert!(
+        db.task_resources(&t.id).unwrap().is_empty(),
+        "no live resource row may exist under a tombstoned task"
+    );
+}
+
+#[test]
+fn add_task_pin_refuses_a_tombstoned_parent_task() {
+    // C1, other half: add_task_pin's ON CONFLICT DO UPDATE clears deleted_at
+    // with no parent-liveness check, reviving a pin on a deleted task.
+    let db = db();
+    let p = a_project(&db, "omnibus");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+    db.delete_task(&t.id).unwrap();
+
+    let result = db.add_task_pin(&t.id, "chrome", "https://a.test/", &json!({"a": 1}));
+
+    assert!(
+        matches!(result, Err(DbError::NotFound { entity: "task", .. })),
+        "add_task_pin must refuse a tombstoned parent task, got {result:?}"
+    );
+    assert!(
+        db.task_pins(&t.id).unwrap().is_empty(),
+        "no live pin row may exist under a tombstoned task"
+    );
+}
+
+#[test]
+fn add_task_pin_reviving_a_tombstoned_pin_still_requires_a_live_parent_task() {
+    // The trickier path: pin, unpin (tombstones the pin row), delete the
+    // task, then try to re-pin the same identity. The ON CONFLICT DO UPDATE
+    // path must also be blocked, not just the plain insert path.
+    let db = db();
+    let p = a_project(&db, "omnibus");
+    let t = db
+        .create_task(NewTask {
+            project_id: p.id.clone(),
+            title: "t".into(),
+        })
+        .unwrap();
+    db.add_task_pin(&t.id, "chrome", "https://a.test/", &json!({"a": 1}))
+        .unwrap();
+    assert!(db
+        .remove_task_pin(&t.id, "chrome", "https://a.test/")
+        .unwrap());
+    db.delete_task(&t.id).unwrap();
+
+    let result = db.add_task_pin(&t.id, "chrome", "https://a.test/", &json!({"a": 2}));
+
+    assert!(
+        matches!(result, Err(DbError::NotFound { entity: "task", .. })),
+        "re-pinning a tombstoned pin under a tombstoned task must still fail, got {result:?}"
+    );
+}
+
+#[test]
 fn recapturing_does_not_accumulate_rows() {
     // A snapshot replaced 50 times must not leave 50 generations behind —
     // replace purges prior rows (live and tombstoned) for that
-    // (task_id, connector_kind) rather than tombstoning them.
+    // (task_id, connector_kind) rather than tombstoning them. M3: the true
+    // invariant is exactly one surviving row per (task, kind), not merely
+    // "some small bound" — and the "purges already-tombstoned rows" clause
+    // in replace_task_resources's doc comment needs a tombstoned row to
+    // exist before the loop starts, or that clause is never actually
+    // exercised.
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("rabta.db");
     let db = Db::open(&path, DbConfig::default()).unwrap();
@@ -1037,6 +1456,20 @@ fn recapturing_does_not_accumulate_rows() {
             title: "t".into(),
         })
         .unwrap();
+
+    // A tombstoned row for this exact (task_id, connector_kind), predating
+    // the loop below. Without the un-filtered DELETE inside
+    // replace_task_resources (i.e. if it only purged live rows), this row
+    // would survive every subsequent replace as an orphaned tombstone.
+    let stale = db
+        .add_task_resource(NewTaskResource {
+            task_id: t.id.clone(),
+            connector_kind: "vscode".into(),
+            resource_type: "workspace".into(),
+            payload: json!({"openFiles": []}),
+        })
+        .unwrap();
+    db.remove_task_resource(&stale.id).unwrap();
 
     for i in 0..50 {
         db.replace_task_resources(
@@ -1050,7 +1483,7 @@ fn recapturing_does_not_accumulate_rows() {
 
     // Count every row for this task directly, tombstoned or not — the read
     // path already filters deleted_at, so only a raw count can catch rows
-    // left behind as unbounded tombstones.
+    // left behind as unbounded (or merely stale) tombstones.
     let external = rusqlite::Connection::open(&path).unwrap();
     let total: i64 = external
         .query_row(
@@ -1059,9 +1492,10 @@ fn recapturing_does_not_accumulate_rows() {
             |row| row.get(0),
         )
         .unwrap();
-    assert!(
-        total <= 10,
-        "replace must supersede, not accumulate: found {total} rows"
+    assert_eq!(
+        total, 1,
+        "replace must supersede down to exactly one row per (task, kind), including purging \
+         the pre-existing tombstone: found {total} rows"
     );
 }
 
@@ -1080,14 +1514,22 @@ fn recapturing_bumps_the_parent_task_rev() {
     let before = db.get_task(&t.id).unwrap().unwrap();
     assert_eq!(before.rev, 0);
 
+    // I5: nanosecond-precision `now()` (chrono's to_rfc3339) makes a strict
+    // `>` safe and non-flaky here — a `>=` assertion is satisfied by
+    // equality and so cannot catch a fix that stops touching updated_at at
+    // all. A short sleep still keeps this robust against any future
+    // reduction in clock precision.
+    std::thread::sleep(std::time::Duration::from_millis(1));
     db.replace_task_resources(&t.id, "vscode", "workspace", &json!({"openFiles": []}))
         .unwrap();
 
     let after = db.get_task(&t.id).unwrap().unwrap();
     assert_eq!(after.rev, 1, "replace must bump the parent task's rev");
     assert!(
-        after.updated_at >= before.updated_at,
-        "replace must bump the parent task's updated_at"
+        after.updated_at > before.updated_at,
+        "replace must bump the parent task's updated_at, but got {} <= {}",
+        after.updated_at,
+        before.updated_at
     );
 }
 
@@ -1358,9 +1800,18 @@ fn every_update_bumps_rev_and_touches_updated_at() {
     let p = a_project(&db, "Atlas");
     assert_eq!(p.rev, 0);
 
+    // I5: strict `>` — nanosecond-precision now() makes this safe, and a
+    // `>=` here is satisfied by equality, so it cannot catch a fix that
+    // stops touching updated_at at all.
+    std::thread::sleep(std::time::Duration::from_millis(1));
     let renamed = db.rename_project(&p.id, "Atlas API").unwrap();
     assert_eq!(renamed.rev, 1, "rename_project must advance rev by one");
-    assert!(renamed.updated_at >= p.updated_at);
+    assert!(
+        renamed.updated_at > p.updated_at,
+        "rename_project must bump updated_at, but got {} <= {}",
+        renamed.updated_at,
+        p.updated_at
+    );
 
     let iconed = db.set_project_icon(&p.id, Some("rocket")).unwrap();
     assert_eq!(iconed.rev, 2, "set_project_icon must advance rev by one");
@@ -1371,12 +1822,20 @@ fn every_update_bumps_rev_and_touches_updated_at() {
     let unarchived = db.unarchive_project(&p.id).unwrap();
     assert_eq!(unarchived.rev, 4, "unarchive_project must advance rev by one");
 
+    // M6: reorder_projects only bumps rev/updated_at for a row whose
+    // position genuinely changes, so this step needs a real change to
+    // exercise that — a second project, with p actually moving from
+    // position 0 to position 1 (not [p.id] alone, which would leave p's
+    // sole position at 0 and so, correctly, bump nothing).
+    let q = a_project(&db, "Zulu");
     let before_reorder = unarchived.updated_at.clone();
-    db.reorder_projects(&[p.id.clone()]).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(1));
+    db.reorder_projects(&[q.id.clone(), p.id.clone()]).unwrap();
     let reordered = db.get_project(&p.id).unwrap().unwrap();
+    assert_eq!(reordered.sort_order, 1, "sanity: p must have actually moved");
     assert_eq!(
         reordered.rev, 5,
-        "reorder_projects changes sort_order and must advance rev"
+        "reorder_projects genuinely changing sort_order must advance rev"
     );
     assert!(
         reordered.updated_at > before_reorder,
@@ -1401,11 +1860,28 @@ fn every_update_bumps_rev_and_touches_updated_at() {
         "begin_project_session_for_task must advance the project's rev"
     );
 
+    // I3: session-time accrual is metering, not an edit, and the UI
+    // heartbeats every 15s — treating it as a rev-worthy mutation turned
+    // projects.rev into a wall clock (~240 bumps/focused hour) while
+    // tasks.rev only moves on genuine content change, making the two units
+    // incomparable for a future merge. So, unlike every other case in this
+    // test, add_active_seconds_for_task must NOT advance rev. updated_at
+    // still moves, because the row's active_seconds genuinely changed and
+    // updated_at's job is exactly to say "this row was last touched at
+    // this wall-clock time" — only rev is reserved as the trusted,
+    // clock-independent merge signal.
+    std::thread::sleep(std::time::Duration::from_millis(1));
     db.add_active_seconds_for_task(&task.id, 5).unwrap();
     let after_seconds = db.get_project(&p.id).unwrap().unwrap();
     assert_eq!(
-        after_seconds.rev, 7,
-        "add_active_seconds_for_task must advance the project's rev"
+        after_seconds.rev, after_session.rev,
+        "add_active_seconds_for_task must NOT advance the project's rev — accrual is metering, not an edit"
+    );
+    assert!(
+        after_seconds.updated_at > after_session.updated_at,
+        "add_active_seconds_for_task must still move updated_at, but got {} <= {}",
+        after_seconds.updated_at,
+        after_session.updated_at
     );
 
     let renamed_task = db.rename_task(&task.id, "Ship it").unwrap();
@@ -1438,10 +1914,12 @@ fn every_update_bumps_rev_and_touches_updated_at() {
     );
 
     let before_delete = after_seconds.updated_at.clone();
+    std::thread::sleep(std::time::Duration::from_millis(1));
     db.delete_task(&task.id).unwrap();
     let after_delete = db.get_project(&p.id).unwrap().unwrap();
     assert_eq!(
-        after_delete.rev, 8,
+        after_delete.rev,
+        after_seconds.rev + 1,
         "clearing last_task_id on delete_task must advance the project's rev"
     );
     assert!(
