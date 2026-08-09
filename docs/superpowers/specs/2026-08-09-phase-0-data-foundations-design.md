@@ -99,6 +99,14 @@ but the existing behaviour and its tests must not change.
 edited. An installed copy has already run every prior migration, so editing one
 is a no-op there and a divergence everywhere else.
 
+*Exception for M005:* Migration 005 was edited after its first draft during the final
+fix round. This was safe because the migration had never been applied to any production
+or persistent database — the dev database at `~/Library/Application Support/com.omnibus.dev/omnibus.db`
+remained at `user_version: 4` with no tombstone columns, and `com.omnibus.dev` is the only
+bundle ID. **The append-only rule is absolute for any migration that has shipped.** This
+note exists to prevent future readers from treating M005's edit as licence to revise a migration
+after it has been deployed.
+
 Every added column is nullable or carries a default, so existing rows migrate
 without rewriting. `rev` defaults to 0. `deleted_at` defaults to NULL, which
 correctly means "not deleted".

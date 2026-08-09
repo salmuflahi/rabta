@@ -485,8 +485,6 @@ impl Db {
         )?;
         // M5: also clears last_task_id — otherwise a tombstoned project is
         // left pointing at a task this same call just tombstoned too.
-        // M5: also clears last_task_id — otherwise a tombstoned project is
-        // left pointing at a task this same call just tombstoned too.
         tx.execute(
             "UPDATE projects SET deleted_at = ?2, rev = rev + 1, updated_at = ?2, last_task_id = NULL
              WHERE id = ?1 AND deleted_at IS NULL",

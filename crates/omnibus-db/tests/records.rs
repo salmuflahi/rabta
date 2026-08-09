@@ -1514,11 +1514,11 @@ fn recapturing_bumps_the_parent_task_rev() {
     let before = db.get_task(&t.id).unwrap().unwrap();
     assert_eq!(before.rev, 0);
 
-    // I5: nanosecond-precision `now()` (chrono's to_rfc3339) makes a strict
-    // `>` safe and non-flaky here — a `>=` assertion is satisfied by
-    // equality and so cannot catch a fix that stops touching updated_at at
-    // all. A short sleep still keeps this robust against any future
-    // reduction in clock precision.
+    // I5: microsecond-precision `now()` (chrono's to_rfc3339). The 1ms sleep
+    // below is what keeps this strict `>` assertion safe and non-flaky — a `>=`
+    // assertion is satisfied by equality and so cannot catch a fix that stops
+    // touching updated_at. The sleep is critical: without it, precision alone
+    // would be insufficient.
     std::thread::sleep(std::time::Duration::from_millis(1));
     db.replace_task_resources(&t.id, "vscode", "workspace", &json!({"openFiles": []}))
         .unwrap();
