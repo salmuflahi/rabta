@@ -104,13 +104,19 @@ function hexToRgba(hex: string, alpha: number): string {
  * user's theme pref is "system" — the variants differ per theme, so a theme
  * flip with no re-application would leave the accent showing the wrong
  * theme's colours.
+ *
+ * If the provided `id` is not a valid AccentId, falls back to the default
+ * accent (tangerine) rather than throwing. This ensures the app is resilient
+ * to corrupted or stale persisted preferences.
  */
 export function applyAccent(
   id: AccentId,
   theme: "light" | "dark",
   root: HTMLElement = document.documentElement
 ): void {
-  const variant = ACCENTS[id][theme];
+  // Validate id is a key in ACCENTS; fall back to default if not
+  const accentId: AccentId = id in ACCENTS ? id : "tangerine";
+  const variant = ACCENTS[accentId][theme];
   root.style.setProperty("--primary", hexToHslTriplet(variant.base));
   root.style.setProperty("--primary-hover", hexToHslTriplet(variant.hover));
   root.style.setProperty("--accent-text", hexToHslTriplet(variant.text));

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { MotionPref } from "@/lib/motion";
 import type { AccentId } from "@/theme/accent";
+import { ACCENTS } from "@/theme/accent";
 
 export interface ConnectorInfo {
   id: string;
@@ -86,7 +87,7 @@ export interface Prefs {
 }
 
 const PREFS_KEY = "rabta.prefs";
-const DEFAULT_PREFS: Prefs = {
+export const DEFAULT_PREFS: Prefs = {
   theme: "system",
   accent: "tangerine",
   motion: "system",
@@ -98,15 +99,26 @@ const DEFAULT_PREFS: Prefs = {
   developerMode: false,
 };
 
-function readPrefs(): Prefs {
+export function readPrefs(): Prefs {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
-    return raw ? { ...DEFAULT_PREFS, ...(JSON.parse(raw) as Partial<Prefs>) } : { ...DEFAULT_PREFS };
+    if (!raw) {
+      return { ...DEFAULT_PREFS };
+    }
+    const parsed = JSON.parse(raw) as Partial<Prefs>;
+    const merged = { ...DEFAULT_PREFS, ...parsed };
+
+    // Validate accent: if it's not a valid key in ACCENTS, use the default
+    if (merged.accent && !(merged.accent in ACCENTS)) {
+      merged.accent = DEFAULT_PREFS.accent;
+    }
+
+    return merged;
   } catch {
     return { ...DEFAULT_PREFS };
   }
 }
-function writePrefs(prefs: Prefs) {
+export function writePrefs(prefs: Prefs) {
   try {
     localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
   } catch {
