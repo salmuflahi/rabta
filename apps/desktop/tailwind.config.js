@@ -159,6 +159,11 @@ export default {
         // shadow strings are static and cannot respond to .dark.
         raised: "var(--shadow-raised)",
         grouped: "var(--shadow-grouped)",
+        // Console v2 Phase 1, Task 4 — the third elevation level (hairline
+        // ring + --shadow-lg's much larger blur/spread) for sheets and the
+        // command palette. Not wired to any component in this task; Phase 2
+        // (restore sheet, command palette) is the intended consumer.
+        modal: "var(--shadow-modal)",
         soft: "0 2px 8px rgba(0,0,0,0.06)",
       },
     },

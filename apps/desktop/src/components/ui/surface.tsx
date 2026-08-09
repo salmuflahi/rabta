@@ -11,11 +11,13 @@ export interface SurfaceProps extends React.HTMLAttributes<HTMLDivElement> {
 /**
  * The only owner of elevation in the app.
  *
- * Depth is a lit plane, not an outlined box: in dark mode a 1px inset top
- * highlight reads as light falling from above, and in light mode — where
- * nothing is brighter than white — a soft two-stage shadow does the same job.
- * Both live in `--shadow-raised` / `--shadow-grouped` so the theme can vary
- * them; Tailwind shadow strings cannot.
+ * Depth comes from a hairline shadow ring, not a drawn border: `0 0 0 0.5px
+ * <border>` stands in for the edge a `border` utility would otherwise draw,
+ * plus (for "raised") a soft blur on top. Cards do not use `border` — the
+ * hairline is the first shadow ring, which keeps borders from doubling where
+ * a card sits next to a hairline divider. Both variants live in
+ * `--shadow-raised` / `--shadow-grouped` so the theme can vary them; Tailwind
+ * shadow strings cannot.
  */
 export const Surface = React.forwardRef<HTMLDivElement, SurfaceProps>(
   ({ className, variant = "grouped", ...props }, ref) => (

@@ -41,8 +41,26 @@
     --border: 0 0% 88%;   /* #E0E0E0 — hairlines use border-border/60 */
     --input: 0 0% 84%;   /* #D6D6D6 */
     --ring: 18 100% 59%;   /* #FF6B2C */
-    --shadow-raised: 0 1px 2px rgba(0,0,0,0.09), 0 4px 12px rgba(0,0,0,0.06);
-    --shadow-grouped: 0 1px 2px rgba(0,0,0,0.08), 0 3px 9px rgba(0,0,0,0.05);
+    /* Console v2 Phase 1, Task 4 — hairline shadow ring. Supersedes the
+       lit-edge model (see the removed dark-mode inset highlight below):
+       "Cards do not use `border`; the hairline is the first shadow ring.
+       This keeps borders from doubling where cards sit next to hairline
+       dividers." (design handoff, Metrics section). `--shadow-raised` adds
+       a soft blur on top of the ring for the one hero surface per screen;
+       `--shadow-grouped` (inspector panes, sheet footers, chips) is the
+       ring alone, since those surfaces sit flush rather than lifting off
+       the canvas; `--shadow-modal` swaps in the much larger, darker
+       `--shadow-lg` for sheets and the command palette. `--border` is an
+       HSL triplet everywhere else in this file, so it's wrapped in hsl()
+       here exactly like any other solid-colour token; `--shadow` /
+       `--shadow-lg` are alpha-carrying and bound directly, never through
+       hsl(). Modal is not wired to any component yet — Phase 2 (restore
+       sheet, command palette). The prototype uses 24px spread for the
+       palette and 30px for the Migrate sheet; 30px is used here as the
+       token default. */
+    --shadow-raised: 0 0 0 0.5px hsl(var(--border)), 0 1px 2px var(--shadow);
+    --shadow-grouped: 0 0 0 0.5px hsl(var(--border));
+    --shadow-modal: 0 0 0 0.5px hsl(var(--border)), 0 30px 70px var(--shadow-lg);
     --radius: 0.625rem;
 
     --motion-fast: 120ms;
@@ -109,8 +127,15 @@
     --border: 188 7% 24%;   /* #383F40 — hairlines use border-border/60 */
     --input: 188 7% 28%;   /* #414849 */
     --ring: 18 100% 59%;   /* #FF6B2C */
-    --shadow-raised: inset 0 1px 0 rgba(210,240,240,0.06), 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.22);
-    --shadow-grouped: inset 0 1px 0 rgba(210,240,240,0.05), 0 1px 2px rgba(0,0,0,0.3), 0 3px 9px rgba(0,0,0,0.18);
+    /* Hairline ring model — see the light theme's comment above for the
+       full rationale. Removed: the lit top edge (`inset 0 1px 0
+       rgba(210,240,240,...)`) that used to stand in for light falling from
+       above on a dark surface. The formula below is textually identical to
+       light's; `--border`, `--shadow` and `--shadow-lg` resolve to this
+       theme's own (darker) values. */
+    --shadow-raised: 0 0 0 0.5px hsl(var(--border)), 0 1px 2px var(--shadow);
+    --shadow-grouped: 0 0 0 0.5px hsl(var(--border));
+    --shadow-modal: 0 0 0 0.5px hsl(var(--border)), 0 30px 70px var(--shadow-lg);
 
     --sidebar: 189 15% 9%;   /* #141A1B */
     --sidebar-foreground: 180 14% 95%;   /* #EFF3F3 */
