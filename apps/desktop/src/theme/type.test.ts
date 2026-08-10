@@ -32,7 +32,7 @@ describe("Mac type scale", () => {
   });
 
   it("keeps card title within the handoff's 14-15px range", () => {
-    const size = px(sizes.card[0]);
+    const size = px(sizes["card-title"][0]);
     expect(size).toBeGreaterThanOrEqual(14);
     expect(size).toBeLessThanOrEqual(15);
   });
@@ -49,9 +49,35 @@ describe("Mac type scale", () => {
     expect(sizes.sheet[1].letterSpacing).toBe("-0.015em");
   });
 
-  it("adds a secondary step for the 12px section label / secondary text", () => {
-    expect(sizes.secondary).toBeDefined();
-    expect(px(sizes.secondary[0])).toBe(12);
+  it("adds a sub step for the 12px section label / secondary text", () => {
+    expect(sizes.sub).toBeDefined();
+    expect(px(sizes.sub[0])).toBe(12);
+  });
+
+  // Tailwind emits `.text-<key>` for BOTH fontSize and textColor keys, and
+  // its plugin order puts textColor last — so a name in both maps means the
+  // size silently loses and `text-<key>` is a colour. Phase 1 shipped two of
+  // these (`card`, `secondary`); both steps were unreachable and one call
+  // site had been quietly rendering at the wrong size ever since. Renamed to
+  // `card-title` and `sub`, and pinned here so it cannot recur.
+  it("gives no fontSize step the same name as a colour", () => {
+    const colours = config.theme.extend.colors;
+    const colourNames = new Set<string>();
+    for (const [name, value] of Object.entries(colours)) {
+      colourNames.add(name);
+      if (value && typeof value === "object") {
+        for (const key of Object.keys(value)) {
+          if (key !== "DEFAULT") colourNames.add(`${name}-${key}`);
+        }
+      }
+    }
+    for (const name of Object.keys(sizes)) {
+      expect(
+        colourNames.has(name),
+        `fontSize "${name}" collides with a colour of the same name — ` +
+          `text-${name} would resolve to the colour, not the size`,
+      ).toBe(false);
+    }
   });
 
   it("adds a payload step for the 10.5px <pre> block, at line-height 1.6", () => {

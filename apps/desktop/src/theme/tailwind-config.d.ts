@@ -14,6 +14,11 @@ declare module "*/tailwind.config.js" {
           mono: string[];
         };
         fontWeight: Record<string, string>;
+        /** A colour is either a single value or a nested scale
+         * (`{ DEFAULT, foreground, … }`). The type-scale test walks both
+         * shapes to prove no fontSize key shares a name with a colour —
+         * `text-<key>` can only mean one of the two, and the colour wins. */
+        colors: Record<string, string | Record<string, string>>;
       };
     };
   }

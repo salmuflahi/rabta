@@ -313,7 +313,7 @@ function DeveloperSection() {
       {developerMode && (
         <div className="mt-4 flex flex-col gap-4">
           <div>
-            <p className="text-card font-medium text-foreground">Command console</p>
+            <p className="text-card-title font-medium text-foreground">Command console</p>
             <p className="mt-0.5 text-meta text-muted-foreground">
               Send a raw command directly to a connected client.
             </p>
@@ -322,7 +322,7 @@ function DeveloperSection() {
           {import.meta.env.DEV && (
             <div className="flex flex-col gap-4 border-t border-border pt-5">
               <div>
-                <p className="text-card font-medium text-foreground">Restore Experience preview</p>
+                <p className="text-card-title font-medium text-foreground">Restore Experience preview</p>
                 <p className="mt-0.5 text-meta text-muted-foreground">
                   Scripted previews of the restore sheet. Dev builds only.
                 </p>
@@ -355,7 +355,7 @@ function AboutSection() {
     <Surface className="flex items-center gap-4 p-4">
       <img src={markUrl} alt="" className="size-11 shrink-0 rounded-[10px]" />
       <div className="min-w-0">
-        <p className="text-card font-semibold text-foreground">
+        <p className="text-card-title font-semibold text-foreground">
           Rabta{version && <span className="ml-2 text-meta font-normal text-muted-foreground">v{version}</span>}
         </p>
         <p className="mt-0.5 text-meta text-muted-foreground">

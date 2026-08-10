@@ -258,6 +258,39 @@ interface Store {
   newTaskRequest: boolean;
   requestNewTask: () => void;
   clearNewTaskRequest: () => void;
+  // --- Master/detail selection (Console v2 Phase 2) ---
+  //
+  // The handoff's State block lists one selected id per master/detail
+  // screen — `capsule`, `project`, `connector`, `event`, `section`, plus the
+  // capsule list's `filter`. They live here rather than in each page's local
+  // state for one reason: selection has to survive navigation. Opening a
+  // capsule from Overview's "Also open" means routing to Capsules *with that
+  // row selected*, and the command palette does the same for all four lists.
+  // Page-local state would lose the id on the way across.
+  //
+  // Every one is nullable and every consumer must tolerate a stale id: the
+  // selected capsule can be deleted, the selected connector can go away, and
+  // neither should render an empty detail pane pretending something is
+  // there. The pages fall back to their own first row.
+  /** Selected capsule (task) id in the Capsules master list. */
+  selectedCapsuleId: string | null;
+  selectCapsule: (id: string | null) => void;
+  /** Selected project id in the Projects master list. */
+  selectedProjectId: string | null;
+  selectProject: (id: string | null) => void;
+  /** Selected connector id in the Connectors master list. */
+  selectedConnectorId: string | null;
+  selectConnector: (id: string | null) => void;
+  /** Selected event sequence number in the Activity list. */
+  selectedEventSeq: number | null;
+  selectEvent: (seq: number | null) => void;
+  /** Selected Settings section id. */
+  settingsSection: string;
+  setSettingsSection: (id: string) => void;
+  /** Capsules list filter — the handoff's Open / Done segmented control. */
+  capsuleFilter: "open" | "done";
+  setCapsuleFilter: (filter: "open" | "done") => void;
+
   /** Icons-only rail vs. full sidebar, persisted to localStorage so it
    * survives reload. Toggled via the sidebar's collapse button or ⌘\. */
   sidebarCollapsed: boolean;
@@ -299,6 +332,18 @@ export const useStore = create<Store>((set) => ({
   newTaskRequest: false,
   requestNewTask: () => set({ newTaskRequest: true }),
   clearNewTaskRequest: () => set({ newTaskRequest: false }),
+  selectedCapsuleId: null,
+  selectCapsule: (selectedCapsuleId) => set({ selectedCapsuleId }),
+  selectedProjectId: null,
+  selectProject: (selectedProjectId) => set({ selectedProjectId }),
+  selectedConnectorId: null,
+  selectConnector: (selectedConnectorId) => set({ selectedConnectorId }),
+  selectedEventSeq: null,
+  selectEvent: (selectedEventSeq) => set({ selectedEventSeq }),
+  settingsSection: "general",
+  setSettingsSection: (settingsSection) => set({ settingsSection }),
+  capsuleFilter: "open",
+  setCapsuleFilter: (capsuleFilter) => set({ capsuleFilter }),
   sidebarCollapsed: INITIAL_PREFS.rememberSidebar ? readSidebarCollapsed() : false,
   toggleSidebar: () =>
     set((s) => {

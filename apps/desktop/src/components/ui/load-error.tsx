@@ -25,7 +25,7 @@ export function LoadError({
         <AlertTriangle className="size-6" />
       </div>
       <div className="space-y-1">
-        <p className="text-card font-semibold text-foreground">Couldn't load {entity}</p>
+        <p className="text-card-title font-semibold text-foreground">Couldn't load {entity}</p>
         <p className="mx-auto max-w-md text-meta leading-relaxed text-muted-foreground">
           Something went wrong reading your local data. Nothing is lost — your capsules and projects
           are safe on disk. Try again in a moment.

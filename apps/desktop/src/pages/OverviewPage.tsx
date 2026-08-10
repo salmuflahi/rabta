@@ -1,210 +1,103 @@
 import { invoke } from "@tauri-apps/api/core";
-import {
-  CheckCircle2,
-  Circle,
-  Code2,
-  FolderGit2,
-  Globe,
-  Play,
-  Sparkles,
-  type LucideIcon,
-} from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import markUrl from "@/assets/brand/rabta-mark.svg";
+import { Icon } from "@/components/ui/icon";
 import { LoadError } from "@/components/ui/load-error";
-import { Row } from "@/components/ui/row";
-import { Section } from "@/components/ui/section";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Surface } from "@/components/ui/surface";
-import { kindLabel } from "@/lib/connectors";
-import { describeEvent, formatDuration, relativeTime } from "@/lib/humanize";
-import { ProjectIcon } from "@/lib/project-icons";
-import { cn } from "@/lib/utils";
-import { useStore, type Project, type Task } from "@/store";
+import { capsuleBranch, capsuleChips, capsuleSavedAt } from "@/lib/capsuleFacts";
+import { describeEvent, relativeTime } from "@/lib/humanize";
+import { useStore, type Project, type Task, type TaskResource } from "@/store";
 
-/** A muted trailing link used as a `Section` action — never a competing
- * accent, just text. */
-function SectionLink({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-sm text-label text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      {label}
-    </button>
+/** A capsule with everything Overview needs to talk about it, resolved once
+ * so the hero and the "Also open" list can't disagree about a branch or a
+ * saved time. */
+interface CapsuleFacts {
+  task: Task;
+  projectName: string;
+  branch: string | null;
+  savedAt: string | null;
+  resources: TaskResource[];
+}
+
+/** The handoff's date heading — "Saturday, 9 August". Locale-formatted
+ * rather than hand-assembled so it reads correctly outside en-GB; the
+ * handoff's example is the shape, not the string.
+ *
+ * The app has no account and must never greet the user by name. The date is
+ * deliberately the most personal thing on this screen. */
+function formatToday(now: Date): string {
+  return new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" }).format(
+    now,
   );
 }
 
-function NextStepCard({
-  icon: Icon,
-  title,
-  description,
-  actionLabel,
-  onAction,
-}: {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  actionLabel: string;
-  onAction: () => void;
-}) {
-  return (
-    <Card className="card-lift flex flex-col p-4">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <Icon className="size-4" />
-      </div>
-      <CardHeader className="p-0 pt-3">
-        <CardTitle className="text-card">{title}</CardTitle>
-        <CardDescription className="text-meta">{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="mt-auto p-0 pt-3">
-        <Button variant="outline" size="sm" onClick={onAction}>
-          {actionLabel}
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-/** Real-progress onboarding checklist. Each step is derived from actual store
- * data (a registered project, a connector ever seen, a created task), and the
- * whole card auto-hides once setup is complete — it never nags a set-up user.
- * Only the next incomplete step surfaces an action, to keep the path obvious. */
-function GettingStarted({
-  hasConnector,
-  hasTask,
-  onConnect,
-  onNewCapsule,
-}: {
-  hasConnector: boolean;
-  hasTask: boolean;
-  onConnect: () => void;
-  onNewCapsule: () => void;
-}) {
-  const steps: {
-    done: boolean;
-    label: string;
-    description: string;
-    action?: { label: string; onClick: () => void };
-  }[] = [
-    { done: true, label: "Register a project", description: "Rabta is tracking a repository." },
-    {
-      done: hasConnector,
-      label: "Connect an editor or browser",
-      description: "Install the VS Code (or Cursor) or Chrome extension so Rabta can capture your workspace.",
-      action: { label: "Connect a tool", onClick: onConnect },
-    },
-    {
-      done: hasTask,
-      label: "Capture your first capsule",
-      description: "Create a task, open your files and tabs, then Save State to snapshot the workspace.",
-      action: { label: "New capsule", onClick: onNewCapsule },
-    },
+/** "2 apps connected · 4 capsules open · last capture 12m ago" — the whole
+ * state of this Mac in one line. Clauses that have nothing true to say are
+ * dropped rather than padded with zeroes: a Mac with no capture yet says so
+ * by not mentioning capture. */
+function glanceLine(connected: number, open: number, lastCapture: string | null): string {
+  const parts = [
+    `${connected} ${connected === 1 ? "app" : "apps"} connected`,
+    `${open} ${open === 1 ? "capsule" : "capsules"} open`,
   ];
-  const doneCount = steps.filter((s) => s.done).length;
-
-  return (
-    <Card className="p-5">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-card font-semibold text-foreground">Get started with Rabta</p>
-          <p className="mt-0.5 text-meta text-muted-foreground">
-            {doneCount} of {steps.length} done — you're moments from your first capture.
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5" aria-hidden>
-          {steps.map((s, i) => (
-            <span
-              key={i}
-              className={cn(
-                "h-1.5 w-8 rounded-full transition-colors duration-standard ease-standard",
-                // Done is a status, not the live thing or the primary action,
-                // so it does not spend the page's one orange accent — two
-                // steps (e.g. project registered + connector paired) are
-                // routinely done at once, which would blow the accent budget.
-                s.done ? "bg-ok" : "bg-muted",
-              )}
-            />
-          ))}
-        </div>
-      </div>
-      <ol className="flex flex-col gap-0.5">
-        {steps.map((step, i) => {
-          const isNext = !step.done && steps.slice(0, i).every((s) => s.done);
-          return (
-            <li key={i} className="flex items-center gap-3 rounded-lg px-1 py-2">
-              {step.done ? (
-                <CheckCircle2 className="size-5 shrink-0 text-ok" />
-              ) : (
-                <Circle
-                  className={cn("size-5 shrink-0", isNext ? "text-primary" : "text-muted-foreground/40")}
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <p
-                  className={cn(
-                    "text-body font-medium",
-                    step.done ? "text-muted-foreground" : "text-foreground",
-                  )}
-                >
-                  {step.label}
-                </p>
-                {!step.done && (
-                  <p className="mt-0.5 text-meta leading-relaxed text-muted-foreground">{step.description}</p>
-                )}
-              </div>
-              {isNext && step.action && (
-                // secondary: the page's one primary is the active task's
-                // Resume (below), which can be visible at the same time as
-                // this onboarding nudge (e.g. a task exists but no connector
-                // is paired yet).
-                <Button size="sm" variant="secondary" onClick={step.action.onClick} className="shrink-0">
-                  {step.action.label}
-                </Button>
-              )}
-            </li>
-          );
-        })}
-      </ol>
-    </Card>
-  );
+  if (lastCapture) parts.push(`last capture ${lastCapture}`);
+  return parts.join(" · ");
 }
 
-/** Skeleton placeholder for the pre-first-load window only — approximates
- * the active-task surface plus the two-column list cards, matching real
- * sizes so there's no layout shift once list_projects resolves. */
-function OverviewSkeleton() {
+/** Section heading above each grouped list — 12/600, secondary. */
+function GroupHeading({ children }: { children: React.ReactNode }) {
+  return <p className="mt-[26px] pl-0.5 text-sub font-semibold text-muted-foreground">{children}</p>;
+}
+
+/** The grouped-surface list container the handoff uses for "Also open" and
+ * "Recent": 10px radius, hairline ring, rows divided by 0.5px hairlines and
+ * clipped by the container's own radius. */
+function GroupedList({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-6">
-      <Card className="p-4">
-        <div className="flex items-center gap-3">
-          <Skeleton className="size-10 shrink-0 rounded-lg" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-4 w-40" />
-          </div>
-          <Skeleton className="h-8 w-20 shrink-0 rounded-md" />
-        </div>
-      </Card>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {[0, 1].map((i) => (
-          <Card key={i} className="p-4">
-            <Skeleton className="mb-3 h-4 w-32" />
-            <div className="flex flex-col gap-2">
-              {[0, 1, 2].map((j) => (
-                <Skeleton key={j} className="h-4 w-full max-w-xs" />
-              ))}
-            </div>
-          </Card>
-        ))}
-      </div>
+    <div className="mt-[7px] overflow-hidden rounded-[10px] bg-card shadow-raised">
+      <div className="divide-y-[0.5px] divide-border">{children}</div>
     </div>
   );
 }
 
+function OverviewSkeleton() {
+  return (
+    <div className="mx-auto max-w-[660px] px-8 pb-11 pt-10">
+      <Skeleton className="h-7 w-56" />
+      <Skeleton className="mt-3 h-4 w-80" />
+      <div className="mt-[26px] rounded-[10px] bg-card p-[18px] shadow-raised">
+        <div className="flex items-start gap-3.5">
+          <Skeleton className="size-[38px] shrink-0 rounded-[9px]" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-4 w-52" />
+            <Skeleton className="h-3 w-64" />
+          </div>
+          <Skeleton className="h-7 w-24 shrink-0 rounded-[7px]" />
+        </div>
+      </div>
+      {[0, 1].map((i) => (
+        <div key={i}>
+          <Skeleton className="mt-[26px] h-3 w-24" />
+          <div className="mt-[7px] space-y-px rounded-[10px] bg-card p-4 shadow-raised">
+            {[0, 1, 2].map((j) => (
+              <Skeleton key={j} className="h-4 w-full" />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Overview — "what is the state of this Mac", at a glance.
+ *
+ * Deliberately short, and deliberately not a dashboard: the handoff is
+ * explicit that it carries "no counts that repeat the sidebar badges". The
+ * page is a date, one line of state, the capsule you were last in, the
+ * others that are open, and what just happened. Everything else belongs on
+ * the screen that owns it.
+ */
 export function OverviewPage() {
   const projects = useStore((s) => s.projects);
   const setProjects = useStore((s) => s.setProjects);
@@ -214,11 +107,12 @@ export function OverviewPage() {
   const log = useStore((s) => s.log);
   const setView = useStore((s) => s.setView);
   const requestResume = useStore((s) => s.requestResume);
-  const requestNewTask = useStore((s) => s.requestNewTask);
+  const selectCapsule = useStore((s) => s.selectCapsule);
 
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [resources, setResources] = useState<Record<string, TaskResource[]>>({});
   // Pre-first-load window only: true until the initial list_projects fetch
-  // settles (the fetch that decides welcome-vs-dashboard), then stays false.
+  // settles, then stays false.
   const [loading, setLoading] = useState(true);
   // A failed load is distinct from an empty workspace — see LoadError.
   const [loadError, setLoadError] = useState(false);
@@ -247,255 +141,204 @@ export function OverviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Aggregate open-task count from the same list_tasks invoke CapsulesPage
-  // already uses — no new backend, just reused across pages. Guarded so a
+  // Tasks and their captured resources, for every registered project. The
+  // resources are what make the hero honest — its branch, saved time and
+  // tool chips are all read off real payloads, never assumed. Guarded so a
   // slow earlier fetch can't overwrite a newer one after `projects` changes.
   useEffect(() => {
     if (projects.length === 0) {
       setTasks([]);
+      setResources({});
       return;
     }
     let cancelled = false;
     Promise.all(projects.map((p) => invoke<Task[]>("list_tasks", { projectId: p.id })))
-      .then((lists) => {
-        if (!cancelled) setTasks(lists.flat());
+      .then(async (lists) => {
+        const all = lists.flat();
+        if (cancelled) return;
+        setTasks(all);
+        const pairs = await Promise.all(
+          all.map(
+            async (t) =>
+              [t.id, await invoke<TaskResource[]>("task_resources", { taskId: t.id })] as const,
+          ),
+        );
+        if (!cancelled) setResources(Object.fromEntries(pairs));
       })
-      .catch((e) => console.error("list_tasks failed:", e));
+      .catch((e) => console.error("loading capsules failed:", e));
     return () => {
       cancelled = true;
     };
   }, [projects]);
 
-  const resolveName = (id: string) => connectors.find((c) => c.id === id)?.name;
-  const activeTask = tasks.find((t) => t.id === activeTaskId);
-  const recentLog = [...log].slice(-5).reverse();
-  const continueProjects = projects
-    .filter(
-      (project) =>
-        project.lastOpenedAt !== null && Number.isFinite(Date.parse(project.lastOpenedAt)),
-    )
-    .sort((a, b) => Date.parse(b.lastOpenedAt!) - Date.parse(a.lastOpenedAt!))
-    .slice(0, 5);
+  const projectName = useCallback(
+    (id: string) => projects.find((p) => p.id === id)?.name ?? "Unknown project",
+    [projects],
+  );
 
-  function resumeTask(taskId: string) {
+  // Open capsules, most recently captured first. The hero is the one you
+  // were last in — the active task if there is one, otherwise the freshest
+  // capture — and "Also open" is the rest.
+  const openCapsules = useMemo<CapsuleFacts[]>(() => {
+    const facts = tasks
+      .filter((t) => t.status === "open")
+      .map((task) => {
+        const rs = resources[task.id] ?? [];
+        return {
+          task,
+          projectName: projectName(task.projectId),
+          branch: capsuleBranch(rs),
+          savedAt: capsuleSavedAt(rs),
+          resources: rs,
+        };
+      });
+    return facts.sort((a, b) => {
+      if (a.task.id === activeTaskId) return -1;
+      if (b.task.id === activeTaskId) return 1;
+      return (Date.parse(b.savedAt ?? "") || 0) - (Date.parse(a.savedAt ?? "") || 0);
+    });
+  }, [tasks, resources, projectName, activeTaskId]);
+
+  const hero = openCapsules[0];
+  const alsoOpen = openCapsules.slice(1, 4);
+  const connectedCount = connectors.filter((c) => c.connected).length;
+  const lastCapture = useMemo(() => {
+    const stamps = openCapsules.map((c) => c.savedAt).filter((s): s is string => Boolean(s));
+    return stamps.length ? relativeTime(stamps[0]) : null;
+  }, [openCapsules]);
+  const recent = [...log].slice(-5).reverse();
+  const resolveName = (id: string) => connectors.find((c) => c.id === id)?.name;
+
+  function openInCapsules(taskId: string) {
+    selectCapsule(taskId);
+    setView("capsules");
+  }
+
+  function resume(taskId: string) {
     requestResume(taskId);
     setView("capsules");
   }
 
+  if (loading) return <OverviewSkeleton />;
+  if (loadError) return <LoadError onRetry={loadProjects} />;
+
   return (
-    <div>
-      {/* The toolbar now names the page (Task 11); this stays for the
-          existing findByText("Overview") contract and screen readers. */}
-      <h2 className="sr-only">Overview</h2>
+    // 660px measure, centred — the handoff's Overview is a reading column,
+    // not a dashboard grid. Everything on it is one thing wide.
+    <div className="mx-auto max-w-[660px] px-8 pb-11 pt-10">
+      <h1 className="text-display font-640 text-foreground">{formatToday(new Date())}</h1>
+      <p className="mt-[7px] text-sub text-muted-foreground">
+        {glanceLine(connectedCount, openCapsules.length, lastCapture)}
+      </p>
 
-      {loading ? (
-        <OverviewSkeleton />
-      ) : loadError ? (
-        <LoadError onRetry={loadProjects} />
-      ) : projects.length === 0 ? (
-        <div className="flex flex-col gap-6">
-          <Card className="flex flex-col items-center gap-3 p-8 text-center">
-            <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Sparkles className="size-6" />
-            </div>
-            <div className="max-w-xl space-y-1.5">
-              <p className="text-title font-semibold text-foreground">Welcome to Rabta</p>
-              <p className="text-body leading-relaxed text-muted-foreground">
-                One command center for your projects, editors, and browser tabs — switch tasks
-                and Rabta restores the right branch, files, and tabs for you.
-              </p>
-            </div>
-          </Card>
-
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
-            <NextStepCard
-              icon={FolderGit2}
-              title="Register a Project"
-              description="Point Rabta at a git repository to start tracking tasks and branches."
-              actionLabel="Register Project"
-              onAction={() => setView("projects")}
-            />
-            <NextStepCard
-              icon={Code2}
-              title="Connect an Editor"
-              description="Install the VS Code (or Cursor) extension so Rabta can open workspaces and files."
-              actionLabel="Go to Connectors"
-              onAction={() => setView("connectors")}
-            />
-            <NextStepCard
-              icon={Globe}
-              title="Connect a Browser"
-              description="Install the Chrome extension so Rabta can manage tabs alongside each task."
-              actionLabel="Go to Connectors"
-              onAction={() => setView("connectors")}
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {/* The active task leads the page: it is the one thing you were
-              already doing, so it is the first element and carries the
-              page's single primary action. */}
-          {activeTask && (
-            <Surface variant="raised" className="p-4">
-              <div className="flex items-center gap-3">
-                {/* The "you are here" marker: it is legitimately orange
-                    (the live thing), but it is not an action, so it opts out
-                    of the one-accent budget that the Resume button spends. */}
+      {hero ? (
+        <section
+          aria-label="Pick up where you left off"
+          className="mt-[26px] rounded-[10px] bg-card p-[18px] shadow-raised"
+        >
+          <div className="flex items-start gap-3.5">
+            <img src={markUrl} alt="" width={38} height={38} className="shrink-0 rounded-[9px]" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                {/* The "this is the live one" mark. Legitimately the accent
+                    colour, but it is not an action, so it opts out of the
+                    one-accent budget the Resume button spends. */}
                 <span
                   data-accent-mark
-                  className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground"
-                >
-                  <Play className="size-4 fill-current" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-mono text-label font-medium uppercase tracking-widest text-muted-foreground">
-                    Active task
-                  </p>
-                  <p className="mt-0.5 truncate text-card font-semibold text-foreground">{activeTask.title}</p>
-                </div>
-                {/* Overview's one primary action: resuming the task you're
-                    actually in the middle of. */}
-                <Button size="sm" variant="primary" className="shrink-0" onClick={() => resumeTask(activeTask.id)}>
-                  <Play className="size-3.5 fill-current" />
-                  Resume
-                </Button>
+                  aria-hidden
+                  className="size-[7px] shrink-0 rounded-full bg-primary"
+                />
+                <p className="truncate text-card-title font-590 text-foreground">{hero.task.title}</p>
               </div>
-            </Surface>
-          )}
-
-          {!(connectors.length > 0 && tasks.length > 0) && (
-            <GettingStarted
-              hasConnector={connectors.length > 0}
-              hasTask={tasks.length > 0}
-              onConnect={() => setView("connectors")}
-              onNewCapsule={() => {
-                requestNewTask();
-                setView("capsules");
-              }}
-            />
-          )}
-
-          {continueProjects.length > 0 && (
-            <Section label="Continue Working" action={<SectionLink label="All capsules" onClick={() => setView("capsules")} />}>
-              <Surface>
-                {continueProjects.map((project) => {
-                  const task = project.lastTaskId
-                    ? tasks.find((candidate) => candidate.id === project.lastTaskId && candidate.projectId === project.id)
-                    : undefined;
-
-                  return (
-                    <Row
-                      key={project.id}
-                      leading={
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/5 text-primary">
-                          <ProjectIcon icon={project.icon} className="size-[18px]" />
-                        </span>
-                      }
-                      title={project.name}
-                      subtitle={
-                        <span className="flex flex-col gap-0.5">
-                          <span className="flex flex-wrap gap-x-3 gap-y-0.5">
-                            <span>Opened {relativeTime(project.lastOpenedAt!)}</span>
-                            {project.activeSeconds > 0 && (
-                              <span>Last session {formatDuration(project.activeSeconds)}</span>
-                            )}
-                          </span>
-                          {task && <span className="truncate">{task.title}</span>}
-                        </span>
-                      }
-                      trailing={
-                        task ? (
-                          // secondary, not primary: this list can render one
-                          // of these per continued project, and the active
-                          // task's Resume above already holds this page's
-                          // one primary.
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            aria-label={`Resume ${project.name}`}
-                            onClick={() => resumeTask(task.id)}
-                          >
-                            <Play className="size-3.5 fill-current" />
-                            Resume
-                          </Button>
-                        ) : (
-                          <Button variant="outline" size="sm" onClick={() => setView("capsules")}>
-                            View Capsules
-                          </Button>
-                        )
-                      }
-                    />
-                  );
-                })}
-              </Surface>
-            </Section>
-          )}
-
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Section label="Connected Apps" action={<SectionLink label="Manage" onClick={() => setView("connectors")} />}>
-              {connectors.length === 0 ? (
-                <p className="text-meta text-muted-foreground">
-                  No tools linked yet — install the VS Code and Chrome extensions and they'll pair
-                  with Rabta automatically.
-                </p>
-              ) : (
-                <Surface>
-                  {connectors.map((c) => (
-                    <Row
-                      key={c.id}
-                      leading={
-                        <span
-                          className={cn(
-                            "size-2 shrink-0 rounded-full",
-                            c.connected ? "bg-ok" : "bg-muted-foreground/40",
-                          )}
-                        />
-                      }
-                      title={c.name}
-                      trailing={
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-label">
-                            {kindLabel(c.kind)}
-                          </Badge>
-                          <span className="text-label text-muted-foreground">
-                            {c.connected ? "Connected" : "Offline"}
-                          </span>
-                        </div>
-                      }
-                    />
-                  ))}
-                </Surface>
-              )}
-            </Section>
-
-            <Section
-              label="Recent Activity"
-              action={
-                recentLog.length > 0 ? (
-                  <SectionLink label="View all" onClick={() => setView("activity")} />
-                ) : undefined
-              }
+              <p className="mt-1 text-meta text-muted-foreground">
+                {hero.projectName}
+                {hero.branch && (
+                  <>
+                    {" · "}
+                    <span className="font-mono text-meta">{hero.branch}</span>
+                  </>
+                )}
+                {" · "}
+                {hero.savedAt ? `saved ${relativeTime(hero.savedAt)}` : "never captured"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => resume(hero.task.id)}
+              className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[7px] bg-primary px-3.5 text-body font-510 text-primary-foreground transition-colors duration-fast ease-standard hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
             >
-              {recentLog.length === 0 ? (
-                <p className="text-meta text-muted-foreground">
-                  Nothing yet — actions from your connectors will appear here.
-                </p>
-              ) : (
-                <Surface>
-                  {recentLog.map((e) => (
-                    <Row
-                      key={e.seq}
-                      leading={<span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/40" />}
-                      title={describeEvent(e, resolveName).sentence}
-                      trailing={<span className="text-label text-muted-foreground">{relativeTime(e.at)}</span>}
-                    />
-                  ))}
-                </Surface>
-              )}
-            </Section>
+              <Icon name="play" className="size-[11px]" />
+              Resume
+            </button>
           </div>
-        </div>
+          {/* Indented 52px to clear the 38px mark plus its gap, so the chips
+              line up under the title rather than under the icon. */}
+          <div className="mt-3.5 flex flex-wrap gap-1.5 pl-[52px]">
+            {capsuleChips(hero.resources).map((chip) => (
+              <span
+                key={chip.key}
+                data-capsule-chip={chip.key}
+                className="inline-flex items-center gap-1.5 rounded-[7px] bg-secondary px-[9px] py-[5px] text-meta text-muted-foreground"
+              >
+                <Icon name={chip.icon} className="size-3 shrink-0" />
+                {chip.label}
+              </span>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <section
+          aria-label="Pick up where you left off"
+          className="mt-[26px] rounded-[10px] border border-dashed border-border bg-card/40 px-[18px] py-7 text-center"
+        >
+          <Icon name="capsule" className="mx-auto size-5 text-tertiary-foreground" />
+          <p className="mt-2 text-card-title font-590 text-foreground">Nothing open yet</p>
+          <p className="mt-1 text-meta text-muted-foreground">
+            Start a capsule and Rabta keeps your files, tabs and branch together.
+          </p>
+        </section>
+      )}
+
+      {alsoOpen.length > 0 && (
+        <>
+          <GroupHeading>Also open</GroupHeading>
+          <GroupedList>
+            {alsoOpen.map((c) => (
+              <button
+                key={c.task.id}
+                type="button"
+                onClick={() => openInCapsules(c.task.id)}
+                className="flex w-full cursor-default items-center gap-3 px-4 py-2.5 text-left transition-colors duration-fast ease-standard hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+              >
+                <span className="min-w-0 flex-1 truncate text-body text-foreground">{c.task.title}</span>
+                {c.branch && (
+                  <span className="shrink-0 font-mono text-[11px] text-tertiary-foreground">{c.branch}</span>
+                )}
+                <span className="w-[78px] shrink-0 text-right text-meta text-tertiary-foreground">
+                  {c.savedAt ? relativeTime(c.savedAt) : "—"}
+                </span>
+              </button>
+            ))}
+          </GroupedList>
+        </>
+      )}
+
+      {recent.length > 0 && (
+        <>
+          <GroupHeading>Recent</GroupHeading>
+          <GroupedList>
+            {recent.map((e) => (
+              <div key={e.seq} className="flex items-center gap-3 px-4 py-2.5">
+                <span className="min-w-0 flex-1 truncate text-body text-foreground">
+                  {describeEvent(e, resolveName).sentence}
+                </span>
+                <span className="shrink-0 text-meta text-tertiary-foreground">
+                  {relativeTime(e.at)}
+                </span>
+              </div>
+            ))}
+          </GroupedList>
+        </>
       )}
     </div>
   );

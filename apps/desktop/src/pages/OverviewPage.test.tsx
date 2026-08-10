@@ -1,9 +1,8 @@
 import type { InvokeArgs } from "@tauri-apps/api/core";
 import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { useStore, type Project, type Task } from "@/store";
+import { useStore, type Project, type Task, type TaskResource } from "@/store";
 import { expectAtMostOneAccent } from "@/test/accent";
-import { expectNoBorder } from "@/test/no-box";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { OverviewPage } from "./OverviewPage";
 
@@ -26,354 +25,284 @@ function projectFixture(overrides: Partial<Project> = {}): Project {
   };
 }
 
+function taskFixture(overrides: Partial<Task> = {}): Task {
+  return {
+    id: "task-fixture",
+    projectId: "proj-fixture",
+    title: "Fixture capsule",
+    status: "open",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function resourceFixture(overrides: Partial<TaskResource> = {}): TaskResource {
+  return {
+    id: "res-fixture",
+    taskId: "task-fixture",
+    connectorKind: "git",
+    resourceType: "branch",
+    payload: { branch: "main" },
+    createdAt: "2026-07-24T15:55:00.000Z",
+    ...overrides,
+  };
+}
+
+/** Wires the three invokes Overview makes: projects, their tasks, and each
+ * task's captured resources. Everything the page says about a capsule comes
+ * from these, so a test that wants a branch or a chip has to provide the
+ * payload that would really carry it. */
+function seed({
+  projects,
+  tasks = [],
+  resources = {},
+  activeTask = null,
+}: {
+  projects: Project[];
+  tasks?: Task[];
+  resources?: Record<string, TaskResource[]>;
+  activeTask?: string | null;
+}) {
+  mockInvoke.mockClear();
+  mockInvoke.mockImplementation(async (cmd: string, args?: InvokeArgs) => {
+    const arg = args && !Array.isArray(args) && typeof args === "object" ? (args as Record<string, string>) : {};
+    if (cmd === "list_projects") return projects;
+    if (cmd === "list_tasks") return tasks.filter((t) => t.projectId === arg.projectId);
+    if (cmd === "task_resources") return resources[arg.taskId] ?? [];
+    if (cmd === "active_task") return activeTask;
+    return [];
+  });
+}
+
 describe("OverviewPage", () => {
-  it("renders the empty-state welcome copy without throwing", async () => {
-    renderWithProviders(<OverviewPage />);
-    expect(await screen.findByText("Overview")).toBeInTheDocument();
-    expect(screen.getByText("Welcome to Rabta")).toBeInTheDocument();
-  });
-
-  // The welcome empty-state is a Card (a Surface alias), which already owns
-  // depth via shadow-grouped elevation. A `border-dashed` there paints
-  // nothing (Preflight zeroes border-width, and no `border` width utility
-  // sits alongside it) and, per the redesign's rule, would be the wrong fix
-  // even if it did — depth comes from elevation, not drawn outlines. This
-  // is the same holdover already fixed the same way in ConnectorsPage.tsx's
-  // pending-pairing prompt and load-error.tsx's Card.
-  it("the welcome card carries no border utility classes — depth comes from elevation, not an orphaned border-dashed", async () => {
-    renderWithProviders(<OverviewPage />);
-    await screen.findByText("Overview");
-
-    const heading = screen.getByText("Welcome to Rabta");
-    const card = heading.parentElement!.parentElement!;
-    expect(card.className).toMatch(/shadow-grouped/);
-    expectNoBorder(card);
-  });
-
-  it("renders the connected apps and recent activity sections when data is seeded", async () => {
-    // OverviewPage refetches projects/tasks itself via list_projects +
-    // list_tasks (same invokes CapsulesPage already uses), so the mock
-    // must resolve them — a bare useStore.setState would just get
-    // clobbered by the default `[]`-resolving invoke once it lands.
-    const project: Project = {
-      id: "proj-1",
-      name: "Rabta",
-      repoPath: "/tmp/rabta",
-      devUrl: null,
-      defaultBranch: "main",
-      icon: null,
-      archivedAt: null,
-      lastOpenedAt: null,
-      lastTaskId: null,
-      activeSeconds: 0,
-      sortOrder: 0,
-      createdAt: "now",
-      updatedAt: "now",
-    };
-    mockInvoke.mockImplementation(async (cmd: string) => {
-      if (cmd === "list_projects") return [project];
-      if (cmd === "list_tasks") return [];
-      if (cmd === "active_task") return null;
-      return [];
+  it("leads with the date and a one-line glance at this Mac", async () => {
+    const now = Date.parse("2026-08-09T16:00:00.000Z");
+    const dateNow = vi.spyOn(Date, "now").mockReturnValue(now);
+    vi.setSystemTime(now);
+    const project = projectFixture({ id: "proj-1", name: "atlas-api" });
+    seed({
+      projects: [project],
+      tasks: [taskFixture({ id: "t1", projectId: "proj-1", title: "Wire the reconnect" })],
+      resources: { t1: [resourceFixture({ taskId: "t1", createdAt: "2026-08-09T15:48:00.000Z" })] },
     });
     useStore.setState({
       connectors: [
         {
-          id: "conn-1",
-          name: "VS Code",
-          kind: "vscode",
+          id: "c1",
+          name: "Cursor",
+          kind: "cursor",
           capabilities: [],
           connected: true,
-          connectedSince: "2026-01-01T15:04:12.000Z",
+          connectedSince: "2026-08-09T15:00:00.000Z",
+        },
+        {
+          id: "c2",
+          name: "Chrome",
+          kind: "chrome",
+          capabilities: [],
+          connected: false,
+          connectedSince: "2026-08-09T15:00:00.000Z",
         },
       ],
-      log: [{ seq: 1, at: "3:05:00 PM", type: "connectorConnected" }],
-    });
-
-    renderWithProviders(<OverviewPage />);
-
-    // The stat tile is gone; the section heading is the only "Connected Apps"
-    // left. The assertion stays >= 1 because that is the real contract —
-    // the section must render, however many times the words appear.
-    expect((await screen.findAllByText("Connected Apps")).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Recent Activity")).toBeInTheDocument();
-  });
-
-  it("does not restate sidebar counts as stat tiles", async () => {
-    renderWithProviders(<OverviewPage />);
-    await screen.findByText("Overview");
-    // Counts live on the sidebar rows that own them. A tile here would be
-    // the same number in two places. The removed tiles used Title Case
-    // ("Projects", "Open Tasks") — asserting the uppercase strings the
-    // tiles never used would pass even if the tiles came back.
-    expect(screen.queryByText("Projects")).toBeNull();
-    expect(screen.queryByText("Open Tasks")).toBeNull();
-  });
-
-  it("spends the accent at most once", async () => {
-    const { container } = renderWithProviders(<OverviewPage />);
-    await screen.findByText("Overview");
-    expectAtMostOneAccent(container);
-  });
-
-  it("omits Continue Working projects with malformed persisted lastOpenedAt timestamps", async () => {
-    const valid = projectFixture({
-      id: "proj-valid",
-      name: "Valid Project",
-      lastOpenedAt: "2026-07-24T15:00:00.000Z",
-    });
-    const invalid = projectFixture({
-      id: "proj-invalid",
-      name: "Invalid Timestamp Project",
-      lastOpenedAt: "not-a-timestamp",
-    });
-    mockInvoke.mockClear();
-    mockInvoke.mockImplementation(async (cmd: string) => {
-      if (cmd === "list_projects") return [invalid, valid];
-      if (cmd === "list_tasks") return [];
-      if (cmd === "active_task") return null;
-      return [];
-    });
-
-    renderWithProviders(<OverviewPage />);
-
-    expect(await screen.findByText("Continue Working")).toBeInTheDocument();
-    expect(screen.getByText("Valid Project")).toBeInTheDocument();
-    expect(screen.queryByText("Invalid Timestamp Project")).not.toBeInTheDocument();
-    expect(screen.queryByText("Opened unknown")).not.toBeInTheDocument();
-  });
-
-  it("caps Continue Working at five projects in deterministic newest-first order", async () => {
-    const rankedProjects = [
-      projectFixture({
-        id: "proj-rank-1",
-        name: "Rank 1",
-        lastOpenedAt: "2026-07-24T16:00:00.000Z",
-      }),
-      projectFixture({
-        id: "proj-rank-2",
-        name: "Rank 2",
-        lastOpenedAt: "2026-07-24T15:00:00.000Z",
-      }),
-      projectFixture({
-        id: "proj-rank-3",
-        name: "Rank 3",
-        lastOpenedAt: "2026-07-24T14:00:00.000Z",
-      }),
-      projectFixture({
-        id: "proj-rank-4",
-        name: "Rank 4",
-        lastOpenedAt: "2026-07-24T13:00:00.000Z",
-      }),
-      projectFixture({
-        id: "proj-rank-5",
-        name: "Rank 5",
-        lastOpenedAt: "2026-07-24T12:00:00.000Z",
-      }),
-      projectFixture({
-        id: "proj-rank-6",
-        name: "Rank 6",
-        lastOpenedAt: "2026-07-24T11:00:00.000Z",
-      }),
-    ];
-    mockInvoke.mockClear();
-    mockInvoke.mockImplementation(async (cmd: string) => {
-      if (cmd === "list_projects") {
-        return [
-          rankedProjects[5],
-          rankedProjects[2],
-          rankedProjects[0],
-          rankedProjects[4],
-          rankedProjects[1],
-          rankedProjects[3],
-        ];
-      }
-      if (cmd === "list_tasks") return [];
-      if (cmd === "active_task") return null;
-      return [];
-    });
-
-    renderWithProviders(<OverviewPage />);
-
-    expect(await screen.findByText("Continue Working")).toBeInTheDocument();
-    expect(screen.getAllByText(/^Rank [1-6]$/).map((node) => node.textContent)).toEqual([
-      "Rank 1",
-      "Rank 2",
-      "Rank 3",
-      "Rank 4",
-      "Rank 5",
-    ]);
-    expect(screen.queryByText("Rank 6")).not.toBeInTheDocument();
-  });
-
-  it("renders deterministic relative-time copy and omits a zero-duration last session", async () => {
-    const now = Date.parse("2026-07-24T16:00:00.000Z");
-    const dateNow = vi.spyOn(Date, "now").mockReturnValue(now);
-    const project = projectFixture({
-      id: "proj-relative-time",
-      name: "Relative Time Project",
-      lastOpenedAt: "2026-07-24T15:55:00.000Z",
-      activeSeconds: 0,
-    });
-    mockInvoke.mockClear();
-    mockInvoke.mockImplementation(async (cmd: string) => {
-      if (cmd === "list_projects") return [project];
-      if (cmd === "list_tasks") return [];
-      if (cmd === "active_task") return null;
-      return [];
     });
 
     try {
       renderWithProviders(<OverviewPage />);
+      // Locale-formatted, so the assertion is on the parts, not a fixed
+      // en-GB string — the handoff's "Saturday, 9 August" is the shape.
+      const heading = await screen.findByRole("heading", { level: 1 });
+      const expected = new Intl.DateTimeFormat(undefined, {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      }).format(new Date(now));
+      expect(heading.textContent).toBe(expected);
+      expect(heading.textContent).toMatch(/August/);
 
-      expect(await screen.findByText("Opened 5m ago")).toBeInTheDocument();
-      expect(screen.queryByText(/^Last session /)).not.toBeInTheDocument();
+      // Only *connected* apps count — one of the two above is offline.
+      expect(await screen.findByText(/^1 app connected · 1 capsule open · last capture/)).toBeInTheDocument();
+    } finally {
+      dateNow.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  // "The app has no account and must never greet the user by name." The date
+  // heading is deliberately the most personal thing on the screen.
+  it("never greets the user", async () => {
+    seed({ projects: [] });
+    const { container } = renderWithProviders(<OverviewPage />);
+    await screen.findByRole("heading", { level: 1 });
+    expect(container.textContent).not.toMatch(/\b(Welcome|Hello|Hi|Good (morning|afternoon|evening))\b/);
+  });
+
+  // Counts live on the sidebar rows that own them; the handoff is explicit
+  // that Overview carries "no counts that repeat the sidebar badges".
+  it("does not restate sidebar counts as stat tiles", async () => {
+    seed({ projects: [projectFixture()] });
+    renderWithProviders(<OverviewPage />);
+    await screen.findByRole("heading", { level: 1 });
+    expect(screen.queryByText("Projects")).toBeNull();
+    expect(screen.queryByText("Open Tasks")).toBeNull();
+    expect(screen.queryByText("Connected Apps")).toBeNull();
+  });
+
+  it("shows the capsule you were last in, with its branch, save time and contents", async () => {
+    const now = Date.parse("2026-08-09T16:00:00.000Z");
+    const dateNow = vi.spyOn(Date, "now").mockReturnValue(now);
+    seed({
+      projects: [projectFixture({ id: "proj-1", name: "atlas-api" })],
+      tasks: [taskFixture({ id: "t1", projectId: "proj-1", title: "Wire the connector SDK reconnect" })],
+      resources: {
+        t1: [
+          resourceFixture({
+            id: "r-git",
+            taskId: "t1",
+            connectorKind: "git",
+            payload: { branch: "feat/reconnect" },
+            createdAt: "2026-08-09T15:48:00.000Z",
+          }),
+          resourceFixture({
+            id: "r-editor",
+            taskId: "t1",
+            connectorKind: "cursor",
+            resourceType: "workspace",
+            payload: {
+              openFiles: ["a.ts", "b.ts", "c.ts"],
+              terminals: [{ name: "zsh" }],
+              workspaceFolder: "/repo",
+            },
+            createdAt: "2026-08-09T15:48:00.000Z",
+          }),
+          resourceFixture({
+            id: "r-chrome",
+            taskId: "t1",
+            connectorKind: "chrome",
+            resourceType: "tabs",
+            payload: { tabs: ["a", "b"] },
+            createdAt: "2026-08-09T15:48:00.000Z",
+          }),
+        ],
+      },
+    });
+
+    try {
+      renderWithProviders(<OverviewPage />);
+      expect(await screen.findByText("Wire the connector SDK reconnect")).toBeInTheDocument();
+      expect(screen.getByText(/atlas-api/)).toBeInTheDocument();
+      expect(screen.getByText("feat/reconnect")).toBeInTheDocument();
+      expect(screen.getByText(/saved 12m ago/)).toBeInTheDocument();
+
+      // Chips are read off real payloads — three files, two tabs, one
+      // branch, one terminal, one folder. Nothing is assumed.
+      expect(screen.getByText("3 files")).toBeInTheDocument();
+      expect(screen.getByText("2 tabs")).toBeInTheDocument();
+      expect(screen.getByText("1 branch")).toBeInTheDocument();
+      expect(screen.getByText("1 terminal")).toBeInTheDocument();
+      expect(screen.getByText("1 folder")).toBeInTheDocument();
     } finally {
       dateNow.mockRestore();
     }
   });
 
-  it("shows newest active Continue Working projects and routes Resume through Capsules", async () => {
-    const ship: Project = {
-      id: "proj-ship",
-      name: "Ship",
-      repoPath: "/tmp/ship",
-      devUrl: null,
-      defaultBranch: "main",
-      icon: "rocket",
-      archivedAt: null,
-      lastOpenedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
-      lastTaskId: "task-ship",
-      activeSeconds: 2 * 3600 + 17 * 60,
-      sortOrder: 0,
-      createdAt: "2026-01-01T00:00:00.000Z",
-      updatedAt: "2026-01-01T00:00:00.000Z",
-    };
-    const previous: Project = {
-      ...ship,
-      id: "proj-previous",
-      name: "Previous Project",
-      lastOpenedAt: new Date(Date.now() - 60 * 60_000).toISOString(),
-      lastTaskId: "task-previous",
-      activeSeconds: 60,
-    };
-    const stale: Project = {
-      ...ship,
-      id: "proj-stale",
-      name: "Stale Project",
-      lastOpenedAt: new Date(Date.now() - 2 * 60 * 60_000).toISOString(),
-      lastTaskId: "missing-task",
-      activeSeconds: 30,
-    };
-    const neverOpened: Project = {
-      ...ship,
-      id: "proj-never-opened",
-      name: "Never Opened",
-      lastOpenedAt: null,
-      lastTaskId: null,
-      activeSeconds: 0,
-    };
-    const archivedOnlyInStore: Project = {
-      ...ship,
-      id: "proj-archived",
-      name: "Archived Project",
-      archivedAt: "2026-07-20T00:00:00.000Z",
-    };
-    const tasks: Task[] = [
-      {
-        id: "task-ship",
-        projectId: ship.id,
-        title: "Deploy the release",
-        status: "open",
-        createdAt: "2026-01-01T00:00:00.000Z",
-        updatedAt: "2026-01-01T00:00:00.000Z",
-      },
-      {
-        id: "task-previous",
-        projectId: previous.id,
-        title: "Review telemetry",
-        status: "open",
-        createdAt: "2026-01-01T00:00:00.000Z",
-        updatedAt: "2026-01-01T00:00:00.000Z",
-      },
-    ];
-
-    mockInvoke.mockClear();
-    mockInvoke.mockImplementation(async (cmd: string, args?: InvokeArgs) => {
-      if (cmd === "list_projects") return [ship, previous, stale, neverOpened];
-      if (cmd === "list_tasks") {
-        const projectId =
-          args && !Array.isArray(args) && typeof args === "object"
-            ? (args as { projectId?: string }).projectId
-            : undefined;
-        return tasks.filter((task) => task.projectId === projectId);
-      }
-      if (cmd === "active_task") return null;
-      return [];
+  // A tool that captured nothing produces no chip rather than a zero:
+  // "0 tabs" and "Chrome wasn't running" are different facts.
+  it("shows no chip for a tool that captured nothing", async () => {
+    seed({
+      projects: [projectFixture({ id: "proj-1" })],
+      tasks: [taskFixture({ id: "t1", projectId: "proj-1" })],
+      resources: { t1: [resourceFixture({ taskId: "t1" })] },
     });
-    // `list_projects` is the authoritative source: an archived record that
-    // exists only in stale local state must not leak into Continue Working.
-    useStore.setState({ projects: [archivedOnlyInStore], pendingResumeTaskId: null, view: "overview" });
+    renderWithProviders(<OverviewPage />);
+    await screen.findByText("Fixture capsule");
+    expect(screen.getByText("1 branch")).toBeInTheDocument();
+    expect(screen.queryByText(/^0 /)).toBeNull();
+    expect(screen.queryByText(/tabs?$/)).toBeNull();
+  });
+
+  it("says so plainly when a capsule has never been captured", async () => {
+    seed({
+      projects: [projectFixture({ id: "proj-1" })],
+      tasks: [taskFixture({ id: "t1", projectId: "proj-1", title: "Fresh capsule" })],
+      resources: { t1: [] },
+    });
+    renderWithProviders(<OverviewPage />);
+    await screen.findByText("Fresh capsule");
+    expect(screen.getByText(/never captured/)).toBeInTheDocument();
+  });
+
+  it("lists the other open capsules and opens one in Capsules with it selected", async () => {
+    seed({
+      projects: [projectFixture({ id: "proj-1", name: "atlas-api" })],
+      tasks: [
+        taskFixture({ id: "t1", projectId: "proj-1", title: "Newest" }),
+        taskFixture({ id: "t2", projectId: "proj-1", title: "Older" }),
+        taskFixture({ id: "t3", projectId: "proj-1", title: "Oldest" }),
+      ],
+      resources: {
+        t1: [resourceFixture({ taskId: "t1", createdAt: "2026-08-09T15:00:00.000Z" })],
+        t2: [resourceFixture({ taskId: "t2", createdAt: "2026-08-09T14:00:00.000Z" })],
+        t3: [resourceFixture({ taskId: "t3", createdAt: "2026-08-09T13:00:00.000Z" })],
+      },
+    });
+    useStore.setState({ view: "overview", selectedCapsuleId: null });
 
     renderWithProviders(<OverviewPage />);
+    expect(await screen.findByText("Also open")).toBeInTheDocument();
+    // The freshest capture is the hero; the rest fall to "Also open", still
+    // newest-first.
+    const others = screen
+      .getAllByRole("button")
+      .filter((b) => /^(Older|Oldest)/.test(b.textContent ?? ""));
+    expect(others.map((b) => b.firstElementChild?.textContent)).toEqual(["Older", "Oldest"]);
 
-    expect(await screen.findByText("Continue Working")).toBeInTheDocument();
-    expect(screen.getByText("Last session 2h 17m")).toBeInTheDocument();
-    expect(screen.getByText("Deploy the release")).toBeInTheDocument();
-    expect(screen.queryByText("Never Opened")).not.toBeInTheDocument();
-    expect(screen.queryByText("Archived Project")).not.toBeInTheDocument();
-    expect(
-      screen.getByText("Ship").compareDocumentPosition(screen.getByText("Previous Project")) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-
-    fireEvent.click(screen.getByRole("button", { name: "Resume Ship" }));
-    expect(useStore.getState().pendingResumeTaskId).toBe("task-ship");
-    expect(useStore.getState().view).toBe("capsules");
-    expect(mockInvoke).not.toHaveBeenCalledWith("activate_task", expect.anything());
-
-    useStore.setState({ pendingResumeTaskId: null, view: "overview" });
-    fireEvent.click(screen.getByRole("button", { name: "View Capsules" }));
-    expect(useStore.getState().pendingResumeTaskId).toBeNull();
+    fireEvent.click(others[0]);
+    expect(useStore.getState().selectedCapsuleId).toBe("t2");
     expect(useStore.getState().view).toBe("capsules");
   });
 
-  it("renders the active task's live marker and Resume action within the one-accent budget", async () => {
-    // The one scenario the accent-mark opt-out exists for: a real active
-    // task renders both the "you are here" marker (data-accent-mark) and
-    // the page's single primary action (Resume) side by side. Every other
-    // test in this file seeds `active_task: null`, so the raised Surface
-    // that holds both never mounts anywhere else.
-    const project = projectFixture({ id: "prj_atlas", name: "atlas-api" });
-    const activeTask: Task = {
-      id: "task_reconnect",
-      projectId: project.id,
-      title: "Wire the connector SDK reconnect",
-      status: "open",
-      createdAt: "2026-01-01T00:00:00.000Z",
-      updatedAt: "2026-01-01T00:00:00.000Z",
-    };
-    mockInvoke.mockClear();
-    mockInvoke.mockImplementation(async (cmd: string) => {
-      if (cmd === "list_projects") return [project];
-      if (cmd === "list_tasks") return [activeTask];
-      if (cmd === "active_task") return activeTask.id;
-      return [];
+  it("routes Resume through Capsules rather than activating in place", async () => {
+    seed({
+      projects: [projectFixture({ id: "proj-1" })],
+      tasks: [taskFixture({ id: "t1", projectId: "proj-1", title: "Ship it" })],
+      resources: { t1: [resourceFixture({ taskId: "t1" })] },
     });
+    useStore.setState({ view: "overview", pendingResumeTaskId: null });
 
+    renderWithProviders(<OverviewPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Resume" }));
+
+    expect(useStore.getState().pendingResumeTaskId).toBe("t1");
+    expect(useStore.getState().view).toBe("capsules");
+    // Overview never re-implements the restore ceremony — Capsules owns it.
+    expect(mockInvoke).not.toHaveBeenCalledWith("activate_task", expect.anything());
+  });
+
+  it("spends the accent at most once, live marker and Resume both present", async () => {
+    // The one scenario the accent-mark opt-out exists for: the hero draws
+    // both the "this is the live one" dot and the page's single primary
+    // action, side by side.
+    seed({
+      projects: [projectFixture({ id: "proj-1" })],
+      tasks: [taskFixture({ id: "t1", projectId: "proj-1" })],
+      resources: { t1: [resourceFixture({ taskId: "t1" })] },
+      activeTask: "t1",
+    });
     const { container } = renderWithProviders(<OverviewPage />);
-
-    // (a) The Resume button actually renders — proving the raised Surface
-    // is on screen, otherwise the rest of this test would be vacuous.
-    const resumeButton = await screen.findByRole("button", { name: "Resume" });
-    expect(resumeButton).toBeInTheDocument();
-    expect(screen.getByText("Wire the connector SDK reconnect")).toBeInTheDocument();
-
-    // (b) The live marker renders and carries the opt-out attribute.
-    const marker = container.querySelector("[data-accent-mark]");
-    expect(marker).not.toBeNull();
-
-    // (c) With both present, the page still spends the accent at most once.
+    await screen.findByRole("button", { name: "Resume" });
+    expect(container.querySelector("[data-accent-mark]")).not.toBeNull();
     expectAtMostOneAccent(container);
+  });
+
+  it("shows the recent events with their times", async () => {
+    seed({ projects: [] });
+    useStore.setState({
+      connectors: [],
+      log: [{ seq: 1, at: new Date(Date.now() - 120_000).toISOString(), type: "connectorConnected" }],
+    });
+    renderWithProviders(<OverviewPage />);
+    expect(await screen.findByText("Recent")).toBeInTheDocument();
+    expect(screen.getByText("2m ago")).toBeInTheDocument();
   });
 });

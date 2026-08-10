@@ -33,13 +33,20 @@ export default {
         // header is a distinct architectural role from a card title, and
         // the handoff lists it as its own row a full step above `card`.
         sheet: ["1rem", { lineHeight: "1.25", letterSpacing: "-0.015em" }],
-        // Card title — 14-15/590. Already 15px; unchanged.
-        card: ["0.9375rem", { lineHeight: "1.35", letterSpacing: "-0.01em" }],
+        // Card title — 14-15/590. Named `card-title`, not `card`: a
+        // `card` key here would emit `.text-card` twice, once as a size and
+        // once as the `--card` surface colour, and Tailwind's plugin order
+        // puts textColor last — so the size silently loses. See the
+        // "no fontSize key collides with a colour" test in type.test.ts.
+        "card-title": ["0.9375rem", { lineHeight: "1.35", letterSpacing: "-0.01em" }],
         // Section label ("Recent", "Also open") 12/600 and secondary text
         // 12-12.5/400 share a size step in the handoff's own numbers; only
         // weight tells them apart, which lives outside this tuple. New
-        // step — nothing existing sits at 12px.
-        secondary: ["0.75rem", { lineHeight: "1.35" }],
+        // step — nothing existing sits at 12px. Named `sub` rather than
+        // `secondary` for the same collision reason as `card-title` above:
+        // `--secondary` is a surface colour, and `.text-secondary` can only
+        // mean one of the two.
+        sub: ["0.75rem", { lineHeight: "1.35" }],
         // Body, list rows, nav (13/400/-0.003em); selected nav + list rows
         // (13/510) and toolbar title (13/590/-0.005em) are the same 13px
         // step with only weight (and, for toolbar title, a sub-pixel
@@ -73,11 +80,28 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+        // `hover` binds --primary-hover, which Phase 1 wrote into both
+        // themes and applyAccent() repaints per accent, but which nothing
+        // could reach from a class until Phase 2 needed `hover:bg-primary-hover`.
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+          hover: "hsl(var(--primary-hover))",
+        },
         secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
         muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
         tertiary: { foreground: "hsl(var(--tertiary-foreground))" },
-        accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
+        // `accent` here is the neutral hover/surface token, NOT the brand
+        // accent — that's `primary`. `soft` and `text` are the brand
+        // accent's tinted pair (--accent-soft / --accent-text), named after
+        // the handoff's own tokens: a soft background with accent-coloured
+        // text on it. Never use `primary` for small text on light.
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+          soft: "var(--accent-soft)",
+          text: "hsl(var(--accent-text))",
+        },
         destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
         // `success` / `warning` / `info` were removed in Phase 2 — the
         // `ok` / `warn` / `bad` trio below is the Console v2 vocabulary and
