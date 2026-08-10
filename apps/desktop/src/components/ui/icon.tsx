@@ -10,6 +10,28 @@ import { cn } from "@/lib/utils";
  * This list is the single source of truth for `IconName` — if the sprite
  * ever gains or loses a glyph, update it here and `icon.test.tsx`'s sprite
  * round-trip test will catch any drift against the shipped asset.
+ *
+ * WHY `lucide-react` IS STILL A DEPENDENCY. Phase 1 planned to drop it
+ * "once the sprite covers every use". It doesn't: 35 glyphs were drawn for
+ * the screens in the handoff, and this app has affordances the handoff
+ * never drew. Still on lucide, and why:
+ *
+ *   pin / pin-off        capsule item curation (not in the handoff)
+ *   trash                permanent delete
+ *   loader               in-flight spinners
+ *   refresh              git fetch
+ *   arrow-up / -down     ahead/behind counts
+ *   git-commit           commit markers
+ *   rocket / wrench /    three of the nine user-pickable project icons
+ *     blocks             (an allowlisted, tested set — narrowing it would
+ *                        silently change what existing projects display)
+ *
+ * The rule Phase 2 followed: a file migrates only when the sprite covers
+ * *every* glyph in it. Half-migrated files read worse than consistent ones
+ * — two icon languages in one row is more obvious than an old one. That is
+ * why the shared primitives (dialog, menus, select, command, stepper,
+ * load-error) are on the sprite and GitLine, RestoreExperience,
+ * GitHubSection, CapsuleItems and project-icons are not.
  */
 export const ICON_NAMES = [
   "overview",

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 
 import { cn } from "@/lib/utils";
 
@@ -33,9 +33,10 @@ export interface StepperProps {
  * color:var(--text2)` (`--text2` maps to this codebase's
  * `--muted-foreground`, `--secondary` maps 1:1 — see tokens.test.ts), and
  * the up button's `border-bottom:0.5px solid var(--border)` is the shared
- * hairline the brief calls for. Chevron glyphs use the app's existing
- * `lucide-react` dependency (already used for the same glyphs in
- * select.tsx) rather than hand-drawn SVG paths.
+ * hairline the brief calls for. Chevron glyphs come from the Console v2
+ * sprite (`Icon`), like every other chevron in the app since Phase 2 —
+ * Phase 1 built this on lucide because the sprite hadn't reached the
+ * shared primitives yet.
  *
  * The prototype's own "Hub port" row has no min/max — `setPref(pref, cur +
  * 1)` is unconditional — but the brief requires this component to respect
@@ -82,7 +83,7 @@ export const Stepper = React.forwardRef<HTMLDivElement, StepperProps>(function S
             atMax && "opacity-40 hover:bg-secondary",
           )}
         >
-          <ChevronUp className="h-2 w-2" aria-hidden="true" />
+          <Icon name="chevron-up" className="h-2 w-2" />
         </button>
         <button
           type="button"
@@ -94,7 +95,7 @@ export const Stepper = React.forwardRef<HTMLDivElement, StepperProps>(function S
             atMin && "opacity-40 hover:bg-secondary",
           )}
         >
-          <ChevronDown className="h-2 w-2" aria-hidden="true" />
+          <Icon name="chevron-down" className="h-2 w-2" />
         </button>
       </div>
     </div>

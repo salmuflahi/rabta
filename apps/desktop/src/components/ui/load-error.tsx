@@ -1,4 +1,4 @@
-import { AlertTriangle } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 import { Button } from "./button";
 import { Card } from "./card";
 
@@ -22,7 +22,7 @@ export function LoadError({
   return (
     <Card className="flex flex-col items-center gap-3 p-8 text-center">
       <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-        <AlertTriangle className="size-6" />
+        <Icon name="alert" className="size-6" />
       </div>
       <div className="space-y-1">
         <p className="text-card-title font-semibold text-foreground">Couldn't load {entity}</p>
