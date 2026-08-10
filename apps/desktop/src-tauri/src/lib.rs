@@ -571,6 +571,46 @@ fn open_url(url: String) -> Result<(), String> {
     }
 }
 
+/// Derives the on-disk data directory from the platform-provided app data
+/// directory, isolating debug builds into a sibling `.debug` directory.
+///
+/// WHY THIS EXISTS: `app_data_dir()` is derived solely from the bundle
+/// identifier (`com.omnibus.dev`), so without this a debug build launched via
+/// `pnpm tauri dev` resolves to the *exact same* directory as the installed
+/// release app. This bit the project once already: a dev run applied an
+/// unreleased schema migration to the real, installed app's database,
+/// bumping it past the schema version the shipped release build knows about.
+/// `omnibus-db` correctly refuses to open a newer-than-known schema
+/// (`DbError::SchemaTooNew`), so the installed app stopped launching until
+/// someone intervened by hand. The data was never at risk, but the app was
+/// unusable in the meantime.
+///
+/// Do not "simplify" this away — a debug build must never be able to read or
+/// write the release app's database or hub state.
+///
+/// `with_extension` is deliberately NOT used here: it replaces text after the
+/// last `.` in the file name, so calling it on `com.omnibus.dev` would yield
+/// `com.omnibus.debug`, silently clobbering the "dev" segment of the bundle
+/// identifier instead of appending a suffix. `set_file_name` with an
+/// explicitly rebuilt name avoids that trap.
+fn data_dir_for(base: PathBuf, debug: bool) -> PathBuf {
+    if !debug {
+        return base;
+    }
+    match base.file_name() {
+        Some(name) => {
+            let mut debug_name = name.to_os_string();
+            debug_name.push(".debug");
+            let mut dir = base.clone();
+            dir.set_file_name(debug_name);
+            dir
+        }
+        // Pathological base with no final component (e.g. "/" or ""): fall
+        // back to the base unchanged rather than panicking.
+        None => base,
+    }
+}
+
 /// Builds and runs the OmniBus Tauri application: opens the database (fatal
 /// on failure), starts the hub, records hub activity, and forwards the event
 /// stream to the frontend as `hub-event`.
@@ -579,7 +619,7 @@ pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
-            let data_dir = app.path().app_data_dir()?;
+            let data_dir = data_dir_for(app.path().app_data_dir()?, cfg!(debug_assertions));
             std::fs::create_dir_all(&data_dir)?;
             // Spec: open/migration failure at startup is fatal.
             let db = Db::open(&data_dir.join("omnibus.db"), DbConfig::default())
@@ -732,5 +772,44 @@ mod tests {
         assert!(!is_web_url("javascript:alert(1)"));
         assert!(!is_web_url("ftp://example.com"));
         assert!(!is_web_url(""));
+    }
+
+    #[test]
+    fn data_dir_for_release_returns_base_unchanged() {
+        let base = PathBuf::from("/Users/alice/Library/Application Support/com.omnibus.dev");
+        assert_eq!(data_dir_for(base.clone(), false), base);
+    }
+
+    #[test]
+    fn data_dir_for_debug_appends_debug_suffix_to_final_component() {
+        let base = PathBuf::from("/Users/alice/Library/Application Support/com.omnibus.dev");
+        let expected = PathBuf::from(
+            "/Users/alice/Library/Application Support/com.omnibus.dev.debug",
+        );
+        assert_eq!(data_dir_for(base, true), expected);
+    }
+
+    #[test]
+    fn data_dir_for_debug_does_not_truncate_dotted_bundle_identifier() {
+        // Regression guard: `with_extension` would turn `com.omnibus.dev`
+        // into `com.omnibus.debug`, dropping "dev" entirely. Confirm the
+        // "dev" segment survives intact with the suffix appended after it.
+        let base = PathBuf::from("/base/com.omnibus.dev");
+        let result = data_dir_for(base, true);
+        let name = result.file_name().unwrap().to_str().unwrap();
+        assert_eq!(name, "com.omnibus.dev.debug");
+        assert!(name.contains("dev"), "must not drop the 'dev' segment");
+    }
+
+    #[test]
+    fn data_dir_for_debug_handles_missing_file_name_without_panicking() {
+        // A pathological base with no final path component (root, or an
+        // empty path) must fall back to the base unchanged rather than
+        // panicking on `.unwrap()`.
+        let root = PathBuf::from("/");
+        assert_eq!(data_dir_for(root.clone(), true), root);
+
+        let empty = PathBuf::new();
+        assert_eq!(data_dir_for(empty.clone(), true), empty);
     }
 }
