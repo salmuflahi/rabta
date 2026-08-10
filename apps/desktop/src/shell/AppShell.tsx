@@ -5,10 +5,7 @@ import { StatusBar } from "./StatusBar";
 import { Toolbar } from "./Toolbar";
 
 // One source of truth for the sidebar/main boundary. The first grid track is a
-// single `--sidebar-width` custom property; collapsing animates that width with
-// the shared sidebar duration + settling ease, and the workspace (the
-// `minmax(0,1fr)` track) grows into the freed space in the very same
-// transition.
+// single `--sidebar-width` custom property.
 //
 // 216px, matching the prototype markup's `width:216px` on the sidebar's
 // inner column (Rabta - Console v2.dc.html) and the README's Window chrome
@@ -16,21 +13,26 @@ import { Toolbar } from "./Toolbar";
 // right-aligned counts that need the extra 8px to sit clear of the label.
 const EXPANDED_WIDTH = 216;
 
-// The collapsed rail stays 88px: macOS overlays the traffic lights at x≈18
-// with a ~52px span, so anything narrower clips them. With the tighter row
-// metrics the icon tile no longer fills that rail, so icons centre in it and
-// shift ~17px during the transition — the previous "icons never move
-// horizontally" invariant is deliberately traded for the tighter open rail.
-const COLLAPSED_WIDTH = 88;
-
+// Collapsed is zero width, not a narrowed icon rail — the prototype's own
+// sidebar style is unambiguous: `s.sidebar ? "flex:0 0 216px;border-right-
+// width:0.5px;" : "flex:0 0 0px;border-right-width:0px;"`. There used to be
+// an 88px `COLLAPSED_WIDTH` rail here, sized so macOS's traffic lights (a
+// ~52px span at x≈18) still had clearance — that clearance need moved to
+// the Toolbar instead (see Sidebar.tsx's `SidebarToggleButton` and
+// Toolbar.tsx's collapsed-state branch, both built on titlebar.ts's shared
+// geometry), so nothing here needs to reserve room for the lights any more.
+// No named constant replaces it: the collapsed track is simply 0.
+//
+// Collapsing is also instant, not animated — "Animating it was tried and
+// cut" — so the grid track carries no transition. Only the sidebar's own
+// content (labels, icons) still animates in/out; the track itself jumps.
 export function AppShell({ children }: { children: ReactNode }) {
   const collapsed = useStore((s) => s.sidebarCollapsed);
   const view = useStore((s) => s.view);
 
   const shellStyle = {
     gridTemplateColumns: "var(--sidebar-width) minmax(0, 1fr)",
-    "--sidebar-width": `${collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH}px`,
-    transition: "grid-template-columns var(--motion-sidebar) var(--ease-standard)",
+    "--sidebar-width": collapsed ? "0px" : `${EXPANDED_WIDTH}px`,
   } as CSSProperties;
 
   return (

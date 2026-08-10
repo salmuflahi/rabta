@@ -42,7 +42,6 @@ function BrandMark({ className }: { className?: string }) {
 function NavRow({
   item,
   active,
-  collapsed,
   standalone,
   count,
   countAriaLabel,
@@ -52,7 +51,6 @@ function NavRow({
 }: {
   item: NavItem;
   active: boolean;
-  collapsed: boolean;
   /** Settings sits outside the moving-indicator group, so it paints its own
    * active surface instead of relying on the shared indicator. */
   standalone?: boolean;
@@ -68,6 +66,11 @@ function NavRow({
   hint?: string;
   onClick: () => void;
 }) {
+  // NavRow only ever renders while the sidebar itself is expanded — Sidebar()
+  // returns a bare, contentless `<aside>` when collapsed rather than
+  // rendering nav rows at reduced width (see the collapse-fix report for why
+  // an icon-only collapsed rail was removed). There is no `collapsed` prop
+  // here any more: nothing left to fade or hide.
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -75,7 +78,6 @@ function NavRow({
           type="button"
           onClick={onClick}
           aria-current={active ? "page" : undefined}
-          aria-label={collapsed ? `${item.label} (${item.shortcut})` : undefined}
           className={cn(
             // Row height/radius come from the shared navRow module —
             // overflow-hidden keeps the label clipped to the row.
@@ -94,17 +96,8 @@ function NavRow({
           )}
         >
           <Icon name={item.icon} className="size-[15px] shrink-0 opacity-90" />
-          {/* Collapsible label column: fades + slides as the rail narrows. */}
-          <span
-            aria-hidden={collapsed}
-            className={cn(
-              "min-w-0 flex-1 truncate text-left transition-[opacity,transform] duration-sidebar ease-standard",
-              collapsed && "-translate-x-1 opacity-0",
-            )}
-          >
-            {item.label}
-          </span>
-          {!collapsed && count !== undefined && (
+          <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+          {count !== undefined && (
             <span
               aria-label={countAriaLabel}
               className={cn("shrink-0 text-label tabular-nums", countClassName ?? "text-tertiary-foreground")}
@@ -112,7 +105,7 @@ function NavRow({
               {count}
             </span>
           )}
-          {!collapsed && hint && (
+          {hint && (
             <kbd
               className={cn(
                 "shrink-0 font-mono text-[11px]",
@@ -124,7 +117,6 @@ function NavRow({
           )}
         </button>
       </TooltipTrigger>
-      {/* Label + shortcut on hover — the only way to read a row when collapsed. */}
       <TooltipContent side="right" className="flex items-center gap-3">
         <span>{item.label}</span>
         <span className="font-mono text-[11px] text-muted-foreground">{item.shortcut}</span>
@@ -144,14 +136,12 @@ function NavGroup({
   name,
   items,
   view,
-  collapsed,
   go,
   countFor,
 }: {
   name: NavGroupName;
   items: NavItem[];
   view: NavKey;
-  collapsed: boolean;
   go: (key: NavKey) => void;
   countFor: (item: NavItem) => {
     count?: string;
@@ -162,14 +152,7 @@ function NavGroup({
   const activeIndex = items.findIndex((item) => item.key === view);
   return (
     <div>
-      <p
-        aria-hidden={collapsed}
-        className={cn(
-          "px-2 pb-1 pt-[10px] text-label font-semibold text-tertiary-foreground",
-          "transition-opacity duration-sidebar ease-standard",
-          collapsed && "opacity-0",
-        )}
-      >
+      <p className="px-2 pb-1 pt-[10px] text-label font-semibold text-tertiary-foreground">
         {name}
       </p>
       <div data-nav-group={name} className={cn("relative flex flex-col", NAV_ROW_GAP_CLASS)}>
@@ -201,7 +184,6 @@ function NavGroup({
               key={item.key}
               item={item}
               active={view === item.key}
-              collapsed={collapsed}
               count={count}
               countAriaLabel={countAriaLabel}
               countClassName={countClassName}
@@ -266,18 +248,16 @@ export function SidebarToggleButton({ tone }: { tone: "sidebar" | "toolbar" }) {
 /** Brand identity row. The collapse control used to live here but has
  * moved up into Row 1 (see the traffic-light spacer in Sidebar() below) so
  * its 73px position can be shared with the Toolbar's collapsed-state
- * rendering of the same control — see SidebarToggleButton above. */
-function BrandRow({ collapsed, fullscreen }: { collapsed: boolean; fullscreen: boolean }) {
+ * rendering of the same control — see SidebarToggleButton above. Only ever
+ * rendered while the sidebar is expanded (Sidebar() returns early on
+ * collapse), so it no longer takes a `collapsed` prop to fade itself out. */
+function BrandRow({ fullscreen }: { fullscreen: boolean }) {
   return (
     <div className={cn("flex shrink-0 items-center", fullscreen ? "h-[58px] pt-2" : "h-[58px]")}>
       {/* Non-interactive identity. Dragging it moves the window. */}
       <div
         data-tauri-drag-region
-        className={cn(
-          "flex min-w-0 items-center gap-2 overflow-hidden text-sidebar-foreground/90",
-          "transition-opacity duration-sidebar ease-standard",
-          collapsed && "opacity-0",
-        )}
+        className="flex min-w-0 items-center gap-2 overflow-hidden text-sidebar-foreground/90"
       >
         <BrandMark className="size-4 shrink-0 text-sidebar-foreground" />
         <span className="truncate text-body font-semibold tracking-tight">Rabta</span>
@@ -314,6 +294,22 @@ export function Sidebar() {
 
   const go = (key: NavKey) => setView(key);
   const navGroups = groupNavItems(NAV_ITEMS);
+
+  // Collapsed = gone, not a narrowed icon rail. The prototype (Rabta -
+  // Console v2.dc.html) is unambiguous: `s.sidebar ? "flex:0 0
+  // 216px;border-right-width:0.5px;" : "flex:0 0 0px;border-right-
+  // width:0px;"` — zero width, no border. There used to be an 88px
+  // icon-only rail here (an older redesign's leftover, sized so macOS's
+  // traffic lights had clearance); that clearance now lives in the Toolbar
+  // instead (see Toolbar.tsx's collapsed-state branch and
+  // SidebarToggleButton's `tone="toolbar"` case), so nothing needs to be
+  // rendered here at all when collapsed. No padding, no border, no nav
+  // content — none of it would be reachable at zero width anyway, and
+  // leaving it mounted would mean focusable buttons hiding in a box with no
+  // visible extent.
+  if (collapsed) {
+    return <aside aria-hidden="true" className="h-full w-0 shrink-0 overflow-hidden bg-sidebar" />;
+  }
 
   const connectedCount = connectors.filter((c) => c.connected).length;
 
@@ -361,16 +357,14 @@ export function Sidebar() {
           — keep them wired to titlebar.ts rather than hardcoding either
           number again.
 
-          When the sidebar is open, the sidebar-toggle control also lives in
-          this row, right after the light reservation — Task 10 moves it up
-          from the old brand row so its left edge can land at the same 73px
-          the Toolbar uses when the sidebar is collapsed (see
-          SidebarToggleButton above and SIDEBAR_TOGGLE_LEFT_PX in
-          titlebar.ts). When collapsed, the Toolbar draws the toggle instead
-          (the 88px collapsed rail has no room for it at that x position),
-          so it's omitted here — but the row itself, and its light
-          reservation, still renders to keep the titlebar-height invariant
-          above true in both states. */}
+          The sidebar-toggle control also lives in this row, right after the
+          light reservation — Task 10 moves it up from the old brand row so
+          its left edge can land at the same 73px the Toolbar uses when the
+          sidebar is collapsed (see SidebarToggleButton above and
+          SIDEBAR_TOGGLE_LEFT_PX in titlebar.ts). This whole function returns
+          early above when collapsed — the Toolbar draws the toggle in that
+          state instead (there's no sidebar left here to hold it) — so by
+          the time this row renders, the sidebar is always expanded. */}
       {!fullscreen && (
         <div
           data-tauri-drag-region
@@ -382,7 +376,7 @@ export function Sidebar() {
           )}
         >
           <span aria-hidden className={cn(TRAFFIC_LIGHT_GROUP_WIDTH_CLASS, "shrink-0")} />
-          {!collapsed && <SidebarToggleButton tone="sidebar" />}
+          <SidebarToggleButton tone="sidebar" />
         </div>
       )}
 
@@ -400,7 +394,7 @@ export function Sidebar() {
 
       {/* Row 2 — brand + collapse control. Flows straight into the nav; the
           only divider up top is the titlebar one under the traffic lights. */}
-      <BrandRow collapsed={collapsed} fullscreen={fullscreen} />
+      <BrandRow fullscreen={fullscreen} />
 
       {/* Navigation — split into the Workspace and This Mac groups. Each
           group renders its own header and owns its own sliding selection
@@ -412,7 +406,6 @@ export function Sidebar() {
             name={group.name}
             items={group.items}
             view={view}
-            collapsed={collapsed}
             go={go}
             countFor={countFor}
           />
@@ -426,34 +419,28 @@ export function Sidebar() {
       <div className="-mx-[10px] h-px shrink-0 bg-sidebar-border/50" />
 
       {/* Footer — Settings (pinned below both groups, with its ⌘, hint) +
-          the local-only assurance (expanded only). */}
+          the local-only assurance. This copy is a product requirement, not
+          decoration — the handoff calls it out explicitly as the app's
+          positioning, so it ships verbatim rather than being paraphrased. */}
       <div className="flex flex-col gap-1 pb-[18px] pt-2">
         <NavRow
           item={SETTINGS_ITEM}
           active={view === SETTINGS_ITEM.key}
-          collapsed={collapsed}
           standalone
           hint={SETTINGS_ITEM.shortcut}
           onClick={() => go(SETTINGS_ITEM.key)}
         />
-        {/* Reads only with its label, so it's dropped entirely when collapsed
-            rather than leaving a bare icon. This copy is a product
-            requirement, not decoration — the handoff calls it out explicitly
-            as the app's positioning, so it ships verbatim rather than being
-            paraphrased. */}
-        {!collapsed && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-1.5 rounded-[9px] px-2 py-2 text-label text-tertiary-foreground">
-                <Icon name="shield" className="size-3 shrink-0" aria-hidden="true" />
-                <span className="truncate">Everything stays on this Mac</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              Everything runs on your Mac — no cloud account, no telemetry.
-            </TooltipContent>
-          </Tooltip>
-        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-1.5 rounded-[9px] px-2 py-2 text-label text-tertiary-foreground">
+              <Icon name="shield" className="size-3 shrink-0" aria-hidden="true" />
+              <span className="truncate">Everything stays on this Mac</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            Everything runs on your Mac — no cloud account, no telemetry.
+          </TooltipContent>
+        </Tooltip>
       </div>
     </aside>
   );

@@ -35,7 +35,15 @@ describe("Sidebar collapse", () => {
     expect(localStorage.getItem("rabta.sidebarCollapsed")).toBe("false");
   });
 
-  it("keeps nav labels mounted but aria-hidden when collapsed, so they can fade out", () => {
+  // OLD CONTRACT (superseded): this test used to assert that collapsing
+  // left an 88px icon-only rail behind — nav labels stayed mounted at
+  // opacity-0 while the icon buttons remained visible and addressable via
+  // an "Overview (⌘1)"-style aria-label. The prototype (Rabta - Console
+  // v2.dc.html) draws the collapsed sidebar at zero width with no border —
+  // "gone, not a rail" — so there is no icon rail left to keep addressable.
+  // Traffic lights and the sidebar toggle move into the Toolbar instead
+  // (see Toolbar.test.tsx's "sidebar toggle + traffic lights" describe).
+  it("renders no nav content at all when collapsed — the sidebar disappears, it doesn't narrow to an icon rail", () => {
     useStore.setState({ sidebarCollapsed: false });
     renderWithProviders(<Sidebar />);
     // Expanded: the label is visible and not aria-hidden.
@@ -49,14 +57,34 @@ describe("Sidebar collapse", () => {
       useStore.setState({ sidebarCollapsed: true });
     });
 
-    // Collapsed: the label stays in the DOM (so it can opacity-fade rather
-    // than pop out) but is aria-hidden, and the icon button is still
-    // addressable by its aria-label.
-    const collapsed = screen.getByText("Overview");
-    expect(collapsed.closest("[aria-hidden='true']")).not.toBeNull();
-    // Collapsed rows expose the label + shortcut via aria-label (the visible
-    // ⌘-badges were removed), so the button is addressable by that name.
-    expect(screen.getByRole("button", { name: "Overview (⌘1)" })).toBeInTheDocument();
+    // Collapsed: none of the nav content is in the document any more — no
+    // labels, no icon-only buttons to address. It's not merely invisible,
+    // it isn't rendered.
+    expect(screen.queryByText("Overview")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Overview/ })).toBeNull();
+    expect(screen.queryByRole("navigation")).toBeNull();
+  });
+
+  it("collapses to zero width with no right border", () => {
+    useStore.setState({ sidebarCollapsed: true });
+    const { container } = renderWithProviders(<Sidebar />);
+    const aside = container.querySelector("aside");
+    expect(aside).not.toBeNull();
+    const classes = (aside!.getAttribute("class") || "").split(/\s+/);
+    expect(classes).toContain("w-0");
+    // Whole-token match: no border-r utility of any kind (not even
+    // border-r-0 masking a leftover border-color class) should remain.
+    expect(classes.some((c) => c === "border-r" || c.startsWith("border-r-"))).toBe(false);
+  });
+
+  it("keeps the expanded sidebar's border and width untouched", () => {
+    useStore.setState({ sidebarCollapsed: false });
+    const { container } = renderWithProviders(<Sidebar />);
+    const aside = container.querySelector("aside");
+    expect(aside).not.toBeNull();
+    const classes = (aside!.getAttribute("class") || "").split(/\s+/);
+    expect(classes).toContain("border-r");
+    expect(classes).not.toContain("w-0");
   });
 });
 
