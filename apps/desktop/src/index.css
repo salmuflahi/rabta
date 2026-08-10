@@ -2,6 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+/* The sidebar/main boundary, as an animatable length.
+   ---------------------------------------------------
+   AppShell drives its grid's first track from `var(--sidebar-width)`. A
+   plain custom property is an untyped token as far as CSS is concerned, so
+   changing it snaps; registering it as a `<length>` makes it interpolable,
+   which is what lets `.sidebar-track` below transition the whole
+   sidebar/main boundary with one declaration.
+
+   Registration must sit at the top level — `@property` inside `@layer` is
+   invalid and is silently dropped. Browsers without `@property` support
+   simply fall back to the old instant behaviour rather than breaking.
+
+   DELIBERATE DIVERGENCE: the Console v2 handoff says "Sidebar collapse is
+   instant, not animated. Animating it was tried and cut." Phase 2 animates
+   it on the product owner's explicit call. See SIDEBAR_MOTION_MS in
+   src/shell/titlebar.ts — that constant, this duration and Tailwind's
+   `duration-sidebar` token are the same 280ms and must stay that way. */
+@property --sidebar-width {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 216px;
+}
+
+.sidebar-track {
+  /* `ease-mac` / cubic-bezier(.32,.72,0,1) is the handoff's macOS motion
+     curve, shared with the Switch knob and the Migrate sheet. The global
+     prefers-reduced-motion rule at the bottom of this file clamps the
+     duration to ~0, so no separate reduced-motion branch is needed. */
+  transition: --sidebar-width 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 @layer base {
   :root {
     --background: 0 0% 98%;   /* #FAFAFA */

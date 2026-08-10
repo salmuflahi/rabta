@@ -1,9 +1,10 @@
-import { act, screen } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { expectAtMostOneAccent } from "@/test/accent";
 import { renderWithProviders } from "@/test/smoke-utils";
 import { useStore } from "@/store";
 import { Sidebar } from "./Sidebar";
+import { SIDEBAR_EXPANDED_WIDTH_PX } from "./titlebar";
 
 /** Whole-token class match — see src/test/no-box.ts for why a substring
  * search (e.g. `bg-primary` matching inside `bg-primary-foreground`) isn't
@@ -43,7 +44,7 @@ describe("Sidebar collapse", () => {
   // "gone, not a rail" — so there is no icon rail left to keep addressable.
   // Traffic lights and the sidebar toggle move into the Toolbar instead
   // (see Toolbar.test.tsx's "sidebar toggle + traffic lights" describe).
-  it("renders no nav content at all when collapsed — the sidebar disappears, it doesn't narrow to an icon rail", () => {
+  it("renders no nav content at all once collapsed — the sidebar disappears, it doesn't narrow to an icon rail", async () => {
     useStore.setState({ sidebarCollapsed: false });
     renderWithProviders(<Sidebar />);
     // Expanded: the label is visible and not aria-hidden.
@@ -57,10 +58,19 @@ describe("Sidebar collapse", () => {
       useStore.setState({ sidebarCollapsed: true });
     });
 
-    // Collapsed: none of the nav content is in the document any more — no
-    // labels, no icon-only buttons to address. It's not merely invisible,
-    // it isn't rendered.
-    expect(screen.queryByText("Overview")).toBeNull();
+    // Phase 2 animates the collapse, so the contents outlive the flag by
+    // one animation — they have to, or what slides off the left of the
+    // window is an empty petrol box rather than the sidebar. During that
+    // window they're already out of the page: aria-hidden, and `inert` so
+    // nothing inside can be tabbed to or clicked.
+    const leaving = screen.getByText("Overview");
+    expect(leaving.closest("[aria-hidden='true']")).not.toBeNull();
+
+    // Then they go, for real: no labels, no icon-only buttons to address.
+    // Not merely invisible — not rendered.
+    await waitFor(() => {
+      expect(screen.queryByText("Overview")).toBeNull();
+    });
     expect(screen.queryByRole("button", { name: /Overview/ })).toBeNull();
     expect(screen.queryByRole("navigation")).toBeNull();
   });
@@ -80,11 +90,33 @@ describe("Sidebar collapse", () => {
   it("keeps the expanded sidebar's border and width untouched", () => {
     useStore.setState({ sidebarCollapsed: false });
     const { container } = renderWithProviders(<Sidebar />);
+    // The `aside` is now only the clipping frame — its width is the
+    // animating grid track. The hairline moved onto the fixed-width content
+    // column inside it, so it travels with the panel instead of lingering
+    // as a 1px seam once the track reaches zero.
     const aside = container.querySelector("aside");
     expect(aside).not.toBeNull();
-    const classes = (aside!.getAttribute("class") || "").split(/\s+/);
-    expect(classes).toContain("border-r");
-    expect(classes).not.toContain("w-0");
+    expect((aside!.getAttribute("class") || "").split(/\s+/)).not.toContain("w-0");
+
+    const column = aside!.firstElementChild as HTMLElement | null;
+    expect(column).not.toBeNull();
+    expect(column!.className.split(/\s+/)).toContain("border-r");
+    expect(column!.style.width).toBe(`${SIDEBAR_EXPANDED_WIDTH_PX}px`);
+  });
+
+  // The panel slides off the left of the window rather than being wiped
+  // from the right: the content column is pinned to the *right* edge of the
+  // frame, so narrowing the frame walks the column out of view with its
+  // 216px layout intact. Anchored left it would look like a wipe, and every
+  // nav row would reflow on every frame.
+  it("anchors the content column to the frame's right edge so it slides out", () => {
+    useStore.setState({ sidebarCollapsed: false });
+    const { container } = renderWithProviders(<Sidebar />);
+    const column = container.querySelector("aside")!.firstElementChild as HTMLElement;
+    const classes = column.className.split(/\s+/);
+    expect(classes).toContain("absolute");
+    expect(classes).toContain("right-0");
+    expect(container.querySelector("aside")!.className.split(/\s+/)).toContain("overflow-hidden");
   });
 });
 

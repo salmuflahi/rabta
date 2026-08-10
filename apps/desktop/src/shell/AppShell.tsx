@@ -1,38 +1,39 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useStore } from "@/store";
 import { Sidebar } from "./Sidebar";
+import { SidebarToggle } from "./SidebarToggle";
 import { StatusBar } from "./StatusBar";
 import { Toolbar } from "./Toolbar";
+import { SIDEBAR_EXPANDED_WIDTH_PX } from "./titlebar";
 
 // One source of truth for the sidebar/main boundary. The first grid track is a
-// single `--sidebar-width` custom property.
+// single `--sidebar-width` custom property (216px — see
+// SIDEBAR_EXPANDED_WIDTH_PX in titlebar.ts).
 //
-// 216px, matching the prototype markup's `width:216px` on the sidebar's
-// inner column (Rabta - Console v2.dc.html) and the README's Window chrome
-// section — Task 9 retones this from 208px now that the nav rows carry
-// right-aligned counts that need the extra 8px to sit clear of the label.
-const EXPANDED_WIDTH = 216;
-
 // Collapsed is zero width, not a narrowed icon rail — the prototype's own
 // sidebar style is unambiguous: `s.sidebar ? "flex:0 0 216px;border-right-
 // width:0.5px;" : "flex:0 0 0px;border-right-width:0px;"`. There used to be
 // an 88px `COLLAPSED_WIDTH` rail here, sized so macOS's traffic lights (a
-// ~52px span at x≈18) still had clearance — that clearance need moved to
-// the Toolbar instead (see Sidebar.tsx's `SidebarToggleButton` and
-// Toolbar.tsx's collapsed-state branch, both built on titlebar.ts's shared
-// geometry), so nothing here needs to reserve room for the lights any more.
-// No named constant replaces it: the collapsed track is simply 0.
+// ~52px span at x≈18) still had clearance — that clearance need moved into
+// the chrome instead (see titlebar.ts's shared geometry), so nothing here
+// reserves room for the lights any more. No named constant replaces it:
+// the collapsed track is simply 0.
 //
-// Collapsing is also instant, not animated — "Animating it was tried and
-// cut" — so the grid track carries no transition. Only the sidebar's own
-// content (labels, icons) still animates in/out; the track itself jumps.
+// Phase 2 makes the boundary *move* rather than jump. `--sidebar-width` is
+// registered as a `<length>` in index.css, which is what makes it
+// interpolable; the `.sidebar-track` class there carries the 280ms macOS
+// curve. This is a deliberate divergence from the handoff's "collapse is
+// instant, not animated" — see SIDEBAR_MOTION_MS in titlebar.ts for the
+// full note. The sidebar's own content stays mounted for the duration of
+// the slide (useSidebarPresence) so what leaves the screen is the sidebar,
+// not an empty panel.
 export function AppShell({ children }: { children: ReactNode }) {
   const collapsed = useStore((s) => s.sidebarCollapsed);
   const view = useStore((s) => s.view);
 
   const shellStyle = {
     gridTemplateColumns: "var(--sidebar-width) minmax(0, 1fr)",
-    "--sidebar-width": collapsed ? "0px" : `${EXPANDED_WIDTH}px`,
+    "--sidebar-width": collapsed ? "0px" : `${SIDEBAR_EXPANDED_WIDTH_PX}px`,
   } as CSSProperties;
 
   return (
@@ -47,8 +48,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           boundary — one continuous vertical edge, no separate title-bar backing.
           `overflow-hidden` + `min-h-0` on every region keep the shell fixed and
           scroll only the workspace, so the sidebar never moves under the lights. */}
-      <div className="relative grid min-h-0 flex-1 overflow-hidden" style={shellStyle}>
+      <div className="sidebar-track relative grid min-h-0 flex-1 overflow-hidden" style={shellStyle}>
         <Sidebar />
+
+        {/* The sidebar toggle is drawn once, here, pinned over the top-left
+            corner of the whole shell rather than by whichever column
+            happens to be beneath it. That's what keeps it from disappearing
+            in fullscreen and from flickering in and out mid-animation —
+            see SidebarToggle for the full history. It's a sibling of both
+            columns and this grid is `relative`, so it stays put while the
+            boundary slides underneath it. */}
+        <SidebarToggle />
 
         {/* A barely-there light pool near the top of the workspace gives the
             cards a lit canvas to lift off of instead of a flat fill. Lives on

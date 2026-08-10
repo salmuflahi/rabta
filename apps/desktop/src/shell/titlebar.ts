@@ -71,14 +71,25 @@ export const TRAFFIC_LIGHT_GROUP_WIDTH_PX =
   (TRAFFIC_LIGHT_DOT_COUNT - 1) * TRAFFIC_LIGHT_DOT_GAP_PX;
 export const TRAFFIC_LIGHT_GROUP_WIDTH_CLASS = "w-[52px]";
 
+/** The sidebar's expanded width. 216px, matching the prototype markup's
+ * `width:216px` and the README's Window chrome section. AppShell drives the
+ * grid track from it; the Sidebar pins its own content column to it so the
+ * contents keep their layout while the track animates to zero underneath
+ * them (a percentage-width column would reflow the nav on every frame). */
+export const SIDEBAR_EXPANDED_WIDTH_PX = 216;
+
 /** Left padding shared by the Sidebar's own content column (its `aside`'s
  * `px-[10px]`) and the Toolbar's chrome row — the point both regions start
  * their content from before the traffic-light reservation begins. Kept as
  * its own constant (rather than each component owning an independent `10`)
  * because the 73px toggle position below is derived from it in both
  * places. */
+// Phase 2 dropped the paired `CHROME_INSET_CLASS` ("pl-[10px]"): the
+// Toolbar's left inset is now an animating inline value (it grows to clear
+// the pinned toggle when the sidebar collapses), so no utility class
+// expresses it any more. A class constant nothing renders is precisely the
+// drift this module exists to prevent, so it went rather than lingering.
 export const CHROME_INSET_PX = 10;
-export const CHROME_INSET_CLASS = "pl-[10px]";
 
 /** The first light sits 13px from the window's left edge (measured against
  * the running app window — see task-10-report.md for the raw
@@ -90,9 +101,10 @@ export const TRAFFIC_LIGHT_WRAPPER_INSET_PX =
 export const TRAFFIC_LIGHT_WRAPPER_INSET_CLASS = "pl-[3px]";
 
 /** Gap between the traffic-light cluster and the toggle button that
- * follows it. */
+ * follows it. (Its paired `gap-[8px]` class went with Phase 2's move of the
+ * toggle out of both chrome rows and into a pinned overlay — no flex row
+ * lays the two out side by side any more.) */
 export const SIDEBAR_TOGGLE_GAP_PX = 8;
-export const SIDEBAR_TOGGLE_GAP_CLASS = "gap-[8px]";
 
 /** The toggle's own left edge from the window edge — identical in both
  * chrome regions, since both are built from the same four numbers above. */
@@ -101,3 +113,58 @@ export const SIDEBAR_TOGGLE_LEFT_PX =
   TRAFFIC_LIGHT_WRAPPER_INSET_PX +
   TRAFFIC_LIGHT_GROUP_WIDTH_PX +
   SIDEBAR_TOGGLE_GAP_PX;
+
+// --- Fullscreen (Phase 2, Task 1) ---
+//
+// In native macOS fullscreen the OS hides the traffic lights entirely, so
+// every number above that exists to reserve room for them is dead weight:
+// the toggle would sit 73px in with nothing to its left. Fullscreen gets
+// its own, shorter lead built from the same chrome inset.
+//
+// This also fixes a real bug. The Sidebar used to drop its whole
+// traffic-light row on fullscreen — and that row was the *only* place the
+// toggle was drawn while the sidebar was open, so an open sidebar in
+// fullscreen had no toggle anywhere in the window. The control is now
+// drawn once, by AppShell, pinned over both columns (see SidebarToggle),
+// which is also what makes it literally impossible for the two chrome
+// regions to disagree about its position.
+
+/** The toggle's left edge in fullscreen: no lights to clear, so it starts
+ * at the plain chrome inset. */
+export const SIDEBAR_TOGGLE_FULLSCREEN_LEFT_PX = CHROME_INSET_PX;
+
+/** The toggle control's own rendered width (`w-[26px]` in SidebarToggle). */
+export const SIDEBAR_TOGGLE_WIDTH_PX = 26;
+
+/** Where a chrome region's own first control may start, given the pinned
+ * toggle overlays that region. Only the Toolbar needs this, and only while
+ * the sidebar is collapsed — while it's open the toggle sits over the
+ * sidebar instead and the Toolbar's content can start at its own inset. */
+export function chromeLeadWidthPx(fullscreen: boolean): number {
+  const left = fullscreen ? SIDEBAR_TOGGLE_FULLSCREEN_LEFT_PX : SIDEBAR_TOGGLE_LEFT_PX;
+  return left + SIDEBAR_TOGGLE_WIDTH_PX + SIDEBAR_TOGGLE_GAP_PX - CHROME_INSET_PX;
+}
+
+/** Left edge of the pinned toggle, per window state. */
+export function sidebarToggleLeftPx(fullscreen: boolean): number {
+  return fullscreen ? SIDEBAR_TOGGLE_FULLSCREEN_LEFT_PX : SIDEBAR_TOGGLE_LEFT_PX;
+}
+
+// --- Sidebar collapse motion (Phase 2, Task 1) ---
+//
+// DELIBERATE DIVERGENCE FROM THE HANDOFF. Its Interactions section says
+// "Sidebar collapse is instant, not animated. Animating it was tried and
+// cut." We animate it anyway, on the product owner's explicit call — the
+// panel should slide away and slide back rather than blink out of
+// existence. Everything else in the Motion table is honoured, including
+// the shared macOS curve, and the whole thing collapses under
+// prefers-reduced-motion via the global rule in index.css.
+//
+// The duration lives here rather than only in the Tailwind
+// `duration-sidebar` token because JS needs the same number: the sidebar's
+// content stays mounted for exactly this long after a collapse so it can
+// animate out before unmounting (see useSidebarPresence).
+
+/** Sidebar open/close duration. Must equal Tailwind's `duration-sidebar`
+ * and the `--sidebar-width` transition in index.css. */
+export const SIDEBAR_MOTION_MS = 280;

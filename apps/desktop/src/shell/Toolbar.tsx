@@ -3,14 +3,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { cn } from "@/lib/utils";
 import { useStore, type NavKey } from "@/store";
 import { NAV_ITEMS, SETTINGS_ITEM } from "./nav";
-import { SidebarToggleButton } from "./Sidebar";
-import {
-  CHROME_INSET_CLASS,
-  SIDEBAR_TOGGLE_GAP_CLASS,
-  TOOLBAR_HEIGHT_CLASS,
-  TRAFFIC_LIGHT_GROUP_WIDTH_CLASS,
-  TRAFFIC_LIGHT_WRAPPER_INSET_CLASS,
-} from "./titlebar";
+import { CHROME_INSET_PX, SIDEBAR_MOTION_MS, TOOLBAR_HEIGHT_CLASS, chromeLeadWidthPx } from "./titlebar";
 
 /** Visible entry point to the ⌘K command palette. Without it the palette is
  * discoverable only by devs who already know the shortcut — so this both
@@ -141,6 +134,7 @@ function useContextualAction(view: NavKey): { label: string; onClick: () => void
 export function Toolbar() {
   const view = useStore((s) => s.view);
   const sidebarCollapsed = useStore((s) => s.sidebarCollapsed);
+  const fullscreen = useStore((s) => s.fullscreen);
   // `view` traces back to `readPrefs()`'s unvalidated `JSON.parse` of
   // `landingPage` (store.ts), which never checks the persisted value against
   // `NavKey` — a stale/hand-edited localStorage value can produce a `view`
@@ -157,28 +151,34 @@ export function Toolbar() {
       data-tauri-drag-region
       className={cn(
         TOOLBAR_HEIGHT_CLASS,
-        CHROME_INSET_CLASS,
         "flex shrink-0 items-center gap-2 border-b-[0.5px] border-border bg-background pr-3",
         "backdrop-blur-[24px] backdrop-saturate-[1.8]",
       )}
+      // Clearance for the window controls that sit *over* this strip once
+      // the sidebar is out of the way: macOS's traffic lights (windowed
+      // only — the OS draws them, this app never does) and AppShell's
+      // pinned sidebar toggle. Both live at fixed window coordinates, so
+      // all the Toolbar owes them is empty space before its own first
+      // control; `chromeLeadWidthPx` derives how much from the very same
+      // constants those positions are built from, and fullscreen's shorter
+      // lead falls out of it for free.
+      //
+      // It animates rather than switching, because the sidebar now slides:
+      // collapsing has to walk the toolbar's contents leftward to meet the
+      // departing panel over the same 280ms, not jump them 107px the
+      // instant the flag flips. Expanded, the lead is zero — the toggle is
+      // over the sidebar then, not over here — and the strip falls back to
+      // the plain chrome inset both regions share.
+      //
+      // Inline rather than the CHROME_INSET_CLASS utility because it's now
+      // a moving value, and inline rather than a spacer element because the
+      // header is a `gap-2` flex row: a zero-width spacer would still push
+      // everything after it 8px right.
+      style={{
+        paddingLeft: CHROME_INSET_PX + (sidebarCollapsed ? chromeLeadWidthPx(fullscreen) : 0),
+        transition: `padding-left ${SIDEBAR_MOTION_MS}ms cubic-bezier(0.32, 0.72, 0, 1)`,
+      }}
     >
-      {/* Traffic lights + toggle, only when the sidebar is collapsed — when
-          it's open, the Sidebar itself draws both (see Sidebar.tsx's Row 1
-          and SidebarToggleButton). Reserves the same 52px light cluster and
-          73px toggle position either chrome region uses, built from the
-          same shared constants so the two can never disagree. */}
-      {sidebarCollapsed && (
-        <div
-          className={cn(
-            "flex shrink-0 items-center",
-            TRAFFIC_LIGHT_WRAPPER_INSET_CLASS,
-            SIDEBAR_TOGGLE_GAP_CLASS,
-          )}
-        >
-          <span aria-hidden className={cn(TRAFFIC_LIGHT_GROUP_WIDTH_CLASS, "shrink-0")} />
-          <SidebarToggleButton tone="toolbar" />
-        </div>
-      )}
       <HistoryChevrons />
       <h1 className="ml-1.5 truncate text-body font-semibold tracking-[-0.005em] text-foreground">
         {title}

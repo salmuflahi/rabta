@@ -2,7 +2,13 @@ import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Toolbar } from "./Toolbar";
 import { NAV_ITEMS, SETTINGS_ITEM } from "./nav";
-import { TOOLBAR_HEIGHT_CLASS } from "./titlebar";
+import {
+  CHROME_INSET_PX,
+  SIDEBAR_MOTION_MS,
+  SIDEBAR_TOGGLE_LEFT_PX,
+  TOOLBAR_HEIGHT_CLASS,
+  chromeLeadWidthPx,
+} from "./titlebar";
 import { useStore, type NavKey } from "@/store";
 import { renderWithProviders } from "@/test/smoke-utils";
 import { expectAtMostOneAccent } from "@/test/accent";
@@ -192,18 +198,58 @@ describe("Toolbar", () => {
     });
   });
 
-  describe("sidebar toggle + traffic lights", () => {
-    it("renders the toggle in the toolbar only when the sidebar is collapsed", () => {
-      useStore.setState({ view: "overview", sidebarCollapsed: true });
-      renderWithProviders(<Toolbar />);
-      expect(screen.getByRole("button", { name: "Show sidebar" })).toBeInTheDocument();
+  describe("clearance for the window controls above it", () => {
+    // The Toolbar no longer draws the sidebar toggle — AppShell pins one
+    // instance over both columns (see SidebarToggle.tsx and the
+    // "sidebar toggle position" suite in titlebar.test.tsx for why). All
+    // the Toolbar owes it, and macOS's traffic lights, is left padding
+    // while the sidebar is out of the way.
+    function leftInset(container: HTMLElement): number {
+      const header = container.querySelector("header");
+      expect(header).not.toBeNull();
+      return Number.parseFloat((header as HTMLElement).style.paddingLeft);
+    }
+
+    it("draws no toggle of its own in any state", () => {
+      for (const sidebarCollapsed of [true, false]) {
+        useStore.setState({ view: "overview", sidebarCollapsed, fullscreen: false });
+        const { unmount } = renderWithProviders(<Toolbar />);
+        expect(screen.queryByRole("button", { name: /^(Show|Hide) sidebar$/ })).toBeNull();
+        unmount();
+      }
     });
 
-    it("omits the toggle from the toolbar when the sidebar is open", () => {
-      useStore.setState({ view: "overview", sidebarCollapsed: false });
-      renderWithProviders(<Toolbar />);
-      expect(screen.queryByRole("button", { name: "Show sidebar" })).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Hide sidebar" })).not.toBeInTheDocument();
+    it("clears the pinned toggle when the sidebar is collapsed", () => {
+      useStore.setState({ view: "overview", sidebarCollapsed: true, fullscreen: false });
+      const { container } = renderWithProviders(<Toolbar />);
+      expect(leftInset(container)).toBe(CHROME_INSET_PX + chromeLeadWidthPx(false));
+      // Far enough in that the 73px toggle and the 26px control itself are
+      // both behind the Toolbar's first control, not under it.
+      expect(leftInset(container)).toBeGreaterThan(SIDEBAR_TOGGLE_LEFT_PX);
+    });
+
+    it("falls back to the plain chrome inset when the sidebar is open", () => {
+      useStore.setState({ view: "overview", sidebarCollapsed: false, fullscreen: false });
+      const { container } = renderWithProviders(<Toolbar />);
+      expect(leftInset(container)).toBe(CHROME_INSET_PX);
+    });
+
+    it("uses the shorter lead in fullscreen, where there are no traffic lights", () => {
+      useStore.setState({ view: "overview", sidebarCollapsed: true, fullscreen: true });
+      const { container } = renderWithProviders(<Toolbar />);
+      expect(leftInset(container)).toBe(CHROME_INSET_PX + chromeLeadWidthPx(true));
+      expect(chromeLeadWidthPx(true)).toBeLessThan(chromeLeadWidthPx(false));
+    });
+
+    // The lead animates rather than switching, so collapsing walks the
+    // toolbar's contents across to meet the departing panel instead of
+    // jumping them 107px the instant the flag flips.
+    it("transitions the lead rather than snapping it", () => {
+      useStore.setState({ view: "overview", sidebarCollapsed: true, fullscreen: false });
+      const { container } = renderWithProviders(<Toolbar />);
+      const header = container.querySelector("header") as HTMLElement;
+      expect(header.style.transition).toContain("padding-left");
+      expect(header.style.transition).toContain(`${SIDEBAR_MOTION_MS}ms`);
     });
   });
 });
