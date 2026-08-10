@@ -9,7 +9,12 @@ import { Toolbar } from "./Toolbar";
 // the shared sidebar duration + settling ease, and the workspace (the
 // `minmax(0,1fr)` track) grows into the freed space in the very same
 // transition.
-const EXPANDED_WIDTH = 208;
+//
+// 216px, matching the prototype markup's `width:216px` on the sidebar's
+// inner column (Rabta - Console v2.dc.html) and the README's Window chrome
+// section — Task 9 retones this from 208px now that the nav rows carry
+// right-aligned counts that need the extra 8px to sit clear of the label.
+const EXPANDED_WIDTH = 216;
 
 // The collapsed rail stays 88px: macOS overlays the traffic lights at x≈18
 // with a ~52px span, so anything narrower clips them. With the tighter row

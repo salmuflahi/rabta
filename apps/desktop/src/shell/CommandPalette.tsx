@@ -11,6 +11,7 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { useTheme } from "@/components/theme-provider";
+import { Icon } from "@/components/ui/icon";
 import { saveCapsule } from "@/lib/capsule";
 import { ProjectIcon } from "@/lib/project-icons";
 import { useStore, type NavKey, type Task } from "@/store";
@@ -80,16 +81,13 @@ export function CommandPalette() {
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Navigate">
-          {[...NAV_ITEMS, SETTINGS_ITEM].map((item) => {
-            const Icon = item.icon;
-            return (
-              <CommandItem key={item.key} value={item.label} onSelect={() => go(item.key)}>
-                <Icon />
-                <span>{item.label}</span>
-                <CommandShortcut>{item.shortcut}</CommandShortcut>
-              </CommandItem>
-            );
-          })}
+          {[...NAV_ITEMS, SETTINGS_ITEM].map((item) => (
+            <CommandItem key={item.key} value={item.label} onSelect={() => go(item.key)}>
+              <Icon name={item.icon} />
+              <span>{item.label}</span>
+              <CommandShortcut>{item.shortcut}</CommandShortcut>
+            </CommandItem>
+          ))}
         </CommandGroup>
 
         {projects.length > 0 && (
