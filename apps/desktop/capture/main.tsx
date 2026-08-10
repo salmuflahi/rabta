@@ -11,6 +11,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "@/App";
 import { ThemeProvider } from "@/components/theme-provider";
+import { IconSprite } from "@/components/ui/icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useStore } from "@/store";
 import { DEMO_TIMELINES, parseCaptureMode } from "./director";
@@ -154,12 +155,20 @@ function Director() {
 ReactDOM.createRoot(document.getElementById("root")!).render(
   // No StrictMode: its intentional double-effect would fire the restore
   // request twice and make the captured state depend on render timing.
-  <ThemeProvider>
-    <TooltipProvider delayDuration={200}>
-      <Director />
-      <App />
-    </TooltipProvider>
-  </ThemeProvider>,
+  <>
+    {/* Mounted once, at the app root, exactly as src/main.tsx does — every
+        <Icon>'s <use href="#ic-…"> resolves against these defs. Without it,
+        every sprite-based icon (search, plus, chevrons, the sidebar's nav
+        icons, toggle and shield line) silently renders nothing, and no
+        screenshot review has any way to know unless someone looks. */}
+    <IconSprite />
+    <ThemeProvider>
+      <TooltipProvider delayDuration={200}>
+        <Director />
+        <App />
+      </TooltipProvider>
+    </ThemeProvider>
+  </>,
 );
 
 // Mark the document once the first paint has happened, so the driver can
