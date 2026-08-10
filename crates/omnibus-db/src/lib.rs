@@ -27,6 +27,11 @@ pub use records::{
 mod recorder;
 pub use recorder::Recorder;
 
+mod bundle_apply;
+pub use bundle_apply::{
+    ApplyOutcome, ApplyPlan, AppNeed, Collision, InspectReport, Merge, RepoNeed,
+};
+
 mod bundle;
 pub use bundle::{
     seal, unseal, Bundle, ConnectorRow, EventRowOut, Include, ProjectRow, Survey, TaskPinRow,
