@@ -49,11 +49,7 @@ function CurrentPage({ view }: { view: NavKey }) {
     case "connectors":
       return <ConnectorsPage />;
     case "activity":
-      return (
-        <LegacyPane>
-          <ActivityPage />
-        </LegacyPane>
-      );
+      return <ActivityPage />;
     case "settings":
       return (
         <LegacyPane>
