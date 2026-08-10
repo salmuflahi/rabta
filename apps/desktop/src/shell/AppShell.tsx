@@ -73,9 +73,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           }}
         >
           <Toolbar />
-          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none p-4">
-            {/* Only the workspace scrolls / transitions; the frame is fixed. */}
-            <div key={view} className="animate-page-in">
+          {/* The pane is a fixed, non-scrolling box; the screen inside it
+              owns its own scrolling. That's a Phase 2 change, and it's what
+              master/detail needs: Capsules' 296px list and its detail pane
+              scroll independently, which is impossible if the shell has
+              already wrapped both in one scroller with 16px of padding.
+              Screens that are a single column (Overview) simply scroll
+              themselves and set their own measure. */}
+          <main className="min-h-0 flex-1 overflow-hidden">
+            <div key={view} className="h-full min-h-0 animate-page-in">
               {children}
             </div>
           </main>

@@ -1,16 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Box, Check, Code2, Copy, GitBranch, Globe, Layers, Loader2, MoreHorizontal, Pencil, Play, RotateCcw, Save, Terminal, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
 import {
   Dialog,
   DialogContent,
@@ -25,20 +15,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { EmptyState } from "@/components/ui/empty-state";
-import { LoadError } from "@/components/ui/load-error";
+import { Icon, type IconName } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Row } from "@/components/ui/row";
-import { Section } from "@/components/ui/section";
+import { LoadError } from "@/components/ui/load-error";
+import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Surface } from "@/components/ui/surface";
 import { CapsuleItems } from "@/features/capsules/CapsuleItems";
-import { formatDuration, humanizeCapsule } from "@/lib/humanize";
-import { cn } from "@/lib/utils";
+import { capsuleBranch, capsuleSavedAt } from "@/lib/capsuleFacts";
+import { humanizeCapsule, relativeTime } from "@/lib/humanize";
 import { toastErr, toastOk } from "@/lib/toast";
 import { useDeferredDelete } from "@/lib/useDeferredDelete";
+import { cn } from "@/lib/utils";
 import { activateSummaryToResult, type ActivateSummary } from "@/restore/normalize";
 import { useRestore } from "@/restore/RestoreExperience";
 import type { RestoreTool } from "@/restore/types";
@@ -49,19 +37,7 @@ interface SaveSummary {
   skipped: string[];
 }
 
-// Maps humanizeCapsule's abstract icon kind to a concrete lucide icon.
-const CAPSULE_ICONS: Record<ReturnType<typeof humanizeCapsule>["icon"], typeof Box> = {
-  editor: Code2,
-  browser: Globe,
-  git: GitBranch,
-  terminal: Terminal,
-  generic: Box,
-};
-
-// connector kind -> friendly Restore Experience tool name. (Row icons are
-// derived by RestoreExperience itself from `tool.kind`, via its own
-// vscode/cursor/chrome/git/terminal -> icon map — falls back to a generic
-// box there too, so this file doesn't duplicate that mapping.)
+/** connector kind -> friendly Restore Experience tool name. */
 const RESTORE_TOOL_NAME: Record<string, string> = {
   vscode: "VS Code",
   cursor: "Cursor",
@@ -70,18 +46,21 @@ const RESTORE_TOOL_NAME: Record<string, string> = {
   terminal: "Terminal",
 };
 
-/** connector kind -> friendly display name, via RESTORE_TOOL_NAME with a
- * title-case fallback for unrecognized kinds. Shared by the Restore
- * Experience tool list (restoreToolsFor) and the Resume preview popover
- * (CapsuleSummary) so both read the same names off the same table. */
 function friendlyToolName(kind: string): string {
   return RESTORE_TOOL_NAME[kind.toLowerCase()] ?? kind.charAt(0).toUpperCase() + kind.slice(1);
 }
 
-/** Builds the Restore Experience's tool list from a task's capsule
- * resources (never hard-coded). One row per distinct connector kind — a
- * task with no resources yields an empty array, which the sheet handles
- * fine (heading + progress, then completes with no rows). */
+/** humanizeCapsule's abstract icon kind -> a sprite glyph. */
+const CAPSULE_ICONS: Record<ReturnType<typeof humanizeCapsule>["icon"], IconName> = {
+  editor: "code",
+  browser: "globe",
+  git: "branch",
+  terminal: "terminal",
+  generic: "capsule",
+};
+
+/** Builds the Restore Experience's tool list from a capsule's resources
+ * (never hard-coded). One row per distinct connector kind. */
 function restoreToolsFor(resources: TaskResource[]): RestoreTool[] {
   const seen = new Set<string>();
   const tools: RestoreTool[] = [];
@@ -94,140 +73,103 @@ function restoreToolsFor(resources: TaskResource[]): RestoreTool[] {
   return tools;
 }
 
-/** Skeleton placeholder for the pre-first-load window only — approximates
- * two project groups of two task cards each, matching the real layout's
- * sizes so there's no layout shift once data lands. */
+/** One "What's inside" card's worth of facts. */
+interface InsideCard {
+  kind: string;
+  icon: IconName;
+  /** The humanized count line — "3 files · 1 terminal", "5 tabs". */
+  count: string;
+  name: string;
+  /** Whether the tool that captured this is connected right now. */
+  live: boolean;
+  when: string;
+}
+
+/**
+ * What each captured tool will actually do on Restore.
+ *
+ * DELIBERATE DIVERGENCE FROM THE HANDOFF. Its Capsules section hard-codes
+ * the amber case to Chrome — "restores now" in `ok` or "on next reload" in
+ * `warn`, with the note that "Chrome cannot restore until its next reload".
+ * That is true of the prototype's fixture, not of this app: the Chrome
+ * connector implements a real `tabs.open` command (connectors/chrome/src/
+ * background.ts) and reopens tabs live.
+ *
+ * Printing the handoff's sentence anyway would be the app claiming
+ * something about itself that isn't so, which the brief forbids in the
+ * other direction ("never claim more than the software does") and which is
+ * no better in this one. The honest amber this app *does* have is
+ * connection state: a capsule can name a tool that isn't running, and that
+ * part of the restore genuinely will not happen until it comes back.
+ */
+function insideCards(resources: TaskResource[], connectedKinds: Set<string>): InsideCard[] {
+  const byKind = new Map<string, InsideCard>();
+  for (const r of resources) {
+    const kind = (r.connectorKind ?? "").toLowerCase();
+    if (byKind.has(kind)) continue;
+    const h = humanizeCapsule(r);
+    const live = connectedKinds.has(kind) || kind === "git";
+    byKind.set(kind, {
+      kind,
+      icon: CAPSULE_ICONS[h.icon],
+      count: h.summary,
+      name: friendlyToolName(kind),
+      live,
+      // Git is not a connector — it's read straight off the repo, so it is
+      // always available and never waits on anything to reconnect.
+      when: live ? "restores now" : `when ${friendlyToolName(kind)} reconnects`,
+    });
+  }
+  return [...byKind.values()];
+}
+
 function CapsulesSkeleton() {
   return (
-    <div className="flex flex-col gap-8">
-      {[0, 1].map((g) => (
-        <div key={g}>
-          <Skeleton className="mb-3 h-4 w-40" />
-          <div className="flex flex-col gap-2">
-            {[0, 1].map((i) => (
-              <Card key={i} className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Skeleton className="h-8 w-16" />
-                    <Skeleton className="h-8 w-20" />
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+    <div className="grid h-full min-h-0 grid-cols-[296px_minmax(0,1fr)] overflow-hidden">
+      <div className="flex min-h-0 flex-col gap-2 border-r-[0.5px] border-border p-3">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-9 w-full" />
+        ))}
+      </div>
+      <div className="mx-auto w-full max-w-[720px] px-8 pt-[30px]">
+        <Skeleton className="h-5 w-16 rounded-full" />
+        <Skeleton className="mt-3 h-7 w-80" />
+        <Skeleton className="mt-2 h-4 w-64" />
+        <div className="mt-4 flex gap-2">
+          <Skeleton className="h-7 w-24 rounded-[7px]" />
+          <Skeleton className="h-7 w-24 rounded-[7px]" />
         </div>
-      ))}
+      </div>
     </div>
   );
 }
 
-/** A tidy inline group of humanized capsule resources for one task, or a
- * muted "No capsule yet" when the task has never had one saved. Doubles as
- * the Resume preview's trigger: clicking it opens a Popover peek of the
- * capsule's per-tool breakdown, so a user can check what's saved before
- * committing to Resume — no modal, no new invoke, Resume itself is
- * untouched and stays one click. */
-function CapsuleSummary({
-  taskId,
-  resources,
-  pins,
-  lastSessionSeconds,
-  onChanged,
-}: {
-  taskId: string;
-  resources: TaskResource[];
-  /** Straight from the `task_pins` command; camelCase, like every other record type. */
-  pins: { connectorKind: string; identity: string; payload: unknown }[];
-  lastSessionSeconds?: number;
-  onChanged: () => void;
-}) {
-  // Humanize each resource once; both the inline summary and the popover
-  // rows below reuse it rather than recomputing per render.
-  const items = resources.map((r) => {
-    const h = humanizeCapsule(r);
-    return { r, h, Icon: CAPSULE_ICONS[h.icon] };
-  });
-
-  // No capsule yet: teach the first move instead of showing a dead popover.
-  if (items.length === 0) {
-    return (
-      <p className="mt-1 max-w-prose text-meta leading-relaxed text-muted-foreground">
-        Nothing saved yet — open your editor and tabs, then{" "}
-        <span className="font-medium text-foreground">Save State</span> to capture this workspace.
-      </p>
-    );
-  }
-
-  // Each captured tool as a tangible chip — icon in the brand accent, the
-  // honest summary from humanizeCapsule — so a saved capsule reads as a real
-  // captured workspace, not throwaway grey metadata. The popover still holds
-  // the full per-tool breakdown + saved-ago.
-  const summary = (
-    <span className="mt-1.5 inline-flex flex-wrap items-center gap-1.5">
-      {items.map(({ r, h, Icon }) => (
-        <span
-          key={r.id}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-2 py-0.5 text-label text-muted-foreground"
-        >
-          <Icon className="size-3 shrink-0 text-primary/80" />
-          <span className="font-medium text-foreground/90">{h.summary}</span>
-        </span>
-      ))}
-    </span>
-  );
-
+/** Section heading above a grouped list — 12/600, secondary. */
+function GroupHeading({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="block w-fit max-w-full rounded-sm text-left transition-colors hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {summary}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-72">
-        <p className="text-sm font-medium text-popover-foreground">Saved state</p>
-        {resources.length === 0 ? (
-          <p className="mt-2 text-xs text-muted-foreground">No saved state yet.</p>
-        ) : (
-          <div className="mt-3 flex flex-col gap-3">
-            {items.map(({ r, h, Icon }) => (
-              <div key={r.id} className="flex items-start gap-2">
-                <Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-                <div className="min-w-0">
-                  <p className="truncate text-xs text-popover-foreground">
-                    {friendlyToolName(r.connectorKind)} — {h.summary}
-                  </p>
-                  <p className="text-[11px] tabular-nums text-muted-foreground">saved {h.savedAgo}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        <CapsuleItems taskId={taskId} resources={resources} pins={pins} onChanged={onChanged} />
-        {typeof lastSessionSeconds === "number" && lastSessionSeconds > 0 ? (
-          <p className="mt-3 border-t pt-3 text-xs tabular-nums text-muted-foreground">
-            Last session {formatDuration(lastSessionSeconds)}
-          </p>
-        ) : null}
-      </PopoverContent>
-    </Popover>
+    <p className={cn("pl-0.5 text-sub font-semibold text-muted-foreground", className)}>{children}</p>
   );
 }
 
+/**
+ * Capsules — the handoff's master/detail screen.
+ *
+ * Left (296px): an Open / Done segmented filter, a right-aligned count, and
+ * the capsules grouped by project as two-line rows. Right: everything about
+ * the selected one — its status, where it lives, what it will restore, and
+ * what has happened to it.
+ *
+ * The whole page used to be one scrolling column of per-project cards, each
+ * row carrying its own Resume / Save State / ⋯ trio. That put four buttons
+ * on every row and no room to say what any of them would do. Master/detail
+ * moves the actions to the one capsule you're looking at, which is what
+ * makes room for "What's inside" and the hint line under the buttons.
+ */
 export function CapsulesPage() {
   const activeTaskId = useStore((s) => s.activeTaskId);
   const setActiveTaskId = useStore((s) => s.setActiveTaskId);
-  // Settings → Behavior. When off, finished (done) capsules drop out of the
-  // list instead of lingering; the active one always stays regardless.
+  const connectors = useStore((s) => s.connectors);
   const keepCompleted = useStore((s) => s.prefs.keepCompleted);
-  // Settings → Behavior. Threaded straight into every activate_task call
-  // below — off by default, since every Resume today is non-destructive.
   const focusMode = useStore((s) => s.prefs.focusMode);
   const activationNonce = useStore((s) => s.activationNonce);
   const bumpActivation = useStore((s) => s.bumpActivation);
@@ -236,61 +178,32 @@ export function CapsulesPage() {
   const clearPendingResume = useStore((s) => s.clearPendingResume);
   const newTaskRequest = useStore((s) => s.newTaskRequest);
   const clearNewTaskRequest = useStore((s) => s.clearNewTaskRequest);
+  const selectedCapsuleId = useStore((s) => s.selectedCapsuleId);
+  const selectCapsule = useStore((s) => s.selectCapsule);
+  const filter = useStore((s) => s.capsuleFilter);
+  const setFilter = useStore((s) => s.setCapsuleFilter);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasksByProject, setTasksByProject] = useState<Record<string, Task[]>>({});
   const [resources, setResources] = useState<Record<string, TaskResource[]>>({});
-  // Which items are pinned ("always open this"), per task — loaded alongside
-  // resources so the curate list (CapsuleItems) can mark each captured item.
   const [pins, setPins] = useState<Record<string, { connectorKind: string; identity: string; payload: unknown }[]>>({});
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [draft, setDraft] = useState("");
   const [renameTarget, setRenameTarget] = useState<Task | null>(null);
   const [renameTitle, setRenameTitle] = useState("");
-  // In-flight affordance only (the result of an action is a toast, not
-  // inline text): which task is mid-save, so its button can read "Saving…"
-  // while busy. Resume's in-flight state now lives entirely in the Restore
-  // Experience sheet (see `useRestore` below), not here.
-  const [pendingAction, setPendingAction] = useState<{ taskId: string; kind: "save" } | null>(null);
-  // Guards against double-click re-entrancy: the backend serializes
-  // activation/save, but the UI should still reflect an op in flight rather
-  // than let the user queue up duplicate clicks.
+  const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
-  // Pre-first-load window only: true until the initial mount fetch settles,
-  // then stays false (subsequent refreshes — activationNonce bumps, post-
-  // action reloads — don't re-show the skeleton).
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  // Keyed by project id so the ⌘⇧N shortcut can focus a specific project's
-  // new-task input (there's one per project group on this page).
-  const newTaskInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  // Per-project-id cache of the ref callbacks passed to each Input below, so
-  // React sees the same function identity across re-renders (a fresh inline
-  // arrow per render would make React call the ref with null then the
-  // element again on every render instead of just once on mount/unmount).
-  const newTaskInputRefCallbacks = useRef<Record<string, (el: HTMLInputElement | null) => void>>({});
-  const getNewTaskInputRef = useCallback((projectId: string) => {
-    let cb = newTaskInputRefCallbacks.current[projectId];
-    if (!cb) {
-      cb = (el) => {
-        newTaskInputRefs.current[projectId] = el;
-      };
-      newTaskInputRefCallbacks.current[projectId] = cb;
-    }
-    return cb;
-  }, []);
+  const newCapsuleInput = useRef<HTMLInputElement>(null);
 
   const refreshOrThrow = async () => {
     const list = await invoke<Project[]>("list_projects");
     setProjects(list);
     const perProject = await Promise.all(
-      list.map(async (p) => [p.id, await invoke<Task[]>("list_tasks", { projectId: p.id })] as const)
+      list.map(async (p) => [p.id, await invoke<Task[]>("list_tasks", { projectId: p.id })] as const),
     );
     setTasksByProject(Object.fromEntries(perProject));
     const allTasks = perProject.flatMap(([, tasks]) => tasks);
-    // One Promise.all over both reads per task (not a separate Promise.all
-    // for resources and another for pins) — an empty allTasks then resolves
-    // in exactly the shape this always had, instead of nesting an extra
-    // Promise.all layer that'd add a tick even when there's nothing to fetch.
     const entries = await Promise.all(
       allTasks.map(async (t) => {
         const [taskResources, taskPins] = await Promise.all([
@@ -298,10 +211,10 @@ export function CapsulesPage() {
           invoke<{ connectorKind: string; identity: string; payload: unknown }[]>("task_pins", { taskId: t.id }),
         ]);
         return [t.id, taskResources, taskPins] as const;
-      })
+      }),
     );
-    setResources(Object.fromEntries(entries.map(([id, taskResources]) => [id, taskResources] as const)));
-    setPins(Object.fromEntries(entries.map(([id, , taskPins]) => [id, taskPins] as const)));
+    setResources(Object.fromEntries(entries.map(([id, r]) => [id, r] as const)));
+    setPins(Object.fromEntries(entries.map(([id, , p]) => [id, p] as const)));
   };
 
   const refresh = async () => {
@@ -312,8 +225,6 @@ export function CapsulesPage() {
     }
   };
 
-  // Initial load tracks failure so a read error shows a retry panel instead of
-  // the "No capsules yet" empty state.
   async function loadCapsules() {
     setLoading(true);
     setLoadError(false);
@@ -333,11 +244,9 @@ export function CapsulesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Refetch (not remount) when any project's task activation bumps the global
-  // nonce, so cross-project capsule summaries stay fresh without discarding
-  // this page's local state (drafts, delete-confirm dialog, in-flight action).
-  // Skips its own mount run so it doesn't double the initial load above
-  // (activationNonce starts at 0, so this effect fires on mount too).
+  // Refetch (not remount) when any activation bumps the global nonce, so
+  // cross-project capsules stay fresh without discarding this page's local
+  // state. Skips its own mount run so it doesn't double the initial load.
   const nonceReady = useRef(false);
   useEffect(() => {
     if (!nonceReady.current) {
@@ -348,27 +257,55 @@ export function CapsulesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activationNonce]);
 
-  async function addTask(projectId: string) {
-    const title = (drafts[projectId] ?? "").trim();
-    if (!title) return;
-    setBusy(true);
-    try {
-      await invoke("create_task", { projectId, title });
-      setDrafts((d) => ({ ...d, [projectId]: "" }));
-      await refresh();
-      toastOk("Task added");
-    } catch (e) {
-      toastErr(e);
-    } finally {
-      setBusy(false);
-    }
-  }
+  // Deferred-commit delete: hides the row immediately and shows an Undo
+  // toast; the real delete_task only fires ~5s later.
+  const { pendingIds: pendingTaskIds, requestDelete } = useDeferredDelete<Task>({
+    commit: (t) => invoke("delete_task", { id: t.id }),
+    labelOf: (t) => t.title,
+    onCommitted: refresh,
+  });
 
-  // The Restore Experience sheet owns the `activate_task` invoke itself
-  // (opening -> restoring -> success/partial/failure, gated on the real
-  // result); this page's `run` supplies the post-activate side effects,
-  // unchanged from before, then hands back the normalized result for the
-  // sheet to reveal.
+  const allTasks = useMemo(
+    () => Object.values(tasksByProject).flat().filter((t) => !pendingTaskIds.has(t.id)),
+    [tasksByProject, pendingTaskIds],
+  );
+
+  // The Open / Done segmented control owns visibility. Settings' "Keep
+  // completed capsules visible in the list" still means what it says: with
+  // it on, done capsules also appear in the Open list, struck through, the
+  // way the handoff's own left column shows them; with it off, Open is
+  // strictly open. The active capsule is never hidden either way — losing
+  // sight of where you are is exactly what this app exists to prevent.
+  const visible = useMemo(
+    () =>
+      allTasks.filter((t) =>
+        filter === "done"
+          ? t.status === "done"
+          : t.status === "open" || t.id === activeTaskId || keepCompleted,
+      ),
+    [allTasks, filter, keepCompleted, activeTaskId],
+  );
+
+  const groups = useMemo(
+    () =>
+      projects
+        .map((p) => ({ project: p, rows: visible.filter((t) => t.projectId === p.id) }))
+        .filter((g) => g.rows.length > 0),
+    [projects, visible],
+  );
+
+  // Selection has to tolerate a stale id — the selected capsule can be
+  // deleted, filtered out, or belong to a project that's gone. Fall back to
+  // the first visible row rather than render a detail pane about nothing.
+  const selected = visible.find((t) => t.id === selectedCapsuleId) ?? visible[0] ?? null;
+  const selectedProject = selected ? projects.find((p) => p.id === selected.projectId) : undefined;
+  const selectedResources = selected ? resources[selected.id] ?? [] : [];
+  const hasState = selectedResources.length > 0;
+  const connectedKinds = useMemo(
+    () => new Set(connectors.filter((c) => c.connected).map((c) => c.kind.toLowerCase())),
+    [connectors],
+  );
+
   const { start: startRestore, node: restoreNode, active: restoreActive } = useRestore();
 
   function resume(t: Task) {
@@ -380,9 +317,6 @@ export function CapsulesPage() {
       run: async () => {
         const summary = await invoke<ActivateSummary>("activate_task", { taskId: t.id, focusMode });
         setActiveTaskId(t.id);
-        // Activation may have auto-saved the previously-active task, which
-        // can live in a different project — bump the global nonce so this
-        // page refetches and no card shows a stale capsule summary.
         bumpActivation();
         refresh();
         return activateSummaryToResult(summary, tools);
@@ -392,20 +326,37 @@ export function CapsulesPage() {
 
   async function save(id: string) {
     setBusy(true);
-    setPendingAction({ taskId: id, kind: "save" });
+    setSaving(true);
     try {
       const s = await invoke<SaveSummary>("save_capsule", { taskId: id });
-      if (s.captured.length) {
-        toastOk("Saved state", s.captured.join(", "));
-      } else {
-        toastOk("Nothing connected to save");
-      }
+      toastOk(s.captured.length ? "Saved state" : "Nothing connected to save", s.captured.join(", ") || undefined);
       await refresh();
     } catch (e) {
       toastErr(e);
     } finally {
       setBusy(false);
-      setPendingAction(null);
+      setSaving(false);
+    }
+  }
+
+  async function addCapsule() {
+    const title = draft.trim();
+    // A capsule belongs to a project. Default to the one you're looking at,
+    // so ⌘⇧N from a selected capsule adds a sibling rather than dropping the
+    // new one into whichever project happens to sort first.
+    const projectId = selected?.projectId ?? projects[0]?.id;
+    if (!title || !projectId) return;
+    setBusy(true);
+    try {
+      const created = await invoke<Task>("create_task", { projectId, title });
+      setDraft("");
+      await refresh();
+      if (created?.id) selectCapsule(created.id);
+      toastOk("Capsule added");
+    } catch (e) {
+      toastErr(e);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -414,7 +365,7 @@ export function CapsulesPage() {
     try {
       await invoke("set_task_status", { id: t.id, status: t.status === "open" ? "done" : "open" });
       await refresh();
-      toastOk(t.status === "open" ? "Task marked done" : "Task reopened");
+      toastOk(t.status === "open" ? "Capsule marked done" : "Capsule reopened");
     } catch (e) {
       toastErr(e);
     } finally {
@@ -426,10 +377,9 @@ export function CapsulesPage() {
     setBusy(true);
     try {
       await invoke<Task>("rename_task", { id, title: title.trim() });
-      // Rename committed — report success and close the dialog BEFORE the
-      // reload, then use the error-swallowing refresh(), so a transient
-      // refresh failure can't surface as an error toast + stuck-open dialog
-      // for an edit that actually persisted.
+      // Rename committed — report success and close BEFORE the reload, then
+      // use the error-swallowing refresh(), so a transient refresh failure
+      // can't surface as an error toast for an edit that actually persisted.
       toastOk("Capsule renamed");
       setRenameTarget(null);
       await refresh();
@@ -444,8 +394,6 @@ export function CapsulesPage() {
     setBusy(true);
     try {
       const copy = await invoke<Task>("duplicate_task", { id: task.id });
-      // Duplicate committed — success first, then the error-swallowing reload
-      // (a refresh blip must not read as a duplicate failure).
       toastOk("Capsule duplicated", copy.title);
       await refresh();
     } catch (error) {
@@ -455,63 +403,48 @@ export function CapsulesPage() {
     }
   }
 
-  // Deferred-commit delete: requestDelete hides the row immediately and
-  // shows an Undo toast; the real delete_task invoke only fires ~5s later
-  // if the user hasn't clicked Undo (see useDeferredDelete.ts).
-  const { pendingIds: pendingTaskIds, requestDelete } = useDeferredDelete<Task>({
-    commit: (t) => invoke("delete_task", { id: t.id }),
-    labelOf: (t) => t.title,
-    onCommitted: refresh,
-  });
-
-  const allTasks = Object.values(tasksByProject)
-    .flat()
-    .filter((t) => !pendingTaskIds.has(t.id));
-  const openCount = allTasks.filter((t) => t.status === "open").length;
-  const subtitle = openCount === 0 ? "No open tasks" : `${openCount} open ${openCount === 1 ? "task" : "tasks"}`;
-
-  // Palette-initiated resume: the command palette's "Resume {task}" item only
-  // sets `pendingResumeTaskId` + navigates here — it never runs activate_task
-  // itself. Wait for this page's own initial fetch to land (`loading`) before
-  // resolving the signal, so a resume requested while the palette's task list
-  // was fresher than this page's doesn't get cleared before this page's tasks
-  // arrive. Once loaded, if the task is present and no restore is already
-  // active, drive it through the exact same `resume()` the Resume button
-  // calls, then clear the signal. If the task never turns up (e.g. deleted
-  // between the palette search and here), just clear it rather than hang.
+  // Palette-initiated resume: the palette only sets `pendingResumeTaskId` +
+  // navigates here — it never runs activate_task itself. Wait for this
+  // page's own fetch to land before resolving the signal.
   useEffect(() => {
     if (!pendingResumeTaskId || loading) return;
     if (restoreActive) return;
     const task = allTasks.find((t) => t.id === pendingResumeTaskId);
-    if (task) resume(task);
+    if (task) {
+      selectCapsule(task.id);
+      resume(task);
+    }
     clearPendingResume();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingResumeTaskId, allTasks, restoreActive, loading]);
 
-  // ⌘⇧N global shortcut (App.tsx): sets newTaskRequest, which this effect
-  // consumes to focus the new-task input for the first project group and
-  // then immediately clears — mirrors the pendingResumeTaskId pattern.
-  // Because the flag is cleared right after firing, remounting this page
-  // (e.g. navigating away and back via the sidebar) sees it already false
-  // and doesn't steal focus; a fresh ⌘⇧N still re-focuses even if the user
-  // had since blurred away. If the target input isn't mounted yet (e.g.
-  // projects haven't loaded), the request is left set so a later render
-  // with `projects` populated can still fulfill it.
+  // ⌘⇧N / the toolbar's "New capsule": focus the composer at the foot of the
+  // list, then clear. Left set if the input isn't mounted yet, so a later
+  // render can still fulfil it.
   useEffect(() => {
     if (!newTaskRequest) return;
-    const firstProjectId = projects[0]?.id;
-    if (!firstProjectId) return;
-    const el = newTaskInputRefs.current[firstProjectId];
+    const el = newCapsuleInput.current;
     if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
     el.focus();
     clearNewTaskRequest();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newTaskRequest, projects]);
+  }, [newTaskRequest, loading, projects]);
+
+  const actionsDisabled = busy || restoreActive;
+
+  if (loading) return <CapsulesSkeleton />;
+  if (loadError) {
+    return (
+      <div className="h-full min-h-0 overflow-y-auto p-4">
+        <LoadError onRetry={() => void loadCapsules()} entity="your capsules" />
+      </div>
+    );
+  }
 
   return (
-    <div>
+    <div className="grid h-full min-h-0 grid-cols-[296px_minmax(0,1fr)] overflow-hidden">
       {restoreNode}
+
       <Dialog open={renameTarget !== null} onOpenChange={(open) => !open && setRenameTarget(null)}>
         <DialogContent className="sm:max-w-sm">
           <form
@@ -543,254 +476,326 @@ export function CapsulesPage() {
           </form>
         </DialogContent>
       </Dialog>
-      {/* The toolbar now names the page (Task 11); this stays for the
-          existing findByText/getByText("Capsules") contract and screen
-          readers. The open-task count is genuinely useful — kept as a
-          plain caption, since it summarizes across every project's own
-          Section below rather than belonging to any one of them. */}
-      <h2 className="sr-only">Capsules</h2>
-      <p className="mb-6 text-meta text-muted-foreground">{subtitle}</p>
 
-      {loading ? (
-        <CapsulesSkeleton />
-      ) : loadError ? (
-        <LoadError onRetry={() => void loadCapsules()} entity="your capsules" />
-      ) : projects.length === 0 ? (
-        <EmptyState
-          icon={<Layers />}
-          title="No capsules yet"
-          description="A capsule is a snapshot of a task's workspace — save and restore your editor, browser, and git state so switching tasks never costs you your place."
-          action={<Button variant="primary" onClick={() => setView("projects")}>Register a Project</Button>}
-        />
-      ) : (
-        <div className="flex flex-col gap-8">
-          {projects.map((p) => {
-            const tasks = (tasksByProject[p.id] ?? []).filter(
-              (t) =>
-                !pendingTaskIds.has(t.id) &&
-                (keepCompleted || t.status !== "done" || t.id === activeTaskId),
-            );
-            return (
-              <Section
-                key={p.id}
-                label={p.name}
-                action={
-                  p.defaultBranch ? (
-                    <span className="inline-flex shrink-0 items-center gap-1 font-mono text-meta text-muted-foreground">
-                      <GitBranch className="size-3" />
-                      {p.defaultBranch}
-                    </span>
-                  ) : undefined
-                }
+      {/* --- Master --- */}
+      <div className="flex min-h-0 flex-col overflow-hidden border-r-[0.5px] border-border">
+        <div className="flex shrink-0 items-center gap-2 px-3 pb-1 pt-2.5">
+          <Segmented
+            ariaLabel="Filter capsules"
+            value={filter}
+            onChange={(v) => setFilter(v as "open" | "done")}
+            options={[
+              { value: "open", label: "Open" },
+              { value: "done", label: "Done" },
+            ]}
+          />
+          <div className="flex-1" />
+          <span className="text-meta tabular-nums text-tertiary-foreground">{visible.length}</span>
+        </div>
+
+        <div data-capsule-list className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-0.5">
+          {groups.length === 0 ? (
+            <p className="px-2 pt-4 text-meta text-muted-foreground">
+              {projects.length === 0
+                ? "No projects registered yet."
+                : filter === "done"
+                  ? "Nothing finished yet."
+                  : "No open capsules."}
+            </p>
+          ) : (
+            groups.map(({ project, rows }) => (
+              <div key={project.id}>
+                <p className="px-2 pb-[3px] pt-[11px] text-label font-semibold text-tertiary-foreground">
+                  {project.name}
+                </p>
+                {rows.map((t) => {
+                  const isSelected = selected?.id === t.id;
+                  const isActive = t.id === activeTaskId;
+                  const rs = resources[t.id] ?? [];
+                  const savedAt = capsuleSavedAt(rs);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      aria-current={isSelected ? "true" : undefined}
+                      onClick={() => selectCapsule(t.id)}
+                      className={cn(
+                        // DELIBERATE DIVERGENCE FROM THE HANDOFF, matching
+                        // the one the sidebar already makes (Sidebar.tsx's
+                        // NavGroup): the handoff fills the selected row with
+                        // the accent and puts white text on it. A selected
+                        // row is permanent on this screen, so an accent fill
+                        // there would compete with the detail pane's Restore
+                        // button for the one-accent budget
+                        // (`expectAtMostOneAccent`, src/test/accent.ts) —
+                        // and Restore is the action, which is what the
+                        // accent is for. Neutral `--secondary` at weight 510
+                        // instead, exactly as the nav does it.
+                        "block w-full cursor-default rounded-md px-2 py-1.5 text-left transition-colors duration-fast ease-standard",
+                        isSelected ? "bg-secondary" : "hover:bg-hover",
+                      )}
+                    >
+                      <span className="flex min-w-0 items-center gap-[7px]">
+                        <span
+                          aria-hidden
+                          data-accent-mark={isActive || undefined}
+                          className={cn(
+                            "size-[7px] shrink-0 rounded-full",
+                            isActive
+                              ? "bg-primary"
+                              : t.status === "done"
+                                ? "bg-ok"
+                                : "bg-tertiary-foreground",
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            "min-w-0 flex-1 truncate text-body",
+                            isSelected && "font-510",
+                            t.status === "done"
+                              ? "text-tertiary-foreground line-through"
+                              : isSelected
+                                ? "text-secondary-foreground"
+                                : "text-foreground",
+                          )}
+                        >
+                          {t.title}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 block truncate pl-[14px] text-meta text-tertiary-foreground">
+                        {isActive ? "Active · " : ""}
+                        {savedAt ? `saved ${relativeTime(savedAt)}` : "never captured"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* The composer is the only way to make a capsule, so it is always
+            present rather than hidden behind the toolbar action — which
+            focuses this input rather than opening a dialog. */}
+        <div className="flex shrink-0 items-center gap-1.5 border-t-[0.5px] border-border p-2">
+          <Input
+            ref={newCapsuleInput}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void addCapsule();
+            }}
+            placeholder="New capsule"
+            className="h-7 flex-1 text-body"
+            disabled={projects.length === 0}
+          />
+          <Button
+            size="sm"
+            variant="secondary"
+            className="h-7 shrink-0"
+            onClick={() => void addCapsule()}
+            disabled={!draft.trim() || actionsDisabled || projects.length === 0}
+          >
+            Add
+          </Button>
+        </div>
+      </div>
+
+      {/* --- Detail --- */}
+      <div data-capsule-detail className="min-h-0 overflow-y-auto">
+        {!selected ? (
+          <div className="mx-auto max-w-[720px] px-8 pb-10 pt-[30px]">
+            <p className="text-card-title font-590 text-foreground">No capsule selected</p>
+            <p className="mt-1 text-sub text-muted-foreground">
+              {projects.length === 0
+                ? "Register a project first — a capsule belongs to one."
+                : "Pick one on the left, or start a new one below the list."}
+            </p>
+            {projects.length === 0 && (
+              <Button className="mt-4" variant="primary" onClick={() => setView("projects")}>
+                Register a project
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="mx-auto max-w-[720px] px-8 pb-10 pt-[30px]">
+            <div className="flex items-center gap-2">
+              {selected.status === "done" ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-ok-soft px-[9px] py-[3px] text-meta font-590 text-ok">
+                  <Icon name="check" className="size-[11px]" />
+                  Done
+                </span>
+              ) : selected.id === activeTaskId ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-[9px] py-[3px] text-meta font-590 text-accent-text">
+                  <span data-accent-mark aria-hidden className="size-1.5 rounded-full bg-primary" />
+                  Active
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-[9px] py-[3px] text-meta font-590 text-muted-foreground">
+                  Open
+                </span>
+              )}
+            </div>
+
+            {/* The handoff calls this the "screen title" and sizes it 22/640
+                — but the screen is Capsules, and the Toolbar already owns
+                that <h1>. This is the selected item within it, so it takes
+                the size and the heading level below it rather than
+                competing for the document's top heading. */}
+            <h2 className="mt-2.5 text-title font-640 text-foreground">{selected.title}</h2>
+            <p className="mt-1.5 text-sub text-muted-foreground">
+              {selectedProject?.name ?? "Unknown project"}
+              {capsuleBranch(selectedResources) && (
+                <>
+                  {" · "}
+                  <span className="font-mono text-meta">{capsuleBranch(selectedResources)}</span>
+                </>
+              )}
+              {" · "}
+              {capsuleSavedAt(selectedResources)
+                ? `saved ${relativeTime(capsuleSavedAt(selectedResources)!)}`
+                : "never captured"}
+            </p>
+
+            <div className="mt-4 flex items-center gap-2">
+              {hasState && (
+                <Button
+                  variant="primary"
+                  className="h-7 rounded-[7px] px-[15px] text-body font-510"
+                  onClick={() => resume(selected)}
+                  disabled={actionsDisabled}
+                >
+                  <Icon name="play" className="size-[11px]" />
+                  {restoreActive ? "Restoring…" : "Restore"}
+                </Button>
+              )}
+              <Button
+                // A never-captured capsule shows Capture as the one accent
+                // action instead of Restore — there is nothing to restore.
+                variant={hasState ? "secondary" : "primary"}
+                className="h-7 rounded-[7px] px-[13px] text-body"
+                onClick={() => void save(selected.id)}
+                disabled={actionsDisabled}
               >
-                <div className="flex flex-col gap-3">
-                  {tasks.length === 0 ? (
-                    <p className="text-meta text-muted-foreground">
-                      No tasks in {p.name} yet — add one below
-                    </p>
-                  ) : (
-                    <Surface>
-                      {tasks.map((t) => {
-                        const isActive = t.id === activeTaskId;
-                        const actionsDisabled = busy || restoreActive;
-                        // Only the active task's own Resume gets this page's
-                        // one primary — every other row's Resume/Save State
-                        // stays outline/secondary, or a list of saved
-                        // capsules would light up orange all at once.
-                        const hasCapsule = (resources[t.id] ?? []).length > 0;
-                        return (
-                          <ContextMenu key={t.id}>
-                            <ContextMenuTrigger asChild>
-                              <Row
-                                leading={
-                                  // The "you are here" marker: legitimately
-                                  // orange (the live thing), but it is not an
-                                  // action, so it opts out of the one-accent
-                                  // budget the Resume button spends. Always
-                                  // rendered (transparent when not active) so
-                                  // every row's title lines up under the same
-                                  // left edge.
-                                  <span
-                                    data-accent-mark={isActive || undefined}
-                                    className={cn(
-                                      "size-2 shrink-0 rounded-full",
-                                      isActive ? "bg-primary" : "bg-transparent",
-                                    )}
-                                  />
-                                }
-                                title={
-                                  <span className="flex min-w-0 items-center gap-2">
-                                    <span
-                                      className={cn(
-                                        "truncate",
-                                        t.status === "done"
-                                          ? "text-muted-foreground line-through"
-                                          : "text-foreground",
-                                      )}
-                                    >
-                                      {t.title}
-                                    </span>
-                                    {isActive && <Badge className="shrink-0">Active</Badge>}
-                                  </span>
-                                }
-                                subtitle={
-                                  <CapsuleSummary
-                                    taskId={t.id}
-                                    resources={resources[t.id] ?? []}
-                                    pins={pins[t.id] ?? []}
-                                    lastSessionSeconds={p.activeSeconds}
-                                    onChanged={refresh}
-                                  />
-                                }
-                                trailing={
-                                  <div className="flex shrink-0 items-center gap-1.5">
-                                    <Button
-                                      size="sm"
-                                      variant={isActive && hasCapsule ? "primary" : "outline"}
-                                      onClick={() => resume(t)}
-                                      disabled={actionsDisabled || !hasCapsule}
-                                      title={
-                                        hasCapsule
-                                          ? "Restore this workspace — reopens the saved files, tabs, and git branch"
-                                          : "Save a capsule first, then Resume brings the whole workspace back"
-                                      }
-                                    >
-                                      {restoreActive ? (
-                                        <>
-                                          <Loader2 className="size-3.5 animate-spin" />
-                                          Restoring…
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Play className="size-3.5 fill-current" />
-                                          Resume
-                                        </>
-                                      )}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="secondary"
-                                      onClick={() => save(t.id)}
-                                      disabled={actionsDisabled}
-                                      title="Capture your current editor files, browser tabs, and git branch into this capsule"
-                                    >
-                                      {pendingAction?.taskId === t.id && pendingAction.kind === "save"
-                                        ? "Saving…"
-                                        : "Save State"}
-                                    </Button>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          className="size-8 text-muted-foreground"
-                                          aria-label={`More actions for ${t.title}`}
-                                          disabled={actionsDisabled}
-                                        >
-                                          <MoreHorizontal className="size-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end" className="w-44">
-                                        <DropdownMenuItem onSelect={() => toggleStatus(t)}>
-                                          {t.status === "open" ? (
-                                            <Check className="mr-2 size-4" />
-                                          ) : (
-                                            <RotateCcw className="mr-2 size-4" />
-                                          )}
-                                          {t.status === "open" ? "Mark done" : "Reopen"}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          onSelect={() => {
-                                            setRenameTarget(t);
-                                            setRenameTitle(t.title);
-                                          }}
-                                        >
-                                          <Pencil className="mr-2 size-4" />
-                                          Rename
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={() => duplicateTask(t)}>
-                                          <Copy className="mr-2 size-4" />
-                                          Duplicate
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                          className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                                          onSelect={() => requestDelete(t)}
-                                        >
-                                          <Trash2 className="mr-2 size-4" />
-                                          Delete
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-                                }
-                              />
-                            </ContextMenuTrigger>
-                            <ContextMenuContent>
-                              <ContextMenuItem onSelect={() => resume(t)} disabled={actionsDisabled}>
-                                <Play className="mr-2 size-4" />
-                                Resume
-                              </ContextMenuItem>
-                              <ContextMenuItem onSelect={() => save(t.id)} disabled={actionsDisabled}>
-                                <Save className="mr-2 size-4" />
-                                Save State
-                              </ContextMenuItem>
-                              <ContextMenuItem
-                                onSelect={() => {
-                                  setRenameTarget(t);
-                                  setRenameTitle(t.title);
-                                }}
-                                disabled={actionsDisabled}
-                              >
-                                <Pencil className="mr-2 size-4" />
-                                Rename
-                              </ContextMenuItem>
-                              <ContextMenuItem onSelect={() => duplicateTask(t)} disabled={actionsDisabled}>
-                                <Copy className="mr-2 size-4" />
-                                Duplicate
-                              </ContextMenuItem>
-                              <ContextMenuItem onSelect={() => toggleStatus(t)} disabled={actionsDisabled}>
-                                {t.status === "open" ? (
-                                  <Check className="mr-2 size-4" />
-                                ) : (
-                                  <RotateCcw className="mr-2 size-4" />
-                                )}
-                                {t.status === "open" ? "Done" : "Reopen"}
-                              </ContextMenuItem>
-                              <ContextMenuSeparator />
-                              <ContextMenuItem
-                                className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                onSelect={() => requestDelete(t)}
-                                disabled={actionsDisabled}
-                              >
-                                <Trash2 className="mr-2 size-4" />
-                                Delete
-                              </ContextMenuItem>
-                            </ContextMenuContent>
-                          </ContextMenu>
-                        );
-                      })}
-                    </Surface>
-                  )}
+                <Icon name="capture" className="size-3" />
+                {saving ? "Capturing…" : "Capture"}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="size-7 rounded-[7px] text-muted-foreground"
+                    aria-label={`More actions for ${selected.title}`}
+                    disabled={actionsDisabled}
+                  >
+                    <Icon name="ellipsis" className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44">
+                  <DropdownMenuItem onSelect={() => toggleStatus(selected)}>
+                    {selected.status === "open" ? "Mark done" : "Reopen"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setRenameTarget(selected);
+                      setRenameTitle(selected.title);
+                    }}
+                  >
+                    Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => duplicateTask(selected)}>Duplicate</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                    onSelect={() => requestDelete(selected)}
+                  >
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
-                  <div className="flex gap-2">
-                    <Input
-                      ref={getNewTaskInputRef(p.id)}
-                      value={drafts[p.id] ?? ""}
-                      onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: e.target.value }))}
-                      placeholder="New task title"
-                      className="max-w-sm"
-                    />
-                    <Button variant="secondary" onClick={() => addTask(p.id)} disabled={!(drafts[p.id] ?? "").trim() || busy || restoreActive}>
-                      Add Task
-                    </Button>
+            <p className="mt-[11px] text-sub text-tertiary-foreground">
+              Restore puts your editor, tabs and branch back the way you left them.
+            </p>
+
+            {hasState ? (
+              <>
+                <GroupHeading className="mt-7">What's inside</GroupHeading>
+                <div className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2.5">
+                  {insideCards(selectedResources, connectedKinds).map((card) => (
+                    <div
+                      key={card.kind}
+                      data-inside-card={card.kind}
+                      className="rounded-[10px] bg-card p-[13px] shadow-raised"
+                    >
+                      <div className="flex items-center justify-between">
+                        <Icon name={card.icon} className="size-4 text-muted-foreground" />
+                        <span
+                          aria-hidden
+                          className={cn("size-[7px] rounded-full", card.live ? "bg-ok" : "bg-warn")}
+                        />
+                      </div>
+                      <p className="mt-2.5 text-card-title font-590 text-foreground">{card.count}</p>
+                      <p className="mt-0.5 text-sub text-muted-foreground">{card.name}</p>
+                      <p className={cn("mt-[7px] text-label", card.live ? "text-ok" : "text-warn")}>
+                        {card.when}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Per-item pin curation ("always open this"). Not in the
+                    handoff, but a real shipped feature — it lives under the
+                    grid rather than being dropped. */}
+                <CapsuleItems
+                  taskId={selected.id}
+                  resources={selectedResources}
+                  pins={pins[selected.id] ?? []}
+                  onChanged={refresh}
+                />
+
+                {/* History. The handoff shows "a grouped list of audit
+                    entries with times"; this app keeps no per-capsule audit
+                    trail, so rather than invent one, the history is the
+                    capture record the capsule actually has — one row per
+                    tool, newest first, with when it was taken. */}
+                <GroupHeading className="mt-7">History</GroupHeading>
+                <div className="mt-[7px] overflow-hidden rounded-[10px] bg-card shadow-raised">
+                  <div className="divide-y-[0.5px] divide-border">
+                    {[...selectedResources]
+                      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+                      .map((r) => (
+                        <div key={r.id} className="flex items-center gap-3 px-4 py-2.5">
+                          <span className="min-w-0 flex-1 truncate text-sub text-foreground">
+                            Captured {friendlyToolName(r.connectorKind)} — {humanizeCapsule(r).summary}
+                          </span>
+                          <span className="shrink-0 text-meta text-tertiary-foreground">
+                            {relativeTime(r.createdAt)}
+                          </span>
+                        </div>
+                      ))}
                   </div>
                 </div>
-              </Section>
-            );
-          })}
-        </div>
-      )}
+              </>
+            ) : (
+              <div className="mt-7 flex flex-col items-center gap-2 rounded-[10px] border border-dashed border-border px-6 py-[34px] text-center">
+                <Icon name="capsule" className="size-[22px] text-tertiary-foreground" />
+                <p className="text-body font-510 text-foreground">Nothing captured yet</p>
+                <p className="max-w-[340px] text-sub leading-[1.55] text-muted-foreground">
+                  Set up your editor and tabs, then press Capture to save this workspace.
+                </p>
+              </div>
+            )}
+
+            <p className="mt-[26px] flex items-center gap-1.5 text-meta text-tertiary-foreground">
+              <Icon name="shield" className="size-3 shrink-0" />
+              Saves paths, URLs and branch names — never your files, pages or passwords.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

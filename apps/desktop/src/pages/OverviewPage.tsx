@@ -62,7 +62,7 @@ function GroupedList({ children }: { children: React.ReactNode }) {
 
 function OverviewSkeleton() {
   return (
-    <div className="mx-auto max-w-[660px] px-8 pb-11 pt-10">
+    <div className="mx-auto h-full max-w-[660px] overflow-y-auto px-8 pb-11 pt-10">
       <Skeleton className="h-7 w-56" />
       <Skeleton className="mt-3 h-4 w-80" />
       <div className="mt-[26px] rounded-[10px] bg-card p-[18px] shadow-raised">
@@ -223,9 +223,12 @@ export function OverviewPage() {
   if (loadError) return <LoadError onRetry={loadProjects} />;
 
   return (
-    // 660px measure, centred — the handoff's Overview is a reading column,
-    // not a dashboard grid. Everything on it is one thing wide.
-    <div className="mx-auto max-w-[660px] px-8 pb-11 pt-10">
+    // The shell's pane no longer scrolls (AppShell.tsx) — each screen owns
+    // its own scroller. Overview's is one 660px reading column, centred:
+    // the handoff's Overview is not a dashboard grid, everything on it is
+    // one thing wide.
+    <div className="h-full min-h-0 overflow-y-auto">
+      <div className="mx-auto max-w-[660px] px-8 pb-11 pt-10">
       <h1 className="text-display font-640 text-foreground">{formatToday(new Date())}</h1>
       <p className="mt-[7px] text-sub text-muted-foreground">
         {glanceLine(connectedCount, openCapsules.length, lastCapture)}
@@ -340,6 +343,7 @@ export function OverviewPage() {
           </GroupedList>
         </>
       )}
+      </div>
     </div>
   );
 }

@@ -143,10 +143,11 @@ export default {
         // (no fabricated percentages). See RestoreProgress in
         // src/restore/RestoreExperience.tsx.
         "restore-shimmer": { "0%": { transform: "translateX(-100%)" }, "100%": { transform: "translateX(220%)" } },
-        // View/content entrance — a quiet fade + 4px rise. Used on page
-        // switches and, staggered, on card lists. Nothing should *look*
-        // animated; it should just feel settled rather than snapping in.
-        "page-in": { from: { opacity: "0", transform: "translateY(4px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        // View/content entrance — the handoff's `pane-in`: 150ms ease-out,
+        // opacity + a 2px rise. Retoned in Phase 2 from 180ms/4px to the
+        // Motion table's numbers. Nothing should *look* animated; it should
+        // just feel settled rather than snapping in.
+        "page-in": { from: { opacity: "0", transform: "translateY(2px)" }, to: { opacity: "1", transform: "translateY(0)" } },
         // Restore Experience's reduced-motion PATH-B indeterminate progress —
         // a neutral full-width track with a gentle opacity-only pulse (no
         // width/transform movement, no fabricated percentage). See
@@ -167,7 +168,7 @@ export default {
         "restore-shimmer": "restore-shimmer 1.1s ease-in-out infinite",
         "restore-pulse": "restore-pulse 1.8s ease-in-out infinite",
         "live-ping": "live-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite",
-        "page-in": "page-in 180ms ease-out both",
+        "page-in": "page-in 150ms ease-out both",
       },
       transitionTimingFunction: {
         brand: "cubic-bezier(0.2, 0.8, 0.2, 1)",
