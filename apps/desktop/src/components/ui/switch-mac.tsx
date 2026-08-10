@@ -26,8 +26,9 @@ import { cn } from "@/lib/utils";
  * app's established `<Field htmlFor>` label pattern (see
  * SettingsPage.tsx's existing `Switch` call sites), and native `<button>`
  * activation covers Enter/Space for free — nothing here needed hand-rolled
- * ARIA. `switch.tsx` is untouched; Phase 2 migrates its call sites to this
- * one.
+ * ARIA. The shadcn `switch.tsx` this was built alongside — h-6 w-11,
+ * pointer cursor, unnamed timings — is gone as of Phase 2; its call sites
+ * are here now, and this is the app's only switch.
  */
 const SwitchMac = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,

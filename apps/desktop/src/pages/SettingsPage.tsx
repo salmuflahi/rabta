@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Surface } from "@/components/ui/surface";
-import { Switch } from "@/components/ui/switch";
+import { SwitchMac } from "@/components/ui/switch-mac";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { toastErr, toastOk } from "@/lib/toast";
@@ -117,7 +117,7 @@ function AppearanceSection() {
           description="Reopen with the sidebar the way you left it — expanded or collapsed."
           htmlFor="remember-sidebar"
         >
-          <Switch
+          <SwitchMac
             id="remember-sidebar"
             checked={rememberSidebar}
             onCheckedChange={(v) => setPref("rememberSidebar", v)}
@@ -157,7 +157,7 @@ function BehaviorSection() {
           description="Reopen your most recent workspace automatically when Rabta starts."
           htmlFor="resume-on-launch"
         >
-          <Switch
+          <SwitchMac
             id="resume-on-launch"
             checked={resumeOnLaunch}
             onCheckedChange={(v) => setPref("resumeOnLaunch", v)}
@@ -176,7 +176,7 @@ function BehaviorSection() {
           description="Resuming a task will put away what it does not want. Everything is saved to the outgoing task first, and a terminal that is running something is never closed."
           htmlFor="focus-mode"
         >
-          <Switch
+          <SwitchMac
             id="focus-mode"
             checked={focusMode}
             onCheckedChange={(v) => setPref("focusMode", v)}
@@ -187,7 +187,7 @@ function BehaviorSection() {
           description="Leave finished capsules in the list instead of clearing them."
           htmlFor="keep-completed"
         >
-          <Switch
+          <SwitchMac
             id="keep-completed"
             checked={keepCompleted}
             onCheckedChange={(v) => setPref("keepCompleted", v)}
@@ -302,7 +302,7 @@ function DeveloperSection() {
           description="Reveal the raw connector command console and other advanced tools."
           htmlFor="developer-mode"
         >
-          <Switch
+          <SwitchMac
             id="developer-mode"
             checked={developerMode}
             onCheckedChange={(v) => setPref("developerMode", v)}

@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+import { SwitchMac } from "@/components/ui/switch-mac";
 import {
   Select,
   SelectContent,
@@ -263,7 +263,7 @@ export function Gallery() {
             </Select>
           </div>
           <div className="flex items-center gap-2 pt-6">
-            <Switch id="gallery-switch" defaultChecked />
+            <SwitchMac id="gallery-switch" defaultChecked />
             <Label htmlFor="gallery-switch">Auto-reconnect</Label>
           </div>
         </div>
