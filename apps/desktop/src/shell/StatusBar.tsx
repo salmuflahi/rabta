@@ -5,11 +5,10 @@ import { useStore } from "@/store";
 /**
  * "1 connector online" / "2 connectors online" / "No connectors online" —
  * the pluralization pattern this project already uses elsewhere
- * (Toolbar.tsx's `ConnectionIndicator` aria-label, SettingsPage.tsx's
- * "N tools are connected"). Deliberately not the prototype's hardcoded
- * "Cursor and Chrome connected": that string would be a lie the moment
- * either connector drops, or a lie of omission the moment a third one (or
- * neither) is what's actually connected.
+ * (SettingsPage.tsx's "N tools are connected"). Deliberately not the
+ * prototype's hardcoded "Cursor and Chrome connected": that string would be
+ * a lie the moment either connector drops, or a lie of omission the moment
+ * a third one (or neither) is what's actually connected.
  */
 function connectorStatusText(connectedCount: number): string {
   if (connectedCount === 0) return "No connectors online";

@@ -59,15 +59,23 @@ describe("Toolbar", () => {
 
   describe("contextual accent action", () => {
     // Per the handoff: "New capsule" on Overview and Capsules, "Add
-    // project" on Projects, "Add connector" on Connectors, nothing on
-    // Activity or Settings — this is the toolbar's one spendable accent
-    // (the sidebar's selected row is deliberately neutral), so both the
-    // label per view and its absence on the other two views are pinned.
+    // project" on Projects, nothing on Connectors, Activity, or Settings —
+    // this is the toolbar's one spendable accent (the sidebar's selected
+    // row is deliberately neutral), so both the label per view and its
+    // absence on the other three views are pinned.
+    //
+    // Connectors used to show "Add connector", wired to open the same
+    // ConnectionIndicator popover the adjacent pill already opened. No
+    // manual-add flow exists anywhere in the app (connectors self-pair;
+    // store.ts has no "start pairing" action, ConnectorsPage.tsx has no add
+    // UI), so an accent + plus-icon button that opens a popover instead of
+    // creating anything misrepresented itself and duplicated an adjacent
+    // control. Finding 1 (Important review) — omit it, exactly like
+    // Activity and Settings already do.
     const expectedLabels: Partial<Record<NavKey, string>> = {
       overview: "New capsule",
       capsules: "New capsule",
       projects: "Add project",
-      connectors: "Add connector",
     };
 
     for (const item of [...NAV_ITEMS, SETTINGS_ITEM]) {
@@ -81,13 +89,33 @@ describe("Toolbar", () => {
       } else {
         it(`shows no accent action on ${item.key}`, () => {
           useStore.setState({ view: item.key });
-          renderWithProviders(<Toolbar />);
+          const { container } = renderWithProviders(<Toolbar />);
           for (const label of Object.values(expectedLabels)) {
             expect(screen.queryByRole("button", { name: label })).not.toBeInTheDocument();
           }
+          // Belt-and-suspenders beyond the known-label check above: assert
+          // no accent-filled control renders at all, by the same selector
+          // `expectAtMostOneAccent` uses. This is what actually catches a
+          // regression of Finding 1 ("Add connector" coming back on
+          // Connectors) rather than relying on it staying out of
+          // `expectedLabels` above.
+          expect(container.querySelectorAll(".bg-primary").length).toBe(0);
         });
       }
     }
+
+    // Finding 1 (Important review): Connectors used to show an "Add
+    // connector" accent button wired to open ConnectionIndicator's popover
+    // — the same popover the adjacent pill already opened. No manual-add
+    // flow exists anywhere in the app (connectors self-pair), so the button
+    // created nothing and duplicated an adjacent control. Named explicitly
+    // here, in addition to the generic loop above, because this is the
+    // exact old-contract assertion the review flagged.
+    it('shows no "Add connector" action on connectors', () => {
+      useStore.setState({ view: "connectors" });
+      renderWithProviders(<Toolbar />);
+      expect(screen.queryByRole("button", { name: "Add connector" })).not.toBeInTheDocument();
+    });
 
     it("New capsule on Overview routes to Capsules and requests a new one", () => {
       useStore.setState({ view: "overview", newTaskRequest: false });
@@ -116,6 +144,39 @@ describe("Toolbar", () => {
         expectAtMostOneAccent(container);
         unmount();
       }
+    });
+  });
+
+  describe("connector indicator", () => {
+    // Finding 2 (Important review): the toolbar used to carry a "N
+    // connected" pill (ConnectionIndicator) that opened a popover of
+    // per-connector state. Both the prototype markup (traffic-lights/
+    // toggle → chevrons → title → spacer → search → conditional accent
+    // button, no connector pill) and the task brief's own prose agree it
+    // does not belong in the toolbar. Removing it doesn't lose the count —
+    // Sidebar's Connectors row shows it (Task 9) and StatusBar states it in
+    // words (Task 8) — it was the toolbar's own third copy of the same
+    // number. Assert it renders nowhere in the toolbar, connected or not.
+    it("renders no connector-count pill or connection popover trigger", () => {
+      useStore.setState({
+        view: "connectors",
+        connectors: [
+          {
+            id: "c1",
+            name: "VS Code",
+            kind: "vscode",
+            capabilities: [],
+            connected: true,
+            connectedSince: "2026-08-09T12:00:00.000Z",
+          },
+        ],
+      });
+      renderWithProviders(<Toolbar />);
+      expect(
+        screen.queryByRole("button", { name: /Open connection status/ }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/connected$/)).not.toBeInTheDocument();
+      useStore.setState({ connectors: [] });
     });
   });
 

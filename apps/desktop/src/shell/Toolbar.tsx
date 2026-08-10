@@ -1,9 +1,7 @@
-import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { Kbd } from "@/components/ui/kbd";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useStore, type ConnectorRow, type NavKey } from "@/store";
+import { useStore, type NavKey } from "@/store";
 import { NAV_ITEMS, SETTINGS_ITEM } from "./nav";
 import { SidebarToggleButton } from "./Sidebar";
 import {
@@ -89,129 +87,23 @@ function HistoryChevrons() {
   );
 }
 
-// Connector types Rabta ships an integration for. The popover always lists
-// these so a user can see what's available, connected or not.
-const KNOWN_CONNECTORS: { kind: string; name: string }[] = [
-  { kind: "vscode", name: "VS Code" },
-  { kind: "chrome", name: "Chrome" },
-];
-
-type ConnState = "connected" | "offline" | "absent";
-
-function connStateStyles(state: ConnState): { dot: string; text: string; label: string } {
-  switch (state) {
-    case "connected":
-      return { dot: "bg-success", text: "text-success", label: "Connected" };
-    case "offline":
-      return { dot: "bg-warning", text: "text-warning", label: "Offline" };
-    default:
-      return { dot: "bg-muted-foreground/40", text: "text-muted-foreground", label: "Not connected" };
-  }
-}
-
-/** One row per known connector plus any other live connector kind (e.g. a
- * dev fake), each with its current connection state. */
-function connectionRows(connectors: ConnectorRow[]): { key: string; name: string; state: ConnState }[] {
-  const rows = KNOWN_CONNECTORS.map(({ kind, name }) => {
-    const matches = connectors.filter((c) => c.kind === kind);
-    const state: ConnState = matches.some((c) => c.connected)
-      ? "connected"
-      : matches.length > 0
-        ? "offline"
-        : "absent";
-    return { key: kind, name, state };
-  });
-  const extra = connectors
-    .filter((c) => !KNOWN_CONNECTORS.some((k) => k.kind === c.kind))
-    .map((c) => ({ key: c.id, name: c.name, state: (c.connected ? "connected" : "offline") as ConnState }));
-  return [...rows, ...extra];
-}
-
-/** `open`/`onOpenChange` are controlled from Toolbar() so the Connectors
- * view's "Add connector" accent action can open the same popover this
- * indicator's own trigger opens — see the `action` mapping in Toolbar()
- * for why: there's no store-level "start adding a connector" request to
- * hook into (connectors self-pair; ConnectorsPage.tsx is out of scope for
- * this change), so reusing this real, already-informative surface beats
- * inventing new state or shipping a button that does nothing. */
-function ConnectionIndicator({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const connectors = useStore((s) => s.connectors);
-  const hubPort = useStore((s) => s.hubPort);
-  const setView = useStore((s) => s.setView);
-  const connectedCount = connectors.filter((c) => c.connected).length;
-  const rows = connectionRows(connectors);
-
-  return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={`${connectedCount} connector${connectedCount === 1 ? "" : "s"} connected. Open connection status.`}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors duration-fast ease-standard hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
-          <span
-            className={cn(
-              "size-1.5 shrink-0 rounded-full",
-              connectedCount > 0 ? "bg-success" : "bg-muted-foreground/40",
-            )}
-          />
-          <span className="truncate">{connectedCount} connected</span>
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-64 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
-      >
-        <p className="text-meta font-medium text-popover-foreground">Connections</p>
-        <p className="mt-0.5 text-label text-muted-foreground">Local hub · localhost:{hubPort ?? "…"}</p>
-        <div className="mt-3 flex flex-col gap-2">
-          {rows.map(({ key, name, state }) => {
-            const s = connStateStyles(state);
-            return (
-              <div key={key} className="flex items-center gap-2 text-meta">
-                <span className={cn("size-2 shrink-0 rounded-full", s.dot)} />
-                <span className="min-w-0 flex-1 truncate text-foreground">{name}</span>
-                <span className={cn("shrink-0 text-label", s.text)}>{s.label}</span>
-              </div>
-            );
-          })}
-        </div>
-        <button
-          type="button"
-          onClick={() => setView("connectors")}
-          className="mt-3 w-full border-t border-border pt-3 text-left text-label font-medium text-primary transition-colors duration-fast ease-standard hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          Manage connectors →
-        </button>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 /** The toolbar's one contextual accent action, per view — "New capsule" on
  * Overview and Capsules (both are places a user starts one from), "Add
- * project" on Projects, "Add connector" on Connectors, and nothing on
- * Activity or Settings (there's no single sensible "create" for either).
- * This is the toolbar's one spendable accent: Sidebar.tsx's selected-row
- * pill is deliberately neutral (see its DELIBERATE DIVERGENCE comment) so
- * the accent budget (`expectAtMostOneAccent`) is spent here or not at all.
+ * project" on Projects, and nothing on Connectors, Activity, or Settings
+ * (there's no single sensible "create" for any of the three: Connectors
+ * self-pair — no manual-add flow exists anywhere in the app — so an accent
+ * button there would create nothing). This is the toolbar's one spendable
+ * accent: Sidebar.tsx's selected-row pill is deliberately neutral (see its
+ * DELIBERATE DIVERGENCE comment) so the accent budget
+ * (`expectAtMostOneAccent`) is spent here or not at all.
  *
  * `requestNewTask`/`requestNewProject` are the same store actions the
  * ⌘⇧N/⌘N global shortcuts already drive (App.tsx) — reused rather than
  * reinvented so this button and the shortcut always agree on what "new"
- * means. Connectors has no equivalent store request (see
- * ConnectionIndicator's doc comment above), so its action opens that
- * popover instead. */
-function useContextualAction(
-  view: NavKey,
-  openConnectionPopover: () => void,
-): { label: string; onClick: () => void } | null {
+ * means. Connectors has no equivalent store request — connectors self-pair,
+ * and there is no manual-add flow anywhere in the app for this button to
+ * trigger — so it renders nothing, same as Activity and Settings. */
+function useContextualAction(view: NavKey): { label: string; onClick: () => void } | null {
   const setView = useStore((s) => s.setView);
   const requestNewTask = useStore((s) => s.requestNewTask);
   const requestNewProject = useStore((s) => s.requestNewProject);
@@ -229,7 +121,6 @@ function useContextualAction(
     case "projects":
       return { label: "Add project", onClick: requestNewProject };
     case "connectors":
-      return { label: "Add connector", onClick: openConnectionPopover };
     case "activity":
     case "settings":
       return null;
@@ -250,7 +141,6 @@ function useContextualAction(
 export function Toolbar() {
   const view = useStore((s) => s.view);
   const sidebarCollapsed = useStore((s) => s.sidebarCollapsed);
-  const [connectionPopoverOpen, setConnectionPopoverOpen] = useState(false);
   // `view` traces back to `readPrefs()`'s unvalidated `JSON.parse` of
   // `landingPage` (store.ts), which never checks the persisted value against
   // `NavKey` — a stale/hand-edited localStorage value can produce a `view`
@@ -260,7 +150,7 @@ export function Toolbar() {
   const title =
     [...NAV_ITEMS, SETTINGS_ITEM].find((item) => item.key === view)?.label ?? NAV_ITEMS[0].label;
 
-  const action = useContextualAction(view, () => setConnectionPopoverOpen(true));
+  const action = useContextualAction(view);
 
   return (
     <header
@@ -293,7 +183,6 @@ export function Toolbar() {
       <h1 className="ml-1.5 truncate text-body font-semibold tracking-[-0.005em] text-foreground">
         {title}
       </h1>
-      <ConnectionIndicator open={connectionPopoverOpen} onOpenChange={setConnectionPopoverOpen} />
       <div className="flex-1" />
       <SearchTrigger />
       {action && <ContextualAction label={action.label} onClick={action.onClick} />}
