@@ -1,16 +1,8 @@
 import { useEffect, useLayoutEffect } from "react";
 import { prefersReducedMotion } from "@/lib/motion";
 import { applyAccent } from "@/theme/accent";
+import { resolveTheme } from "@/theme/resolve";
 import { useStore, type ThemePref } from "@/store";
-
-function resolveTheme(theme: ThemePref): "light" | "dark" {
-  if (theme !== "system") return theme;
-  try {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  } catch {
-    return "light";
-  }
-}
 
 /**
  * Applies the resolved color theme, the accent, and the motion preference to

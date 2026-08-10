@@ -24,20 +24,6 @@ import {
   type PersistedEvent,
 } from "./store";
 
-/** Scroll container + page padding for screens that have not yet been
- * rebuilt to Console v2. AppShell's pane stopped scrolling and padding in
- * Phase 2 so master/detail screens can run two independent scrollers
- * edge-to-edge (see AppShell.tsx); until each of these is rebuilt, this
- * reproduces the old shell behaviour around it. Delete a wrapper as its
- * screen lands — the last one to go takes this component with it. */
-function LegacyPane({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="h-full min-h-0 overflow-y-auto overflow-x-hidden overscroll-x-none p-4">
-      {children}
-    </div>
-  );
-}
-
 function CurrentPage({ view }: { view: NavKey }) {
   switch (view) {
     case "overview":
@@ -51,11 +37,7 @@ function CurrentPage({ view }: { view: NavKey }) {
     case "activity":
       return <ActivityPage />;
     case "settings":
-      return (
-        <LegacyPane>
-          <SettingsPage />
-        </LegacyPane>
-      );
+      return <SettingsPage />;
     default: {
       // NavKey is a closed union — every view is handled above. This keeps
       // the switch exhaustive so a new view can't silently render nothing.

@@ -1,67 +1,130 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { expectAtMostOneAccent } from "@/test/accent";
 import { renderWithProviders } from "@/test/smoke-utils";
 import { useStore } from "@/store";
 import { SettingsPage } from "./SettingsPage";
 
+function sections() {
+  return within(document.querySelector("[data-settings-sections]") as HTMLElement);
+}
+function detail() {
+  return within(document.querySelector("[data-settings-detail]") as HTMLElement);
+}
+
+/** Settings is a section list now — most rows only exist once their
+ * section is open. */
+function openSection(label: string) {
+  fireEvent.click(sections().getByRole("tab", { name: label }));
+}
+
 describe("SettingsPage", () => {
   beforeEach(() => {
     // The store is a module singleton shared across tests; start each case
     // from default preferences so Developer mode (etc.) doesn't leak between.
     useStore.getState().resetPrefs();
+    useStore.setState({ settingsSection: "general" });
   });
 
-  // Task 11 moved the page name into the workspace Toolbar's <h1>; Task 12
-  // stripped Overview's own eyebrow/title stack to match. Settings never got
-  // the same treatment, so it rendered "Settings" a second time via its own
-  // PageHeader <h1> directly under the toolbar's. This page must not own an
-  // <h1> (or restate the "PREFERENCES" eyebrow) — but the name still needs
-  // to resolve for screen readers, via a visually-hidden heading.
-  it("does not render its own page title as a heading — the toolbar owns it", async () => {
+  // The Toolbar owns the view's <h1>; the detail pane names the open
+  // section within it.
+  it("does not own the document's top heading", () => {
     renderWithProviders(<SettingsPage />);
-    await screen.findByText("Appearance");
-
     expect(document.querySelector("h1")).not.toBeInTheDocument();
-    expect(screen.queryByText("PREFERENCES")).not.toBeInTheDocument();
-    // Accessible name preserved via a visually-hidden heading.
-    expect(screen.getByText("Settings")).toBeInTheDocument();
+    expect(detail().getByRole("heading", { level: 2, name: "General" })).toBeInTheDocument();
   });
 
-  it("renders every product section without throwing", async () => {
+  it("lists every section and opens the one you pick", () => {
     renderWithProviders(<SettingsPage />);
-    expect(await screen.findByText("Settings")).toBeInTheDocument();
-    expect(screen.getByText("Appearance")).toBeInTheDocument();
-    expect(screen.getByText("Behavior")).toBeInTheDocument();
-    expect(screen.getByText("Connectors")).toBeInTheDocument();
-    expect(screen.getByText("Privacy & data")).toBeInTheDocument();
-    expect(screen.getByText("Keyboard shortcuts")).toBeInTheDocument();
-    expect(screen.getByText("Developer")).toBeInTheDocument();
+    for (const label of [
+      "General",
+      "Appearance",
+      "Capsules",
+      "Connectors",
+      "Privacy & data",
+      "Developer",
+      "Shortcuts",
+    ]) {
+      expect(sections().getByRole("tab", { name: label })).toBeInTheDocument();
+    }
+
+    openSection("Privacy & data");
+    expect(useStore.getState().settingsSection).toBe("privacy");
+    expect(detail().getByRole("heading", { level: 2, name: "Privacy & data" })).toBeInTheDocument();
   });
 
-  it("hides the raw command console until Developer mode is enabled", async () => {
+  // Migrate is Phase 3 — the whole flow is unbuilt, and a section listing it
+  // would either be empty or open a sheet that doesn't exist.
+  it("does not offer a Migrate section it cannot open", () => {
     renderWithProviders(<SettingsPage />);
-    await screen.findByText("Settings");
-
-    // Console is gated off by default.
-    expect(screen.queryByText("Send command")).not.toBeInTheDocument();
-
-    // Enabling Developer mode reveals it.
-    fireEvent.click(screen.getByLabelText("Developer mode"));
-    expect(await screen.findByText("Send command")).toBeInTheDocument();
+    expect(sections().queryByRole("tab", { name: "Migrate" })).toBeNull();
   });
 
-  it("toggles focus mode, off by default", async () => {
+  it("keeps the selected section neutral, not accent-filled", () => {
     renderWithProviders(<SettingsPage />);
-    await screen.findByText("Settings");
+    const tab = sections().getByRole("tab", { name: "General" });
+    expect(tab).toHaveAttribute("aria-selected", "true");
+    expect(tab.className.split(/\s+/)).toContain("bg-secondary");
+    expect(tab.className.split(/\s+/)).not.toContain("bg-primary");
+  });
 
-    // Restore to the original label "Put away what isn't in the task"
-    // (from commit dd36604, which predates Task 16's redesign). The label
-    // names the behavior; the description states the guarantees. Together,
-    // they follow the project's copy rule: "Name what is true, then what
-    // to do about it." The wiring (checked/onCheckedChange <->
-    // store.setPref("focusMode", …)) is unchanged.
-    const toggle = screen.getByLabelText("Put away what isn't in the task");
+  it("tolerates a persisted section id that no longer exists", () => {
+    useStore.setState({ settingsSection: "migrate" });
+    renderWithProviders(<SettingsPage />);
+    expect(detail().getByRole("heading", { level: 2, name: "General" })).toBeInTheDocument();
+  });
+
+  it("carries no primary-accent fill anywhere — Settings has no primary action", () => {
+    const { container } = renderWithProviders(<SettingsPage />);
+    for (const label of ["General", "Appearance", "Capsules", "Privacy & data", "Developer"]) {
+      openSection(label);
+      expect(container.querySelector(".bg-primary")).toBeNull();
+      expectAtMostOneAccent(container);
+    }
+  });
+});
+
+describe("SettingsPage live preferences", () => {
+  beforeEach(() => {
+    useStore.getState().resetPrefs();
+    useStore.setState({ settingsSection: "appearance" });
+  });
+
+  it("wires Theme to the pref", () => {
+    renderWithProviders(<SettingsPage />);
+    fireEvent.click(detail().getByRole("radio", { name: "Dark" }));
+    expect(useStore.getState().prefs.theme).toBe("dark");
+  });
+
+  it("wires Accent to the pref", () => {
+    renderWithProviders(<SettingsPage />);
+    const swatch = detail().getByRole("radiogroup", { name: "Accent colour" });
+    fireEvent.click(within(swatch).getAllByRole("radio")[1]);
+    expect(useStore.getState().prefs.accent).not.toBe("tangerine");
+  });
+
+  it("wires Status bar to the pref", () => {
+    renderWithProviders(<SettingsPage />);
+    fireEvent.click(detail().getByLabelText("Status bar"));
+    expect(useStore.getState().prefs.statusbar).toBe(false);
+  });
+
+  it("wires Motion to the pref", () => {
+    renderWithProviders(<SettingsPage />);
+    fireEvent.click(detail().getByRole("radio", { name: "Reduced" }));
+    expect(useStore.getState().prefs.motion).toBe("reduced");
+  });
+});
+
+describe("SettingsPage capsules section", () => {
+  beforeEach(() => {
+    useStore.getState().resetPrefs();
+    useStore.setState({ settingsSection: "capsules" });
+  });
+
+  it("toggles focus mode, off by default", () => {
+    renderWithProviders(<SettingsPage />);
+    const toggle = detail().getByLabelText("Put away what isn't in the task");
     expect(toggle).not.toBeChecked();
     expect(useStore.getState().prefs.focusMode).toBe(false);
 
@@ -71,38 +134,52 @@ describe("SettingsPage", () => {
   });
 
   // Focus mode is destructive-feeling and lives buried in Settings. A user
-  // who finds it should understand the guarantees before enabling it.
-  it("states the focus mode guarantees at the point of decision", async () => {
+  // who finds it must understand the guarantees before enabling it — this
+  // copy survives every redesign.
+  it("states the focus mode guarantees at the point of decision", () => {
     renderWithProviders(<SettingsPage />);
-    expect(await screen.findByText(/never closed/i)).toBeInTheDocument();
-    // "what it does not want" is unique to the description, confirming the
-    // guarantees text is present (as opposed to just the label containing "put away").
-    expect(screen.getByText(/what it does not want/i)).toBeInTheDocument();
+    expect(detail().getByText(/never closed/i)).toBeInTheDocument();
+    expect(detail().getByText(/what it does not want/i)).toBeInTheDocument();
   });
 
-  it("keeps the focus mode switch wired to the pref", async () => {
+  it("toggles keep-completed", () => {
     renderWithProviders(<SettingsPage />);
-    const toggle = await screen.findByLabelText("Put away what isn't in the task");
-    expect(toggle).toBeInTheDocument();
+    const toggle = detail().getByLabelText("Keep completed capsules");
+    expect(toggle).toBeChecked();
+    fireEvent.click(toggle);
+    expect(useStore.getState().prefs.keepCompleted).toBe(false);
+  });
+});
+
+describe("SettingsPage developer section", () => {
+  beforeEach(() => {
+    useStore.getState().resetPrefs();
+    useStore.setState({ settingsSection: "developer" });
   });
 
-  it("spends the accent at most once", async () => {
-    const { container } = renderWithProviders(<SettingsPage />);
-    await screen.findByText("Settings");
-    expectAtMostOneAccent(container);
+  it("hides the raw command console until Developer mode is enabled", async () => {
+    renderWithProviders(<SettingsPage />);
+    expect(screen.queryByText("Send command")).not.toBeInTheDocument();
+
+    fireEvent.click(detail().getByLabelText("Developer mode"));
+    expect(await screen.findByText("Send command")).toBeInTheDocument();
+  });
+});
+
+describe("SettingsPage privacy section", () => {
+  beforeEach(() => {
+    useStore.getState().resetPrefs();
+    useStore.setState({ settingsSection: "privacy" });
   });
 
-  // expectAtMostOneAccent alone is vacuous — it passes whether or not
-  // anything renders. Settings has zero variant="primary" buttons by
-  // design (there is no single primary action on this page), so pin the
-  // lower bound directly: prove no element anywhere carries a bg-primary
-  // fill, rather than trusting the budget check above on its own.
-  it("carries no primary-accent fill anywhere on the page", async () => {
-    const { container } = renderWithProviders(<SettingsPage />);
-    await screen.findByText("Settings");
-    const accented = Array.from(container.querySelectorAll("*")).filter((el) =>
-      /(^|\s)bg-primary(\s|$)/.test(el.getAttribute("class") || ""),
-    );
-    expect(accented).toHaveLength(0);
+  it("states the local-only guarantee", () => {
+    renderWithProviders(<SettingsPage />);
+    expect(detail().getByText(/no cloud account and no telemetry/)).toBeInTheDocument();
+  });
+
+  it("offers a reset that says what it does not touch", () => {
+    renderWithProviders(<SettingsPage />);
+    expect(detail().getByText(/capsules and projects aren't touched/)).toBeInTheDocument();
+    expect(detail().getByRole("button", { name: "Reset" })).toBeInTheDocument();
   });
 });
