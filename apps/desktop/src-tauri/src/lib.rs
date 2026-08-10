@@ -20,10 +20,11 @@ use crate::projects::RepoInspection;
 pub mod capsules;
 pub mod git;
 pub mod github;
+pub mod migrate;
 pub mod projects;
 
 struct HubHandle(Arc<Hub>);
-struct DbHandle(Db);
+pub struct DbHandle(pub Db);
 struct CapsulesHandle(Capsules);
 
 /// Snapshot of connected connectors for the UI.
@@ -734,7 +735,13 @@ pub fn run() {
             deny_pairing,
             hub_port,
             reveal_in_finder,
-            open_url
+            open_url,
+            migrate::migrate_survey,
+            migrate::migrate_home,
+            migrate::migrate_export,
+            migrate::migrate_inspect,
+            migrate::migrate_apply,
+            migrate::migrate_preferences
         ])
         .build(tauri::generate_context!())
         .expect("error while building Rabta");
