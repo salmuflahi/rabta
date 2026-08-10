@@ -16,10 +16,19 @@
 // actually agree with the numbers, instead of trusting a comment.
 
 /** The Toolbar's total rendered height. box-sizing: border-box (Tailwind
- * Preflight) means this already includes the Toolbar's own 1px border-b —
- * no extra math needed when comparing against it. */
-export const TOOLBAR_HEIGHT_PX = 38;
-export const TOOLBAR_HEIGHT_CLASS = "h-[38px]";
+ * Preflight) means this already includes the Toolbar's own border-b —
+ * no extra math needed when comparing against it.
+ *
+ * Task 10 (Console v2 Phase 1) retones this from 38px to the handoff's
+ * spec'd 52px (Rabta - Console v2.dc.html's toolbar `<header>`:
+ * `height:52px`) — the prototype markup is the source of truth here, ahead
+ * of the README's prose, per that task's brief. Retuning this number is
+ * *why* this module exists: the Sidebar's titlebar spacer below is derived
+ * from it rather than hardcoded, and the native traffic-light position in
+ * `src-tauri/tauri.conf.json` has to be re-measured against the new strip
+ * height (see that file's `trafficLightPosition` comment). */
+export const TOOLBAR_HEIGHT_PX = 52;
+export const TOOLBAR_HEIGHT_CLASS = "h-[52px]";
 
 /** The Sidebar draws its side of the hairline as two separate elements — a
  * spacer plus a real 1px divider — so the spacer must be exactly one pixel
@@ -30,4 +39,65 @@ export const SIDEBAR_TITLEBAR_DIVIDER_HEIGHT_CLASS = "h-px";
 
 export const SIDEBAR_TITLEBAR_SPACER_HEIGHT_PX =
   TOOLBAR_HEIGHT_PX - SIDEBAR_TITLEBAR_DIVIDER_HEIGHT_PX;
-export const SIDEBAR_TITLEBAR_SPACER_HEIGHT_CLASS = "h-[37px]";
+export const SIDEBAR_TITLEBAR_SPACER_HEIGHT_CLASS = "h-[51px]";
+
+// --- Sidebar-toggle geometry (Task 10) ---
+//
+// The sidebar-toggle control is drawn by two different chrome regions
+// depending on state — the Sidebar itself when it's open, the Toolbar when
+// it's collapsed (see Sidebar.tsx's `SidebarToggleButton` and its two call
+// sites) — but the handoff is explicit that its left edge must land at the
+// *same* 73px from the window edge in both, so the control never visibly
+// jumps as the sidebar animates open/closed. That 73px isn't an arbitrary
+// number to pin directly: it's the sum of the space macOS's native
+// traffic-light cluster occupies (never drawn by this app — see
+// `src-tauri/tauri.conf.json`) plus the gap before the toggle, so it's
+// built from the same pieces both chrome regions already need to reserve
+// that space correctly. Building it from parts here (rather than each
+// component hardcoding its own arithmetic) is the same reasoning as
+// TOOLBAR_HEIGHT_PX above: two independent "73"s that happen to agree
+// today are exactly the kind of thing this codebase has watched drift
+// apart before.
+
+/** One traffic-light dot, and the gap between consecutive dots — 12px
+ * circles, 8px gaps, per the handoff. */
+export const TRAFFIC_LIGHT_DOT_SIZE_PX = 12;
+export const TRAFFIC_LIGHT_DOT_GAP_PX = 8;
+export const TRAFFIC_LIGHT_DOT_COUNT = 3;
+
+/** Total width of the three-dot cluster: 3 dots + 2 gaps between them. */
+export const TRAFFIC_LIGHT_GROUP_WIDTH_PX =
+  TRAFFIC_LIGHT_DOT_COUNT * TRAFFIC_LIGHT_DOT_SIZE_PX +
+  (TRAFFIC_LIGHT_DOT_COUNT - 1) * TRAFFIC_LIGHT_DOT_GAP_PX;
+export const TRAFFIC_LIGHT_GROUP_WIDTH_CLASS = "w-[52px]";
+
+/** Left padding shared by the Sidebar's own content column (its `aside`'s
+ * `px-[10px]`) and the Toolbar's chrome row — the point both regions start
+ * their content from before the traffic-light reservation begins. Kept as
+ * its own constant (rather than each component owning an independent `10`)
+ * because the 73px toggle position below is derived from it in both
+ * places. */
+export const CHROME_INSET_PX = 10;
+export const CHROME_INSET_CLASS = "pl-[10px]";
+
+/** The first light sits 13px from the window's left edge (measured against
+ * the running app window — see task-10-report.md for the raw
+ * measurements). Both chrome regions reach that inset by adding a small
+ * extra inset on top of their shared CHROME_INSET_PX. */
+export const TRAFFIC_LIGHT_FIRST_LIGHT_OFFSET_PX = 13;
+export const TRAFFIC_LIGHT_WRAPPER_INSET_PX =
+  TRAFFIC_LIGHT_FIRST_LIGHT_OFFSET_PX - CHROME_INSET_PX;
+export const TRAFFIC_LIGHT_WRAPPER_INSET_CLASS = "pl-[3px]";
+
+/** Gap between the traffic-light cluster and the toggle button that
+ * follows it. */
+export const SIDEBAR_TOGGLE_GAP_PX = 8;
+export const SIDEBAR_TOGGLE_GAP_CLASS = "gap-[8px]";
+
+/** The toggle's own left edge from the window edge — identical in both
+ * chrome regions, since both are built from the same four numbers above. */
+export const SIDEBAR_TOGGLE_LEFT_PX =
+  CHROME_INSET_PX +
+  TRAFFIC_LIGHT_WRAPPER_INSET_PX +
+  TRAFFIC_LIGHT_GROUP_WIDTH_PX +
+  SIDEBAR_TOGGLE_GAP_PX;

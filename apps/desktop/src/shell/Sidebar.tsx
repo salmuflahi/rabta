@@ -1,4 +1,3 @@
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -13,6 +12,9 @@ import {
 import {
   SIDEBAR_TITLEBAR_DIVIDER_HEIGHT_CLASS,
   SIDEBAR_TITLEBAR_SPACER_HEIGHT_CLASS,
+  SIDEBAR_TOGGLE_GAP_CLASS,
+  TRAFFIC_LIGHT_GROUP_WIDTH_CLASS,
+  TRAFFIC_LIGHT_WRAPPER_INSET_CLASS,
 } from "./titlebar";
 
 /** The mark, inlined so `currentColor` inherits the sidebar's ivory.
@@ -212,13 +214,60 @@ function NavGroup({
   );
 }
 
-/** Brand + collapse control row. The logo is identity only (never a nav
- * control); the collapse control lives at the row's right and glides to the
- * rail centre as the sidebar closes. */
-function BrandRow({ collapsed, fullscreen }: { collapsed: boolean; fullscreen: boolean }) {
+/** The sidebar-toggle control, shared between the two chrome regions that
+ * can draw it: this file's own Row 1 (sidebar open — rendered right after
+ * the traffic-light reservation) and Toolbar.tsx (sidebar collapsed, where
+ * the Sidebar itself is too narrow to hold it). Both call sites gate
+ * *whether* to render this on the same `sidebarCollapsed` flag this
+ * component reads for its own icon/label, so the two never show it
+ * simultaneously.
+ *
+ * Its left edge has to land at the same 73px from the window edge in
+ * either chrome region (see SIDEBAR_TOGGLE_LEFT_PX in titlebar.ts) — that's
+ * a positioning contract the *call site* is responsible for (each wraps
+ * this in the same traffic-light-reservation + gap structure), not
+ * something this component enforces on its own.
+ *
+ * `tone` swaps the color tokens for the surface it's actually drawn on:
+ * the sidebar's own dark/light `--sidebar-*` tokens here, the main
+ * chrome's regular tokens in the Toolbar. */
+export function SidebarToggleButton({ tone }: { tone: "sidebar" | "toolbar" }) {
+  const collapsed = useStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useStore((s) => s.toggleSidebar);
-  const Icon = collapsed ? PanelLeftOpen : PanelLeftClose;
   const label = collapsed ? "Show sidebar" : "Hide sidebar";
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label={label}
+          className={cn(
+            "grid h-6 w-[26px] shrink-0 place-items-center rounded-md transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2",
+            tone === "sidebar"
+              ? "text-sidebar-foreground/55 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground focus-visible:ring-sidebar-ring"
+              : "text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          )}
+        >
+          {/* Icon reflects current state (sidebar visible vs. hidden), not
+              the action the click performs — matches the handoff's
+              #ic-sidebar-on / #ic-sidebar-off pairing. */}
+          <Icon name={collapsed ? "sidebar-off" : "sidebar-on"} className="size-4" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side={tone === "sidebar" ? "right" : "bottom"} className="flex items-center gap-3">
+        <span>{label}</span>
+        <span className="font-mono text-[11px] text-muted-foreground">⌘\</span>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Brand identity row. The collapse control used to live here but has
+ * moved up into Row 1 (see the traffic-light spacer in Sidebar() below) so
+ * its 73px position can be shared with the Toolbar's collapsed-state
+ * rendering of the same control — see SidebarToggleButton above. */
+function BrandRow({ collapsed, fullscreen }: { collapsed: boolean; fullscreen: boolean }) {
   return (
     <div className={cn("flex shrink-0 items-center", fullscreen ? "h-[58px] pt-2" : "h-[58px]")}>
       {/* Non-interactive identity. Dragging it moves the window. */}
@@ -234,22 +283,6 @@ function BrandRow({ collapsed, fullscreen }: { collapsed: boolean; fullscreen: b
         <span className="truncate text-body font-semibold tracking-tight">Rabta</span>
       </div>
       <div className="flex-1" />
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            aria-label={label}
-            className="grid size-10 shrink-0 place-items-center rounded-[9px] text-sidebar-foreground/55 transition-colors duration-fast ease-standard hover:bg-sidebar-accent/40 hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-          >
-            <Icon className="size-[18px]" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side={collapsed ? "right" : "bottom"} className="flex items-center gap-3">
-          <span>{label}</span>
-          <span className="font-mono text-[11px] text-muted-foreground">⌘\</span>
-        </TooltipContent>
-      </Tooltip>
     </div>
   );
 }
@@ -315,18 +348,42 @@ export function Sidebar() {
       className="flex h-full min-h-0 flex-col overflow-hidden border-r border-sidebar-border/60 bg-sidebar px-[10px] text-sidebar-foreground"
     >
       {/* Row 1 — macOS traffic-light strip. Windowed only; the OS overlays the
-          lights here. In fullscreen there are no lights, so the row is dropped
-          and the brand row moves up into this space (no empty band). This
-          spacer plus the 1px divider below it total the workspace Toolbar's
-          height (src/shell/titlebar.ts, currently 38px) so the titlebar
-          divider lines up with the Toolbar's bottom border — one continuous
-          hairline across the whole app. The two heights are pulled from the
-          same shared constants module specifically because they've already
-          drifted apart once (the Toolbar went from 60px to 38px without a
-          matching edit here) — keep them wired to titlebar.ts rather than
-          hardcoding either number again. */}
+          lights here (never drawn by this app — see
+          src-tauri/tauri.conf.json's trafficLightPosition). In fullscreen
+          there are no lights, so the row is dropped and the brand row moves
+          up into this space (no empty band). This spacer plus the 1px
+          divider below it total the workspace Toolbar's height
+          (src/shell/titlebar.ts) so the titlebar divider lines up with the
+          Toolbar's bottom border — one continuous hairline across the whole
+          app. The two heights are pulled from the same shared constants
+          module specifically because they've already drifted apart once
+          (the Toolbar went from 60px to 38px without a matching edit here)
+          — keep them wired to titlebar.ts rather than hardcoding either
+          number again.
+
+          When the sidebar is open, the sidebar-toggle control also lives in
+          this row, right after the light reservation — Task 10 moves it up
+          from the old brand row so its left edge can land at the same 73px
+          the Toolbar uses when the sidebar is collapsed (see
+          SidebarToggleButton above and SIDEBAR_TOGGLE_LEFT_PX in
+          titlebar.ts). When collapsed, the Toolbar draws the toggle instead
+          (the 88px collapsed rail has no room for it at that x position),
+          so it's omitted here — but the row itself, and its light
+          reservation, still renders to keep the titlebar-height invariant
+          above true in both states. */}
       {!fullscreen && (
-        <div data-tauri-drag-region className={cn(SIDEBAR_TITLEBAR_SPACER_HEIGHT_CLASS, "shrink-0")} />
+        <div
+          data-tauri-drag-region
+          className={cn(
+            SIDEBAR_TITLEBAR_SPACER_HEIGHT_CLASS,
+            "flex shrink-0 items-center",
+            TRAFFIC_LIGHT_WRAPPER_INSET_CLASS,
+            SIDEBAR_TOGGLE_GAP_CLASS,
+          )}
+        >
+          <span aria-hidden className={cn(TRAFFIC_LIGHT_GROUP_WIDTH_CLASS, "shrink-0")} />
+          {!collapsed && <SidebarToggleButton tone="sidebar" />}
+        </div>
       )}
 
       {/* Titlebar divider — sets the window-controls row apart from the brand
