@@ -183,7 +183,12 @@ export function CapsulesPage() {
   const filter = useStore((s) => s.capsuleFilter);
   const setFilter = useStore((s) => s.setCapsuleFilter);
 
-  const [projects, setProjects] = useState<Project[]>([]);
+  // Projects live in the store, not in local state: the sidebar's Projects
+  // count reads them, and it is visible from this screen. Keeping them
+  // local here is what made that count read 0 while this page was showing
+  // capsules grouped under three project names.
+  const projects = useStore((s) => s.projects);
+  const setProjects = useStore((s) => s.setProjects);
   const [tasksByProject, setTasksByProject] = useState<Record<string, Task[]>>({});
   const [resources, setResources] = useState<Record<string, TaskResource[]>>({});
   const [pins, setPins] = useState<Record<string, { connectorKind: string; identity: string; payload: unknown }[]>>({});
@@ -241,6 +246,15 @@ export function CapsulesPage() {
 
   useEffect(() => {
     void loadCapsules();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Which capsule is active is shell-wide state (the sidebar and Overview
+  // both read it) but nothing fetches it on mount except whichever page is
+  // open. Without this, arriving here directly — and Capsules is the
+  // default landing page — showed the active capsule as merely Open.
+  useEffect(() => {
+    invoke<string | null>("active_task").then(setActiveTaskId).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

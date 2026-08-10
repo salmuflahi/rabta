@@ -37,6 +37,18 @@ function family(capability: string): string {
 }
 
 const CAPABILITY_USE: Record<string, string> = {
+  // Exact command tokens first. Two commands in the same family do
+  // different things, and falling both back to the family description
+  // makes the table say the same sentence twice next to two different
+  // names — which reads as a bug even when the family answer is close.
+  "workspace.open": "Opens a saved folder in the editor on restore",
+  "workspace.snapshot": "Reads the open folder and file paths on capture",
+  "editor.openFiles": "Reads the paths of the files you have open",
+  "terminal.list": "Reads terminal names and working directories",
+  "tabs.list": "Reads open tab addresses on capture",
+  "tabs.open": "Reopens saved tabs on restore",
+
+  // Family fallbacks, for the coarse tokens the extensions declare today.
   workspace: "Reads which folder is open, to reopen it on restore",
   editor: "Reads the paths of open files and which one is focused",
   terminal: "Reads terminal names and working directories",

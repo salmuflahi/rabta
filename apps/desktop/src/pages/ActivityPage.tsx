@@ -12,7 +12,14 @@ import { useStore, type LogEntry } from "@/store";
 
 /** An event older than this reads as history rather than "just now", and
  * the handoff renders it in tertiary text. One hour, per its Activity
- * section: "events older than an hour render in tertiary text". */
+ * section: "events older than an hour render in tertiary text".
+ *
+ * Age is decided by the timestamp alone, deliberately — NOT by the entry's
+ * `historical` flag, which only means "came from the persisted log at
+ * startup" rather than "arrived live on this connection". Right after
+ * launch every event is historical, including the one from three minutes
+ * ago, and dimming the whole list is the opposite of what this treatment
+ * is for. */
 const AGED_MS = 60 * 60 * 1000;
 
 function entryConnectorId(e: LogEntry): string | undefined {
@@ -118,7 +125,7 @@ export function ActivityPage() {
           ) : (
             shown.map((e) => {
               const isSelected = selected?.seq === e.seq;
-              const aged = e.historical || now - Date.parse(e.at) > AGED_MS;
+              const aged = now - Date.parse(e.at) > AGED_MS;
               return (
                 <button
                   key={e.seq}

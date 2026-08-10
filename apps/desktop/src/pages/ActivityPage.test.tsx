@@ -177,3 +177,20 @@ describe("ActivityPage age and filtering", () => {
     expect(screen.getByRole("button", { name: "Resume auto-scroll" })).toBeInTheDocument();
   });
 });
+
+describe("ActivityPage historical events", () => {
+  beforeEach(() => seed([]));
+
+  // `historical` means "came from the persisted log at startup", not "old".
+  // Right after launch every event is historical, including the one from
+  // three minutes ago — dimming the whole list is the opposite of what the
+  // tertiary treatment is for.
+  it("does not dim a recent event just because it was preloaded", () => {
+    seed([
+      { seq: 1, at: new Date(Date.now() - 3 * 60 * 1000).toISOString(), type: "commandSent", historical: true },
+    ]);
+    renderWithProviders(<ActivityPage />);
+    const row = eventList().getAllByRole("button")[0];
+    expect(row.firstElementChild!.className).not.toMatch(/text-tertiary-foreground/);
+  });
+});

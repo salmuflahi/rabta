@@ -603,94 +603,100 @@ export function ProjectsPage() {
             <h2 className="text-title font-640 text-foreground">{selected.name}</h2>
             <p className="mt-1.5 truncate font-mono text-meta text-muted-foreground">{selected.repoPath}</p>
 
-            <div data-project-chips className="mt-3.5 flex flex-wrap items-center gap-2">
-              {status?.branch && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 font-mono text-meta text-foreground">
-                  <Icon name="branch" className="size-3 text-muted-foreground" />
-                  {status.branch}
-                </span>
-              )}
-              {status && (
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-full px-2.5 py-1 text-meta font-590",
-                    status.dirty ? "bg-warn-soft text-warn" : "bg-ok-soft text-ok",
-                  )}
+            {/* Chips wrap on the left; the actions stay together on the
+                right. One flex row with a spacer between them stranded
+                Archive on a second line as soon as the branch name got
+                long enough to wrap. */}
+            <div className="mt-3.5 flex items-start justify-between gap-3">
+              <div data-project-chips className="flex min-w-0 flex-wrap items-center gap-2">
+                {status?.branch && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 font-mono text-meta text-foreground">
+                    <Icon name="branch" className="size-3 text-muted-foreground" />
+                    {status.branch}
+                  </span>
+                )}
+                {status && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full px-2.5 py-1 text-meta font-590",
+                      status.dirty ? "bg-warn-soft text-warn" : "bg-ok-soft text-ok",
+                    )}
+                  >
+                    {status.dirty ? `${status.changedCount} uncommitted` : "clean"}
+                  </span>
+                )}
+                {selected.lastOpenedAt && (
+                  <span className="text-sub text-tertiary-foreground">
+                    opened {relativeTime(selected.lastOpenedAt)}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-6 rounded-md px-2.5 text-sub"
+                  onClick={() =>
+                    invoke("reveal_in_finder", { path: selected.repoPath }).catch(toastErr)
+                  }
                 >
-                  {status.dirty
-                    ? `${status.changedCount} uncommitted`
-                    : "clean"}
-                </span>
-              )}
-              {selected.lastOpenedAt && (
-                <span className="text-sub text-tertiary-foreground">
-                  opened {relativeTime(selected.lastOpenedAt)}
-                </span>
-              )}
-              <div className="flex-1" />
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-6 rounded-md px-2.5 text-sub"
-                onClick={() =>
-                  invoke("reveal_in_finder", { path: selected.repoPath }).catch(toastErr)
-                }
-              >
-                <Icon name="folder-open" className="size-3" />
-                Reveal in Finder
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-6 rounded-md px-2.5 text-sub"
-                disabled={actionsDisabled}
-                aria-label={`Archive ${selected.name}`}
-                onClick={() => void archiveProject(selected)}
-              >
-                <Icon name="archive" className="size-3" />
-                Archive
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="secondary"
-                    className="size-6 rounded-md text-muted-foreground"
-                    aria-label={`More actions for ${selected.name}`}
-                    disabled={actionsDisabled}
-                  >
-                    <Icon name="ellipsis" className="size-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onSelect={() => setRenameProject(selected)}>Rename</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setIconProject(selected)}>Change icon</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    disabled={selectedIndex <= 0}
-                    onSelect={() =>
-                      void persistReorder((snapshot) => moveProjectBy(snapshot, selected.id, -1))
-                    }
-                  >
-                    Move up
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    disabled={selectedIndex < 0 || selectedIndex >= visibleProjects.length - 1}
-                    onSelect={() =>
-                      void persistReorder((snapshot) => moveProjectBy(snapshot, selected.id, 1))
-                    }
-                  >
-                    Move down
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                    onSelect={() => requestDelete(selected)}
-                  >
-                    Delete permanently
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  <Icon name="folder-open" className="size-3" />
+                  Reveal in Finder
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-6 rounded-md px-2.5 text-sub"
+                  disabled={actionsDisabled}
+                  aria-label={`Archive ${selected.name}`}
+                  onClick={() => void archiveProject(selected)}
+                >
+                  <Icon name="archive" className="size-3" />
+                  Archive
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="size-6 rounded-md text-muted-foreground"
+                      aria-label={`More actions for ${selected.name}`}
+                      disabled={actionsDisabled}
+                    >
+                      <Icon name="ellipsis" className="size-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onSelect={() => setRenameProject(selected)}>Rename</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setIconProject(selected)}>Change icon</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={selectedIndex <= 0}
+                      onSelect={() =>
+                        void persistReorder((snapshot) => moveProjectBy(snapshot, selected.id, -1))
+                      }
+                    >
+                      Move up
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      disabled={selectedIndex < 0 || selectedIndex >= visibleProjects.length - 1}
+                      onSelect={() =>
+                        void persistReorder((snapshot) => moveProjectBy(snapshot, selected.id, 1))
+                      }
+                    >
+                      Move down
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                      onSelect={() => requestDelete(selected)}
+                    >
+                      Delete permanently
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
 
             {selected.devUrl && (

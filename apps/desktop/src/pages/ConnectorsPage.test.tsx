@@ -230,12 +230,23 @@ describe("ConnectorsPage capability tokens", () => {
   // handoff writes ("workspace.snapshot"). Both must resolve to the same
   // description, and the table must still print the exact token declared.
   it("describes dotted command tokens by their family, without rewriting them", () => {
-    seed({ connectors: [connector({ capabilities: ["workspace.snapshot", "tabs.list"] })] });
+    // `foo.bar` with no exact entry falls back to `foo`'s description.
+    seed({ connectors: [connector({ capabilities: ["workspace.reveal", "tabs.close"] })] });
     renderWithProviders(<ConnectorsPage />);
-    expect(detail().getByText("workspace.snapshot")).toBeInTheDocument();
-    expect(detail().getByText("tabs.list")).toBeInTheDocument();
+    expect(detail().getByText("workspace.reveal")).toBeInTheDocument();
+    expect(detail().getByText("tabs.close")).toBeInTheDocument();
     expect(detail().getByText(/Reads which folder is open/)).toBeInTheDocument();
     expect(detail().getByText("The addresses and titles of open tabs")).toBeInTheDocument();
     expect(detail().queryByText(/no description for it/)).toBeNull();
+  });
+
+  // Two commands in the same family do different things. Falling both back
+  // to the family description put the same sentence next to two different
+  // names, which reads as a bug even when the family answer is close.
+  it("gives each known command its own description, not the family's", () => {
+    seed({ connectors: [connector({ capabilities: ["workspace.open", "workspace.snapshot"] })] });
+    renderWithProviders(<ConnectorsPage />);
+    expect(detail().getByText("Opens a saved folder in the editor on restore")).toBeInTheDocument();
+    expect(detail().getByText("Reads the open folder and file paths on capture")).toBeInTheDocument();
   });
 });

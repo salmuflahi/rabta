@@ -98,6 +98,10 @@ function resetSelection() {
 
 function mockCapsulesInvoke(opts: {
   activateTask?: (args: Record<string, unknown> | undefined) => unknown;
+  /** What `active_task` resolves to. The page fetches it on mount — it is
+   * shell-wide state and Capsules is the default landing page — so seeding
+   * `activeTaskId` in the store alone is not enough. */
+  activeTask?: string | null;
   resources?: TaskResource[];
   project?: Project;
   tasks?: Task[];
@@ -124,6 +128,8 @@ function mockCapsulesInvoke(opts: {
         return tasks.filter((t) => t.projectId === a?.projectId) as unknown;
       case "task_resources":
         return (a?.taskId === FAKE_TASK.id ? (opts.resources ?? [FAKE_RESOURCE]) : []) as unknown;
+      case "active_task":
+        return (opts.activeTask ?? null) as unknown;
       case "activate_task":
         return opts.activateTask ? opts.activateTask(a) : { restored: [], skipped: [] };
       case "rename_task": {
@@ -170,6 +176,26 @@ async function openMoreMenu(title = FAKE_TASK.title) {
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+describe("CapsulesPage shell state", () => {
+  // The sidebar's Projects count reads the store, and the sidebar is
+  // visible from this screen. Keeping the fetched projects in local state
+  // is what made that count read 0 while this page listed capsules grouped
+  // under three project names.
+  it("publishes the projects it fetched to the store", async () => {
+    mockCapsulesInvoke();
+    renderWithProviders(<CapsulesPage />);
+    await screen.findByRole("heading", { level: 2, name: FAKE_TASK.title });
+    expect(useStore.getState().projects.map((p) => p.id)).toEqual([FAKE_PROJECT.id]);
+  });
+
+  it("fetches the active capsule on mount rather than trusting whatever was left in the store", async () => {
+    mockCapsulesInvoke({ activeTask: FAKE_TASK.id });
+    useStore.setState({ activeTaskId: null });
+    renderWithProviders(<CapsulesPage />);
+    await waitFor(() => expect(useStore.getState().activeTaskId).toBe(FAKE_TASK.id));
+  });
 });
 
 describe("CapsulesPage layout", () => {
@@ -251,8 +277,7 @@ describe("CapsulesPage detail pane", () => {
   });
 
   it("marks the active capsule Active and the finished one Done", async () => {
-    mockCapsulesInvoke();
-    useStore.setState({ activeTaskId: FAKE_TASK.id });
+    mockCapsulesInvoke({ activeTask: FAKE_TASK.id });
     const { container } = renderWithProviders(<CapsulesPage />);
     expect(await screen.findByText("Active")).toBeInTheDocument();
     // The Active chip's dot is the accent, but it is a mark, not an action.
