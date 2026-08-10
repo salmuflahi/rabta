@@ -14,6 +14,44 @@ Then regenerate the responsive derivatives the site actually loads:
 python3 scripts/optimize-shots.py
 ```
 
+## Posing shots by hand (promo, App Store, social)
+
+The same rig runs as an ordinary dev server, so you can click around a
+fully-populated Rabta without touching your real data — the fixture in
+`seed.ts` is three projects, six capsules, two connectors and ten events,
+and the Tauri bridge is mocked.
+
+```sh
+cd apps/desktop
+pnpm exec vite --config capture/vite.config.ts   # -> http://localhost:5199
+```
+
+Then open a URL and take the picture however you like (⌘⇧4, CleanShot,
+Chrome's device toolbar for a specific size). Everything after `#` is
+optional and combinable with `&`:
+
+| Switch | Values | Default |
+|---|---|---|
+| `capture=` | `overview` `capsules` `projects` `connectors` `activity` `settings` `restore` | `overview` |
+| `theme=` | `light` `dark` | `dark` |
+| `accent=` | `tangerine` `petrol` `sky` `sand` | `tangerine` |
+| `sidebar=` | `collapsed` | expanded |
+| `palette` | — | closed |
+
+```
+http://localhost:5199/#capture=capsules
+http://localhost:5199/#capture=projects&theme=light&accent=petrol
+http://localhost:5199/#capture=overview&palette&sidebar=collapsed
+http://localhost:5199/#capture=restore            # mid-restore sheet
+```
+
+The clock is frozen, so "8m ago" reads the same in every shot you take —
+two pictures a week apart still match. Changing the hash alone does not
+re-pose the page; reload after editing it.
+
+The screenshot driver below sets none of these, so the site's own shots
+stay byte-identical whatever you pose here.
+
 ## Recording the product loops
 
 The homepage's two return stories use four silent H.264 recordings of this

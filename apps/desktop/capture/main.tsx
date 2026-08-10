@@ -7,6 +7,10 @@
  * The requested mode comes from the URL hash: `#capture=capsules` for a
  * static screen, or `#demo=hero-return` for a directed real-product loop.
  */
+// MUST be first: seeds the frozen clock and the posed preferences before
+// any app module (and therefore `src/store.ts`'s top-level readPrefs) is
+// evaluated. See capture/boot.ts.
+import { POSE } from "./boot";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "@/App";
@@ -15,49 +19,7 @@ import { IconSprite } from "@/components/ui/icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useStore } from "@/store";
 import { DEMO_TIMELINES, parseCaptureMode } from "./director";
-import { NOW_MS } from "./seed";
 import "@/index.css";
-
-// ---------------------------------------------------------------- clock
-//
-// Pin time before anything imports it, so every relative label
-// ("8m ago", "1h 30m ago") is identical on every run.
-const RealDate = Date;
-class FrozenDate extends RealDate {
-  constructor(...args: ConstructorParameters<typeof Date>) {
-    // `new Date()` with no arguments yields the pinned instant; every other
-    // form behaves normally so parsing seed timestamps still works.
-    super(...(args.length === 0 ? [NOW_MS] : args));
-  }
-  static now() {
-    return NOW_MS;
-  }
-}
-globalThis.Date = FrozenDate as DateConstructor;
-
-// ------------------------------------------------------------ preferences
-//
-// Seed the app's own preference store rather than overriding its CSS, so
-// the captured UI is the app configured normally — dark theme, sidebar
-// expanded, developer console off.
-try {
-  localStorage.clear();
-  localStorage.setItem(
-    "rabta.prefs",
-    JSON.stringify({
-      theme: "dark",
-      motion: "system",
-      rememberSidebar: true,
-      landingPage: "overview",
-      resumeOnLaunch: false,
-      keepCompleted: true,
-      developerMode: false,
-    }),
-  );
-  localStorage.setItem("rabta.sidebarCollapsed", "false");
-} catch {
-  /* ignore */
-}
 
 // --------------------------------------------------------------- direction
 
@@ -82,7 +44,11 @@ function clickRealSaveState(): void {
  *  palette use. No component internals are reached into. */
 function Director() {
   React.useEffect(() => {
-    const { setView, requestResume, setActiveTaskId } = useStore.getState();
+    const { setView, requestResume, setActiveTaskId, setCommandOpen } = useStore.getState();
+
+    // Posed last in every branch below would mean repeating it; the palette
+    // sits over whatever screen was requested, so it can be opened first.
+    if (POSE.palette) setCommandOpen(true);
 
     if (mode.kind === "screen" && mode.name === "restore") {
       // The Restore Experience is owned by CapsulesPage, which watches
