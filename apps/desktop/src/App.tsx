@@ -47,11 +47,7 @@ function CurrentPage({ view }: { view: NavKey }) {
     case "projects":
       return <ProjectsPage />;
     case "connectors":
-      return (
-        <LegacyPane>
-          <ConnectorsPage />
-        </LegacyPane>
-      );
+      return <ConnectorsPage />;
     case "activity":
       return (
         <LegacyPane>

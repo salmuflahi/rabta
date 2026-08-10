@@ -1,226 +1,241 @@
-import { screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
 import { expectAtMostOneAccent } from "@/test/accent";
-import { expectNoBorder } from "@/test/no-box";
-import { useStore } from "@/store";
 import { renderWithProviders } from "@/test/smoke-utils";
+import { useStore, type ConnectorRow } from "@/store";
 import { ConnectorsPage } from "./ConnectorsPage";
 
+function connector(overrides: Partial<ConnectorRow> = {}): ConnectorRow {
+  return {
+    id: "conn-1",
+    name: "VS Code",
+    kind: "vscode",
+    capabilities: ["workspace", "editor", "terminal"],
+    connected: true,
+    connectedSince: "2026-01-01T15:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function list() {
+  return within(document.querySelector("[data-connector-list]") as HTMLElement);
+}
+function detail() {
+  return within(document.querySelector("[data-connector-detail]") as HTMLElement);
+}
+
+function seed(state: Partial<Parameters<typeof useStore.setState>[0]> = {}) {
+  useStore.setState({
+    connectors: [],
+    pairings: [],
+    log: [],
+    selectedConnectorId: null,
+    ...state,
+  });
+}
+
 describe("ConnectorsPage", () => {
-  // Task 11 moved the page name into the workspace Toolbar's <h1>; Task 12
-  // stripped Overview's own eyebrow/title stack to match. Connectors never
-  // got the same treatment, so it rendered "Connectors" a second time via
-  // its own PageHeader <h1> directly under the toolbar's — and its subtitle
-  // ("N connectors online") restated the exact count the toolbar's own
-  // connection indicator already shows on every page. This page must not
-  // own an <h1> (or restate the "CONNECTIONS" eyebrow or the online count)
-  // — but the name still needs to resolve for screen readers, via a
-  // visually-hidden heading.
-  it("does not render its own page title as a heading — the toolbar owns it", async () => {
-    useStore.setState({
-      connectors: [
-        {
-          id: "conn-1",
-          name: "VS Code",
-          kind: "vscode",
-          capabilities: [],
-          connected: true,
-          connectedSince: "2026-01-01T15:00:00.000Z",
-        },
-      ],
-    });
-    renderWithProviders(<ConnectorsPage />);
-    await screen.findByText("Connectors");
+  beforeEach(() => seed());
 
+  // The Toolbar owns the view's <h1>.
+  it("does not own the document's top heading", () => {
+    seed({ connectors: [connector()] });
+    renderWithProviders(<ConnectorsPage />);
     expect(document.querySelector("h1")).not.toBeInTheDocument();
-    expect(screen.queryByText("CONNECTIONS")).not.toBeInTheDocument();
-    expect(screen.queryByText(/connectors? online/)).not.toBeInTheDocument();
-    // Accessible name preserved via a visually-hidden heading.
-    expect(screen.getByText("Connectors")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "VS Code" })).toBeInTheDocument();
   });
 
-  it("renders a populated connector card and a pending pairing without throwing", async () => {
-    useStore.setState({
-      connectors: [
-        {
-          id: "conn-1",
-          name: "VS Code",
-          kind: "vscode",
-          capabilities: ["files", "terminals"],
-          connected: true,
-          connectedSince: "2026-01-01T15:04:12.000Z",
-        },
-      ],
-      pairings: [{ pairingId: "pair-1", name: "Chrome", kind: "browser" }],
+  it("states status in words in both panes, not colour alone", () => {
+    seed({
+      connectors: [connector(), connector({ id: "conn-2", name: "Chrome", kind: "chrome", connected: false })],
     });
-
     renderWithProviders(<ConnectorsPage />);
-
-    expect(await screen.findByText("Connectors")).toBeInTheDocument();
-    // "VS Code" appears as both the connector name and the friendly kind badge.
-    expect(screen.getAllByText("VS Code").length).toBeGreaterThan(0);
-    expect(screen.getByText(/^Connected/)).toBeInTheDocument();
-    expect(screen.getByText(/Chrome/)).toBeInTheDocument();
-    expect(screen.getByText("Approve")).toBeInTheDocument();
-    expect(screen.getByText("Deny")).toBeInTheDocument();
+    expect(list().getByText("Connected")).toBeInTheDocument();
+    expect(list().getByText("Offline")).toBeInTheDocument();
+    expect(detail().getByText(/^Connected .* · approved by you/)).toBeInTheDocument();
   });
 
-  it("shows 'Connected · since {relativeTime}' for a connected connector (asserts the stable prefix, not the exact relative time)", async () => {
-    useStore.setState({
-      connectors: [
-        {
-          id: "conn-1",
-          name: "VS Code",
-          kind: "vscode",
-          capabilities: [],
-          connected: true,
-          connectedSince: new Date().toISOString(),
-        },
-      ],
-      pairings: [],
+  it("selects a connector on click and keeps the selected row neutral", () => {
+    seed({
+      connectors: [connector(), connector({ id: "conn-2", name: "Chrome", kind: "chrome" })],
     });
-
-    renderWithProviders(<ConnectorsPage />);
-
-    expect(await screen.findByText(/^Connected · since /)).toBeInTheDocument();
-  });
-
-  it("shows a connector's reported version and renders none when it reported none", async () => {
-    useStore.setState({
-      connectors: [
-        {
-          id: "conn-v",
-          name: "VS Code",
-          kind: "vscode",
-          capabilities: ["files"],
-          version: "0.1.0",
-          connected: true,
-          connectedSince: new Date().toISOString(),
-        },
-        {
-          id: "conn-nov",
-          name: "Legacy",
-          kind: "fake",
-          capabilities: [],
-          connected: false,
-          connectedSince: "2026-01-01T15:04:12.000Z",
-        },
-      ],
-      pairings: [],
-    });
-
-    renderWithProviders(<ConnectorsPage />);
-
-    expect(await screen.findByText("v0.1.0")).toBeInTheDocument();
-    // Only the connector that reported a version shows a version chip.
-    expect(screen.getAllByText(/^v\d/)).toHaveLength(1);
-  });
-
-  it("shows 'Last seen {relativeTime}' for a disconnected connector, using an honest ISO connectedSince", async () => {
-    useStore.setState({
-      connectors: [
-        {
-          id: "conn-2",
-          name: "Chrome",
-          kind: "browser",
-          capabilities: [],
-          connected: false,
-          connectedSince: "2026-01-01T15:04:12.000Z",
-        },
-      ],
-      pairings: [],
-    });
-
-    renderWithProviders(<ConnectorsPage />);
-
-    expect(await screen.findByText(/^Offline · last seen /)).toBeInTheDocument();
-    // Not the raw unparseable locale string / "unknown" fallback.
-    expect(screen.queryByText(/last seen unknown/)).not.toBeInTheDocument();
-  });
-
-  it("shows only the first pairing card's Approve button with primary variant when multiple pairings are pending", async () => {
-    useStore.setState({
-      connectors: [],
-      pairings: [
-        { pairingId: "pair-1", name: "Chrome", kind: "browser" },
-        { pairingId: "pair-2", name: "Firefox", kind: "browser" },
-      ],
-    });
-
-    renderWithProviders(<ConnectorsPage />);
-
-    const approveButtons = screen.getAllByText("Approve");
-    expect(approveButtons).toHaveLength(2);
-
-    // Only the first Approve button should have bg-primary class
-    const buttonsWithPrimary = approveButtons.filter((btn) => btn.classList.contains("bg-primary"));
-    expect(buttonsWithPrimary).toHaveLength(1);
-    expect(buttonsWithPrimary[0]).toBe(approveButtons[0]);
-  });
-
-  // Surface's whole contract is that depth comes from a lit, elevated
-  // plane, never a drawn outline (see the comment above PendingPairings) —
-  // it is the one rule separating this redesign from the bordered-card
-  // dashboard look it replaces. The pending-pairings prompt must
-  // differentiate itself the same way every other Surface in the app
-  // does: `variant="raised"`'s own shadow-raised elevation plus its own
-  // bg-warn-soft tint — never a border, warning-coloured or otherwise.
-  it("renders the pending-pairing prompt as a raised Surface with no border", async () => {
-    useStore.setState({
-      connectors: [],
-      pairings: [{ pairingId: "pair-1", name: "Chrome", kind: "browser" }],
-    });
-
     const { container } = renderWithProviders(<ConnectorsPage />);
-    await screen.findByText("Approve");
+    fireEvent.click(list().getByText("Chrome").closest("button")!);
 
-    const pairingSurface = container.querySelector('[class*="bg-warn"]');
-    expect(pairingSurface).not.toBeNull();
-    // Raised, not merely tinted — it still gets Surface's elevation.
-    expect(pairingSurface!.className).toMatch(/(^|\s)shadow-raised(\s|$)/);
-    expectNoBorder(pairingSurface!);
-  });
-
-  it("spends the accent at most once", async () => {
-    useStore.setState({
-      connectors: [
-        {
-          id: "conn-1",
-          name: "VS Code",
-          kind: "vscode",
-          capabilities: ["files", "terminals"],
-          connected: true,
-          connectedSince: new Date().toISOString(),
-        },
-      ],
-      pairings: [
-        { pairingId: "pair-1", name: "Chrome", kind: "browser" },
-        { pairingId: "pair-2", name: "Firefox", kind: "browser" },
-      ],
-    });
-
-    const { container } = renderWithProviders(<ConnectorsPage />);
-    await screen.findByText(/connected/i);
+    expect(useStore.getState().selectedConnectorId).toBe("conn-2");
+    const row = list().getByText("Chrome").closest("button")!;
+    expect(row.className.split(/\s+/)).toContain("bg-secondary");
+    expect(row.className.split(/\s+/)).not.toContain("bg-primary");
     expectAtMostOneAccent(container);
   });
 
-  it("states connector status in words, not only colour", async () => {
-    useStore.setState({
-      connectors: [
-        {
-          id: "conn-1",
-          name: "VS Code",
-          kind: "vscode",
-          capabilities: [],
-          connected: true,
-          connectedSince: new Date().toISOString(),
-        },
-      ],
-      pairings: [],
-    });
-
+  it("falls back to the first connector when the selected id has gone away", () => {
+    seed({ connectors: [connector()], selectedConnectorId: "conn-that-quit" });
     renderWithProviders(<ConnectorsPage />);
-    // Colour is never the only signal.
-    expect(await screen.findByText(/Connected|Offline|Not connected/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "VS Code" })).toBeInTheDocument();
+  });
+
+  it("reports an offline connector as offline rather than claiming a live link", () => {
+    seed({ connectors: [connector({ connected: false })] });
+    renderWithProviders(<ConnectorsPage />);
+    expect(detail().getByText(/^Offline · last seen/)).toBeInTheDocument();
+    expect(detail().queryByText(/approved by you/)).toBeNull();
+  });
+
+  it("shows a reported version, and nothing when none was reported", () => {
+    seed({ connectors: [connector({ version: "0.1.0" })] });
+    const withVersion = renderWithProviders(<ConnectorsPage />);
+    expect(detail().getByText(/v0\.1\.0/)).toBeInTheDocument();
+    withVersion.unmount();
+
+    seed({ connectors: [connector()] });
+    renderWithProviders(<ConnectorsPage />);
+    expect(detail().queryByText(/\bv\d/)).toBeNull();
+  });
+});
+
+describe("ConnectorsPage permissions", () => {
+  beforeEach(() => seed());
+
+  // These lines are claims the app makes about itself, checked against what
+  // the connectors actually send (see src/lib/connectorFacts.ts).
+  it("derives Can see from the capabilities the connector actually declared", () => {
+    seed({ connectors: [connector({ capabilities: ["tabs"], kind: "chrome", name: "Chrome" })] });
+    renderWithProviders(<ConnectorsPage />);
+
+    expect(detail().getByText("Can see")).toBeInTheDocument();
+    expect(detail().getByText("The addresses and titles of open tabs")).toBeInTheDocument();
+    // Never declared a terminal capability, so it is never described as
+    // reading terminals.
+    expect(detail().queryByText(/Terminal names/)).toBeNull();
+  });
+
+  it("denies concretely, next to what it is denying", () => {
+    seed({ connectors: [connector({ capabilities: ["tabs"] })] });
+    renderWithProviders(<ConnectorsPage />);
+    expect(detail().getByText("Never sees")).toBeInTheDocument();
+    expect(detail().getByText("Page contents, form data or cookies")).toBeInTheDocument();
+    expect(detail().getByText("Passwords, tokens or keychain items")).toBeInTheDocument();
+  });
+
+  it("lists every declared capability with what it is for", () => {
+    seed({ connectors: [connector({ capabilities: ["workspace", "editor"] })] });
+    renderWithProviders(<ConnectorsPage />);
+    expect(detail().getByText("workspace")).toBeInTheDocument();
+    expect(detail().getByText("editor")).toBeInTheDocument();
+    expect(detail().getByText(/Reads which folder is open/)).toBeInTheDocument();
+  });
+
+  // A connector declaring something this app has no words for is exactly
+  // what the user should be able to see — hiding it would be the wrong way
+  // round for a privacy screen.
+  it("still lists a capability it has no description for", () => {
+    seed({ connectors: [connector({ capabilities: ["clipboard"] })] });
+    renderWithProviders(<ConnectorsPage />);
+    expect(detail().getByText("clipboard")).toBeInTheDocument();
+    expect(detail().getByText(/no description for it/)).toBeInTheDocument();
+  });
+
+  it("carries the local-only footer verbatim", () => {
+    seed({ connectors: [connector()] });
+    renderWithProviders(<ConnectorsPage />);
+    expect(
+      screen.getByText("Talks to Rabta on this Mac only — nothing leaves it."),
+    ).toBeInTheDocument();
+  });
+
+  // There is no disconnect command in this app — connectors hold the socket
+  // and drop it themselves. The handoff draws a Disconnect button; drawing
+  // one that did nothing would be worse than saying so.
+  it("offers no Disconnect button it could not honour", () => {
+    seed({ connectors: [connector()] });
+    renderWithProviders(<ConnectorsPage />);
+    expect(screen.queryByRole("button", { name: /Disconnect/i })).toBeNull();
+    expect(screen.getByText("Quit the app to disconnect it")).toBeInTheDocument();
+  });
+});
+
+describe("ConnectorsPage traffic", () => {
+  beforeEach(() => seed());
+
+  it("shows only this connector's own events", () => {
+    seed({
+      connectors: [connector(), connector({ id: "conn-2", name: "Chrome", kind: "chrome" })],
+      log: [
+        { seq: 1, at: new Date().toISOString(), type: "commandSent", connectorId: "conn-1", name: "workspace.state" },
+        { seq: 2, at: new Date().toISOString(), type: "commandSent", connectorId: "conn-2", name: "tabs.list" },
+      ],
+    });
+    renderWithProviders(<ConnectorsPage />);
+    expect(detail().getByText(/workspace\.state/)).toBeInTheDocument();
+    expect(detail().queryByText(/tabs\.list/)).toBeNull();
+  });
+
+  it("says so plainly when a connector has done nothing yet", () => {
+    seed({ connectors: [connector()] });
+    renderWithProviders(<ConnectorsPage />);
+    expect(detail().getByText("Nothing from this connector yet.")).toBeInTheDocument();
+  });
+});
+
+describe("ConnectorsPage pairing", () => {
+  beforeEach(() => seed());
+
+  it("offers Deny and Approve for a pending request", () => {
+    seed({ pairings: [{ pairingId: "pair-1", name: "Chrome", kind: "chrome" }] });
+    renderWithProviders(<ConnectorsPage />);
+    // Scoped: the empty state below also names Chrome, in its install steps.
+    expect(screen.getByRole("button", { name: "Approve" }).closest("div")!.parentElement!.textContent).toMatch(
+      /Chrome \(Chrome\) wants to connect/,
+    );
+    expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Deny" })).toBeInTheDocument();
+  });
+
+  // N pending requests must never mean N orange buttons.
+  it("spends the accent on the first Approve only", () => {
+    seed({
+      pairings: [
+        { pairingId: "pair-1", name: "Chrome", kind: "chrome" },
+        { pairingId: "pair-2", name: "Cursor", kind: "cursor" },
+      ],
+    });
+    const { container } = renderWithProviders(<ConnectorsPage />);
+    const approves = screen.getAllByRole("button", { name: "Approve" });
+    expect(approves).toHaveLength(2);
+    expect(approves.filter((b) => b.classList.contains("bg-primary"))).toHaveLength(1);
+    expectAtMostOneAccent(container);
+  });
+});
+
+describe("ConnectorsPage empty state", () => {
+  beforeEach(() => seed());
+
+  it("teaches the real, do-it-now install steps", () => {
+    renderWithProviders(<ConnectorsPage />);
+    expect(screen.getByText("No connectors yet")).toBeInTheDocument();
+    expect(screen.getByText("VS Code or Cursor")).toBeInTheDocument();
+    expect(screen.getByText(/chrome:\/\/extensions/)).toBeInTheDocument();
+    expect(
+      screen.getByText("Talks to Rabta on this Mac only — nothing leaves it."),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("ConnectorsPage capability tokens", () => {
+  beforeEach(() => seed());
+
+  // Connectors declare capabilities at two granularities: the coarse family
+  // the extensions send today ("workspace") and the dotted command form the
+  // handoff writes ("workspace.snapshot"). Both must resolve to the same
+  // description, and the table must still print the exact token declared.
+  it("describes dotted command tokens by their family, without rewriting them", () => {
+    seed({ connectors: [connector({ capabilities: ["workspace.snapshot", "tabs.list"] })] });
+    renderWithProviders(<ConnectorsPage />);
+    expect(detail().getByText("workspace.snapshot")).toBeInTheDocument();
+    expect(detail().getByText("tabs.list")).toBeInTheDocument();
+    expect(detail().getByText(/Reads which folder is open/)).toBeInTheDocument();
+    expect(detail().getByText("The addresses and titles of open tabs")).toBeInTheDocument();
+    expect(detail().queryByText(/no description for it/)).toBeNull();
   });
 });
