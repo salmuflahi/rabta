@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { appDataDir } from "@tauri-apps/api/path";
 import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Icon, type IconName } from "@/components/ui/icon";
+import { Icon } from "@/components/ui/icon";
 import { Kbd } from "@/components/ui/kbd";
 import { Segmented } from "@/components/ui/segmented";
 import {
@@ -16,6 +16,7 @@ import {
 import { Swatch } from "@/components/ui/swatch";
 import { SwitchMac } from "@/components/ui/switch-mac";
 import { CommandSenderPanel, RestoreExperiencePlayground } from "@/features/settings/DeveloperTools";
+import { SETTINGS_SECTIONS } from "@/features/settings/sections";
 import { toastErr, toastOk } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/shell/nav";
@@ -382,62 +383,19 @@ function DeveloperSection() {
 
 // ─── The section list ────────────────────────────────────────────────────────
 
-interface SettingsSection {
-  id: string;
-  label: string;
-  /** The 22px heading over the section's card. Usually the label, but the
-   * list has to stay short where the heading can be fuller. */
-  title: string;
-  icon: IconName;
-  render: () => React.ReactNode;
-}
-
-/**
- * The handoff's eight sections, minus Migrate.
- *
- * Migrate is Phase 3 — the whole flow (send, receive, the review step) is
- * unbuilt, and a section listing it would either be empty or open a sheet
- * that doesn't exist. It goes in when the flow does.
- */
-const SECTIONS: SettingsSection[] = [
-  { id: "general", label: "General", title: "General", icon: "settings", render: () => <GeneralSection /> },
-  {
-    id: "appearance",
-    label: "Appearance",
-    title: "Appearance",
-    icon: "appearance",
-    render: () => <AppearanceSection />,
-  },
-  { id: "capsules", label: "Capsules", title: "Capsules", icon: "capsule", render: () => <CapsulesSection /> },
-  {
-    id: "connectors",
-    label: "Connectors",
-    title: "Connectors",
-    icon: "connectors",
-    render: () => <ConnectorsSection />,
-  },
-  {
-    id: "privacy",
-    label: "Privacy & data",
-    title: "Privacy & data",
-    icon: "shield",
-    render: () => <PrivacySection />,
-  },
-  {
-    id: "developer",
-    label: "Developer",
-    title: "Developer",
-    icon: "code",
-    render: () => <DeveloperSection />,
-  },
-  {
-    id: "shortcuts",
-    label: "Shortcuts",
-    title: "Keyboard shortcuts",
-    icon: "keyboard",
-    render: () => <ShortcutsSection />,
-  },
-];
+/** Which component renders each section's rows, keyed by the section id in
+ * `SETTINGS_SECTIONS`. The section *metadata* (label, heading, glyph) lives
+ * in features/settings/sections.ts so the command palette can offer the
+ * sections as search targets without importing this page. */
+const RENDERERS: Record<string, () => React.ReactNode> = {
+  general: () => <GeneralSection />,
+  appearance: () => <AppearanceSection />,
+  capsules: () => <CapsulesSection />,
+  connectors: () => <ConnectorsSection />,
+  privacy: () => <PrivacySection />,
+  developer: () => <DeveloperSection />,
+  shortcuts: () => <ShortcutsSection />,
+};
 
 /**
  * Settings — the handoff's section list plus one grouped card of rows.
@@ -452,7 +410,7 @@ export function SettingsPage() {
 
   // Tolerates a stale id — the persisted section can name one that no
   // longer exists (Migrate will arrive and other sections may be renamed).
-  const active = SECTIONS.find((s) => s.id === section) ?? SECTIONS[0];
+  const active = SETTINGS_SECTIONS.find((s) => s.id === section) ?? SETTINGS_SECTIONS[0];
 
   return (
     <div className="grid h-full min-h-0 grid-cols-[216px_minmax(0,1fr)] overflow-hidden">
@@ -463,7 +421,7 @@ export function SettingsPage() {
         aria-orientation="vertical"
         className="min-h-0 overflow-y-auto border-r-[0.5px] border-border px-2 pb-3 pt-2.5"
       >
-        {SECTIONS.map((s) => {
+        {SETTINGS_SECTIONS.map((s) => {
           const isActive = s.id === active.id;
           return (
             <button
@@ -494,7 +452,7 @@ export function SettingsPage() {
           {/* The Toolbar owns the view's <h1>; this names the section
               within it, at the handoff's 22/640 screen-title size. */}
           <h2 className="text-title font-640 text-foreground">{active.title}</h2>
-          {active.render()}
+          {RENDERERS[active.id]?.()}
         </div>
       </div>
     </div>

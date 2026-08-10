@@ -1,6 +1,6 @@
 import type { InvokeArgs } from "@tauri-apps/api/core";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { useStore, type Project, type Task } from "@/store";
 import { CommandPalette } from "./CommandPalette";
@@ -45,106 +45,193 @@ const INACTIVE_TASK: Task = {
 };
 
 /** `list_tasks` only, keyed to FAKE_PROJECT/FAKE_TASK; every other invoke
- * (list_projects, task_resources, ...) resolves `[]` via smoke-utils'
- * default. */
-function mockListTasks() {
+ * resolves `[]` via smoke-utils' default. */
+function mockListTasks(tasks: Task[] = [FAKE_TASK]) {
   mockInvoke.mockClear();
   mockInvoke.mockImplementation(async (cmd: string, args?: InvokeArgs) => {
     const a = args as Record<string, unknown> | undefined;
-    if (cmd === "list_tasks" && a?.projectId === FAKE_PROJECT.id) return [FAKE_TASK] as unknown;
+    if (cmd === "list_tasks" && a?.projectId === FAKE_PROJECT.id) return tasks as unknown;
     return [] as unknown;
   });
 }
 
+function type(value: string) {
+  fireEvent.change(screen.getByPlaceholderText("Search or jump to…"), { target: { value } });
+}
+
 describe("CommandPalette", () => {
-  it("renders nav commands when opened via the store", async () => {
-    useStore.setState({ commandOpen: true, projects: [] });
-
-    renderWithProviders(<CommandPalette />);
-
-    expect(await screen.findByText("Register Project")).toBeInTheDocument();
-    expect(screen.getByText("New Task")).toBeInTheDocument();
-    expect(screen.getAllByText("Settings").length).toBeGreaterThan(0);
+  beforeEach(() => {
+    useStore.setState({
+      commandOpen: false,
+      projects: [],
+      connectors: [],
+      activeTaskId: null,
+      pendingResumeTaskId: null,
+      selectedCapsuleId: null,
+      selectedProjectId: null,
+      selectedConnectorId: null,
+    });
   });
 
-  it("fetches tasks once on open (not per keystroke) and renders the task plus its Resume item", async () => {
-    mockListTasks();
-    useStore.setState({ commandOpen: true, projects: [FAKE_PROJECT] });
-
+  it("opens on the store flag with the Go to and Actions groups", async () => {
+    useStore.setState({ commandOpen: true });
     renderWithProviders(<CommandPalette />);
 
-    expect(await screen.findByText("Write onboarding docs")).toBeInTheDocument();
-    expect(screen.getByText("Resume Write onboarding docs")).toBeInTheDocument();
-    // Fetched once for the one project in the store.
-    expect(mockInvoke).toHaveBeenCalledWith("list_tasks", { projectId: FAKE_PROJECT.id });
+    expect(await screen.findByText("Go to")).toBeInTheDocument();
+    expect(screen.getByText("Actions")).toBeInTheDocument();
+    expect(screen.getByText("New capsule")).toBeInTheDocument();
+    expect(screen.getByText("Add project")).toBeInTheDocument();
   });
 
-  it("uses active project records for palette icons and task scope", async () => {
+  // The handoff: 50px search row with an `esc` pill, a 31px footer saying
+  // what the search covers. The privacy line is a product requirement.
+  it("carries the esc pill, the key hints and the privacy line", async () => {
+    useStore.setState({ commandOpen: true });
+    renderWithProviders(<CommandPalette />);
+
+    expect(await screen.findByText("esc")).toBeInTheDocument();
+    expect(screen.getByText("↑↓ Navigate · ↵ Open")).toBeInTheDocument();
+    expect(screen.getByText("Searches this Mac only")).toBeInTheDocument();
+  });
+
+  // "With an empty query only the default-flagged items show" — all of Go
+  // to, all of Actions, and the first three capsules. Projects, connectors
+  // and settings are reachable by typing, not by scrolling a directory.
+  it("shows only the default items until you type", async () => {
+    mockListTasks([
+      FAKE_TASK,
+      { ...FAKE_TASK, id: "t2", title: "Second" },
+      { ...FAKE_TASK, id: "t3", title: "Third" },
+      { ...FAKE_TASK, id: "t4", title: "Fourth" },
+    ]);
+    useStore.setState({
+      commandOpen: true,
+      projects: [FAKE_PROJECT],
+      connectors: [
+        {
+          id: "c1",
+          name: "Chrome",
+          kind: "chrome",
+          capabilities: [],
+          connected: true,
+          connectedSince: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    });
+    renderWithProviders(<CommandPalette />);
+
+    await screen.findByText(FAKE_TASK.title);
+    expect(screen.queryByText("Fourth")).toBeNull();
+    expect(screen.queryByText("Projects", { selector: "[cmdk-group-heading]" })).toBeNull();
+    expect(screen.queryByText("Connectors", { selector: "[cmdk-group-heading]" })).toBeNull();
+
+    type("chrome");
+    await waitFor(() => expect(screen.getByText("Chrome")).toBeInTheDocument());
+  });
+
+  it("fetches tasks once per open, and only for projects in the store", async () => {
     mockInvoke.mockClear();
     mockInvoke.mockImplementation(async (cmd: string, args?: InvokeArgs) => {
       const a = args as Record<string, unknown> | undefined;
       if (cmd === "list_tasks" && a?.projectId === FAKE_PROJECT.id) {
         return [FAKE_TASK, INACTIVE_TASK] as unknown;
       }
-      if (cmd === "list_tasks" && a?.projectId === INACTIVE_PROJECT.id) {
-        return [INACTIVE_TASK] as unknown;
-      }
       return [] as unknown;
     });
     useStore.setState({ commandOpen: true, projects: [FAKE_PROJECT] });
-
     renderWithProviders(<CommandPalette />);
 
-    const projectName = await screen.findByText(FAKE_PROJECT.name);
-    const projectItem = projectName.closest("[cmdk-item]");
-    expect(projectItem?.querySelector("svg.lucide-rocket")).toBeInTheDocument();
     expect(await screen.findByText(FAKE_TASK.title)).toBeInTheDocument();
-    expect(screen.queryByText(INACTIVE_PROJECT.name)).not.toBeInTheDocument();
-    expect(screen.queryByText(INACTIVE_TASK.title)).not.toBeInTheDocument();
+    // A task whose project isn't registered is dropped, not shown orphaned.
+    expect(screen.queryByText(INACTIVE_TASK.title)).toBeNull();
     expect(mockInvoke).toHaveBeenCalledTimes(1);
     expect(mockInvoke).toHaveBeenCalledWith("list_tasks", { projectId: FAKE_PROJECT.id });
     expect(mockInvoke).not.toHaveBeenCalledWith("list_tasks", { projectId: INACTIVE_PROJECT.id });
   });
 
-  it("cmdk's fuzzy filter narrows to the matching task and hides unrelated nav items", async () => {
+  it("filters across label and meta with a plain substring match", async () => {
     mockListTasks();
     useStore.setState({ commandOpen: true, projects: [FAKE_PROJECT] });
-
     renderWithProviders(<CommandPalette />);
-    await screen.findByText("Write onboarding docs");
+    await screen.findByText(FAKE_TASK.title);
 
-    const input = screen.getByPlaceholderText("Search or jump to…");
-    fireEvent.change(input, { target: { value: "onboarding" } });
-
+    type("onboarding");
     await waitFor(() => {
-      expect(screen.getByText("Write onboarding docs")).toBeInTheDocument();
-      expect(screen.queryByText("Overview")).not.toBeInTheDocument();
+      expect(screen.getByText(FAKE_TASK.title)).toBeInTheDocument();
+      expect(screen.queryByText("Overview")).toBeNull();
     });
   });
 
-  it("selecting a nav item calls setView and closes the palette", async () => {
-    useStore.setState({ commandOpen: true, projects: [] });
+  it("navigates and closes on select", async () => {
+    useStore.setState({ commandOpen: true });
     renderWithProviders(<CommandPalette />);
 
-    const item = await screen.findByText("Connectors");
-    fireEvent.click(item);
-
+    fireEvent.click(await screen.findByText("Connectors"));
     expect(useStore.getState().view).toBe("connectors");
     expect(useStore.getState().commandOpen).toBe(false);
   });
 
-  it('selecting "Resume {task}" sets pendingResumeTaskId and navigates to Capsules — without running any restore invoke itself', async () => {
+  // The palette never runs a restore itself: it sets the pending signal and
+  // jumps to Capsules, which already owns that ceremony.
+  it("routes Restore through Capsules without invoking activate_task", async () => {
     mockListTasks();
-    useStore.setState({ commandOpen: true, projects: [FAKE_PROJECT], pendingResumeTaskId: null });
-
+    useStore.setState({ commandOpen: true, projects: [FAKE_PROJECT] });
     renderWithProviders(<CommandPalette />);
 
-    const resumeItem = await screen.findByText("Resume Write onboarding docs");
-    fireEvent.click(resumeItem);
+    fireEvent.click(await screen.findByText(`Restore ${FAKE_TASK.title}`));
 
     expect(useStore.getState().pendingResumeTaskId).toBe(FAKE_TASK.id);
+    expect(useStore.getState().selectedCapsuleId).toBe(FAKE_TASK.id);
     expect(useStore.getState().view).toBe("capsules");
     expect(useStore.getState().commandOpen).toBe(false);
     expect(mockInvoke).not.toHaveBeenCalledWith("activate_task", expect.anything());
+  });
+
+  it("opens a capsule with it selected", async () => {
+    mockListTasks();
+    useStore.setState({ commandOpen: true, projects: [FAKE_PROJECT] });
+    renderWithProviders(<CommandPalette />);
+
+    fireEvent.click(await screen.findByText(FAKE_TASK.title));
+    expect(useStore.getState().selectedCapsuleId).toBe(FAKE_TASK.id);
+    expect(useStore.getState().view).toBe("capsules");
+  });
+
+  it("jumps straight to a settings section", async () => {
+    useStore.setState({ commandOpen: true, settingsSection: "general" });
+    renderWithProviders(<CommandPalette />);
+
+    type("appearance");
+    fireEvent.click(await screen.findByText("Appearance"));
+    expect(useStore.getState().settingsSection).toBe("appearance");
+    expect(useStore.getState().view).toBe("settings");
+  });
+
+  // The handoff asks Switch theme to show the current theme as its meta, so
+  // the action reads as a state change rather than a mystery toggle.
+  it("shows the current theme beside Switch theme", async () => {
+    useStore.setState({ commandOpen: true });
+    useStore.getState().setPref("theme", "dark");
+    renderWithProviders(<CommandPalette />);
+
+    const row = (await screen.findByText("Switch theme")).closest("[cmdk-item]")!;
+    expect(row.textContent).toContain("Dark");
+  });
+
+  it("clears the query between opens", async () => {
+    mockListTasks();
+    useStore.setState({ commandOpen: true, projects: [FAKE_PROJECT] });
+    const view = renderWithProviders(<CommandPalette />);
+    await screen.findByText(FAKE_TASK.title);
+    type("onboarding");
+    await waitFor(() => expect(screen.queryByText("Overview")).toBeNull());
+
+    view.unmount();
+    useStore.setState({ commandOpen: false });
+    renderWithProviders(<CommandPalette />);
+    useStore.setState({ commandOpen: true });
+
+    expect(await screen.findByText("Overview")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search or jump to…")).toHaveValue("");
   });
 });
