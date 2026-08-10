@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { useStore } from "@/store";
+import { DEFAULT_PREFS, readPrefs, useStore, writePrefs } from "@/store";
 
 describe("connector store carries reported version", () => {
   beforeEach(() => {
@@ -33,6 +33,67 @@ describe("connector store carries reported version", () => {
     const row = useStore.getState().connectors.find((r) => r.name === "Chrome");
     expect(row?.version).toBe("1.2.3");
     expect(row?.connected).toBe(false);
+  });
+});
+
+// Task 8: the status bar's visibility is driven by `prefs.statusbar`. Task 2
+// shipped `readPrefs` spreading an unvalidated `JSON.parse` result over
+// `DEFAULT_PREFS` — a corrupt persisted `accent` crashed the app on first
+// render until that key got its own validation. `statusbar` is a plain
+// boolean, so the equivalent corruption is a persisted non-boolean
+// ("true", null, 0, "yes") silently making the bar render or hide
+// unpredictably instead of falling back to the default.
+describe("readPrefs with corrupt persisted statusbar", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("returns the default when the persisted value is the string \"true\"", () => {
+    localStorage.setItem("rabta.prefs", JSON.stringify({ statusbar: "true" }));
+    const prefs = readPrefs();
+    expect(prefs.statusbar).toBe(DEFAULT_PREFS.statusbar);
+  });
+
+  it("returns the default when the persisted value is null", () => {
+    localStorage.setItem("rabta.prefs", JSON.stringify({ statusbar: null }));
+    const prefs = readPrefs();
+    expect(prefs.statusbar).toBe(DEFAULT_PREFS.statusbar);
+  });
+
+  it("returns the default when the persisted value is a number", () => {
+    localStorage.setItem("rabta.prefs", JSON.stringify({ statusbar: 0 }));
+    const prefs = readPrefs();
+    expect(prefs.statusbar).toBe(DEFAULT_PREFS.statusbar);
+  });
+
+  it("returns the default when the persisted JSON is corrupt", () => {
+    localStorage.setItem("rabta.prefs", "{ corrupt json");
+    const prefs = readPrefs();
+    expect(prefs.statusbar).toBe(DEFAULT_PREFS.statusbar);
+  });
+
+  it("preserves other valid preferences when statusbar is corrupt", () => {
+    localStorage.setItem(
+      "rabta.prefs",
+      JSON.stringify({ statusbar: "nope", theme: "dark", developerMode: true })
+    );
+    const prefs = readPrefs();
+    expect(prefs.statusbar).toBe(DEFAULT_PREFS.statusbar);
+    expect(prefs.theme).toBe("dark");
+    expect(prefs.developerMode).toBe(true);
+  });
+
+  it("still round-trips a valid statusbar value (false) correctly", () => {
+    writePrefs({ ...DEFAULT_PREFS, statusbar: false });
+    const prefs = readPrefs();
+    expect(prefs.statusbar).toBe(false);
+  });
+
+  it("still round-trips a valid statusbar value (true) correctly", () => {
+    writePrefs({ ...DEFAULT_PREFS, statusbar: false });
+    writePrefs({ ...DEFAULT_PREFS, statusbar: true });
+    const prefs = readPrefs();
+    expect(prefs.statusbar).toBe(true);
   });
 });
 

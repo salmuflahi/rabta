@@ -84,6 +84,9 @@ export interface Prefs {
   focusMode: boolean;
   /** Reveal the raw connector-command console (Settings → Advanced). */
   developerMode: boolean;
+  /** Settings › Window. Shows/hides the window-chrome footer (StatusBar)
+   *  that reports live connector count and last activity. */
+  statusbar: boolean;
 }
 
 const PREFS_KEY = "rabta.prefs";
@@ -97,6 +100,7 @@ export const DEFAULT_PREFS: Prefs = {
   keepCompleted: true,
   focusMode: false,
   developerMode: false,
+  statusbar: true,
 };
 
 export function readPrefs(): Prefs {
@@ -111,6 +115,13 @@ export function readPrefs(): Prefs {
     // Validate accent: if it's not a valid key in ACCENTS, use the default
     if (merged.accent && !(merged.accent in ACCENTS)) {
       merged.accent = DEFAULT_PREFS.accent;
+    }
+
+    // Validate statusbar: a persisted non-boolean ("true", null, 0, ...)
+    // must not make the bar render or hide unpredictably — fall back to
+    // the default instead of trusting whatever JSON.parse produced.
+    if (typeof merged.statusbar !== "boolean") {
+      merged.statusbar = DEFAULT_PREFS.statusbar;
     }
 
     return merged;
