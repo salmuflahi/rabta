@@ -125,7 +125,7 @@ function GettingStarted({
                 // so it does not spend the page's one orange accent — two
                 // steps (e.g. project registered + connector paired) are
                 // routinely done at once, which would blow the accent budget.
-                s.done ? "bg-success" : "bg-muted",
+                s.done ? "bg-ok" : "bg-muted",
               )}
             />
           ))}
@@ -137,7 +137,7 @@ function GettingStarted({
           return (
             <li key={i} className="flex items-center gap-3 rounded-lg px-1 py-2">
               {step.done ? (
-                <CheckCircle2 className="size-5 shrink-0 text-success" />
+                <CheckCircle2 className="size-5 shrink-0 text-ok" />
               ) : (
                 <Circle
                   className={cn("size-5 shrink-0", isNext ? "text-primary" : "text-muted-foreground/40")}
@@ -448,7 +448,7 @@ export function OverviewPage() {
                         <span
                           className={cn(
                             "size-2 shrink-0 rounded-full",
-                            c.connected ? "bg-success" : "bg-muted-foreground/40",
+                            c.connected ? "bg-ok" : "bg-muted-foreground/40",
                           )}
                         />
                       }

@@ -79,9 +79,10 @@ export default {
         tertiary: { foreground: "hsl(var(--tertiary-foreground))" },
         accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
         destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
-        success: { DEFAULT: "hsl(var(--success))", foreground: "hsl(var(--success-foreground))" },
-        warning: { DEFAULT: "hsl(var(--warning))", foreground: "hsl(var(--warning-foreground))" },
-        info: { DEFAULT: "hsl(var(--info))", foreground: "hsl(var(--info-foreground))" },
+        // `success` / `warning` / `info` were removed in Phase 2 — the
+        // `ok` / `warn` / `bad` trio below is the Console v2 vocabulary and
+        // every call site now uses it. There is no `info` successor: the
+        // handoff has no informational colour.
         // Console v2 Phase 1, Task 1 — new semantic + surface tokens from
         // the design handoff. `ok`/`warn`/`bad`/`field` are bare HSL
         // triplets in index.css, so they're wrapped in hsl(var(...)) like

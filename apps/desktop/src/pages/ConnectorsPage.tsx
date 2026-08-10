@@ -19,7 +19,7 @@ import { useStore, type ConnectorRow, type PendingPairing } from "@/store";
  * buttons (see the "shows only the first pairing card's Approve button..."
  * test, which pins this from both sides).
  *
- * Differentiated with `bg-warning/10` alone, on top of `variant="raised"`'s
+ * Differentiated with `bg-warn-soft` alone, on top of `variant="raised"`'s
  * own `shadow-raised` elevation — never a border. Surface owns depth via a
  * lit, elevated plane, not a drawn outline; that is the one rule that
  * separates this redesign from the bordered-card dashboard look it
@@ -33,8 +33,8 @@ function PendingPairings({
   onDecide: (pairing: PendingPairing, ok: boolean) => void;
 }) {
   return (
-    <Surface variant="raised" className="mb-6 bg-warning/10 p-4">
-      <div className="flex flex-col divide-y divide-warning/20">
+    <Surface variant="raised" className="mb-6 bg-warn-soft p-4">
+      <div className="flex flex-col divide-y divide-warn/20">
         {pairings.map((p, i) => (
           <div
             key={p.pairingId}
@@ -65,8 +65,8 @@ function StatusDot({ connected }: { connected: boolean }) {
     // dot. Only rendered when actually connected, so it's honest.
     return (
       <span aria-hidden className="relative flex size-2.5 shrink-0 items-center justify-center">
-        <span className="absolute inline-flex size-full animate-live-ping rounded-full bg-success" />
-        <span className="relative inline-flex size-2.5 rounded-full bg-success ring-4 ring-success/15" />
+        <span className="absolute inline-flex size-full animate-live-ping rounded-full bg-ok" />
+        <span className="relative inline-flex size-2.5 rounded-full bg-ok ring-4 ring-ok/15" />
       </span>
     );
   }

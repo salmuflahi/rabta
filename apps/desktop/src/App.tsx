@@ -285,7 +285,7 @@ export default function App() {
           same request appears twice on one screen). */}
       {view !== "connectors" &&
         pairings.map((p) => (
-          <div key={p.pairingId} className="flex items-center gap-3 border-b border-warning/30 bg-warning/10 p-2 text-sm text-foreground">
+          <div key={p.pairingId} className="flex items-center gap-3 border-b border-warn/30 bg-warn-soft p-2 text-sm text-foreground">
             <span className="min-w-0 flex-1">
               <b>{p.name}</b> ({kindLabel(p.kind)}) wants to connect to Rabta
             </span>

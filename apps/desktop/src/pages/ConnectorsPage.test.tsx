@@ -164,7 +164,7 @@ describe("ConnectorsPage", () => {
   // dashboard look it replaces. The pending-pairings prompt must
   // differentiate itself the same way every other Surface in the app
   // does: `variant="raised"`'s own shadow-raised elevation plus its own
-  // bg-warning/10 tint — never a border, warning-coloured or otherwise.
+  // bg-warn-soft tint — never a border, warning-coloured or otherwise.
   it("renders the pending-pairing prompt as a raised Surface with no border", async () => {
     useStore.setState({
       connectors: [],
@@ -174,7 +174,7 @@ describe("ConnectorsPage", () => {
     const { container } = renderWithProviders(<ConnectorsPage />);
     await screen.findByText("Approve");
 
-    const pairingSurface = container.querySelector('[class*="bg-warning"]');
+    const pairingSurface = container.querySelector('[class*="bg-warn"]');
     expect(pairingSurface).not.toBeNull();
     // Raised, not merely tinted — it still gets Surface's elevation.
     expect(pairingSurface!.className).toMatch(/(^|\s)shadow-raised(\s|$)/);

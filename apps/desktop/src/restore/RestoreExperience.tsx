@@ -116,9 +116,9 @@ function StatusIndicator({
 
   const toneClass =
     status === "applied"
-      ? "text-success"
+      ? "text-ok"
       : status === "failed"
-        ? "text-warning"
+        ? "text-warn"
         : status === "restoring"
           ? "text-foreground"
           : "text-muted-foreground";
@@ -195,9 +195,9 @@ function RestoreProgress({ stage, reducedMotion }: { stage: RestoreStage; reduce
   const resolved = stage === "success" || stage === "partial" || stage === "failure" || stage === "closing";
   const toneClass =
     stage === "success"
-      ? "bg-success"
+      ? "bg-ok"
       : stage === "partial"
-        ? "bg-warning"
+        ? "bg-warn"
         : stage === "failure"
           ? "bg-destructive"
           : "bg-primary";
@@ -230,7 +230,7 @@ function RestoreHeader({ title, subtitle, stage, titleId }: { title: string; sub
       <span className="relative inline-flex shrink-0">
         <img src={markUrl} width={32} height={32} alt="" className="rounded-[7px]" />
         {showCheck && (
-          <span className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full bg-success text-success-foreground">
+          <span className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full bg-ok text-card">
             <Check className="size-2.5" />
           </span>
         )}

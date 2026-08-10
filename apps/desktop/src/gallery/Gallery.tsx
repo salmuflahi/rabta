@@ -160,9 +160,13 @@ export function Gallery() {
           {[
             { label: "Primary", swatch: "bg-primary" },
             { label: "Foreground", swatch: "bg-foreground" },
-            { label: "Success", swatch: "bg-success" },
-            { label: "Info", swatch: "bg-info" },
-            { label: "Warning", swatch: "bg-warning" },
+            // Console v2's semantic trio. It replaces the old
+            // success/warning/info vocabulary — note there is no "info":
+            // the handoff has no neutral-informational colour, and
+            // inventing one would be a token nothing in the design uses.
+            { label: "OK", swatch: "bg-ok" },
+            { label: "Warn", swatch: "bg-warn" },
+            { label: "Bad", swatch: "bg-bad" },
             { label: "Destructive", swatch: "bg-destructive" },
           ].map(({ label, swatch }) => (
             <div key={label} className="flex flex-col items-center gap-2">
@@ -222,12 +226,13 @@ export function Gallery() {
         <div className="flex flex-wrap items-center gap-3">
           <Badge>default</Badge>
           <Badge variant="secondary">secondary</Badge>
-          <Badge variant="success">success</Badge>
-          <Badge variant="warning">warning</Badge>
+          <Badge variant="ok">ok</Badge>
+          <Badge variant="warn">warn</Badge>
+          <Badge variant="bad">bad</Badge>
           <Badge variant="destructive">destructive</Badge>
           <Badge variant="outline">outline</Badge>
-          <Badge variant="success">
-            <span className="h-1.5 w-1.5 rounded-full bg-success" />
+          <Badge variant="ok">
+            <span className="h-1.5 w-1.5 rounded-full bg-ok" />
             online
           </Badge>
         </div>

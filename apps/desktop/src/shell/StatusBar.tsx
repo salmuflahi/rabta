@@ -61,7 +61,7 @@ export function StatusBar() {
           aria-hidden="true"
           className={cn(
             "size-1.5 shrink-0 rounded-full",
-            connectedCount > 0 ? "bg-success" : "bg-muted-foreground/40",
+            connectedCount > 0 ? "bg-ok" : "bg-muted-foreground/40",
           )}
         />
         <span className="truncate">{statusText}</span>

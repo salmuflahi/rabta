@@ -63,12 +63,6 @@
     --accent-foreground: 240 3% 12%;   /* #1D1D1F */
     --destructive: 6 63% 46%;   /* #C0392B */
     --destructive-foreground: 0 0% 100%;   /* #FFFFFF */
-    --success: 169 78% 27%;   /* #0F7A67 */
-    --success-foreground: 0 0% 100%;   /* #FFFFFF */
-    --warning: 39 80% 30%;   /* #8A5E0F */
-    --warning-foreground: 0 0% 100%;   /* #FFFFFF */
-    --info: 197 49% 36%;   /* #2E6F88 */
-    --info-foreground: 0 0% 100%;   /* #FFFFFF */
     --border: 0 0% 88%;   /* #E0E0E0 — hairlines use border-border/60 */
     --input: 0 0% 84%;   /* #D6D6D6 */
     --ring: 18 100% 59%;   /* #FF6B2C */
@@ -112,9 +106,12 @@
        design handoff. Solid colours are bare HSL triplets (bound via
        hsl(var(--x)); see tailwind.config.js and the * { @apply
        border-border } rule in this file). Alpha-carrying overlays are
-       literal rgba() and are bound directly, never through hsl(). Coexists
-       with the older --success/--warning/--info vocabulary below, which
-       Phase 2 migrates. */
+       literal rgba() and are bound directly, never through hsl().
+
+       Phase 2 retired the older --success/--warning/--info vocabulary
+       these replaced. Note there is no --info successor: the handoff has
+       no informational colour, and inventing one would be a token nothing
+       in the design uses. */
     --ok: 169 72% 33%;   /* #178F79 */
     --warn: 38 71% 40%;   /* #B07B1E */
     --bad: 8 59% 44%;   /* #B3402E */
@@ -149,12 +146,6 @@
     --accent-foreground: 180 14% 95%;   /* #EFF3F3 */
     --destructive: 6 74% 64%;   /* #E76B5D */
     --destructive-foreground: 19 38% 8%;   /* #1D120D */
-    --success: 169 58% 62%;   /* #66D6C2 */
-    --success-foreground: 168 68% 7%;   /* #06201B */
-    --warning: 39 67% 55%;   /* #D9A441 */
-    --warning-foreground: 40 71% 8%;   /* #241A06 */
-    --info: 198 35% 67%;   /* #8FB8C9 */
-    --info-foreground: 195 55% 9%;   /* #0A1C22 */
     --border: 188 7% 24%;   /* #383F40 — hairlines use border-border/60 */
     --input: 188 7% 28%;   /* #414849 */
     --ring: 18 100% 59%;   /* #FF6B2C */

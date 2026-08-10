@@ -126,7 +126,7 @@ export function GitLine({
                 <span
                   className={
                     s.dirty
-                      ? "min-w-0 truncate font-mono text-warning"
+                      ? "min-w-0 truncate font-mono text-warn"
                       : "min-w-0 truncate font-mono text-foreground"
                   }
                 >
@@ -141,7 +141,7 @@ export function GitLine({
           </Tooltip>
 
           {s.changedCount > 0 && (
-            <Badge variant={s.dirty ? "warning" : "secondary"}>
+            <Badge variant={s.dirty ? "warn" : "secondary"}>
               <GitCommitVertical className="size-3" />
               {s.changedCount} changed
             </Badge>
