@@ -14,6 +14,7 @@ import { OverviewPage } from "./pages/OverviewPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { AppShell } from "./shell/AppShell";
+import { MigrateSheet } from "./features/migrate/MigrateSheet";
 import { CommandPalette } from "./shell/CommandPalette";
 import {
   useStore,
@@ -301,6 +302,7 @@ export default function App() {
           </div>
         ))}
       <div className="min-h-0 flex-1">
+        <MigrateSheet />
         <AppShell>
           <CurrentPage view={view} />
         </AppShell>

@@ -101,6 +101,7 @@ export function CommandPalette() {
   const selectProject = useStore((s) => s.selectProject);
   const selectConnector = useStore((s) => s.selectConnector);
   const setSettingsSection = useStore((s) => s.setSettingsSection);
+  const openMigrate = useStore((s) => s.openMigrate);
   const { theme, setTheme } = useTheme();
 
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -223,6 +224,24 @@ export function CommandPalette() {
                     shortcut="⌘S"
                   />
                 )}
+                <Row
+                  value="migrate send another mac export bundle"
+                  onSelect={() => {
+                    openMigrate("send");
+                    setOpen(false);
+                  }}
+                  icon="archive"
+                  label="Migrate to another Mac"
+                />
+                <Row
+                  value="receive import bundle another mac"
+                  onSelect={() => {
+                    openMigrate("receive");
+                    setOpen(false);
+                  }}
+                  icon="capture"
+                  label="Receive from another Mac"
+                />
                 <Row
                   value="switch theme appearance dark light"
                   onSelect={() => {

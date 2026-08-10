@@ -18,9 +18,7 @@ export interface SettingsSectionMeta {
  * into the shell. The page owns what each section *renders*; this owns what
  * each section *is*.
  *
- * The handoff lists eight sections; Migrate is absent here because the
- * whole flow is Phase 3 — a section that opened a sheet which doesn't exist
- * would be worse than its absence. It goes in when the flow does.
+ * All eight of the handoff's sections. Migrate arrived with Phase 3.
  */
 export const SETTINGS_SECTIONS: SettingsSectionMeta[] = [
   { id: "general", label: "General", title: "General", icon: "settings" },
@@ -28,6 +26,7 @@ export const SETTINGS_SECTIONS: SettingsSectionMeta[] = [
   { id: "capsules", label: "Capsules", title: "Capsules", icon: "capsule" },
   { id: "connectors", label: "Connectors", title: "Connectors", icon: "connectors" },
   { id: "privacy", label: "Privacy & data", title: "Privacy & data", icon: "shield" },
+  { id: "migrate", label: "Migrate", title: "Migrate", icon: "archive" },
   { id: "developer", label: "Developer", title: "Developer", icon: "code" },
   { id: "shortcuts", label: "Shortcuts", title: "Keyboard shortcuts", icon: "keyboard" },
 ];

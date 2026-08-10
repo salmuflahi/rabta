@@ -198,6 +198,48 @@ export interface PendingPairing {
 
 export type NavKey = "overview" | "capsules" | "projects" | "connectors" | "activity" | "settings";
 
+/** Which direction a migration is going. */
+export type MigrateRole = "send" | "receive";
+
+/** Which parts of this Mac cross. Mirrors `Include` in rabta-db — the
+ * bundle honours these, so an unticked section is absent from the file
+ * rather than filtered on the way out. */
+export interface MigrateInclude {
+  capsules: boolean;
+  projects: boolean;
+  pairings: boolean;
+  preferences: boolean;
+  history: boolean;
+}
+
+/** What to do about a name that already exists on the receiving Mac.
+ * `replace` is the only destructive one, and the UI says so in words. */
+export type MigrateMerge = "keepBoth" | "replace" | "skip";
+
+export interface MigrateState {
+  role: MigrateRole;
+  /** Index into the role's own step list — see MigrateSheet. */
+  step: number;
+  /** Only "file" is implemented; "nearby" is drawn disabled with its
+   * reason. See src-tauri/src/migrate.rs for why. */
+  transport: "file" | "nearby";
+  include: MigrateInclude;
+  /** Where the bundle is written to, or read from. */
+  path: string;
+  passphrase: string;
+  /** Receive: the home directory incoming paths are remapped onto. */
+  remap: string;
+  merge: MigrateMerge;
+}
+
+export const DEFAULT_MIGRATE_INCLUDE: MigrateInclude = {
+  capsules: true,
+  projects: true,
+  pairings: true,
+  preferences: true,
+  history: true,
+};
+
 interface Store {
   connectors: ConnectorRow[];
   log: LogEntry[];
@@ -291,6 +333,18 @@ interface Store {
   capsuleFilter: "open" | "done";
   setCapsuleFilter: (filter: "open" | "done") => void;
 
+  // --- Migrate (Console v2 Phase 3) ---
+  //
+  // The handoff's State block names this `mig  null | { role, step, ... }`:
+  // one nullable object, because a migration is either happening or it
+  // isn't, and half its fields are meaningless when it isn't. Kept out of
+  // the sheet's own local state so ⌘K's "Migrate" and "Receive" actions can
+  // open it directly at the right role from anywhere.
+  mig: MigrateState | null;
+  openMigrate: (role: MigrateRole) => void;
+  closeMigrate: () => void;
+  patchMigrate: (patch: Partial<MigrateState>) => void;
+
   /** Icons-only rail vs. full sidebar, persisted to localStorage so it
    * survives reload. Toggled via the sidebar's collapse button or ⌘\. */
   sidebarCollapsed: boolean;
@@ -332,6 +386,23 @@ export const useStore = create<Store>((set) => ({
   newTaskRequest: false,
   requestNewTask: () => set({ newTaskRequest: true }),
   clearNewTaskRequest: () => set({ newTaskRequest: false }),
+  mig: null,
+  openMigrate: (role) =>
+    set({
+      mig: {
+        role,
+        step: 0,
+        transport: "file",
+        include: { ...DEFAULT_MIGRATE_INCLUDE },
+        path: "",
+        passphrase: "",
+        remap: "",
+        merge: "keepBoth",
+      },
+    }),
+  closeMigrate: () => set({ mig: null }),
+  patchMigrate: (patch) =>
+    set((s) => (s.mig ? { mig: { ...s.mig, ...patch } } : {})),
   selectedCapsuleId: null,
   selectCapsule: (selectedCapsuleId) => set({ selectedCapsuleId }),
   selectedProjectId: null,

@@ -42,6 +42,7 @@ describe("SettingsPage", () => {
       "Capsules",
       "Connectors",
       "Privacy & data",
+      "Migrate",
       "Developer",
       "Shortcuts",
     ]) {
@@ -53,11 +54,20 @@ describe("SettingsPage", () => {
     expect(detail().getByRole("heading", { level: 2, name: "Privacy & data" })).toBeInTheDocument();
   });
 
-  // Migrate is Phase 3 — the whole flow is unbuilt, and a section listing it
-  // would either be empty or open a sheet that doesn't exist.
-  it("does not offer a Migrate section it cannot open", () => {
+  // Migrate arrived with Phase 3, so the handoff's eighth section is here
+  // now — and it opens a sheet that really exists.
+  it("offers Migrate, with both doors into the flow", () => {
     renderWithProviders(<SettingsPage />);
-    expect(sections().queryByRole("tab", { name: "Migrate" })).toBeNull();
+    openSection("Migrate");
+    expect(detail().getByRole("heading", { level: 2, name: "Migrate" })).toBeInTheDocument();
+
+    fireEvent.click(detail().getByRole("button", { name: "Send…" }));
+    expect(useStore.getState().mig?.role).toBe("send");
+
+    useStore.getState().closeMigrate();
+    fireEvent.click(detail().getByRole("button", { name: "Receive…" }));
+    expect(useStore.getState().mig?.role).toBe("receive");
+    useStore.getState().closeMigrate();
   });
 
   it("keeps the selected section neutral, not accent-filled", () => {
@@ -69,7 +79,7 @@ describe("SettingsPage", () => {
   });
 
   it("tolerates a persisted section id that no longer exists", () => {
-    useStore.setState({ settingsSection: "migrate" });
+    useStore.setState({ settingsSection: "a-section-from-a-later-build" });
     renderWithProviders(<SettingsPage />);
     expect(detail().getByRole("heading", { level: 2, name: "General" })).toBeInTheDocument();
   });

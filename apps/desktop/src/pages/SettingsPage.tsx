@@ -320,6 +320,34 @@ const SHORTCUTS: { combo: string; description: string }[] = [
   { combo: "⌘R", description: "Resume the last capsule" },
 ];
 
+/** Settings › Migrate. The sheet itself is mounted at the app root (so the
+ * palette can open it too); this section is the two doors into it. */
+function MigrateSection() {
+  const openMigrate = useStore((s) => s.openMigrate);
+  return (
+    <>
+      <p className="mt-4 text-sub leading-[1.55] text-muted-foreground">
+        Move your capsules, projects and preferences to another Mac as one encrypted file. Sending
+        copies — nothing is removed from this Mac.
+      </p>
+      <SettingCard>
+        <SettingRow
+          title="Send to another Mac"
+          description="Write an encrypted .rabta bundle you can AirDrop or carry on a drive."
+        >
+          <RowButton onClick={() => openMigrate("send")}>Send…</RowButton>
+        </SettingRow>
+        <SettingRow
+          title="Receive from another Mac"
+          description="Open a bundle. You review exactly what lands here before anything is written."
+        >
+          <RowButton onClick={() => openMigrate("receive")}>Receive…</RowButton>
+        </SettingRow>
+      </SettingCard>
+    </>
+  );
+}
+
 function ShortcutsSection() {
   return (
     <SettingCard>
@@ -393,6 +421,7 @@ const RENDERERS: Record<string, () => React.ReactNode> = {
   capsules: () => <CapsulesSection />,
   connectors: () => <ConnectorsSection />,
   privacy: () => <PrivacySection />,
+  migrate: () => <MigrateSection />,
   developer: () => <DeveloperSection />,
   shortcuts: () => <ShortcutsSection />,
 };

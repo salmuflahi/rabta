@@ -62,6 +62,24 @@ type Args = Record<string, unknown> | undefined;
 
 function handle(cmd: string, args: Args): unknown {
   switch (cmd) {
+    // ------------------------------------------------------------- migrate
+    //
+    // Read-only answers, derived from the same fixture the rest of the rig
+    // uses, so a posed shot of the Migrate sheet shows counts that agree
+    // with the sidebar behind it. `migrate_export` and `migrate_apply` are
+    // deliberately absent: they write, and a capture rig must not.
+    case "migrate_survey": {
+      const allTasks = Object.values(tasks).flat();
+      return {
+        capsules: allTasks.length,
+        projects: projects.filter((p) => p.archivedAt === null).length,
+        pairings: KNOWN_CONNECTORS.length,
+        history: EVENTS.length,
+      };
+    }
+    case "migrate_home":
+      return "/Users/you";
+
     // ---------------------------------------------------------- read paths
     case "list_projects":
       return projects.filter((p) => p.archivedAt === null);
