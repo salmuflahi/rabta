@@ -27,6 +27,12 @@ pub use records::{
 mod recorder;
 pub use recorder::Recorder;
 
+mod bundle;
+pub use bundle::{
+    seal, unseal, Bundle, ConnectorRow, EventRowOut, Include, ProjectRow, Survey, TaskPinRow,
+    TaskResourceRow, TaskRow, BUNDLE_FORMAT, BUNDLE_VERSION,
+};
+
 /// Storage configuration.
 #[derive(Clone)]
 pub struct DbConfig {
