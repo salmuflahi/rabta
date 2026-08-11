@@ -101,15 +101,47 @@ test("homepage surfaces stay within the approved Living Instrument palette", asy
     "#d9e3e3",
   ]);
 
+  // The one documented exception: macOS's own window-control colours, at their
+  // system values, on the hero window's traffic lights. They are a quotation,
+  // not a palette addition — the frame claims "this is a Mac app", and a Mac
+  // app's close button is that red. Drawing them in brand colours would make
+  // the frame a stylised picture of a window rather than a window.
+  const quoted = new Set(["#ff5f57", "#febc2e", "#28c840"]);
+
   for (const file of ["css/shell.css", "css/landing.css", "index.html"]) {
     const source = await readFile(resolve(SITE, file), "utf8");
     const literals = [...source.matchAll(/#[0-9a-f]{3,8}\b/gi)].map((match) =>
       match[0].toLowerCase(),
     );
-    assert.ok(
-      literals.every((value) => approved.has(value)),
-      `${file}: unapproved color ${literals.find((value) => !approved.has(value))}`,
+    const stray = literals.find(
+      (value) => !approved.has(value) && !quoted.has(value),
     );
+    assert.ok(!stray, `${file}: unapproved color ${stray}`);
+  }
+
+  // An exception that can spread is not an exception, it is a second palette.
+  // Each quoted colour must appear exactly once, and only in the traffic-light
+  // rule it was granted for.
+  const landing = await readFile(resolve(SITE, "css/landing.css"), "utf8");
+  for (const value of quoted) {
+    assert.equal(
+      (landing.match(new RegExp(value, "gi")) ?? []).length,
+      1,
+      `${value} is used more than once`,
+    );
+    assert.match(
+      landing,
+      new RegExp(`\\.window__lights span:nth-child\\(\\d\\) \\{\\s*background: ${value};`, "i"),
+      `${value} is used outside the traffic lights`,
+    );
+  }
+
+  // And nowhere but landing.css at all.
+  for (const file of ["css/shell.css", "css/doc.css", "css/page.css", "css/tokens.css"]) {
+    const source = await readFile(resolve(SITE, file), "utf8");
+    for (const value of quoted) {
+      assert.doesNotMatch(source, new RegExp(value, "i"), `${file}: ${value}`);
+    }
   }
 });
 

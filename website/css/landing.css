@@ -300,11 +300,33 @@
     gap: 8px;
   }
 
+  /* The only three colours on this site that are not Rabta's.
+
+     They are macOS's own window controls, reproduced at their system values,
+     and they are here as a quotation rather than as design: the frame says
+     "this is a Mac app", and a Mac app's close button is that red. Substituting
+     palette colours would make the frame a stylised drawing of a window rather
+     than a window.
+
+     The palette contract in tests/site/site-contract.test.mjs is widened for
+     exactly these three literals and asserts they appear nowhere but this rule,
+     so the exception cannot spread into the rest of the page. */
   .window__lights span {
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background: rgba(243, 240, 232, 0.18);
+  }
+
+  .window__lights span:nth-child(1) {
+    background: #ff5f57;
+  }
+
+  .window__lights span:nth-child(2) {
+    background: #febc2e;
+  }
+
+  .window__lights span:nth-child(3) {
+    background: #28c840;
   }
 
   .window__title {
