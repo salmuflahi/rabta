@@ -19,6 +19,7 @@ import { Icon, type IconName } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadError } from "@/components/ui/load-error";
+import { Row } from "@/components/ui/row";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CapsuleItems } from "@/features/capsules/CapsuleItems";
@@ -27,6 +28,7 @@ import { capsuleBranch, capsuleSavedAt } from "@/lib/capsuleFacts";
 import { humanizeCapsule, relativeTime } from "@/lib/humanize";
 import { toastErr, toastOk } from "@/lib/toast";
 import { useDeferredDelete } from "@/lib/useDeferredDelete";
+import { useListNavigation } from "@/lib/useListNavigation";
 import { cn } from "@/lib/utils";
 import { activateSummaryToResult, type ActivateSummary } from "@/restore/normalize";
 import { useRestore } from "@/restore/RestoreExperience";
@@ -334,6 +336,34 @@ export function CapsulesPage() {
     [connectors],
   );
 
+  // Capsules groups its master list by project, but the listbox is the
+  // *whole* column — option indices run across groups rather than
+  // restarting at 0 for each one, so ArrowDown at the bottom of one group's
+  // rows lands on the top of the next rather than stalling. `flatCapsules`
+  // is `groups` flattened in the same order it renders in; `flatCapsuleIndex`
+  // maps each task's id to its position in that flat order, so each row
+  // below can look its own index up in O(1) instead of an O(n) `indexOf`
+  // per row while rendering.
+  const flatCapsules = useMemo(() => groups.flatMap((g) => g.rows), [groups]);
+  const flatCapsuleIndex = useMemo(() => {
+    const index = new Map<string, number>();
+    flatCapsules.forEach((t, i) => index.set(t.id, i));
+    return index;
+  }, [flatCapsules]);
+
+  // Passes the *resolved* `selected` (stale-id fallback already applied),
+  // not the raw `selectedCapsuleId`, so the row the hook marks aria-selected
+  // always agrees with the capsule the detail pane actually shows. Called
+  // unconditionally, before the loading-gate return below.
+  const listNav = useListNavigation({
+    items: flatCapsules,
+    idOf: (t) => t.id,
+    labelOf: (t) => t.title,
+    selectedId: selected?.id ?? null,
+    onSelect: selectCapsule,
+    idPrefix: "capsule",
+  });
+
   const { start: startRestore, node: restoreNode, active: restoreActive } = useRestore();
 
   function resume(t: Task) {
@@ -532,7 +562,12 @@ export function CapsulesPage() {
           <span className="text-meta tabular-nums text-tertiary-foreground">{visible.length}</span>
         </div>
 
-        <div data-capsule-list className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-0.5">
+        <div
+          data-capsule-list
+          aria-label="Capsules"
+          {...listNav.containerProps}
+          className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-0.5"
+        >
           {groups.length === 0 ? (
             <p className="px-2 pt-4 text-meta text-muted-foreground">
               {projects.length === 0
@@ -544,7 +579,15 @@ export function CapsulesPage() {
           ) : (
             groups.map(({ project, rows }) => (
               <div key={project.id}>
-                <p className="px-2 pb-[3px] pt-[11px] text-label font-semibold text-tertiary-foreground">
+                {/* role="presentation": the listbox's direct-ish descendants
+                    must be options (or transparent), never a heading with an
+                    implicit role of its own — see the module comment above
+                    `flatCapsules` for why these headers don't split the
+                    listbox into one per project. */}
+                <p
+                  role="presentation"
+                  className="px-2 pb-[3px] pt-[11px] text-label font-semibold text-tertiary-foreground"
+                >
                   {project.name}
                 </p>
                 {rows.map((t) => {
@@ -553,11 +596,9 @@ export function CapsulesPage() {
                   const rs = resources[t.id] ?? [];
                   const savedAt = capsuleSavedAt(rs);
                   return (
-                    <button
+                    <Row
                       key={t.id}
-                      type="button"
-                      aria-current={isSelected ? "true" : undefined}
-                      onClick={() => selectCapsule(t.id)}
+                      {...listNav.getItemProps(t, flatCapsuleIndex.get(t.id)!)}
                       className={cn(
                         // DELIBERATE DIVERGENCE FROM THE HANDOFF, matching
                         // the one the sidebar already makes (Sidebar.tsx's
@@ -568,13 +609,18 @@ export function CapsulesPage() {
                         // button for the one-accent budget
                         // (`expectAtMostOneAccent`, src/test/accent.ts) —
                         // and Restore is the action, which is what the
-                        // accent is for. Neutral `--secondary` at weight 510
-                        // instead, exactly as the nav does it.
-                        "block w-full cursor-default rounded-md px-2 py-1.5 text-left transition-colors duration-fast ease-standard",
+                        // accent is for. Neutral `--secondary` instead,
+                        // exactly as the nav does it — and full-bleed, not a
+                        // rounded pill: these rows are Row now (Task 11),
+                        // which draws its own edge-to-edge hairline between
+                        // siblings, and a rounded selection floating between
+                        // two straight dividers would read as a mistake, not
+                        // a choice. The other three master lists make the
+                        // same two calls; this is their one shared note.
+                        "cursor-default transition-colors duration-fast ease-standard",
                         isSelected ? "bg-secondary" : "hover:bg-hover",
                       )}
-                    >
-                      <span className="flex min-w-0 items-center gap-[7px]">
+                      leading={
                         <span
                           aria-hidden
                           data-accent-mark={isActive || undefined}
@@ -587,9 +633,10 @@ export function CapsulesPage() {
                                 : "bg-tertiary-foreground",
                           )}
                         />
+                      }
+                      title={
                         <span
                           className={cn(
-                            "min-w-0 flex-1 truncate text-body",
                             isSelected && "font-510",
                             t.status === "done"
                               ? "text-tertiary-foreground line-through"
@@ -600,12 +647,14 @@ export function CapsulesPage() {
                         >
                           {t.title}
                         </span>
-                      </span>
-                      <span className="mt-0.5 block truncate pl-[14px] text-meta text-tertiary-foreground">
-                        {isActive ? "Active · " : ""}
-                        {savedAt ? `saved ${relativeTime(savedAt)}` : "never captured"}
-                      </span>
-                    </button>
+                      }
+                      subtitle={
+                        <span className="text-tertiary-foreground">
+                          {isActive ? "Active · " : ""}
+                          {savedAt ? `saved ${relativeTime(savedAt)}` : "never captured"}
+                        </span>
+                      }
+                    />
                   );
                 })}
               </div>

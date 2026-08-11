@@ -1,12 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { PermissionCard } from "@/components/ui/permission-card";
+import { Row } from "@/components/ui/row";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Surface } from "@/components/ui/surface";
 import { canSee, capabilityFacts, neverSees } from "@/lib/connectorFacts";
 import { kindLabel } from "@/lib/connectors";
 import { describeEvent, relativeTime } from "@/lib/humanize";
 import { decidePairing } from "@/lib/pairing";
+import { useListNavigation } from "@/lib/useListNavigation";
 import { cn } from "@/lib/utils";
 import { useStore, type ConnectorRow, type PendingPairing } from "@/store";
 
@@ -327,6 +329,20 @@ export function ConnectorsPage() {
   // render (that is the normal case here, not the exception).
   const selected = connectors.find((c) => c.id === selectedConnectorId) ?? connectors[0] ?? null;
 
+  // Passes the *resolved* `selected` (with its stale-id fallback already
+  // applied), not the raw `selectedConnectorId` — so the row the hook marks
+  // aria-selected always agrees with the connector the detail pane actually
+  // shows. Called unconditionally, before the loading-gate return below:
+  // React's Rules of Hooks don't bend for a skeleton branch.
+  const listNav = useListNavigation({
+    items: connectors,
+    idOf: (c) => c.id,
+    labelOf: (c) => c.name,
+    selectedId: selected?.id ?? null,
+    onSelect: selectConnector,
+    idPrefix: "connector",
+  });
+
   // `connectors` starts empty and is filled by App.tsx after mount — without
   // this gate, a user whose landing page is Connectors sees "No connectors
   // yet" flash before the real (possibly non-empty) list arrives.
@@ -339,44 +355,35 @@ export function ConnectorsPage() {
       <div className="grid min-h-0 flex-1 grid-cols-[296px_minmax(0,1fr)] overflow-hidden">
         <div
           data-connector-list
+          aria-label="Connectors"
+          {...listNav.containerProps}
           className="min-h-0 overflow-y-auto border-r-[0.5px] border-border px-2 pb-3 pt-2.5"
         >
           {connectors.length === 0 ? (
             <p className="px-2 pt-2 text-meta text-muted-foreground">Nothing paired yet.</p>
           ) : (
-            connectors.map((c) => {
+            connectors.map((c, index) => {
               const isSelected = selected?.id === c.id;
               return (
-                <button
+                <Row
                   key={c.id}
-                  type="button"
-                  aria-current={isSelected ? "true" : undefined}
-                  onClick={() => selectConnector(c.id)}
+                  {...listNav.getItemProps(c, index)}
                   className={cn(
-                    "block w-full cursor-default rounded-md px-2 py-1.5 text-left transition-colors duration-fast ease-standard",
+                    // Neutral selection, full-bleed rather than a rounded
+                    // pill now that these are Row (which draws its own
+                    // edge-to-edge hairlines) — see CapsulesPage for the
+                    // full note on both calls.
+                    "cursor-default transition-colors duration-fast ease-standard",
                     isSelected ? "bg-secondary" : "hover:bg-hover",
                   )}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <LiveDot connected={c.connected} size={7} />
-                    <span
-                      className={cn(
-                        "min-w-0 flex-1 truncate text-body text-foreground",
-                        isSelected && "font-510",
-                      )}
-                    >
-                      {c.name}
+                  leading={<LiveDot connected={c.connected} size={7} />}
+                  title={<span className={cn(isSelected && "font-510")}>{c.name}</span>}
+                  subtitle={
+                    <span className={c.connected ? "text-ok" : "text-tertiary-foreground"}>
+                      {c.connected ? "Connected" : "Offline"}
                     </span>
-                  </span>
-                  <span
-                    className={cn(
-                      "mt-0.5 block pl-[15px] text-meta",
-                      c.connected ? "text-ok" : "text-tertiary-foreground",
-                    )}
-                  >
-                    {c.connected ? "Connected" : "Offline"}
-                  </span>
-                </button>
+                  }
+                />
               );
             })
           )}

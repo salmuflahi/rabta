@@ -109,7 +109,7 @@ describe("ActivityPage details pane", () => {
       { seq: 2, at: new Date().toISOString(), type: "responseReceived", name: "tabs.list" },
     ]);
     renderWithProviders(<ActivityPage />);
-    fireEvent.click(eventList().getAllByRole("button")[0]);
+    fireEvent.click(eventList().getAllByRole("option")[0]);
 
     expect(useStore.getState().selectedEventSeq).toBe(1);
     expect(details().getByText(/"seq": 1/)).toBeInTheDocument();
@@ -139,7 +139,7 @@ describe("ActivityPage details pane", () => {
       { seq: 2, at: new Date().toISOString(), type: "commandSent" },
     ]);
     renderWithProviders(<ActivityPage />);
-    const row = eventList().getAllByRole("button")[0];
+    const row = eventList().getAllByRole("option")[0];
     fireEvent.click(row);
     expect(row.className.split(/\s+/)).toContain("bg-secondary");
     expect(row.className.split(/\s+/)).not.toContain("bg-primary");
@@ -157,9 +157,13 @@ describe("ActivityPage age and filtering", () => {
       { seq: 2, at: new Date().toISOString(), type: "commandSent", name: "new.thing" },
     ]);
     renderWithProviders(<ActivityPage />);
-    const rows = eventList().getAllByRole("button");
-    expect(rows[0].firstElementChild!.className).toMatch(/text-tertiary-foreground/);
-    expect(rows[1].firstElementChild!.className).not.toMatch(/text-tertiary-foreground/);
+    const rows = eventList().getAllByRole("option");
+    // querySelector("span"), not firstElementChild: a row is now Row (a
+    // leading-less title/subtitle stack wrapping div), so the sentence text
+    // — the one thing this test cares about the colour of — sits on the
+    // first <span> inside the row, not the row's own first element.
+    expect(rows[0].querySelector("span")!.className).toMatch(/text-tertiary-foreground/);
+    expect(rows[1].querySelector("span")!.className).not.toMatch(/text-tertiary-foreground/);
   });
 
   // The filter is local state, not the store's `selectedConnectorId`:
@@ -195,8 +199,8 @@ describe("ActivityPage historical events", () => {
       { seq: 1, at: new Date(Date.now() - 3 * 60 * 1000).toISOString(), type: "commandSent", historical: true },
     ]);
     renderWithProviders(<ActivityPage />);
-    const row = eventList().getAllByRole("button")[0];
-    expect(row.firstElementChild!.className).not.toMatch(/text-tertiary-foreground/);
+    const row = eventList().getAllByRole("option")[0];
+    expect(row.querySelector("span")!.className).not.toMatch(/text-tertiary-foreground/);
   });
 });
 

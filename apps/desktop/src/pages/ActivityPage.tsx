@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Row } from "@/components/ui/row";
 import {
   Select,
   SelectContent,
@@ -8,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { describeEvent, relativeTime } from "@/lib/humanize";
+import { useListNavigation } from "@/lib/useListNavigation";
 import { cn } from "@/lib/utils";
 import { useStore, type LogEntry } from "@/store";
 
@@ -130,6 +132,22 @@ export function ActivityPage() {
   const selected = shown.find((e) => e.seq === selectedEventSeq) ?? shown[shown.length - 1] ?? null;
   const now = Date.now();
 
+  // `seq` is a number and `selectEvent` takes `number | null`, but the hook's
+  // ids are strings throughout (DOM ids, type-ahead, Map keys) — idOf/onSelect
+  // convert at the boundary rather than pushing string seqs into the store.
+  // Passes the resolved `selected` (stale-seq fallback already applied), not
+  // the raw `selectedEventSeq`, so the row marked aria-selected always agrees
+  // with the event the details pane actually shows. Called unconditionally,
+  // before the loading-gate return below.
+  const listNav = useListNavigation({
+    items: shown,
+    idOf: (e) => String(e.seq),
+    labelOf: (e) => describeEvent(e, resolveName).sentence,
+    selectedId: selected ? String(selected.seq) : null,
+    onSelect: (id) => selectEvent(Number(id)),
+    idPrefix: "event",
+  });
+
   // `log` starts empty and is filled by App.tsx after mount — without this
   // gate, a user whose landing page is Activity sees "Nothing yet" flash
   // before the real (possibly non-empty) log arrives.
@@ -173,7 +191,13 @@ export function ActivityPage() {
           </span>
         </div>
 
-        <div ref={scroller} data-event-list className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-4 pt-1">
+        <div
+          ref={scroller}
+          data-event-list
+          aria-label="Activity"
+          {...listNav.containerProps}
+          className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-4 pt-1"
+        >
           {shown.length === 0 ? (
             <p className="px-2 pt-3 text-meta text-muted-foreground">
               {connFilter === "all"
@@ -181,40 +205,42 @@ export function ActivityPage() {
                 : "Nothing from that app yet."}
             </p>
           ) : (
-            shown.map((e) => {
+            shown.map((e, index) => {
               const isSelected = selected?.seq === e.seq;
               const aged = now - Date.parse(e.at) > AGED_MS;
               return (
-                <button
+                <Row
                   key={e.seq}
-                  type="button"
-                  aria-current={isSelected ? "true" : undefined}
-                  onClick={() => selectEvent(e.seq)}
+                  {...listNav.getItemProps(e, index)}
                   className={cn(
-                    // Neutral selection, as on every other list in this app
-                    // — see CapsulesPage for the full note.
-                    "flex w-full cursor-default items-center gap-3 rounded-[7px] px-2.5 py-[7px] text-left transition-colors duration-fast ease-standard",
+                    // Neutral selection, full-bleed rather than a rounded
+                    // pill now that these are Row (which draws its own
+                    // edge-to-edge hairlines) — see CapsulesPage for the
+                    // full note on both calls.
+                    "cursor-default transition-colors duration-fast ease-standard",
                     isSelected ? "bg-secondary" : "hover:bg-hover",
                   )}
-                >
-                  <span
-                    className={cn(
-                      "min-w-0 flex-1 truncate text-body",
-                      isSelected && "font-510",
-                      aged ? "text-tertiary-foreground" : "text-foreground",
-                    )}
-                  >
-                    {describeEvent(e, resolveName).sentence}
-                  </span>
-                  <span
-                    className={cn(
-                      "shrink-0 text-meta tabular-nums",
-                      aged ? "text-tertiary-foreground" : "text-muted-foreground",
-                    )}
-                  >
-                    {relativeTime(e.at)}
-                  </span>
-                </button>
+                  title={
+                    <span
+                      className={cn(
+                        isSelected && "font-510",
+                        aged ? "text-tertiary-foreground" : "text-foreground",
+                      )}
+                    >
+                      {describeEvent(e, resolveName).sentence}
+                    </span>
+                  }
+                  trailing={
+                    <span
+                      className={cn(
+                        "text-meta tabular-nums",
+                        aged ? "text-tertiary-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {relativeTime(e.at)}
+                    </span>
+                  }
+                />
               );
             })
           )}

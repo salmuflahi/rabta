@@ -124,10 +124,14 @@ describe("useListNavigation", () => {
 
   // Regression for a double-fire found in review: selectAndFocus calls
   // onSelect(id) directly, then el.focus() — which synchronously dispatches
-  // focus/focusin (confirmed against happy-dom's HTMLElementUtility.focus(),
-  // which dispatches unconditionally), which React delegates to this row's
-  // own onFocus, which must not re-invoke onSelect for a move that already
-  // reported itself.
+  // focus/focusin as long as the target isn't already document.activeElement
+  // (happy-dom's HTMLElementUtility.focus() early-returns with no dispatch
+  // when it is — not the "unconditional" dispatch this comment used to
+  // claim; see useListNavigation.ts for the full note). Below, ArrowDown
+  // moves off row "a" onto row "b", which is never already focused, so the
+  // dispatch happens and React delegates it to this row's own onFocus,
+  // which must not re-invoke onSelect for a move that already reported
+  // itself.
   it("calls onSelect exactly once per keyboard move", () => {
     const onSelect = vi.fn();
     renderWithProviders(<Harness onSelect={onSelect} selectedId="a" />);
@@ -182,6 +186,22 @@ describe("useListNavigation", () => {
     expect(document.activeElement).toBe(screen.getByRole("option", { name: "Bravo" }));
   });
 
+  // Task 11 review: containerProps used to also compute aria-activedescendant,
+  // but the container is never given a tabIndex and never actually holds
+  // focus (the test above proves focus lands on the *row*), so the attribute
+  // described a focus-management strategy this hook doesn't implement — it
+  // would sit on an element that's never focused, exactly the condition
+  // under which assistive tech ignores it. Pinned here with a valid
+  // selection present (not just the stale-id case below) so a future change
+  // that resurrects the attribute half-wired — computed, but still with no
+  // container tabIndex — fails a test instead of shipping quietly.
+  it("never sets aria-activedescendant — focus moves to the real row instead", () => {
+    renderWithProviders(<Harness selectedId="b" />);
+    const listbox = screen.getByRole("listbox");
+    expect(listbox).not.toHaveAttribute("aria-activedescendant");
+    expect(listbox).not.toHaveAttribute("tabindex");
+  });
+
   it("cycles through same-letter matches on repeated type-ahead presses", () => {
     renderWithProviders(<StatefulHarness />);
     const listbox = screen.getByRole("listbox");
@@ -208,8 +228,8 @@ describe("useListNavigation", () => {
     expect(tabbable).toHaveLength(1);
     expect(tabbable[0]).toHaveTextContent("Alpha");
 
-    // No row claims the stale id, so aria-activedescendant has nothing
-    // truthful to point at.
+    // aria-activedescendant is never set at all (see the dedicated test
+    // above) — this just confirms a stale id doesn't somehow resurrect it.
     expect(screen.getByRole("listbox")).not.toHaveAttribute("aria-activedescendant");
 
     // Nothing validly selected reads as "before row 0": ArrowDown reveals

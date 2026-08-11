@@ -65,10 +65,10 @@ describe("ConnectorsPage", () => {
       connectors: [connector(), connector({ id: "conn-2", name: "Chrome", kind: "chrome" })],
     });
     const { container } = renderWithProviders(<ConnectorsPage />);
-    fireEvent.click(list().getByText("Chrome").closest("button")!);
+    fireEvent.click(list().getByText("Chrome").closest('[role="option"]')!);
 
     expect(useStore.getState().selectedConnectorId).toBe("conn-2");
-    const row = list().getByText("Chrome").closest("button")!;
+    const row = list().getByText("Chrome").closest('[role="option"]')!;
     expect(row.className.split(/\s+/)).toContain("bg-secondary");
     expect(row.className.split(/\s+/)).not.toContain("bg-primary");
     expectAtMostOneAccent(container);

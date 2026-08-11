@@ -36,6 +36,7 @@ import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadError } from "@/components/ui/load-error";
+import { Row } from "@/components/ui/row";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -48,6 +49,7 @@ import { ProjectIcon } from "@/lib/project-icons";
 import { moveProject, moveProjectBy } from "@/lib/project-order";
 import { toastErr, toastOk } from "@/lib/toast";
 import { useDeferredDelete } from "@/lib/useDeferredDelete";
+import { useListNavigation, type ListNavigation } from "@/lib/useListNavigation";
 import { cn } from "@/lib/utils";
 import { useOwnsViewAccent } from "@/shell/viewAccent";
 import {
@@ -143,19 +145,30 @@ function GroupHeading({ className, children }: { className?: string; children: R
 
 /** One row in the master list. Sortable, because drag-to-reorder is a
  * shipped feature and the list is where an order belongs — the detail pane
- * has nothing to reorder. */
+ * has nothing to reorder.
+ *
+ * `itemProps` is `useListNavigation`'s `getItemProps(project, index)`,
+ * computed by the parent (which owns the flat `visibleProjects` order) and
+ * passed down rather than recomputed here. Spread onto `Row` *after*
+ * dnd-kit's own `attributes`/`listeners`, so role="option" and the roving
+ * tabIndex win over dnd-kit's role="button"/tabIndex=0 — dnd-kit's pointer
+ * and keyboard (Space/Enter-to-pick-up) listeners are untouched by that,
+ * since neither spread sets `onKeyDown`/`onPointerDown`. `setNodeRef` (drag
+ * transform/position) stays on the outer plain `<div>`; `itemProps.ref`
+ * (focus/scrollIntoView target) goes on the `Row` itself — two different
+ * elements, so the two refs don't collide. */
 function ProjectRow({
   project,
   selected,
   disabled,
   openCapsules,
-  onSelect,
+  itemProps,
 }: {
   project: Project;
   selected: boolean;
   disabled: boolean;
   openCapsules: number;
-  onSelect: () => void;
+  itemProps: ReturnType<ListNavigation<Project>["getItemProps"]>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: project.id,
@@ -172,51 +185,52 @@ function ProjectRow({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(isDragging && "opacity-60")}
     >
-      <button
-        type="button"
-        aria-current={selected ? "true" : undefined}
-        onClick={onSelect}
+      <Row
         {...attributes}
         {...listeners}
+        {...itemProps}
         className={cn(
-          // Neutral selection, as everywhere else in this app — see
-          // CapsulesPage's row for the full note on why the handoff's
-          // accent fill isn't used for a permanently-visible row.
-          "block w-full cursor-default touch-none rounded-md px-2 py-1.5 text-left transition-colors duration-fast ease-standard",
+          // Neutral selection, full-bleed rather than a rounded pill now
+          // that these are Row (which draws its own edge-to-edge hairlines)
+          // — see CapsulesPage's row for the full note on both calls.
+          // touch-none is dnd-kit's, unrelated to either: without it, a
+          // touch-drag on this row would fight the browser's own scroll
+          // gesture.
+          "cursor-default touch-none transition-colors duration-fast ease-standard",
           selected ? "bg-secondary" : "hover:bg-hover",
         )}
-      >
-        <span className="flex min-w-0 items-center gap-2">
+        leading={
           <ProjectIcon
             icon={project.icon}
-            className={cn("size-[15px] shrink-0", selected ? "text-foreground" : "text-muted-foreground")}
+            className={cn("size-[15px]", selected ? "text-foreground" : "text-muted-foreground")}
           />
-          <span
-            className={cn(
-              "min-w-0 flex-1 truncate text-body text-foreground",
-              selected && "font-510",
+        }
+        title={
+          <span className="flex min-w-0 items-center gap-2">
+            <span className={cn("min-w-0 flex-1 truncate", selected && "font-510")}>
+              {project.name}
+            </span>
+            {dirtyLabel && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    role="status"
+                    aria-label={dirtyLabel}
+                    className="size-1.5 shrink-0 rounded-full bg-warn"
+                  />
+                </TooltipTrigger>
+                <TooltipContent>{dirtyLabel}</TooltipContent>
+              </Tooltip>
             )}
-          >
-            {project.name}
           </span>
-          {dirtyLabel && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span
-                  role="status"
-                  aria-label={dirtyLabel}
-                  className="size-1.5 shrink-0 rounded-full bg-warn"
-                />
-              </TooltipTrigger>
-              <TooltipContent>{dirtyLabel}</TooltipContent>
-            </Tooltip>
-          )}
-        </span>
-        <span className="mt-0.5 block truncate pl-[23px] text-meta text-tertiary-foreground">
-          {openCapsules} open {openCapsules === 1 ? "capsule" : "capsules"}
-          {project.lastOpenedAt ? ` · ${relativeTime(project.lastOpenedAt)}` : ""}
-        </span>
-      </button>
+        }
+        subtitle={
+          <span className="text-tertiary-foreground">
+            {openCapsules} open {openCapsules === 1 ? "capsule" : "capsules"}
+            {project.lastOpenedAt ? ` · ${relativeTime(project.lastOpenedAt)}` : ""}
+          </span>
+        }
+      />
     </div>
   );
 }
@@ -491,6 +505,19 @@ export function ProjectsPage() {
   // while the skeleton — which spends no accent — is up, leaving the whole
   // screen with none. Nothing claims until it knows what it is showing.
   useOwnsViewAccent(!loading && selected === null);
+
+  // Passes the *resolved* `selected` (stale-id fallback already applied),
+  // not the raw `selectedProjectId`, so the row the hook marks aria-selected
+  // always agrees with the project the detail pane actually shows. Called
+  // unconditionally, before the loading-gate return below.
+  const listNav = useListNavigation({
+    items: visibleProjects,
+    idOf: (p) => p.id,
+    labelOf: (p) => p.name,
+    selectedId: selected?.id ?? null,
+    onSelect: selectProject,
+    idPrefix: "project",
+  });
   const selectedIndex = selected ? visibleProjects.findIndex((p) => p.id === selected.id) : -1;
   const status = useGitStatus(selected?.id, gitNonce);
   const projectCapsules = selected ? tasks[selected.id] ?? [] : [];
@@ -595,7 +622,12 @@ export function ProjectsPage() {
 
       {/* --- Master --- */}
       <div className="flex min-h-0 flex-col overflow-hidden border-r-[0.5px] border-border">
-        <div data-project-list className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-2.5">
+        <div
+          data-project-list
+          aria-label="Projects"
+          {...listNav.containerProps}
+          className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-2.5"
+        >
           {visibleProjects.length === 0 ? (
             <p className="px-2 pt-2 text-meta text-muted-foreground">No projects registered yet.</p>
           ) : (
@@ -604,14 +636,14 @@ export function ProjectsPage() {
                 items={visibleProjects.map((p) => p.id)}
                 strategy={verticalListSortingStrategy}
               >
-                {visibleProjects.map((project) => (
+                {visibleProjects.map((project, index) => (
                   <ProjectRow
                     key={project.id}
                     project={project}
                     selected={selected?.id === project.id}
                     disabled={actionsDisabled}
                     openCapsules={(tasks[project.id] ?? []).filter((t) => t.status === "open").length}
-                    onSelect={() => selectProject(project.id)}
+                    itemProps={listNav.getItemProps(project, index)}
                   />
                 ))}
               </SortableContext>

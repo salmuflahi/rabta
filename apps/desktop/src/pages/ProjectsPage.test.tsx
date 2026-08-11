@@ -152,9 +152,9 @@ describe("ProjectsPage", () => {
     const { container } = renderWithProviders(<ProjectsPage />);
     await screen.findByRole("heading", { level: 2, name: "Test Project" });
 
-    fireEvent.click(list().getByText("Second Project").closest("button")!);
+    fireEvent.click(list().getByText("Second Project").closest('[role="option"]')!);
     expect(useStore.getState().selectedProjectId).toBe(SECOND_PROJECT.id);
-    const row = list().getByText("Second Project").closest("button")!;
+    const row = list().getByText("Second Project").closest('[role="option"]')!;
     expect(row.className.split(/\s+/)).toContain("bg-secondary");
     expect(row.className.split(/\s+/)).not.toContain("bg-primary");
     expectAtMostOneAccent(container);
@@ -496,9 +496,13 @@ describe("ProjectsPage ordering", () => {
     await chooseMoreMenuItem("Move down");
 
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    // Whole-row text content, not firstElementChild's: a row is now Row
+    // (leading icon, then a title/subtitle stack), so the first element is
+    // the icon, not the name — the row's full text still contains the name
+    // either way, and that's all this assertion is checking.
     const names = list()
-      .getAllByRole("button")
-      .map((b) => b.firstElementChild?.textContent?.trim());
+      .getAllByRole("option")
+      .map((o) => o.textContent);
     expect(names[0]).toContain("Test Project");
   });
 });

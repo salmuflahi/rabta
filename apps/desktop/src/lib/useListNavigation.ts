@@ -6,7 +6,7 @@ import * as React from "react";
 const TYPEAHEAD_TIMEOUT_MS = 600;
 
 export interface ListNavigation<T> {
-  containerProps: { role: "listbox"; "aria-activedescendant"?: string; onKeyDown: (e: React.KeyboardEvent) => void };
+  containerProps: { role: "listbox"; onKeyDown: (e: React.KeyboardEvent) => void };
   getItemProps: (item: T, index: number) => {
     role: "option";
     id: string;
@@ -23,10 +23,10 @@ export interface ListNavigation<T> {
  * Projects, Connectors, Activity). Wires a `role="listbox"` container and
  * `role="option"` rows: arrow keys move, Home/End jump to the ends,
  * printable characters type-ahead search, and a roving `tabIndex` keeps the
- * whole list a single Tab stop. This task only builds the hook — nothing
- * consumes it yet (see Task 11, which wires it into the four pages).
+ * whole list a single Tab stop. Built in Task 10; wired into the four pages
+ * in Task 11 (Console v2 Phase 4) — see each page's `useListNavigation` call.
  *
- * Three decisions here are deliberate, not oversights:
+ * Four decisions here are deliberate, not oversights:
  *
  * - Selection follows focus: there is no separate "active index" state.
  *   Arrows call `onSelect` directly, keyed off the caller-owned
@@ -39,6 +39,19 @@ export interface ListNavigation<T> {
  *   list loses the user's place.
  * - Enter and Space are not handled. Selection already follows focus (see
  *   above), so there is nothing left for either key to confirm.
+ * - Focus is real, not virtual: `containerProps` carries no
+ *   `aria-activedescendant`, and the container itself is never given a
+ *   `tabIndex`. That attribute only means anything on the element that
+ *   currently holds DOM focus, and this hook never puts focus there — every
+ *   move (see `selectAndFocus` below) calls `.focus()` on the actual option
+ *   element via roving `tabIndex` (0 on the selected row, -1 on the rest).
+ *   Adding `aria-activedescendant` on top would describe a second,
+ *   contradictory focus-management strategy the hook doesn't implement — an
+ *   attribute sitting on an element that's never focused, which is exactly
+ *   the condition under which assistive tech ignores it. Roving tabIndex
+ *   was already fully built and tested (real `.focus()`/`scrollIntoView()`
+ *   calls, the click-vs-keyboard focus split below); switching to
+ *   activedescendant would mean rebuilding that mechanism, not wiring it up.
  */
 export function useListNavigation<T>(opts: {
   items: T[];
@@ -80,11 +93,18 @@ export function useListNavigation<T>(opts: {
   // stale id can't strand the list with zero tabbable rows.
   const selectedItem = items.find((item) => idOf(item) === selectedId) ?? null;
 
-  // selectAndFocus below calls onSelect(id) and then el.focus() — and
-  // .focus() synchronously dispatches focus/focusin, which React delegates
-  // to that row's own onFocus (see getItemProps below), which also calls
-  // onSelect. Left alone that's a double call for every keyboard move. The
-  // fix is NOT `id !== selectedId` in onFocus: React 18 batches the
+  // selectAndFocus below calls onSelect(id) and then el.focus(). `.focus()`
+  // synchronously dispatches focus/focusin PROVIDED `el` isn't already
+  // document.activeElement — happy-dom's HTMLElementUtility.focus() early-
+  // returns with no dispatch in that one case, not the "unconditional"
+  // dispatch an earlier version of this comment claimed. That's a narrow,
+  // self-healing gap in practice: the target of a keyboard move is, by
+  // construction, some OTHER row, not whichever one is already focused, so
+  // the dispatch — and the double-call risk this comment is about — is the
+  // normal case here. When it dispatches, React delegates it to that row's
+  // own onFocus (see getItemProps below), which also calls onSelect. Left
+  // alone that's a double call for every keyboard move. The fix is NOT
+  // `id !== selectedId` in onFocus: React 18 batches the
   // onSelect-driven state update, so the onFocus closure that synchronously
   // fires is still from the render *before* this move — selectedId there is
   // last move's value, not this one, so it never equals `id` and the guard
@@ -200,9 +220,14 @@ export function useListNavigation<T>(opts: {
   };
 
   return {
+    // No `aria-activedescendant` and no `tabIndex` here — see this file's
+    // module doc comment ("Focus is real, not virtual") for why: this hook
+    // moves real DOM focus onto the actual option element (getItemProps'
+    // roving `tabIndex` + `ref`, and selectAndFocus's `el.focus()` above),
+    // so the container itself never holds focus and activedescendant would
+    // have nothing valid to attach to.
     containerProps: {
       role: "listbox",
-      "aria-activedescendant": selectedItem ? `${idPrefix}-${idOf(selectedItem)}` : undefined,
       onKeyDown: handleKeyDown,
     },
     getItemProps: (item: T, index: number) => {

@@ -236,19 +236,54 @@ describe("CapsulesPage layout", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
+  // Task 11 design requirement: the listbox is the *whole* master column,
+  // so option indices run across projects rather than restarting at 0 for
+  // each group's rows — otherwise ArrowDown at the bottom of one project's
+  // capsules would stall at the group boundary instead of continuing into
+  // the next project's. mockCapsulesInvoke only seeds one project, so this
+  // one mocks invoke directly, the same way "adds a capsule to the selected
+  // capsule's project" below does for its own two-project-shaped need.
+  it("keeps ArrowDown moving across a project boundary, not just within one", async () => {
+    resetSelection();
+    mockInvoke.mockClear();
+    const SECOND_PROJECT: Project = { ...FAKE_PROJECT, id: "proj-2", name: "Second Project" };
+    const secondTask: Task = {
+      ...FAKE_TASK,
+      id: "task-2",
+      projectId: SECOND_PROJECT.id,
+      title: "Second project's capsule",
+    };
+    mockInvoke.mockImplementation((async (cmd: string, args?: InvokeArgs) => {
+      const a = args as Record<string, unknown> | undefined;
+      if (cmd === "list_projects") return [FAKE_PROJECT, SECOND_PROJECT];
+      if (cmd === "list_tasks") return a?.projectId === SECOND_PROJECT.id ? [secondTask] : [FAKE_TASK];
+      return [];
+    }) as never);
+    useStore.setState({ selectedCapsuleId: FAKE_TASK.id });
+
+    renderWithProviders(<CapsulesPage />);
+    await screen.findByText("Second project's capsule");
+
+    // FAKE_TASK is the only (last) row in the first group; ArrowDown from
+    // there has to cross into the second project's group rather than
+    // treating FAKE_TASK as the end of the whole list.
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "ArrowDown" });
+    expect(useStore.getState().selectedCapsuleId).toBe("task-2");
+  });
+
   it("selects a capsule on click and keeps the selected row neutral", async () => {
     mockCapsulesInvoke({
       tasks: [FAKE_TASK, { ...FAKE_TASK, id: "task-2", title: "Second capsule" }],
     });
     const { container } = renderWithProviders(<CapsulesPage />);
     await screen.findByRole("heading", { level: 2, name: FAKE_TASK.title });
-    fireEvent.click(list().getByText("Second capsule").closest("button")!);
+    fireEvent.click(list().getByText("Second capsule").closest('[role="option"]')!);
 
     expect(useStore.getState().selectedCapsuleId).toBe("task-2");
     // DELIBERATE DIVERGENCE, same as the sidebar's: the handoff fills the
     // selected row with the accent. A permanent accent fill here would
     // compete with Restore, which is the actual action.
-    const selectedRow = list().getByText("Second capsule").closest("button")!;
+    const selectedRow = list().getByText("Second capsule").closest('[role="option"]')!;
     expect(selectedRow.className.split(/\s+/)).toContain("bg-secondary");
     expect(selectedRow.className.split(/\s+/)).not.toContain("bg-primary");
     expectAtMostOneAccent(container);
