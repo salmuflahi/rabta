@@ -97,12 +97,33 @@ function NavRow({
             standalone && active && "bg-secondary",
           )}
         >
-          <Icon name={item.icon} className="size-[15px] shrink-0 opacity-90" />
+          <Icon
+            name={item.icon}
+            className={cn(
+              "size-[15px] shrink-0 opacity-90 transition-transform duration-fast ease-standard",
+              // A small settle as the row becomes selected — same
+              // ease-standard "settling" curve the sliding selection pill
+              // already uses (see the moving pill in NavGroup below), just on
+              // the icon instead of the pill. Purely decorative: the active
+              // row is already legible from its text weight/colour and the
+              // pill without this.
+              active && "scale-105",
+            )}
+          />
           <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
           {count !== undefined && (
             <span
               aria-label={countAriaLabel}
-              className={cn("shrink-0 text-label tabular-nums", countClassName ?? "text-tertiary-foreground")}
+              className={cn(
+                "shrink-0 text-label tabular-nums transition-opacity duration-standard",
+                countClassName ?? "text-tertiary-foreground",
+                // Dimmed at rest, full strength once selected — the same 70%
+                // fraction the row's own inactive label already renders at
+                // (this button's own text-sidebar-foreground/70 above), so
+                // the count settles in step with the row instead of
+                // introducing a new ratio.
+                active ? "opacity-100" : "opacity-70",
+              )}
             >
               {count}
             </span>

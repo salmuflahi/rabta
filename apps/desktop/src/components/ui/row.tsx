@@ -20,11 +20,22 @@ export interface RowProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "ti
  * the whole separation model — no boxes, no dividers as elements.
  */
 export function Row({ leading, title, subtitle, trailing, className, ...props }: RowProps) {
+  // Press feedback is gated on role="option" — the one case where the row
+  // itself, not some control nested inside it, is the click target (a
+  // future listbox-style picker). Today's Row call sites (CapsuleItems,
+  // RestoreExperience) nest their own interactive children — a pin button, a
+  // link — inside an otherwise inert row; scaling the whole row down on
+  // every press of a child button would read as the row reacting to a click
+  // it had no part in. Nothing currently sets role="option" here, so this
+  // is inert scaffolding until a genuinely row-is-the-target consumer opts
+  // in — removing it changes no rendered output today.
+  const interactive = props.role === "option";
   return (
     <div
       data-row
       className={cn(
         "flex items-center gap-2.5 border-t border-border/60 px-3 py-2 first:border-t-0",
+        interactive && "active:scale-[0.995] transition-transform duration-fast ease-standard",
         className,
       )}
       {...props}

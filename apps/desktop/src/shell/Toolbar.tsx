@@ -245,11 +245,20 @@ export function Toolbar() {
       <div className="flex-1" />
       <SearchTrigger />
       {action && (
-        <ContextualAction
-          label={action.label}
-          onClick={action.onClick}
-          demoted={contentOwnsAccent}
-        />
+        // Keyed by view, so a swap between two views that happen to share a
+        // label (Overview and Capsules both show "New capsule") still
+        // remounts and replays the fade instead of React diffing the button
+        // in place and skipping straight to the new label — same keyed-page
+        // pattern AppShell uses for the content pane below this toolbar.
+        // Cross-fade only: label/colour logic stays in ContextualAction and
+        // useContextualAction above, untouched.
+        <div key={view} className="shrink-0 animate-page-in">
+          <ContextualAction
+            label={action.label}
+            onClick={action.onClick}
+            demoted={contentOwnsAccent}
+          />
+        </div>
       )}
     </header>
   );
