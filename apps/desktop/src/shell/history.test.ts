@@ -24,6 +24,13 @@ describe("pushLocation", () => {
     expect(next.index).toBe(1);
   });
 
+  it("discards forward entries when rewriting in place", () => {
+    const start = { history: [at("overview"), at("capsules", "a"), at("projects")], index: 1 };
+    const next = pushLocation(start.history, start.index, at("capsules", "b"));
+    expect(next.history).toEqual([at("overview"), at("capsules", "b")]);
+    expect(next.index).toBe(1);
+  });
+
   it("discards forward entries on a new navigation", () => {
     const start = { history: [at("overview"), at("capsules"), at("projects")], index: 0 };
     const next = pushLocation(start.history, start.index, at("activity"));
