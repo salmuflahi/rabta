@@ -104,11 +104,6 @@
     --shadow-modal: 0 0 0 0.5px hsl(var(--border)), 0 30px 70px var(--shadow-lg);
     --radius: 0.625rem;
 
-    --motion-fast: 120ms;
-    --motion-standard: 180ms;
-    --motion-sidebar: 280ms;
-    --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
-
     --sidebar: 0 0% 94%;   /* #EFEFEF */
     --sidebar-foreground: 240 3% 12%;   /* #1D1D1F */
     --sidebar-primary: 18 100% 59%;   /* #FF6B2C */
@@ -244,11 +239,30 @@
 }
 
 /* Reduced transparency: the blurred chrome becomes opaque rather than
-   merely less blurred. A user who asked for no transparency wants none. */
+   merely less blurred. A user who asked for no transparency wants none.
+
+   Scoped to the classes that actually carry a `backdrop-filter` —
+   Toolbar's `.backdrop-blur-[24px]` and CommandPalette's
+   `.backdrop-blur-[40px]`. Repo-wide grep confirms those are the app's
+   only two blurred surfaces; nothing else needs to be listed here.
+
+   `[data-tauri-drag-region]` used to be part of this rule, matched by
+   attribute rather than by blur class. That was wrong: the attribute also
+   lands on two Sidebar.tsx regions (the titlebar spacer, the brand row)
+   that were never blurred — plain `bg-sidebar`, no `backdrop-filter` at
+   baseline. Under this rule they were getting painted an opaque
+   `--background`-toned rectangle over the (different) `--sidebar` tone —
+   a visible regression for exactly the user this rule exists to help.
+   Toolbar's drag region already carries `.backdrop-blur-[24px]` on the
+   same element, so scoping by class instead loses no real coverage.
+
+   `[data-sheet]` (sheet.tsx's Content) isn't listed either: it ships
+   `bg-background` with no blur at baseline today, so matching it here
+   would be a no-op. Add it back if a sheet ever gains a
+   `backdrop-blur-*` of its own. */
 @media (prefers-reduced-transparency: reduce) {
-  [data-tauri-drag-region],
-  [data-sheet],
-  .backdrop-blur-\[24px\] {
+  .backdrop-blur-\[24px\],
+  .backdrop-blur-\[40px\] {
     backdrop-filter: none;
     background-color: hsl(var(--background));
   }
