@@ -14,7 +14,7 @@
 - **Test runner**, from the repo root. All tests are colocated beside the source as `*.test.ts(x)`.
   - Targeted: `pnpm --filter desktop exec vitest run <path>`
   - Full suite: `pnpm --filter desktop test`
-  - **Not** `pnpm --filter desktop test -- <path>` — pnpm inserts an extra `--`, vitest ignores the path, and the whole suite runs while appearing to be filtered. Task steps below that show the `test --` form are wrong; use the `exec vitest run` form.
+  - **Never** use the `pnpm --filter desktop test -- <path>` form: pnpm inserts an extra `--`, vitest ignores the path, and the entire suite runs while appearing to be filtered. A green result from it says nothing about the file you meant to test.
 - **Render helper:** `renderWithProviders` from `@/test/smoke-utils` — never bare `render`, the theme provider is required.
 - **Store in tests:** `useStore.setState({ ... })` before render. Reset state between tests where it matters.
 - **Motion rules:** transform/opacity only, never layout properties. Every animation has a `prefers-reduced-motion` path. Reduced motion means *no* animation, not a slower one.
@@ -132,7 +132,7 @@ describe("pushLocation", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/shell/history.test.ts`
+Run: `pnpm --filter desktop exec vitest run src/shell/history.test.ts`
 Expected: FAIL — `Failed to resolve import "./history"`.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -199,7 +199,7 @@ export function pushLocation(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter desktop test -- src/shell/history.test.ts`
+Run: `pnpm --filter desktop exec vitest run src/shell/history.test.ts`
 Expected: PASS, 5 tests.
 
 - [ ] **Step 5: Commit**
@@ -303,7 +303,7 @@ describe("navigation history", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/store.test.ts`
+Run: `pnpm --filter desktop exec vitest run src/store.test.ts`
 Expected: FAIL — `goBack is not a function`.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -433,7 +433,7 @@ Add a test for the **pre-staged** call order alongside the brief's round-trip te
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter desktop test -- src/store.test.ts`
+Run: `pnpm --filter desktop exec vitest run src/store.test.ts`
 Expected: PASS. Then run the whole suite — `setView` is used everywhere:
 Run: `pnpm --filter desktop test`
 Expected: PASS. If a page test now fails because history state is missing from a `setState` call, add `history: [{ view: <that view>, selection: null }], historyIndex: 0` to it.
@@ -527,7 +527,7 @@ describe("history chevrons", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/shell/Toolbar.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/shell/Toolbar.test.tsx`
 Expected: FAIL — `Unable to find role="button" with name "Back to Capsules"` (the current label is the bare "Back").
 
 - [ ] **Step 3: Write minimal implementation**
@@ -609,7 +609,7 @@ In `src/App.tsx`, inside the existing `onKeyDown` handler, alongside the other `
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter desktop test -- src/shell/Toolbar.test.tsx src/App.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/shell/Toolbar.test.tsx src/App.test.tsx`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -707,7 +707,7 @@ describe("secondary action", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/components/ui/sheet.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/components/ui/sheet.test.tsx`
 Expected: FAIL — TypeScript rejects `enterAdvances` / `secondary` as unknown props, and the Deny button is not found.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -776,7 +776,7 @@ In the footer, between the Back button and the primary:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter desktop test -- src/components/ui/sheet.test.tsx src/features/migrate/MigrateSheet.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/components/ui/sheet.test.tsx src/features/migrate/MigrateSheet.test.tsx`
 Expected: PASS. Migrate must be unaffected — it passes neither new prop and gets the old behaviour by default.
 
 - [ ] **Step 5: Commit**
@@ -893,7 +893,7 @@ describe("PairingSheet", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/features/pairing/PairingSheet.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/features/pairing/PairingSheet.test.tsx`
 Expected: FAIL — `Failed to resolve import "./PairingSheet"`.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1055,7 +1055,7 @@ Apply the same handler guard to the primary's `onClick`, which currently relies 
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter desktop test -- src/features/pairing/PairingSheet.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/features/pairing/PairingSheet.test.tsx`
 Expected: PASS, 8 tests.
 
 - [ ] **Step 5: Commit**
@@ -1124,7 +1124,7 @@ it("still rejects two accents inside one layer", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/App.test.tsx src/test/accent.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/App.test.tsx src/test/accent.test.tsx`
 Expected: FAIL — the banner text is still found, and the two-layer accent case throws.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1220,7 +1220,7 @@ describe("Skeleton", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/components/ui/skeleton.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/components/ui/skeleton.test.tsx`
 Expected: FAIL — className contains `animate-pulse`, no `aria-hidden`.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1282,7 +1282,7 @@ Then give `ProjectsPage`, `ConnectorsPage`, `ActivityPage` and `ArchivedProjects
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter desktop test -- src/components/ui/skeleton.test.tsx src/pages`
+Run: `pnpm --filter desktop exec vitest run src/components/ui/skeleton.test.tsx src/pages`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -1332,7 +1332,7 @@ describe("restoring status", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/restore/RestoreExperience.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/restore/RestoreExperience.test.tsx`
 Expected: FAIL — `ToolStatus is not exported`, then `.animate-spin` is still present.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1362,7 +1362,7 @@ Remove the now-unused `Loader2` import if nothing else in the file uses it.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter desktop test -- src/restore/RestoreExperience.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/restore/RestoreExperience.test.tsx`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -1419,7 +1419,7 @@ describe("motion tokens", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/lib/motion.test.ts`
+Run: `pnpm --filter desktop exec vitest run src/lib/motion.test.ts`
 Expected: FAIL — `DUR` and `EASE` are not exported.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1626,7 +1626,7 @@ describe("useListNavigation", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/lib/useListNavigation.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/lib/useListNavigation.test.tsx`
 Expected: FAIL — `Failed to resolve import "./useListNavigation"`.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1643,7 +1643,7 @@ Implement `useListNavigation` per the interface above. Key decisions to honour:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter desktop test -- src/lib/useListNavigation.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/lib/useListNavigation.test.tsx`
 Expected: PASS, 10 tests.
 
 - [ ] **Step 5: Commit**
@@ -1726,7 +1726,7 @@ Each page fetches its rows through Tauri `invoke`, which `src/test/smoke-utils.t
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/test/list-navigation.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/test/list-navigation.test.tsx`
 Expected: FAIL — `Unable to find role="listbox"` on all four.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1819,7 +1819,7 @@ describe("announce", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/lib/announce.test.ts`
+Run: `pnpm --filter desktop exec vitest run src/lib/announce.test.ts`
 Expected: FAIL — `Failed to resolve import "./announce"`.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1841,7 +1841,7 @@ Then wire the call sites:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter desktop test -- src/lib/announce.test.ts src/App.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/lib/announce.test.ts src/App.test.tsx`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -1899,7 +1899,7 @@ describe("landmarks", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/shell/AppShell.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/shell/AppShell.test.tsx`
 Expected: FAIL — no `navigation`/`main` role, no skip link.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -2015,7 +2015,7 @@ const readTokens = (theme: "light" | "dark") => tokensIn(theme === "dark" ? ".da
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter desktop test -- src/theme/contrast.test.ts`
+Run: `pnpm --filter desktop exec vitest run src/theme/contrast.test.ts`
 Expected: FAIL — `Failed to resolve import "./contrast"`.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -2028,7 +2028,7 @@ The 40%-opacity disabled chevrons are not in this list because opacity is not a 
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter desktop test -- src/theme`
+Run: `pnpm --filter desktop exec vitest run src/theme`
 Expected: PASS, both themes.
 
 - [ ] **Step 5: Commit**
@@ -2142,7 +2142,7 @@ describe("reduced motion", () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm --filter desktop test -- src/test/a11y-guard.test.tsx src/test/motion-guard.test.tsx`
+Run: `pnpm --filter desktop exec vitest run src/test/a11y-guard.test.tsx src/test/motion-guard.test.tsx`
 Expected: FAIL — unnamed elements listed per page, and/or a missing reduced-motion path.
 
 - [ ] **Step 3: Write minimal implementation**
@@ -2155,6 +2155,36 @@ Then add the micro-interactions, all transform/opacity, all ≤200ms, all inheri
 - `Sidebar.tsx`: the selected row's icon gets `transition-transform duration-fast ease-standard`; counts get `transition-opacity duration-standard`.
 - `Toolbar.tsx`: wrap `ContextualAction` in a `key={view}` element carrying `animate-page-in` so it cross-fades on view change rather than swapping instantly.
 - Master lists: apply the existing `animate-page-in` to the list container on first paint.
+
+### Also in this task: the toolbar yields its accent on Overview and Capsules
+
+Found during Task 6, confirmed by independent review as a real defect rather than an
+over-strict guard. On a real `<App />` render, `Toolbar.tsx`'s contextual "New capsule"
+accent coexists with `OverviewPage`'s "Resume" and `CapsulesPage`'s "Restore" — two accent
+buttons on the app's two main screens. It stayed invisible because every page-level accent
+test renders its page standalone, never through `AppShell` with the real toolbar.
+
+It is a defect, not a design tension, on three grounds: `Toolbar.tsx:108` already claims
+"the accent budget is spent here or not at all" and the code does not honour it; the
+codebase does this coordination work everywhere else (`Sidebar`'s selected row is
+deliberately neutral, `OverviewPage`'s live dot opts out via `data-accent-mark`,
+`CapsulesPage`'s active-row marker likewise); and "one primary action per surface" is this
+project's own rule (`specs/2026-07-20-ux-redesign-design.md`), which Console v2 Phase 1
+already invoked to override the static handoff once before.
+
+**Resolution (user decision): the page hero keeps the accent.** Resume and Restore are the
+product's core verb — picking a task back up is the whole point — so the toolbar's
+contextual action renders **neutral** on `overview` and `capsules`. It keeps its accent on
+`projects`, which spends none of its own.
+
+Implement by giving `ContextualAction` a `tone` (`"accent" | "neutral"`), decided in
+`useContextualAction` from the view rather than by the component. Comment the reasoning at
+the decision site, and cross-reference the `Sidebar` precedent.
+
+Then extend the guard so this cannot come back: the accent tests must exercise
+`overview` and `capsules` through a real `<App />` render — the way `App.test.tsx` now does
+for the pairing sheet — not standalone pages. Confirm each new assertion fails against the
+current accented toolbar before you fix it, and say so in your report.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
