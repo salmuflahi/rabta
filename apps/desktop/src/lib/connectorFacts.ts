@@ -69,6 +69,35 @@ export function capabilityFacts(capabilities: string[]): CapabilityFact[] {
   }));
 }
 
+/**
+ * A best-effort stand-in for a connector's real declared capabilities, for
+ * the one screen that has to describe a connector before it has any: the
+ * pairing sheet. The `pair` frame that parks a pairing request carries only
+ * `name` and `kind` (`Pair` in crates/omnibus-hub/src/protocol.rs; see
+ * `handle_pairing` in hub.rs) — real capabilities only arrive later, on
+ * `hello`, after the user has already approved or denied. So this answers a
+ * narrower question than `canSee`/`neverSees` normally do: not "what did
+ * this request declare" but "what does a connector of this *kind* typically
+ * ask for", grounded in the same facts this module's header documents
+ * (Chrome's tabs capability; VS Code/Cursor's workspace+editor+terminal) —
+ * confirmed against connectors/chrome/src/background.ts and
+ * connectors/vscode/src/extension.ts's own `capabilities: [...]` literals,
+ * not invented here.
+ *
+ * Forwarding real capabilities on the `pair` frame would let the sheet show
+ * the actual request instead of the kind's usual one, and would let it flag
+ * a connector asking for more than its kind normally does — which this
+ * stand-in structurally cannot do, since it only ever knows the kind. That's
+ * a protocol change, logged as a follow-up for the security audit rather
+ * than made here. Any caller using this instead of a real capability list
+ * must say so in its copy — see PairingSheet's line under the two cards.
+ */
+export function capabilitiesForKind(kind: string): string[] {
+  if (kind === "chrome") return ["tabs"];
+  if (kind === "vscode" || kind === "cursor") return ["workspace", "editor", "terminal"];
+  return [];
+}
+
 const CAN_SEE: Record<string, string[]> = {
   workspace: ["Which folder is open"],
   editor: ["The paths of your open files", "Which file has unsaved changes"],

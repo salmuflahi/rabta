@@ -5,8 +5,13 @@ import { ARM_DELAY_MS, PairingSheet } from "./PairingSheet";
 import { useStore } from "@/store";
 import { renderWithProviders } from "@/test/smoke-utils";
 
-const chrome = { pairingId: "p1", name: "Chrome", kind: "browser" };
-const cursor = { pairingId: "p2", name: "Cursor", kind: "editor" };
+// Real wire values only — `ConnectorKind` in crates/omnibus-hub/src/protocol.rs
+// serializes to exactly "fake" | "vscode" | "chrome" (confirmed by reading the
+// enum: `#[serde(rename_all = "lowercase")]`). Earlier versions of this file
+// used "browser" / "editor", which cannot occur in production — every test
+// below was exercising the component against fiction.
+const chrome = { pairingId: "p1", name: "Chrome", kind: "chrome" };
+const cursor = { pairingId: "p2", name: "Cursor", kind: "vscode" };
 
 describe("PairingSheet", () => {
   beforeEach(() => {
@@ -41,6 +46,50 @@ describe("PairingSheet", () => {
     expect(screen.getByText("Can see")).toBeInTheDocument();
     expect(screen.getByText("Never sees")).toBeInTheDocument();
     expect(screen.getByText("Passwords, tokens or keychain items")).toBeInTheDocument();
+  });
+
+  // Round-2 review: the subtitle used to say "A Chrome on this Mac..." for
+  // every real connector — wrong grammar (kindLabel("chrome") is "Chrome"),
+  // and redundant with the title, which already names it. kindCategory
+  // answers "what kind of thing is this" instead of repeating the name.
+  it("describes the connector's kind in the subtitle, not its name again", () => {
+    useStore.setState({ pairings: [chrome] });
+    renderWithProviders(<PairingSheet />);
+    expect(
+      screen.getByText(
+        "A browser extension on this Mac is asking to talk to Rabta. Nothing is shared until you approve it."
+      )
+    ).toBeInTheDocument();
+  });
+
+  // The two kindCategory values need different articles — worth its own
+  // test since "editor extension" is the one case that would silently read
+  // "A editor extension" if the article were hardcoded instead of derived.
+  it("gets the article right for a kind that starts with a vowel sound too", () => {
+    useStore.setState({ pairings: [cursor] });
+    renderWithProviders(<PairingSheet />);
+    expect(
+      screen.getByText(
+        "An editor extension on this Mac is asking to talk to Rabta. Nothing is shared until you approve it."
+      )
+    ).toBeInTheDocument();
+  });
+
+  // Round-2 review: canSee([]) is [] — an empty "Can see" card reads as "this
+  // connector sees nothing", which on a consent screen is the most
+  // misleading thing it could say, and misleading in the reassuring
+  // direction. capabilitiesForKind grounds the pair in what this *kind* of
+  // connector actually requests, and the sheet says plainly that it's a
+  // kind-level default, not this request's real declaration.
+  it("shows what this kind of connector actually requests, not an empty reassuring card", () => {
+    useStore.setState({ pairings: [chrome] });
+    renderWithProviders(<PairingSheet />);
+    expect(screen.getByText("The addresses and titles of open tabs")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "What browser extensions typically ask for — not what this one declared. The real list shows on Connectors once it's connected."
+      )
+    ).toBeInTheDocument();
   });
 
   it("holds both decisions inert until armed", () => {

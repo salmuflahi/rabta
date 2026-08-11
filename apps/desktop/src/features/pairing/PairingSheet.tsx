@@ -2,10 +2,21 @@ import * as React from "react";
 import { Icon } from "@/components/ui/icon";
 import { PermissionCard } from "@/components/ui/permission-card";
 import { Sheet } from "@/components/ui/sheet";
-import { canSee, neverSees } from "@/lib/connectorFacts";
-import { kindLabel } from "@/lib/connectors";
+import { canSee, capabilitiesForKind, neverSees } from "@/lib/connectorFacts";
+import { kindCategory } from "@/lib/connectors";
 import { decidePairing } from "@/lib/pairing";
 import { useStore, type PendingPairing } from "@/store";
+
+/** "A" or "An", agreeing with the leading sound of `noun` — every
+ * `kindCategory()` value is a plain English word ("browser", "editor",
+ * "test", "connector"), so a first-letter vowel check is enough; no need to
+ * special-case acronym-style "an FBI". Local to this file: it's the only
+ * place either kind helper is dropped into an "A ___ is asking..." sentence
+ * — `kindLabel`'s two other call sites (App.tsx, ConnectorsPage.tsx) put
+ * the word in parentheses instead, where no article is needed at all. */
+function withArticle(noun: string): string {
+  return /^[aeiou]/i.test(noun) ? `An ${noun}` : `A ${noun}`;
+}
 
 /**
  * How long both decisions stay inert after the sheet appears.
@@ -28,12 +39,16 @@ export const ARM_DELAY_MS = 350;
  * tested by the user, and "Chrome wants to connect" with two buttons gives
  * them nothing to decide with. The Can see / Never sees pair renders through
  * the same PermissionCard the Connectors detail page shows after approval,
- * so consenting now and inspecting later are visibly the same claim. Today
- * that pair always shows its capability-independent baseline —
- * `PendingPairing` does not carry the connector's declared capabilities yet,
- * so this sheet cannot show a request asking for more than its kind
- * normally does any differently from one that isn't (see the note on
- * `capabilities` below).
+ * so consenting now and inspecting later are visibly the same claim.
+ *
+ * What feeds that pair is `capabilitiesForKind`'s, not this request's own:
+ * `PendingPairing` doesn't carry real declared capabilities yet — the hub
+ * only learns them on `hello`, after pairing is already decided (see
+ * `capabilitiesForKind`'s doc comment) — so this shows what a connector of
+ * this *kind* typically asks for, grounded in the same facts
+ * connectorFacts.ts documents elsewhere, not this specific request's actual
+ * declaration. The line under the cards says exactly that, so the sheet
+ * never overstates what it actually knows.
  *
  * Suppressed on the Connectors view, which shows its own in-context
  * PairingCard — otherwise the same request appears twice on one screen.
@@ -81,10 +96,16 @@ export function PairingSheet() {
 
   if (!shown) return null;
 
-  // PendingPairing carries no capability list yet. canSee/neverSees tolerate
-  // an empty one — neverSees always returns its baseline — so the Never sees
-  // column is never empty even before the hub forwards capabilities.
-  const capabilities: string[] = [];
+  // What a connector of this *kind* typically asks for, not this specific
+  // request's real declaration — PendingPairing doesn't carry that yet (see
+  // capabilitiesForKind's doc comment for why). The Never sees column is
+  // never empty regardless, since neverSees always includes its
+  // capability-independent baseline.
+  const capabilities = capabilitiesForKind(shown.kind);
+  // Built as one string, like `subtitle` below, rather than interpolated
+  // directly in JSX — one text node instead of several sibling ones, which
+  // is what lets a test match the whole sentence with one getByText call.
+  const capabilityCaveat = `What ${kindCategory(shown.kind)}s typically ask for — not what this one declared. The real list shows on Connectors once it's connected.`;
 
   return (
     <Sheet
@@ -95,7 +116,7 @@ export function PairingSheet() {
         if (!open) setDismissed((d) => [...d, shown.pairingId]);
       }}
       title={`${shown.name} wants to connect`}
-      subtitle={`A ${kindLabel(shown.kind)} on this Mac is asking to talk to Rabta. Nothing is shared until you approve it.`}
+      subtitle={`${withArticle(kindCategory(shown.kind))} on this Mac is asking to talk to Rabta. Nothing is shared until you approve it.`}
       cancelLabel="Not now"
       enterAdvances={false}
       secondary={{
@@ -127,6 +148,12 @@ export function PairingSheet() {
         <PermissionCard tone="ok" heading="Can see" glyph="check" lines={canSee(capabilities)} />
         <PermissionCard tone="bad" heading="Never sees" glyph="x" lines={neverSees(capabilities)} />
       </div>
+      {/* The pair above is what this *kind* of connector typically asks for,
+          not this specific request's real declaration — the hub doesn't
+          know that yet (see capabilitiesForKind's doc comment). Said
+          plainly rather than left implied, so the sheet never reads as more
+          certain than it is. */}
+      <p className="pb-2 text-meta text-tertiary-foreground">{capabilityCaveat}</p>
       <p className="flex items-center gap-1.5 pb-3 text-meta text-tertiary-foreground">
         <Icon name="lock" className="size-3 shrink-0" />
         Talks to Rabta on this Mac only — nothing leaves it.
