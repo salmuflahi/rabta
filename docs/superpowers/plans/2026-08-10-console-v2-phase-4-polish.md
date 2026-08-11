@@ -2156,35 +2156,19 @@ Then add the micro-interactions, all transform/opacity, all ≤200ms, all inheri
 - `Toolbar.tsx`: wrap `ContextualAction` in a `key={view}` element carrying `animate-page-in` so it cross-fades on view change rather than swapping instantly.
 - Master lists: apply the existing `animate-page-in` to the list container on first paint.
 
-### Also in this task: the toolbar yields its accent on Overview and Capsules
+### Not in this task: the toolbar accent double-spend
 
-Found during Task 6, confirmed by independent review as a real defect rather than an
-over-strict guard. On a real `<App />` render, `Toolbar.tsx`'s contextual "New capsule"
-accent coexists with `OverviewPage`'s "Resume" and `CapsulesPage`'s "Restore" — two accent
-buttons on the app's two main screens. It stayed invisible because every page-level accent
-test renders its page standalone, never through `AppShell` with the real toolbar.
+Overview and Capsules each render two accent buttons — `Toolbar.tsx`'s contextual "New
+capsule" alongside the page hero's Resume/Restore. Found during Task 6, confirmed by
+independent review as a real defect. **The user ruled the page hero keeps the accent**, so
+the toolbar's contextual action goes neutral on `overview` and `capsules` and keeps its
+accent on `projects`.
 
-It is a defect, not a design tension, on three grounds: `Toolbar.tsx:108` already claims
-"the accent budget is spent here or not at all" and the code does not honour it; the
-codebase does this coordination work everywhere else (`Sidebar`'s selected row is
-deliberately neutral, `OverviewPage`'s live dot opts out via `data-accent-mark`,
-`CapsulesPage`'s active-row marker likewise); and "one primary action per surface" is this
-project's own rule (`specs/2026-07-20-ux-redesign-design.md`), which Console v2 Phase 1
-already invoked to override the static handoff once before.
+**A separate session owns this fix.** Do not touch `useContextualAction` or
+`ContextualAction`'s colouring here — two sessions editing `Toolbar.tsx` concurrently would
+conflict. This task's only `Toolbar.tsx` change is the contextual-action cross-fade above.
 
-**Resolution (user decision): the page hero keeps the accent.** Resume and Restore are the
-product's core verb — picking a task back up is the whole point — so the toolbar's
-contextual action renders **neutral** on `overview` and `capsules`. It keeps its accent on
-`projects`, which spends none of its own.
-
-Implement by giving `ContextualAction` a `tone` (`"accent" | "neutral"`), decided in
-`useContextualAction` from the view rather than by the component. Comment the reasoning at
-the decision site, and cross-reference the `Sidebar` precedent.
-
-Then extend the guard so this cannot come back: the accent tests must exercise
-`overview` and `capsules` through a real `<App />` render — the way `App.test.tsx` now does
-for the pairing sheet — not standalone pages. Confirm each new assertion fails against the
-current accented toolbar before you fix it, and say so in your report.
+Phase verification (Task 16) confirms the fix landed and matches the ruling.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
