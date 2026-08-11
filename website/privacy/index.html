@@ -162,13 +162,18 @@
       a service &#8212; nothing about it involves a third party.
     </p>
 
-    <p>It holds two files:</p>
+    <p>Everything Rabta writes is in there, and it is a short list:</p>
 
     <ul role="list">
       <li><code>omnibus.db</code> — a local database of your projects, tasks,
-        capsules and event history.</li>
+        capsules and event history. Alongside it you will see
+        <code>omnibus.db-wal</code> and <code>omnibus.db-shm</code>: SQLite's
+        own journal and shared-memory files. They hold the same data mid-write,
+        not different data.</li>
       <li><code>hub.json</code> — the port the local hub is listening on and a
         shared secret, regenerated every time the app starts.</li>
+      <li><code>.window-state.json</code> — the size and position of the
+        window, so it reopens where you left it.</li>
     </ul>
 
     <h3>The exact categories of data stored</h3>
@@ -192,7 +197,7 @@
         </tr>
         <tr>
           <td>Connectors</td>
-          <td>Each connector's name, kind, declared capabilities, version, and when it was first and last seen</td>
+          <td>Each connector's name, kind, declared capabilities, version, when it was first and last seen, and the pairing token you approved it with — so an approved connector does not have to be re-approved on every launch. It is generated on this machine, means nothing anywhere else, and is deleted with the folder</td>
         </tr>
         <tr>
           <td>Activity</td>
@@ -250,8 +255,8 @@
 
     <h3>Browser connector (Chrome)</h3>
     <p>
-      Pending Chrome Web Store review at the time of writing. When available it
-      will use three permissions:
+      Published on the Chrome Web Store. It requests three permissions, and no
+      host permissions at all:
     </p>
     <ul role="list">
       <li><code>tabs</code> — to read the URLs and titles of open http/https,
@@ -342,8 +347,8 @@
       <li><strong>Open VSX</strong> — hosts the editor extension. Installing it
         from your editor, or downloading the <code>.vsix</code>, is a request to
         Open VSX.</li>
-      <li><strong>Chrome Web Store</strong> — will host the browser extension
-        once review completes.</li>
+      <li><strong>Chrome Web Store</strong> — hosts the browser extension.
+        Installing it is a request to Google.</li>
     </ul>
 
     <p>

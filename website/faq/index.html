@@ -164,8 +164,11 @@
       <h3>Does it phone home?</h3>
       <p>
         No. v0.1.0 makes no outbound request on launch or on a timer. There is
-        no analytics SDK and no crash reporter. The one network call in the app
-        is a Git fetch, and only when you click it.
+        no analytics SDK and no crash reporter. Two things in the app can reach
+        the network at all, and each only when you click it: the Git menu's
+        Fetch, and the optional GitHub issue features, which run your own
+        <code>gh</code> CLI. Nothing else in the app opens a socket that is not
+        <code>127.0.0.1</code>.
       </p>
 
       <h3>Does it store my GitHub token?</h3>

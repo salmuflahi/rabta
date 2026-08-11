@@ -169,6 +169,122 @@ test("no internal link points at a page that does not exist", async () => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Cross-page facts.
+//
+// Every check above this line reads one page at a time, which is why a whole
+// class of defect shipped green: five pages written in parallel, four drifting
+// from a source of truth a sixth already had right. The worst of them told
+// readers the build was unsigned and that the correct first launch was the
+// Gatekeeper bypass gesture — on a site whose setup page says, correctly, that
+// a Gatekeeper warning means the file is not the one that was signed. Both
+// pages passed every test in this file.
+//
+// A claim that appears on two pages has to say the same thing on both. These
+// assertions pin the handful that are load-bearing: distribution status,
+// signing status, and how many things can reach the network.
+
+test("no page contradicts the signing status of the build it links to", async () => {
+  // The artifact is Developer-ID signed with a stapled notarization ticket
+  // (`codesign -dv`, `stapler validate`, `spctl -a -t install` all agree).
+  // Saying otherwise anywhere trains readers to expect — and work around — a
+  // warning that in reality only appears on a tampered file.
+  for (const [route, html] of Object.entries(await all())) {
+    const prose = html.replace(/<!--[\s\S]*?-->/g, "");
+    assert.doesNotMatch(
+      prose,
+      /\bunsigned\b/i,
+      `${route}: calls the build unsigned — it is signed and notarized`,
+    );
+    // The bypass gesture, in the forms a page would actually write it.
+    assert.doesNotMatch(
+      prose,
+      /right-click\s*(?:›|→|->|&rsaquo;|›)\s*<b>\s*Open|right-click\s*(?:›|→|->)\s*Open\b(?![^.]*\bnot\b)/i,
+      `${route}: instructs the Gatekeeper bypass as a normal first launch`,
+    );
+  }
+});
+
+test("the extension distribution story is the same on every page that tells it", async () => {
+  const pages = await all();
+
+  // Both connectors are published. "Installs by hand" was true before they
+  // were, and survived on three pages after the correction landed on a fourth.
+  for (const [route, html] of Object.entries(pages)) {
+    const prose = html.replace(/<!--[\s\S]*?-->/g, "");
+    assert.doesNotMatch(
+      prose,
+      /extensions? install by hand\b(?!\s*(?:for stock|today for))/i,
+      `${route}: says the extensions install by hand — both are published`,
+    );
+    assert.doesNotMatch(
+      prose,
+      /pending\s+chrome\s+web\s+store|once\s+review\s+completes|awaiting\s+review/i,
+      `${route}: describes the browser extension as awaiting store review`,
+    );
+  }
+
+  // The one hand-install that IS still real — stock VS Code, which reads
+  // Microsoft's Marketplace rather than Open VSX. If that stops being true,
+  // this assertion is the reminder that /setup/ and /roadmap/ both say so.
+  assert.match(
+    pages["/setup/"],
+    /not (?:yet )?(?:on|published)[\s\S]{0,80}Marketplace|Marketplace[\s\S]{0,80}not published yet/i,
+    "/setup/: no longer explains why stock VS Code needs the .vsix",
+  );
+});
+
+test("the pinned .vsix matches the version the page says it is", async () => {
+  // Open VSX serves one version of this extension. If the prose and the pinned
+  // download URL ever disagree, the page hands over a build it just described
+  // as something else — and the claim "it is the same build Open VSX serves"
+  // stops being checkable by the reader.
+  const setup = await read("setup/index.html");
+  const stated = setup.match(/rabta-vscode<\/code>, version ([\d.]+)\)/)?.[1];
+  assert.ok(stated, "/setup/: no stated extension version");
+
+  const pinned = [
+    ...setup.matchAll(/open-vsx\.org\/api\/rabta-connect\/rabta-vscode\/([\d.]+)\//g),
+  ].map((m) => m[1]);
+  assert.ok(pinned.length, "/setup/: no pinned Open VSX download");
+  for (const version of pinned) {
+    assert.equal(version, stated, "/setup/: pinned .vsix is not the stated version");
+  }
+  assert.ok(
+    setup.includes(`rabta-connect.rabta-vscode-${stated}.vsix`),
+    "/setup/: the filename in the install command is not the stated version",
+  );
+});
+
+test("no page claims fewer network calls than another page documents", async () => {
+  // Two user-initiated calls exist: `git fetch` and the optional GitHub issue
+  // features, which shell out to `gh`. The privacy page counted them
+  // correctly; the FAQ claimed there was one, on the same page that goes on to
+  // describe the other. "No call on launch or on a timer" is the true and
+  // sufficient claim — an exclusivity count is neither.
+  for (const [route, html] of Object.entries(await all())) {
+    const prose = html.replace(/<!--[\s\S]*?-->/g, "");
+    assert.doesNotMatch(
+      prose,
+      /\bthe (?:one|only|single) network (?:call|request)\b/i,
+      `${route}: claims a single network call — there are two, both click-gated`,
+    );
+  }
+});
+
+test("404 obeys the same inline-content rules as a real route", async () => {
+  // It is not in PAGES (it has no route and belongs in no sitemap), which
+  // meant the CSP-compatibility assertions never ran against it. The CSP
+  // applies to it exactly as it does to everything else.
+  const html = await read("404.html");
+  assert.match(html, /http-equiv="Content-Security-Policy"/, "404: no policy");
+  assert.doesNotMatch(html, /\sstyle="/, "404: inline style attribute");
+  assert.doesNotMatch(html, /<style[\s>]/, "404: inline <style> block");
+  for (const tag of html.match(/<script(?![^>]*\bsrc=)[^>]*>/g) ?? []) {
+    assert.match(tag, /type="application\/ld\+json"/, `404: inline <script> — ${tag}`);
+  }
+});
+
 test("every off-site link is https and cannot reach back through window.opener", async () => {
   for (const [route, html] of Object.entries(await all())) {
     for (const [tag, href] of html.matchAll(/<a[^>]*href="(https?:\/\/[^"]+)"[^>]*>/g)) {
