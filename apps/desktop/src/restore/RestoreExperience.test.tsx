@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "@/test/smoke-utils";
 import { expectAtMostOneAccent } from "@/test/accent";
 import { expectFocusRingSuppressed, expectHasFocusRing } from "@/test/no-box";
-import { useRestore, type StartOptions } from "./RestoreExperience";
+import { useRestore, ToolStatus, type StartOptions } from "./RestoreExperience";
 import type { RestoreResult } from "./types";
 
 const TOOLS: StartOptions["tools"] = [
@@ -478,5 +478,18 @@ describe("useRestore / RestoreExperience", () => {
       expect(container.querySelectorAll(".bg-primary").length).toBeGreaterThanOrEqual(1);
       expectAtMostOneAccent(container);
     });
+  });
+});
+
+describe("restoring status", () => {
+  it("uses the app's live-state dot, not a spinner", () => {
+    renderWithProviders(<ToolStatus status="restoring" reducedMotion={false} />);
+    expect(document.querySelector(".animate-spin")).toBeNull();
+    expect(document.querySelector(".animate-live-ping")).not.toBeNull();
+  });
+
+  it("shows no animation at all under reduced motion", () => {
+    renderWithProviders(<ToolStatus status="restoring" reducedMotion />);
+    expect(document.querySelector(".animate-live-ping")).toBeNull();
   });
 });

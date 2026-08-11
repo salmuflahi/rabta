@@ -1,4 +1,4 @@
-import { Check, Circle, GitBranch, Globe, Loader2, Minus, TriangleAlert, Code2, Terminal as TerminalIcon, Box } from "lucide-react";
+import { Check, Circle, GitBranch, Globe, Minus, TriangleAlert, Code2, Terminal as TerminalIcon, Box } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import markUrl from "@/assets/brand/rabta-mark.svg";
@@ -92,8 +92,9 @@ function statusLabel(status: ToolRestoreStatus, message?: string): string {
 /** Right-aligned status icon+text for a single row. Only opacity/transform
  * are animated (per spec's performance constraints); a short pulse plays
  * whenever `status` changes so restoring->applied reads as a crossfade
- * rather than an instant swap. */
-function StatusIndicator({
+ * rather than an instant swap. Exported so tests can render it standalone
+ * (see the "restoring status" suite in RestoreExperience.test.tsx). */
+export function ToolStatus({
   status,
   message,
   reducedMotion,
@@ -126,7 +127,19 @@ function StatusIndicator({
   let icon: ReactNode;
   if (status === "waiting") icon = <Circle className="size-3.5" />;
   else if (status === "restoring")
-    icon = <Loader2 className={cn("size-3.5", !reducedMotion && "animate-spin")} />;
+    // The same "live" motion a connected connector's dot uses — one
+    // vocabulary for "this is working" across the app, instead of a
+    // bootstrap-era spinner here and a ping over there. Gated at the call
+    // site rather than by the global reduced-motion rule so the dot renders
+    // solid and still, not a halo frozen mid-expansion.
+    icon = (
+      <span className="relative grid size-3.5 place-items-center">
+        {!reducedMotion && (
+          <span className="absolute size-2 animate-live-ping rounded-full bg-foreground" />
+        )}
+        <span className="size-2 rounded-full bg-foreground" />
+      </span>
+    );
   else if (status === "applied") icon = <Check className="size-3.5" />;
   else if (status === "skipped") icon = <Minus className="size-3.5" />;
   else icon = <TriangleAlert className="size-3.5" />;
@@ -186,7 +199,7 @@ function ToolRestoreRow({
         <Icon className="size-3.5 shrink-0 text-muted-foreground" />
         <span className="truncate">{tool.name}</span>
       </span>
-      <StatusIndicator status={status} message={message} reducedMotion={reducedMotion} />
+      <ToolStatus status={status} message={message} reducedMotion={reducedMotion} />
     </div>
   );
 }
