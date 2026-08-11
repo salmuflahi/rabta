@@ -133,7 +133,7 @@ test("the receipt is a real button carrying real state", async () => {
     "BROWSER TABS",
     "BRANCH",
     "RESTORE RESULT",
-    "v0.1.0 · MIT · Sammy Almuflahi",
+    "Rabta v0.1.0 · MIT · nothing leaves this Mac",
   ]) {
     assert.ok(html.includes(copy), copy);
   }

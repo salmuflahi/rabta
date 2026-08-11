@@ -492,35 +492,98 @@
     padding-bottom: 52px;
   }
 
-  .foot__compact {
+  /* The brand block takes a wider track than the four link columns: it carries
+     a sentence, and a sentence in a 12ch column is a stack of single words. */
+  .foot__grid {
     display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 36px 64px;
+    grid-template-columns: minmax(220px, 1.4fr) repeat(4, minmax(0, 1fr));
+    gap: 44px 40px;
     align-items: start;
   }
 
-  .foot__links {
+  .foot__brand p {
+    margin-top: 18px;
+    max-width: 28ch;
+    color: var(--cool-soft);
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  /* The dot is the same green-adjacent cue the app's status bar uses for a
+     live connector. Here it means the weaker, permanent thing: this runs on
+     your machine. It is aria-hidden — the sentence beside it already says so
+     and a bare bullet announced aloud is noise. */
+  .foot__badge {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 12px 24px;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    color: var(--cool-mid);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: var(--track-mono);
+  }
+
+  .foot__badge span {
+    color: var(--orange);
+    font-size: 8px;
+    line-height: 1;
+  }
+
+  .foot__col {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
     color: var(--cool-soft);
     font-size: 13px;
   }
 
-  .foot__links a:hover,
-  .foot__links a:focus-visible {
+  .foot__head {
+    margin-bottom: 3px;
+    color: var(--ivory);
+    font-size: 13px;
+    font-weight: 540;
+  }
+
+  .foot__col a:hover,
+  .foot__col a:focus-visible {
     color: var(--ivory);
   }
 
-  .foot__meta {
-    grid-column: 1 / -1;
+  .foot__base {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 32px;
+    margin-top: 52px;
     padding-top: 22px;
     border-top: 1px solid rgba(169, 190, 194, 0.1);
+  }
+
+  .foot__meta {
     color: var(--cool-soft);
     font-family: var(--mono);
     font-size: 11px;
     line-height: 1.5;
+  }
+
+  /* Five tracks stop fitting well before the 699px shell breakpoint — the link
+     columns start wrapping their own labels while there is still room on the
+     row. Two columns with the brand across the top is the arrangement that
+     survives the middle widths. */
+  @media (max-width: 1040px) and (min-width: 700px) {
+    .foot__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 40px;
+    }
+
+    .foot__brand {
+      grid-column: 1 / -1;
+    }
+
+    .foot__brand p {
+      max-width: 48ch;
+    }
   }
 
   @media (max-width: 699px) {
@@ -536,7 +599,7 @@
       display: none;
     }
 
-    .foot__compact {
+    .foot__grid {
       grid-template-columns: 1fr;
       gap: 28px;
     }

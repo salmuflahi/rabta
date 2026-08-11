@@ -55,6 +55,7 @@
 <link rel="stylesheet" href="/css/tokens.css" />
 <link rel="stylesheet" href="/css/shell.css" />
 <link rel="stylesheet" href="/css/doc.css" />
+<link rel="stylesheet" href="/css/page.css" />
 <link rel="stylesheet" href="/css/receipt-fold.css" />
 <script type="module" src="/js/main.js"></script>
 </head>
@@ -594,42 +595,70 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
     </button>
   </div>
 
-  <div class="rail foot__compact">
-    <a class="brand" href="/" aria-label="Rabta — home">
-      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <rect width="64" height="64" rx="14" fill="#102526" />
-        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
-        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
-      </svg>
-      <span>Rabta</span>
-    </a>
+  <!-- Four columns, grouped by what a visitor came for rather than by which
+       page happens to exist. The single row this replaces put /privacy/ and
+       /why/ next to each other as peers, which they are not: one is a
+       decision, the other is a document you read after making it.
 
-    <nav class="foot__links" aria-label="Footer">
+       Every column mixes on-site and off-site destinations on purpose — a
+       reader looking for the download does not care which host serves it. The
+       `rel` attributes carry the distinction the layout deliberately drops:
+       `rel="me"` on GitHub lets that profile verify this site back, and
+       `noopener noreferrer` is on every external target without exception. -->
+  <div class="rail foot__grid">
+    <div class="foot__brand">
+      <a class="brand" href="/" aria-label="Rabta — home">
+        <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+          <rect width="64" height="64" rx="14" fill="#102526" />
+          <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+          <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+        </svg>
+        <span>Rabta</span>
+      </a>
+      <p>Workspace memory for macOS.</p>
+      <p class="foot__badge"><span aria-hidden="true">●</span> Local-first</p>
+    </div>
+
+    <nav class="foot__col" aria-label="Product">
+      <p class="foot__head">Product</p>
       <a href="/why/">Why Rabta</a>
-      <a href="/setup/">Setup</a>
-      <a href="/faq/">FAQ</a>
+      <a href="/#how-it-works">How it works</a>
+      <a href="/#focus">Focus mode</a>
       <a href="/roadmap/">Roadmap</a>
-      <a href="/changelog/">Changelog</a>
-      <a href="/contact/">Contact</a>
-      <a href="/privacy/">Privacy</a>
     </nav>
 
-    <!-- Off-site links are kept in their own row so the footer's first row
-         stays wholly navigational. `rel="me"` lets a profile verify this site
-         back; `noopener noreferrer` is on every external target.
-
-         Instagram and TikTok are requested but not yet linked: their handles
-         have not been supplied, and a dead social link on a launch site is
-         worse than an absent one. Adding each is one <a> in this block —
-         nothing else needs to change, because every page pulls this file. -->
-    <nav class="foot__links foot__links--external" aria-label="Elsewhere">
-      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
-      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release</a>
+    <nav class="foot__col" aria-label="Get started">
+      <p class="foot__head">Get started</p>
+      <a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+      <a href="/setup/">Setup guide</a>
+      <a href="/faq/">FAQ</a>
       <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" rel="noopener noreferrer" target="_blank">Open VSX</a>
+    </nav>
+
+    <nav class="foot__col" aria-label="Project">
+      <p class="foot__head">Project</p>
+      <a href="/changelog/">Changelog</a>
+      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
+      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Releases</a>
       <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
     </nav>
 
-    <p class="foot__meta">v0.1.0 · MIT · Sammy Almuflahi</p>
+    <!-- Instagram and TikTok belong in this column and are not here: their
+         handles have not been supplied, and a dead social link on a launch
+         site is worse than an absent one. Adding each is one <a> in this
+         block — nothing else needs to change, because every page pulls this
+         file through scripts/sync-site-chrome.mjs. -->
+    <nav class="foot__col" aria-label="Contact and legal">
+      <p class="foot__head">Contact &amp; legal</p>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="mailto:support@rabta.build">support@rabta.build</a>
+    </nav>
+  </div>
+
+  <div class="rail foot__base">
+    <p class="foot__meta">Rabta v0.1.0 · MIT · nothing leaves this Mac</p>
+    <p class="foot__meta">Built by Sammy Almuflahi</p>
   </div>
 <!-- /chrome:foot -->
 </footer>

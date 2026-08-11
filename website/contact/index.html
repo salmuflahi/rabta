@@ -55,6 +55,7 @@
 <link rel="stylesheet" href="/css/tokens.css" />
 <link rel="stylesheet" href="/css/shell.css" />
 <link rel="stylesheet" href="/css/doc.css" />
+<link rel="stylesheet" href="/css/page.css" />
 <link rel="stylesheet" href="/css/receipt-fold.css" />
 <script type="module" src="/js/main.js"></script>
 </head>
@@ -92,95 +93,113 @@
   <div class="wrap railed page-head">
     <div><span class="marker">Contact</span></div>
     <div>
-    <h1>Get in touch</h1>
+    <h1>Talk to a human.</h1>
     <p class="lede">
-      Rabta is built and maintained by one person, so everything below reaches
-      the same place. What differs is how quickly it gets read and what shape it
-      needs to be in.
+      No support desk, no ticket queue. Rabta is built and maintained by one
+      person, so every channel below lands in the same place. What differs is
+      how quickly it gets read and what shape it needs to be in.
     </p>
     <p class="mono muted">Sammy Almuflahi · maintainer</p>
     </div>
   </div>
 
-  <div class="wrap railed">
-    <div></div>
-    <div class="prose">
+  <section class="band" data-chapter aria-labelledby="channels">
+    <div class="band__inner">
+      <p class="band__label">Where to write</p>
+      <div class="band__body">
+        <h2 id="channels">Three places, and the difference between them.</h2>
 
-      <nav class="toc" aria-labelledby="toc-title">
-        <p id="toc-title">On this page</p>
-        <ol>
-          <li><a href="#bug">Something is broken</a></li>
-          <li><a href="#feature">You want something added</a></li>
-          <li><a href="#security">Something security-sensitive</a></li>
-          <li><a href="#email">By email</a></li>
-          <li><a href="#elsewhere">Elsewhere</a></li>
-        </ol>
-      </nav>
+        <div class="grid3">
+          <!-- The whole card is the link. A card whose title, description and
+               destination are one thought should have one target, not a small
+               anchor inside a large rectangle that does nothing. -->
+          <a class="card channel" href="https://github.com/salmuflahi/rabta/issues/new" rel="noopener noreferrer" target="_blank">
+            <h3>Bugs &amp; crashes</h3>
+            <p>
+              Something broke, restored wrong, or refused when it shouldn't
+              have. The three things that make a report actionable are your
+              macOS version, which connectors were running, and what you
+              expected instead.
+            </p>
+            <span class="channel__action">Open an issue <span class="channel__arrow" aria-hidden="true">→</span></span>
+            <span class="channel__where">github.com/salmuflahi/rabta/issues</span>
+          </a>
 
-      <h2 id="bug">Something is broken</h2>
-      <p>
-        <a href="https://github.com/salmuflahi/rabta/issues/new" rel="noopener noreferrer" target="_blank">Open an issue</a>.
-        The three things that make a report actionable are your macOS version,
-        which connectors were running, and what you expected instead of what
-        happened.
-      </p>
-      <p>
-        If a restore did something surprising, the Activity view records what
-        each connector was asked to do and how it answered. That log is local to
-        your machine — nothing is sent anywhere — so pasting the relevant part
-        into the issue is usually the fastest route to a fix.
-      </p>
+          <a class="card channel" href="https://github.com/salmuflahi/rabta/discussions" rel="noopener noreferrer" target="_blank">
+            <h3>Questions &amp; ideas</h3>
+            <p>
+              Workflow questions, connector requests, or how something works.
+              Public and searchable, so the next person finds the answer too.
+              The most useful requests describe the situation you were in, not
+              the feature you designed.
+            </p>
+            <span class="channel__action">Start a discussion <span class="channel__arrow" aria-hidden="true">→</span></span>
+            <span class="channel__where">github.com/salmuflahi/rabta/discussions</span>
+          </a>
 
-      <h2 id="feature">You want something added</h2>
-      <p>
-        Also an <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">issue</a>,
-        and worth checking the <a href="/roadmap/">roadmap</a> first — some
-        things are deliberately not planned, and that page explains why rather
-        than leaving you guessing.
-      </p>
-      <p>
-        The most useful feature requests describe the situation you were in, not
-        the feature you designed. Those get argued with productively.
-      </p>
-
-      <h2 id="security">Something security-sensitive</h2>
-      <p>
-        Please do not open a public issue for it. Use GitHub's
-        <a href="https://github.com/salmuflahi/rabta/security/advisories/new" rel="noopener noreferrer" target="_blank">private vulnerability reporting</a>,
-        which goes to the maintainer without disclosing anything publicly.
-      </p>
-      <p>
-        Rabta's whole claim is that nothing leaves your machine. If you find a
-        case where that is not true, that is the most valuable message this
-        project can receive, and it will be treated that way.
-      </p>
-
-      <h2 id="email">By email</h2>
-      <p>
-        For anything that does not belong in a public tracker — a licensing
-        question, press, or simply a message you would rather not file as an
-        issue — <a href="mailto:support@rabta.build">support@rabta.build</a>
-        reaches the same person.
-      </p>
-      <p>
-        Bugs and feature requests are still better as issues: they stay visible
-        to everyone else who hits the same thing, and they do not get lost in a
-        thread.
-      </p>
-
-      <h2 id="elsewhere">Elsewhere</h2>
-      <p>
-        The source, the releases and the issue tracker all live on
-        <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>.
-        That is the canonical home; anything else is a mirror of what is there.
-      </p>
-
-      <p class="mono muted">
-        Response times are a person's, not a company's. Security reports come
-        first; everything else gets read in order.
-      </p>
+          <a class="card channel" href="mailto:support@rabta.build">
+            <h3>Everything else</h3>
+            <p>
+              Press, licensing, partnerships, or anything that doesn't belong in
+              a public thread. Bugs and feature requests are still better as
+              issues — they stay visible to everyone else who hits the same
+              thing, and they don't get lost in a thread.
+            </p>
+            <span class="channel__action">Email <span class="channel__arrow" aria-hidden="true">→</span></span>
+            <span class="channel__where">support@rabta.build</span>
+          </a>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
+
+  <section class="band" data-chapter aria-labelledby="security">
+    <div class="band__inner">
+      <p class="band__label">Security</p>
+      <div class="band__body">
+        <h2 id="security">Something security-sensitive.</h2>
+        <p>
+          Please don't open a public issue for it. Use GitHub's
+          <a href="https://github.com/salmuflahi/rabta/security/advisories/new" rel="noopener noreferrer" target="_blank">private vulnerability reporting</a>,
+          which reaches the maintainer without disclosing anything publicly, or
+          email <a href="mailto:support@rabta.build">support@rabta.build</a>
+          directly. A fix ships before the details go public.
+        </p>
+        <p>
+          Rabta's whole claim is that nothing leaves your machine. If you find a
+          case where that is not true, that is the most valuable message this
+          project can receive, and it will be treated that way.
+        </p>
+
+        <p class="mono muted foot-note">
+          Response times are a person's, not a company's. Security reports come
+          first; everything else gets read in order. No autoresponders — replies
+          usually land within a couple of days.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band band--close" data-chapter aria-labelledby="elsewhere">
+    <div class="band__inner">
+      <p class="band__label">Elsewhere</p>
+      <div class="band__body">
+        <h2 id="elsewhere">One canonical home.</h2>
+        <p>
+          The source, the releases and the issue tracker all live on
+          <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>.
+          That is the canonical home; anything else is a mirror of what is
+          there.
+        </p>
+        <p>
+          If a restore did something surprising, the Activity view records what
+          each connector was asked to do and how it answered. That log is local
+          to your machine — nothing is sent anywhere — so pasting the relevant
+          part into an issue is usually the fastest route to a fix.
+        </p>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer class="foot">
@@ -205,42 +224,70 @@
     </button>
   </div>
 
-  <div class="rail foot__compact">
-    <a class="brand" href="/" aria-label="Rabta — home">
-      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <rect width="64" height="64" rx="14" fill="#102526" />
-        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
-        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
-      </svg>
-      <span>Rabta</span>
-    </a>
+  <!-- Four columns, grouped by what a visitor came for rather than by which
+       page happens to exist. The single row this replaces put /privacy/ and
+       /why/ next to each other as peers, which they are not: one is a
+       decision, the other is a document you read after making it.
 
-    <nav class="foot__links" aria-label="Footer">
+       Every column mixes on-site and off-site destinations on purpose — a
+       reader looking for the download does not care which host serves it. The
+       `rel` attributes carry the distinction the layout deliberately drops:
+       `rel="me"` on GitHub lets that profile verify this site back, and
+       `noopener noreferrer` is on every external target without exception. -->
+  <div class="rail foot__grid">
+    <div class="foot__brand">
+      <a class="brand" href="/" aria-label="Rabta — home">
+        <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+          <rect width="64" height="64" rx="14" fill="#102526" />
+          <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+          <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+        </svg>
+        <span>Rabta</span>
+      </a>
+      <p>Workspace memory for macOS.</p>
+      <p class="foot__badge"><span aria-hidden="true">●</span> Local-first</p>
+    </div>
+
+    <nav class="foot__col" aria-label="Product">
+      <p class="foot__head">Product</p>
       <a href="/why/">Why Rabta</a>
-      <a href="/setup/">Setup</a>
-      <a href="/faq/">FAQ</a>
+      <a href="/#how-it-works">How it works</a>
+      <a href="/#focus">Focus mode</a>
       <a href="/roadmap/">Roadmap</a>
-      <a href="/changelog/">Changelog</a>
-      <a href="/contact/">Contact</a>
-      <a href="/privacy/">Privacy</a>
     </nav>
 
-    <!-- Off-site links are kept in their own row so the footer's first row
-         stays wholly navigational. `rel="me"` lets a profile verify this site
-         back; `noopener noreferrer` is on every external target.
-
-         Instagram and TikTok are requested but not yet linked: their handles
-         have not been supplied, and a dead social link on a launch site is
-         worse than an absent one. Adding each is one <a> in this block —
-         nothing else needs to change, because every page pulls this file. -->
-    <nav class="foot__links foot__links--external" aria-label="Elsewhere">
-      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
-      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release</a>
+    <nav class="foot__col" aria-label="Get started">
+      <p class="foot__head">Get started</p>
+      <a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+      <a href="/setup/">Setup guide</a>
+      <a href="/faq/">FAQ</a>
       <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" rel="noopener noreferrer" target="_blank">Open VSX</a>
+    </nav>
+
+    <nav class="foot__col" aria-label="Project">
+      <p class="foot__head">Project</p>
+      <a href="/changelog/">Changelog</a>
+      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
+      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Releases</a>
       <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
     </nav>
 
-    <p class="foot__meta">v0.1.0 · MIT · Sammy Almuflahi</p>
+    <!-- Instagram and TikTok belong in this column and are not here: their
+         handles have not been supplied, and a dead social link on a launch
+         site is worse than an absent one. Adding each is one <a> in this
+         block — nothing else needs to change, because every page pulls this
+         file through scripts/sync-site-chrome.mjs. -->
+    <nav class="foot__col" aria-label="Contact and legal">
+      <p class="foot__head">Contact &amp; legal</p>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="mailto:support@rabta.build">support@rabta.build</a>
+    </nav>
+  </div>
+
+  <div class="rail foot__base">
+    <p class="foot__meta">Rabta v0.1.0 · MIT · nothing leaves this Mac</p>
+    <p class="foot__meta">Built by Sammy Almuflahi</p>
   </div>
 <!-- /chrome:foot -->
 </footer>

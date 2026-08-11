@@ -55,6 +55,7 @@
 <link rel="stylesheet" href="/css/tokens.css" />
 <link rel="stylesheet" href="/css/shell.css" />
 <link rel="stylesheet" href="/css/doc.css" />
+<link rel="stylesheet" href="/css/page.css" />
 <link rel="stylesheet" href="/css/receipt-fold.css" />
 <script type="module" src="/js/main.js"></script>
 </head>
@@ -92,105 +93,148 @@
   <div class="wrap railed page-head">
     <div><span class="marker">Roadmap</span></div>
     <div>
-    <h1>What isn't built yet</h1>
+    <h1>What's next, without dates.</h1>
     <p class="lede">
-      This page carries no dates. Rabta is one person's work, and a date on
-      unstarted work is a promise made with someone else's time. What follows is
-      ordered by intent, not by schedule.
+      Everything here is real work in the repository, at the stage it is named
+      under. Nothing carries a date, because nothing here ships until it is
+      right. What already shipped is on the
+      <a href="/changelog/">changelog</a>.
     </p>
     <p class="mono muted">Reflects Rabta 0.1.0 · updated 11 August 2026</p>
     </div>
   </div>
 
-  <div class="wrap railed">
-    <div></div>
-    <div class="prose">
+  <section class="band" data-chapter aria-labelledby="packaged">
+    <div class="band__inner">
+      <p class="band__label"><span class="pill pill--now">Packaged</span></p>
+      <div class="band__body">
+        <h2 id="packaged">Next up.</h2>
+        <p>Built and packaged, awaiting the publish step.</p>
 
-      <nav class="toc" aria-labelledby="toc-title">
-        <p id="toc-title">On this page</p>
-        <ol>
-          <li><a href="#next">Next</a></li>
-          <li><a href="#considering">Under consideration</a></li>
-          <li><a href="#deferred">Deliberately deferred</a></li>
-          <li><a href="#no">Not planned</a></li>
-        </ol>
-      </nav>
+        <div class="grid2">
+          <article class="card">
+            <h3>Connectors 0.2.0 — focus mode's reconcile step</h3>
+            <p>
+              The close half of focus mode lives in the connectors:
+              <code>tabs.close</code>, <code>editor.closeFile</code>,
+              <code>terminal.dispose</code>. The desktop app stays at 0.1.0 —
+              this is a connector-only bump, packaged for both stores and
+              waiting on upload.
+            </p>
+          </article>
 
-      <h2 id="next">Next</h2>
-      <p>Known gaps with a clear shape, in rough order.</p>
-
-      <h3>A restore report</h3>
-      <p>
-        A restore already knows what applied, what is queued and what was
-        skipped, and it says so per tool while it runs. What it does not yet do
-        is hand you that as a report you can read afterwards. This is the
-        largest gap in the product today.
-      </p>
-
-      <h3>Intel and universal builds</h3>
-      <p>
-        The current bundle is Apple silicon only. Nothing in the app is
-        deliberately arm64-specific; this is packaging work.
-      </p>
-
-      <h3>Store distribution</h3>
-      <p>
-        The editor extension is on Open VSX and the browser extension is on the
-        Chrome Web Store, which covers Cursor, VSCodium, Windsurf and Chrome.
-        Microsoft's VS Code Marketplace is the gap: stock VS Code does not read
-        Open VSX, so that one install is still a <code>.vsix</code> by hand.
-      </p>
-
-      <h3>Bulk actions on capsules</h3>
-      <p>Multi-select, so archiving or deleting several is one gesture.</p>
-
-      <h2 id="considering">Under consideration</h2>
-
-      <h3>Auto-update</h3>
-      <p>
-        Not wired, and not free: it needs an update endpoint and a signing
-        keypair, and it means the app would start making a network request it
-        does not make today. That tradeoff is the reason this is here rather
-        than under <em>Next</em>.
-      </p>
-
-      <h3>More connectors</h3>
-      <p>
-        Terminal emulators beyond the built-in support, and other tools that
-        hold part of a task's surface. Each one is a permissions question before
-        it is an engineering one.
-      </p>
-
-      <h3>Other platforms</h3>
-      <p>
-        macOS is the only tested target. The discovery file and the
-        keychain-adjacent parts would need porting; the rest is not deeply
-        macOS-specific.
-      </p>
-
-      <h2 id="deferred">Deliberately deferred</h2>
-      <p>
-        Reasonable ideas, consciously not being worked on: a plugin SDK,
-        automation rules, and integrations with issue trackers and design tools.
-        Each would widen what Rabta reaches, and the product is more valuable
-        narrow and trustworthy than broad and vague.
-      </p>
-
-      <h2 id="no">Not planned</h2>
-      <p>
-        Cloud sync, team collaboration, and accounts. These are not scheduling
-        decisions — they are the shape of the product. Rabta has no server, and
-        the guarantees on the <a href="/why/">Why</a> page hold because of that,
-        not in spite of it. Adding any of the three would mean giving those up.
-      </p>
-
-      <p class="mono muted">
-        Want something on this list?
-        <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Open an issue</a>
-        — that is where this page gets its arguments from.
-      </p>
+          <article class="card">
+            <h3>A higher editor floor</h3>
+            <p>
+              0.2.0 raises <code>engines.vscode</code> from ^1.85 to ^1.93.
+              Busy-terminal detection needs shell-execution events that are only
+              stable from 1.93, and there is no fallback for older editors —
+              anyone on 1.85 to 1.92 stops seeing updates until they upgrade.
+            </p>
+          </article>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
+
+  <section class="band" data-chapter aria-labelledby="queued">
+    <div class="band__inner">
+      <p class="band__label"><span class="pill">Queued</span></p>
+      <div class="band__body">
+        <h2 id="queued">Planned.</h2>
+        <p>Known, wanted, not started or blocked.</p>
+
+        <div class="grid2">
+          <article class="card">
+            <h3>VS Code Marketplace listing</h3>
+            <p>
+              Blocked on Azure DevOps token creation. Open VSX already serves
+              Cursor, VSCodium and Windsurf, so this is reach rather than
+              function — stock VS Code installs the same build from a
+              <code>.vsix</code> today.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Intel and universal macOS builds</h3>
+            <p>
+              The current bundle is arm64 only. Nothing in the app is
+              deliberately Apple-silicon-specific; this is packaging work.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Auto-update</h3>
+            <p>
+              Not wired. It needs an update endpoint and a signing keypair
+              separate from the Apple certificate — and it would be the first
+              thing in Rabta that makes an outbound request on its own, so it
+              gets designed carefully or not at all.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Bulk multi-select on capsules</h3>
+            <p>
+              So archiving or deleting several is one gesture rather than a
+              repeated one. A larger opt-in feature, not built yet.
+            </p>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" data-chapter aria-labelledby="deferred">
+    <div class="band__inner">
+      <p class="band__label"><span class="pill">Deferred</span></p>
+      <div class="band__body">
+        <h2 id="deferred">Later.</h2>
+        <p>Deliberately not now.</p>
+
+        <div class="grid2">
+          <article class="card">
+            <h3>More connectors</h3>
+            <p>
+              Docker, Postman, Figma, Linear, Jira — each one is a protocol
+              conversation, not a plugin drop. Doing four badly would be worse
+              than doing none.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>A plugin SDK and automation rules</h3>
+            <p>
+              Worth doing once the protocol has stopped moving. Publishing an
+              SDK against a moving target is a promise you then have to break.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Optional AI suggestions</h3>
+            <p>
+              Only where they would beat a plain list, and never as a default.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Cloud sync and team collaboration</h3>
+            <p>
+              Opt-in only, and only if they can meet the local-first bar.
+              Anything that would send data off your machine is off by default
+              and asks first.
+            </p>
+          </article>
+        </div>
+
+        <p class="mono muted foot-note">
+          Items move between these three groups as work happens. The
+          <a href="/changelog/">changelog</a> is the record of what actually
+          shipped.
+        </p>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer class="foot">
@@ -215,42 +259,70 @@
     </button>
   </div>
 
-  <div class="rail foot__compact">
-    <a class="brand" href="/" aria-label="Rabta — home">
-      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <rect width="64" height="64" rx="14" fill="#102526" />
-        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
-        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
-      </svg>
-      <span>Rabta</span>
-    </a>
+  <!-- Four columns, grouped by what a visitor came for rather than by which
+       page happens to exist. The single row this replaces put /privacy/ and
+       /why/ next to each other as peers, which they are not: one is a
+       decision, the other is a document you read after making it.
 
-    <nav class="foot__links" aria-label="Footer">
+       Every column mixes on-site and off-site destinations on purpose — a
+       reader looking for the download does not care which host serves it. The
+       `rel` attributes carry the distinction the layout deliberately drops:
+       `rel="me"` on GitHub lets that profile verify this site back, and
+       `noopener noreferrer` is on every external target without exception. -->
+  <div class="rail foot__grid">
+    <div class="foot__brand">
+      <a class="brand" href="/" aria-label="Rabta — home">
+        <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+          <rect width="64" height="64" rx="14" fill="#102526" />
+          <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+          <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+        </svg>
+        <span>Rabta</span>
+      </a>
+      <p>Workspace memory for macOS.</p>
+      <p class="foot__badge"><span aria-hidden="true">●</span> Local-first</p>
+    </div>
+
+    <nav class="foot__col" aria-label="Product">
+      <p class="foot__head">Product</p>
       <a href="/why/">Why Rabta</a>
-      <a href="/setup/">Setup</a>
-      <a href="/faq/">FAQ</a>
+      <a href="/#how-it-works">How it works</a>
+      <a href="/#focus">Focus mode</a>
       <a href="/roadmap/" aria-current="page">Roadmap</a>
-      <a href="/changelog/">Changelog</a>
-      <a href="/contact/">Contact</a>
-      <a href="/privacy/">Privacy</a>
     </nav>
 
-    <!-- Off-site links are kept in their own row so the footer's first row
-         stays wholly navigational. `rel="me"` lets a profile verify this site
-         back; `noopener noreferrer` is on every external target.
-
-         Instagram and TikTok are requested but not yet linked: their handles
-         have not been supplied, and a dead social link on a launch site is
-         worse than an absent one. Adding each is one <a> in this block —
-         nothing else needs to change, because every page pulls this file. -->
-    <nav class="foot__links foot__links--external" aria-label="Elsewhere">
-      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
-      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release</a>
+    <nav class="foot__col" aria-label="Get started">
+      <p class="foot__head">Get started</p>
+      <a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+      <a href="/setup/">Setup guide</a>
+      <a href="/faq/">FAQ</a>
       <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" rel="noopener noreferrer" target="_blank">Open VSX</a>
+    </nav>
+
+    <nav class="foot__col" aria-label="Project">
+      <p class="foot__head">Project</p>
+      <a href="/changelog/">Changelog</a>
+      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
+      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Releases</a>
       <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
     </nav>
 
-    <p class="foot__meta">v0.1.0 · MIT · Sammy Almuflahi</p>
+    <!-- Instagram and TikTok belong in this column and are not here: their
+         handles have not been supplied, and a dead social link on a launch
+         site is worse than an absent one. Adding each is one <a> in this
+         block — nothing else needs to change, because every page pulls this
+         file through scripts/sync-site-chrome.mjs. -->
+    <nav class="foot__col" aria-label="Contact and legal">
+      <p class="foot__head">Contact &amp; legal</p>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="mailto:support@rabta.build">support@rabta.build</a>
+    </nav>
+  </div>
+
+  <div class="rail foot__base">
+    <p class="foot__meta">Rabta v0.1.0 · MIT · nothing leaves this Mac</p>
+    <p class="foot__meta">Built by Sammy Almuflahi</p>
   </div>
 <!-- /chrome:foot -->
 </footer>

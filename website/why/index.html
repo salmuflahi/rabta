@@ -55,6 +55,7 @@
 <link rel="stylesheet" href="/css/tokens.css" />
 <link rel="stylesheet" href="/css/shell.css" />
 <link rel="stylesheet" href="/css/doc.css" />
+<link rel="stylesheet" href="/css/page.css" />
 <link rel="stylesheet" href="/css/receipt-fold.css" />
 <script type="module" src="/js/main.js"></script>
 </head>
@@ -92,12 +93,12 @@
   <div class="wrap railed page-head">
     <div><span class="marker">Why Rabta</span></div>
     <div>
-    <h1>Switching away is cheap.<br />Switching back is not.</h1>
+    <h1>The code is saved.<br />The setup isn't.</h1>
     <p class="lede">
-      The code is exactly where you left it. The workspace around it is gone:
-      tabs closed, a different branch checked out, terminals sitting in the
-      wrong directory. Rebuilding that arrangement is quiet, repetitive work,
-      and no tool was doing it for you.
+      Your editor remembers the file. Git remembers the commit. Nothing
+      remembers the arrangement — which four files, which two terminals, which
+      branch, which five tabs. That is the part you rebuild by hand, every time
+      you come back.
     </p>
     <p class="mono muted">
       A capsule is that arrangement, written down
@@ -105,92 +106,134 @@
     </div>
   </div>
 
-  <div class="wrap railed">
-    <!-- `.railed` is a two-column grid: a 96px axis track, then content. This
-         empty cell fills the axis so the prose lands in the content column,
-         matching /privacy/. -->
-    <div></div>
-    <div class="prose">
+  <section class="band" data-chapter aria-labelledby="cost-title">
+    <div class="band__inner">
+      <p class="band__label">The cost</p>
+      <div class="band__body">
+        <h2 id="cost-title">Switching away is cheap. Switching back is not.</h2>
+        <p>
+          The code is exactly where you left it. The workspace around it is
+          gone: tabs closed, a different branch checked out, terminals sitting
+          in the wrong directory. Rebuilding that arrangement is quiet,
+          repetitive work, and no tool was doing it for you.
+        </p>
+        <p>
+          A capsule is the open files and their order, the terminal working
+          directories, the branch, the tab URLs. Save it, switch away, resume
+          it. The workspace comes back.
+        </p>
 
-      <nav class="toc" aria-labelledby="toc-title">
-        <p id="toc-title">On this page</p>
-        <ol>
-          <li><a href="#commitments">Three things that do not bend</a></li>
-          <li><a href="#guarantee">What it will not do</a></li>
-        </ol>
-      </nav>
-
-      <p>
-        A capsule is the open files and their order, the terminal working
-        directories, the branch, the tab URLs. Save it, switch away, resume it.
-        The workspace comes back.
-      </p>
-
-      <!-- Placeholder. Real media is added on request; nothing is invented to
-           fill the space. See the media-slot check in tests/site/. -->
-      <figure class="media-slot media-slot--16x10" data-placeholder data-slot="why-overview">
-        <span>Rabta — Overview</span>
-      </figure>
-
-      <h2 id="commitments">Three things that do not bend</h2>
-
-      <h3>Local-first, structurally</h3>
-      <p>
-        No server, no account, no telemetry. The hub binds to
-        <code>127.0.0.1</code> and nothing else. There is no backend to leak
-        from, because there is no backend.
-      </p>
-
-      <h3>Additive by default</h3>
-      <p>
-        Resuming opens things. It closes nothing unless you turn on focus mode,
-        and even then it stops at unsaved files, running terminals and anything
-        pinned.
-      </p>
-
-      <h3>Honest about partial results</h3>
-      <p>
-        A restore reports per tool: restored, queued for the next reload, or
-        skipped with a reason. It never claims a success it did not get.
-      </p>
-
-      <h2 id="guarantee">What it will not do</h2>
-
-      <h3>Read the contents of your files</h3>
-      <p>It stores paths. Not text, not diffs, not terminal output.</p>
-
-      <h3>Force a checkout</h3>
-      <p>
-        A working tree that a switch would disturb refuses the switch, with a
-        message. Nothing is reset, stashed or discarded.
-      </p>
-
-      <h3>Store a GitHub credential</h3>
-      <p>
-        Issues come through your own authenticated <code>gh</code> CLI. Rabta
-        never sees a token.
-      </p>
-
-      <h3>Read a web page</h3>
-      <p>
-        The browser connector requests no host permissions and runs no content
-        scripts. It reads tab URLs and titles, and cannot read anything else.
-      </p>
-
-      <h3>Phone home</h3>
-      <p>
-        v0.1.0 makes no outbound request on launch or on a timer. There is no
-        analytics SDK and no crash reporter.
-      </p>
-
-      <p class="mono muted">
-        Every claim on this page is checked against the source before it ships.
-        The hub's bind address is <code>crates/omnibus-hub/src/hub.rs</code>;
-        the browser connector's permissions are its
-        <code>manifest.json</code>. Both are in the public repository.
-      </p>
+        <!-- The Overview shot rather than a placeholder: this page's argument
+             is "the arrangement is a thing you can see", and 650px of empty
+             box directly under that sentence argues the opposite. It is the
+             one shot still rendered by the capture rig rather than the real
+             Mac app — the content is accurate, the window chrome is not, and
+             it is swapped when a corrected native shot exists. -->
+        <figure class="shot" data-slot="why-overview">
+          <picture>
+            <source type="image/avif" srcset="/assets/shots/overview-640.avif 640w, /assets/shots/overview-1024.avif 1024w, /assets/shots/overview-1600.avif 1600w" sizes="(max-width: 899px) calc(100vw - 48px), 1044px" />
+            <source type="image/webp" srcset="/assets/shots/overview-640.webp 640w, /assets/shots/overview-1024.webp 1024w, /assets/shots/overview-1600.webp 1600w" sizes="(max-width: 899px) calc(100vw - 48px), 1044px" />
+            <img src="/assets/shots/overview-1024.png" width="1024" height="640" loading="lazy" decoding="async" alt="Rabta's Overview: three projects down the left, their capsules listed with the branch and connector counts each one saved." />
+          </picture>
+          <figcaption>Three projects, six capsules, and what each one is holding</figcaption>
+        </figure>
+      </div>
     </div>
-  </div>
+  </section>
+
+  <section class="band" data-chapter aria-labelledby="commitments">
+    <div class="band__inner">
+      <p class="band__label">Commitments</p>
+      <div class="band__body">
+        <h2 id="commitments">Three things that do not bend.</h2>
+
+        <div class="grid3">
+          <article class="card">
+            <span class="card__index" aria-hidden="true">01</span>
+            <h3>Local-first, structurally</h3>
+            <p>
+              No server, no account, no telemetry. The hub binds to
+              <code>127.0.0.1</code> and nothing else. There is no backend to
+              leak from, because there is no backend.
+            </p>
+          </article>
+
+          <article class="card">
+            <span class="card__index" aria-hidden="true">02</span>
+            <h3>Additive by default</h3>
+            <p>
+              Resuming opens things. It closes nothing unless you turn on focus
+              mode, and even then it stops at unsaved files, running terminals
+              and anything pinned.
+            </p>
+          </article>
+
+          <article class="card">
+            <span class="card__index" aria-hidden="true">03</span>
+            <h3>Honest about partial results</h3>
+            <p>
+              A restore reports per tool: restored, queued for the next reload,
+              or skipped with a reason. It never claims a success it did not
+              get.
+            </p>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" data-chapter aria-labelledby="guarantee">
+    <div class="band__inner">
+      <p class="band__label">The guarantee</p>
+      <div class="band__body">
+        <h2 id="guarantee">What it will not do.</h2>
+
+        <dl class="denials">
+          <div>
+            <dt>Read the contents of your files</dt>
+            <dd>It stores paths. Not text, not diffs, not terminal output.</dd>
+          </div>
+          <div>
+            <dt>Force a checkout</dt>
+            <dd>
+              A working tree that a switch would disturb refuses the switch,
+              with a message. Nothing is reset, stashed or discarded.
+            </dd>
+          </div>
+          <div>
+            <dt>Store a GitHub credential</dt>
+            <dd>
+              Issues come through your own authenticated <code>gh</code> CLI.
+              Rabta never sees a token.
+            </dd>
+          </div>
+          <div>
+            <dt>Read a web page</dt>
+            <dd>
+              The browser connector requests no host permissions and runs no
+              content scripts. It reads tab URLs and titles, and cannot read
+              anything else.
+            </dd>
+          </div>
+          <div>
+            <dt>Phone home</dt>
+            <dd>
+              v0.1.0 makes no outbound request on launch or on a timer. There is
+              no analytics SDK and no crash reporter.
+            </dd>
+          </div>
+        </dl>
+
+        <p class="mono muted foot-note">
+          Every claim on this page is checked against the source before it
+          ships. The hub's bind address is
+          <code>crates/omnibus-hub/src/hub.rs</code>; the browser connector's
+          permissions are its <code>manifest.json</code>. Both are in the public
+          repository.
+        </p>
+      </div>
+    </div>
+  </section>
 
   <section class="cta rail" aria-labelledby="cta-title">
     <h2 id="cta-title">Pick up the task. Not the pieces.</h2>
@@ -224,42 +267,70 @@
     </button>
   </div>
 
-  <div class="rail foot__compact">
-    <a class="brand" href="/" aria-label="Rabta — home">
-      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <rect width="64" height="64" rx="14" fill="#102526" />
-        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
-        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
-      </svg>
-      <span>Rabta</span>
-    </a>
+  <!-- Four columns, grouped by what a visitor came for rather than by which
+       page happens to exist. The single row this replaces put /privacy/ and
+       /why/ next to each other as peers, which they are not: one is a
+       decision, the other is a document you read after making it.
 
-    <nav class="foot__links" aria-label="Footer">
+       Every column mixes on-site and off-site destinations on purpose — a
+       reader looking for the download does not care which host serves it. The
+       `rel` attributes carry the distinction the layout deliberately drops:
+       `rel="me"` on GitHub lets that profile verify this site back, and
+       `noopener noreferrer` is on every external target without exception. -->
+  <div class="rail foot__grid">
+    <div class="foot__brand">
+      <a class="brand" href="/" aria-label="Rabta — home">
+        <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+          <rect width="64" height="64" rx="14" fill="#102526" />
+          <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+          <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+        </svg>
+        <span>Rabta</span>
+      </a>
+      <p>Workspace memory for macOS.</p>
+      <p class="foot__badge"><span aria-hidden="true">●</span> Local-first</p>
+    </div>
+
+    <nav class="foot__col" aria-label="Product">
+      <p class="foot__head">Product</p>
       <a href="/why/">Why Rabta</a>
-      <a href="/setup/">Setup</a>
-      <a href="/faq/">FAQ</a>
+      <a href="/#how-it-works">How it works</a>
+      <a href="/#focus">Focus mode</a>
       <a href="/roadmap/">Roadmap</a>
-      <a href="/changelog/">Changelog</a>
-      <a href="/contact/">Contact</a>
-      <a href="/privacy/">Privacy</a>
     </nav>
 
-    <!-- Off-site links are kept in their own row so the footer's first row
-         stays wholly navigational. `rel="me"` lets a profile verify this site
-         back; `noopener noreferrer` is on every external target.
-
-         Instagram and TikTok are requested but not yet linked: their handles
-         have not been supplied, and a dead social link on a launch site is
-         worse than an absent one. Adding each is one <a> in this block —
-         nothing else needs to change, because every page pulls this file. -->
-    <nav class="foot__links foot__links--external" aria-label="Elsewhere">
-      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
-      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release</a>
+    <nav class="foot__col" aria-label="Get started">
+      <p class="foot__head">Get started</p>
+      <a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+      <a href="/setup/">Setup guide</a>
+      <a href="/faq/">FAQ</a>
       <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" rel="noopener noreferrer" target="_blank">Open VSX</a>
+    </nav>
+
+    <nav class="foot__col" aria-label="Project">
+      <p class="foot__head">Project</p>
+      <a href="/changelog/">Changelog</a>
+      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
+      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Releases</a>
       <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
     </nav>
 
-    <p class="foot__meta">v0.1.0 · MIT · Sammy Almuflahi</p>
+    <!-- Instagram and TikTok belong in this column and are not here: their
+         handles have not been supplied, and a dead social link on a launch
+         site is worse than an absent one. Adding each is one <a> in this
+         block — nothing else needs to change, because every page pulls this
+         file through scripts/sync-site-chrome.mjs. -->
+    <nav class="foot__col" aria-label="Contact and legal">
+      <p class="foot__head">Contact &amp; legal</p>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="mailto:support@rabta.build">support@rabta.build</a>
+    </nav>
+  </div>
+
+  <div class="rail foot__base">
+    <p class="foot__meta">Rabta v0.1.0 · MIT · nothing leaves this Mac</p>
+    <p class="foot__meta">Built by Sammy Almuflahi</p>
   </div>
 <!-- /chrome:foot -->
 </footer>

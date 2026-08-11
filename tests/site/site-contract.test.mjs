@@ -421,7 +421,7 @@ test("homepage footer includes the published release page", async () => {
   const footer = html.match(/<footer\b[\s\S]*?<\/footer>/)?.[0] ?? "";
   assert.match(
     footer,
-    /href="https:\/\/github\.com\/salmuflahi\/rabta\/releases\/tag\/v0\.1\.0"[^>]*>Release<\/a>/,
+    /href="https:\/\/github\.com\/salmuflahi\/rabta\/releases\/tag\/v0\.1\.0"[^>]*>Releases<\/a>/,
   );
 });
 
@@ -460,12 +460,15 @@ test("every route wears the same shell", async () => {
     assert.match(html, /<header class="nav">/, route);
     assert.match(html, /class="rail nav__inner"/, route);
     assert.match(html, /<footer class="foot">/, route);
-    assert.match(html, /class="rail foot__compact"/, route);
+    assert.match(html, /class="rail foot__grid"/, route);
 
     const footer = html.match(/<footer\b[\s\S]*?<\/footer>/)?.[0] ?? "";
     for (const link of [
       '"/setup/"',
       '"/privacy/"',
+      '"/roadmap/"',
+      '"/faq/"',
+      '"/contact/"',
       "https://github.com/salmuflahi/rabta",
       "https://github.com/salmuflahi/rabta/releases/tag/v0.1.0",
       "open-vsx.org",
@@ -473,7 +476,16 @@ test("every route wears the same shell", async () => {
     ]) {
       assert.ok(footer.includes(link), `${route} footer → ${link}`);
     }
-    assert.ok(footer.includes("v0.1.0 · MIT · Sammy Almuflahi"), route);
+
+    // Four labelled columns, not one undifferentiated row. The labels are what
+    // make the footer navigable rather than a list of everything.
+    for (const heading of ["Product", "Get started", "Project", "Contact &amp; legal"]) {
+      assert.ok(
+        footer.includes(`<p class="foot__head">${heading}</p>`),
+        `${route} footer → ${heading} column`,
+      );
+    }
+    assert.ok(footer.includes("Rabta v0.1.0 · MIT · nothing leaves this Mac"), route);
 
     // The document routes never carry homepage composition or media behaviour.
     if (route !== "/") {
@@ -742,6 +754,66 @@ test("homepage has the approved narrative and removes the stale architecture", a
   assert.ok(html.includes("no Intel build"));
   assert.ok(html.includes("Workspace partially restored"));
   assert.ok(html.includes("On next reload"));
+});
+
+test("the inner pages are laid out, not just typeset", async () => {
+  // Five pages shipped as `.prose` documents — the right shape for /setup/ and
+  // /privacy/, which are read like reference material, and the wrong one for
+  // pages that are scanned. The redesign gives them bands: a label naming the
+  // section, a heading saying the thing, then cards or question groups.
+  //
+  // This asserts the structure rather than the styling, because the failure it
+  // guards is a page quietly reverting to a wall of `<h3>` + `<p>` — which
+  // would look fine, read fine, and be a different page than the one designed.
+  const shaped = {
+    "/why/": { bands: 3, cards: 3, headline: "The code is saved." },
+    "/faq/": { bands: 4, groups: 4, headline: "The questions the docs answer sideways." },
+    "/roadmap/": { bands: 3, cards: 10, headline: "What's next, without dates." },
+    "/changelog/": { bands: 4, cards: 6, headline: "What shipped." },
+    "/contact/": { bands: 3, cards: 3, headline: "Talk to a human." },
+  };
+
+  for (const [route, want] of Object.entries(shaped)) {
+    const html = await readRoute(route);
+
+    assert.ok(html.includes(want.headline), `${route}: headline`);
+    assert.equal(
+      (html.match(/<section class="band[^"]*"/g) ?? []).length,
+      want.bands,
+      `${route}: band count`,
+    );
+    if (want.cards !== undefined) {
+      assert.equal(
+        (html.match(/class="card[ "]/g) ?? []).length,
+        want.cards,
+        `${route}: card count`,
+      );
+    }
+    if (want.groups !== undefined) {
+      assert.equal(
+        (html.match(/class="qa"/g) ?? []).length,
+        want.groups,
+        `${route}: question-group count`,
+      );
+    }
+
+    // Every band names itself and carries exactly one h2. A band whose label
+    // and heading disagree about what the section is is worse than neither.
+    const bands = html.match(/<section class="band[\s\S]*?<\/section>/g) ?? [];
+    for (const band of bands) {
+      assert.match(band, /class="band__label"/, `${route}: band without a label`);
+      assert.equal(
+        (band.match(/<h2\b/g) ?? []).length,
+        1,
+        `${route}: band with ${(band.match(/<h2\b/g) ?? []).length} h2s`,
+      );
+    }
+
+    // These five no longer carry a document body. /setup/ and /privacy/ still
+    // do, deliberately — they are the reference pages.
+    assert.doesNotMatch(html, /class="prose"/, `${route}: still a prose document`);
+    assert.match(html, /\/css\/page\.css/, `${route}: page.css not linked`);
+  }
 });
 
 test("mobile Return Field offsets fit inside the viewport", async () => {

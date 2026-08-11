@@ -55,6 +55,7 @@
 <link rel="stylesheet" href="/css/tokens.css" />
 <link rel="stylesheet" href="/css/shell.css" />
 <link rel="stylesheet" href="/css/doc.css" />
+<link rel="stylesheet" href="/css/page.css" />
 <link rel="stylesheet" href="/css/receipt-fold.css" />
 <script type="module" src="/js/main.js"></script>
 </head>
@@ -92,73 +93,157 @@
   <div class="wrap railed page-head">
     <div><span class="marker">Changelog</span></div>
     <div>
-    <h1>Every release</h1>
+    <h1>What shipped.</h1>
     <p class="lede">
-      Newest first. Each entry says what changed and what it asks of you,
-      because an upgrade that needs a manual step should say so on the way in,
-      not after.
+      Every release, what it added, and what it refuses to do. Newest first.
+      Full history on
+      <a href="https://github.com/salmuflahi/rabta/releases" rel="noopener noreferrer" target="_blank">GitHub releases</a>.
     </p>
-    <p class="mono muted">
-      Releases are published on
-      <a href="https://github.com/salmuflahi/rabta/releases" rel="noopener noreferrer" target="_blank">GitHub</a>
-    </p>
+    <p class="mono muted">An upgrade that needs a manual step says so on the way in, not after</p>
     </div>
   </div>
 
-  <div class="wrap railed">
-    <div></div>
-    <div class="prose">
+  <section class="band" data-chapter aria-labelledby="v0-1-0">
+    <div class="band__inner">
+      <p class="band__label">29 Jul 2026</p>
+      <div class="band__body">
+        <div class="release__head">
+          <h2 id="v0-1-0">v0.1.0</h2>
+          <span class="pill pill--now">Current</span>
+        </div>
+        <p class="release__meta">
+          First public release — signed and notarized, Apple silicon, macOS 11
+          or later. The first version anyone else can run.
+        </p>
 
-      <h2 id="v0-1-0">0.1.0 — 29 July 2026</h2>
-      <p class="mono muted">First public release · Apple silicon · macOS 11+</p>
+        <div class="grid2">
+          <article class="card">
+            <h3>Capsules</h3>
+            <ul>
+              <li>Save and restore a task across the editor, browser, terminals
+                and Git — open files, tab URLs, working directories and the
+                branch, in order.</li>
+              <li>Switching tasks auto-saves the outgoing one. Restores are
+                additive by default and report partial results instead of hiding
+                them.</li>
+              <li>Pinned items open on every resume, even if they were closed at
+                the last save.</li>
+            </ul>
+          </article>
 
-      <p>
-        The first version anyone else can run. Capsules save the arrangement
-        around a task — open files and their order, terminal working
-        directories, the Git branch, browser tab URLs — and put it back when you
-        return.
-      </p>
+          <article class="card">
+            <h3>Focus mode</h3>
+            <ul>
+              <li>Off by default. When on, resuming also puts away what the
+                capsule didn't capture — one item at a time, only after a clean
+                restore.</li>
+              <li>Never closes an unsaved file, a running terminal, or anything
+                pinned. Kept items are reported with the reason.</li>
+            </ul>
+          </article>
 
-      <h3>What's in it</h3>
-      <p>
-        A six-section console: Overview, Capsules, Projects, Connectors,
-        Activity and Settings, with a ⌘K command palette. Editor support for VS
-        Code and Cursor, and a Chrome connector for tabs. Restores report per
-        tool, so a partial result reads as partial rather than as success.
-      </p>
+          <article class="card">
+            <h3>Git &amp; GitHub</h3>
+            <ul>
+              <li>Safe Git: status, fetch, checkout and branch creation — never
+                force-checkouts, resets, stashes or discards. A dirty tree
+                refuses with a message.</li>
+              <li>Fetch issues through your own <code>gh</code> CLI and start a
+                task and branch from one. No GitHub token is seen or stored.</li>
+            </ul>
+          </article>
 
-      <h3>What it asks of you</h3>
-      <p>
-        The build is signed with an Apple Developer ID and notarized, so it
-        opens on a normal double-click. If a Gatekeeper warning <em>does</em>
-        appear, the file is not the one that was signed — the
-        <a href="/setup/">setup guide</a> has the checksum to check that with.
-        The connectors install from Open VSX and the Chrome Web Store. There is
-        no auto-update, so future versions are a manual download.
-      </p>
-
-      <h3>What it does not do</h3>
-      <p>
-        No account, no server, no telemetry. The hub binds
-        <code>127.0.0.1</code>. Details on the <a href="/why/">Why</a> page.
-      </p>
-
-      <p class="mono muted">
-        <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release notes on GitHub</a>
-        ·
-        <a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download the .dmg</a>
-      </p>
-
-      <h2 id="earlier">Before 0.1.0</h2>
-      <p>
-        Rabta was built in the open under its former name, OmniBus. There are no
-        published releases before 0.1.0 — the history is in the
-        <a href="https://github.com/salmuflahi/rabta" rel="noopener noreferrer" target="_blank">repository</a>
-        rather than on this page, because nothing before it was something you
-        could install.
-      </p>
+          <article class="card">
+            <h3>Connectors</h3>
+            <ul>
+              <li>Editor connector on Open VSX; browser connector on the Chrome
+                Web Store — <code>tabs</code> and <code>storage</code> only,
+                structurally unable to read page content.</li>
+              <li>Every connector authenticates to a hub bound to
+                <code>127.0.0.1</code>. Browsers pair through an approve/deny
+                sheet, and web origins are rejected at the handshake.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
+
+  <section class="band" data-chapter aria-labelledby="asks">
+    <div class="band__inner">
+      <p class="band__label">0.1.0</p>
+      <div class="band__body">
+        <h2 id="asks">What it asks of you.</h2>
+        <p>
+          The build is signed with an Apple Developer ID and notarized, so it
+          opens on a normal double-click. If a Gatekeeper warning <em>does</em>
+          appear, the file is not the one that was signed — the
+          <a href="/setup/#verify">setup guide</a> has the checksum to check
+          that with. The connectors install from Open VSX and the Chrome Web
+          Store. There is no auto-update, so future versions are a manual
+          download.
+        </p>
+        <p>
+          What it does not do: no account, no server, no telemetry. Details on
+          the <a href="/why/">Why</a> page.
+        </p>
+
+        <p class="mono muted foot-note">
+          <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release notes on GitHub</a>
+          ·
+          <a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download the .dmg</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band band--close" data-chapter aria-labelledby="next">
+    <div class="band__inner">
+      <p class="band__label"><span class="pill">Next</span></p>
+      <div class="band__body">
+        <h2 id="next">Planned.</h2>
+        <p>Packaged or planned. No dates promised.</p>
+
+        <div class="grid2">
+          <article class="card">
+            <h3>Connectors 0.2.0 — packaged, awaiting upload</h3>
+            <p>
+              Focus mode's close half: <code>tabs.close</code>,
+              <code>editor.closeFile</code>, <code>terminal.dispose</code>. The
+              desktop app stays at 0.1.0. It also raises the editor floor to VS
+              Code 1.93.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Queued and deferred</h3>
+            <p>
+              Queued: the VS Code Marketplace listing, an Intel build,
+              auto-update, bulk multi-select on capsules. Deferred on purpose:
+              more connectors, a plugin SDK, automation rules, cloud sync. The
+              full picture is on the <a href="/roadmap/">roadmap</a>.
+            </p>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band band--close" data-chapter aria-labelledby="earlier">
+    <div class="band__inner">
+      <p class="band__label">Before</p>
+      <div class="band__body">
+        <h2 id="earlier">Before 0.1.0.</h2>
+        <p>
+          Rabta was built in the open under its former name, OmniBus. There are
+          no published releases before 0.1.0 — the history is in the
+          <a href="https://github.com/salmuflahi/rabta" rel="noopener noreferrer" target="_blank">repository</a>
+          rather than on this page, because nothing before it was something you
+          could install.
+        </p>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer class="foot">
@@ -183,42 +268,70 @@
     </button>
   </div>
 
-  <div class="rail foot__compact">
-    <a class="brand" href="/" aria-label="Rabta — home">
-      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <rect width="64" height="64" rx="14" fill="#102526" />
-        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
-        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
-      </svg>
-      <span>Rabta</span>
-    </a>
+  <!-- Four columns, grouped by what a visitor came for rather than by which
+       page happens to exist. The single row this replaces put /privacy/ and
+       /why/ next to each other as peers, which they are not: one is a
+       decision, the other is a document you read after making it.
 
-    <nav class="foot__links" aria-label="Footer">
+       Every column mixes on-site and off-site destinations on purpose — a
+       reader looking for the download does not care which host serves it. The
+       `rel` attributes carry the distinction the layout deliberately drops:
+       `rel="me"` on GitHub lets that profile verify this site back, and
+       `noopener noreferrer` is on every external target without exception. -->
+  <div class="rail foot__grid">
+    <div class="foot__brand">
+      <a class="brand" href="/" aria-label="Rabta — home">
+        <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+          <rect width="64" height="64" rx="14" fill="#102526" />
+          <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+          <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+        </svg>
+        <span>Rabta</span>
+      </a>
+      <p>Workspace memory for macOS.</p>
+      <p class="foot__badge"><span aria-hidden="true">●</span> Local-first</p>
+    </div>
+
+    <nav class="foot__col" aria-label="Product">
+      <p class="foot__head">Product</p>
       <a href="/why/">Why Rabta</a>
-      <a href="/setup/">Setup</a>
-      <a href="/faq/">FAQ</a>
+      <a href="/#how-it-works">How it works</a>
+      <a href="/#focus">Focus mode</a>
       <a href="/roadmap/">Roadmap</a>
-      <a href="/changelog/">Changelog</a>
-      <a href="/contact/">Contact</a>
-      <a href="/privacy/">Privacy</a>
     </nav>
 
-    <!-- Off-site links are kept in their own row so the footer's first row
-         stays wholly navigational. `rel="me"` lets a profile verify this site
-         back; `noopener noreferrer` is on every external target.
-
-         Instagram and TikTok are requested but not yet linked: their handles
-         have not been supplied, and a dead social link on a launch site is
-         worse than an absent one. Adding each is one <a> in this block —
-         nothing else needs to change, because every page pulls this file. -->
-    <nav class="foot__links foot__links--external" aria-label="Elsewhere">
-      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
-      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release</a>
+    <nav class="foot__col" aria-label="Get started">
+      <p class="foot__head">Get started</p>
+      <a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+      <a href="/setup/">Setup guide</a>
+      <a href="/faq/">FAQ</a>
       <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" rel="noopener noreferrer" target="_blank">Open VSX</a>
+    </nav>
+
+    <nav class="foot__col" aria-label="Project">
+      <p class="foot__head">Project</p>
+      <a href="/changelog/">Changelog</a>
+      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
+      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Releases</a>
       <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
     </nav>
 
-    <p class="foot__meta">v0.1.0 · MIT · Sammy Almuflahi</p>
+    <!-- Instagram and TikTok belong in this column and are not here: their
+         handles have not been supplied, and a dead social link on a launch
+         site is worse than an absent one. Adding each is one <a> in this
+         block — nothing else needs to change, because every page pulls this
+         file through scripts/sync-site-chrome.mjs. -->
+    <nav class="foot__col" aria-label="Contact and legal">
+      <p class="foot__head">Contact &amp; legal</p>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="mailto:support@rabta.build">support@rabta.build</a>
+    </nav>
+  </div>
+
+  <div class="rail foot__base">
+    <p class="foot__meta">Rabta v0.1.0 · MIT · nothing leaves this Mac</p>
+    <p class="foot__meta">Built by Sammy Almuflahi</p>
   </div>
 <!-- /chrome:foot -->
 </footer>
