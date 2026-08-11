@@ -90,9 +90,9 @@
 <!-- /chrome:nav -->
 
 <main id="main" tabindex="-1">
-  <div class="wrap railed page-head">
-    <div><span class="marker">Contact</span></div>
-    <div>
+  <div class="wrap page-head">
+    <p class="page-head__label">Contact</p>
+
     <h1>Talk to a human.</h1>
     <p class="lede">
       No support desk, no ticket queue. Rabta is built and maintained by one
@@ -100,7 +100,6 @@
       how quickly it gets read and what shape it needs to be in.
     </p>
     <p class="mono muted">Sammy Almuflahi · maintainer</p>
-    </div>
   </div>
 
   <section class="band" data-chapter aria-labelledby="channels">
@@ -114,38 +113,41 @@
                destination are one thought should have one target, not a small
                anchor inside a large rectangle that does nothing. -->
           <a class="card channel" href="https://github.com/salmuflahi/rabta/issues/new" rel="noopener noreferrer" target="_blank">
-            <h3>Bugs &amp; crashes</h3>
+            <p class="card__eyebrow">Bugs &amp; crashes</p>
+            <h3>Open an issue</h3>
             <p>
               Something broke, restored wrong, or refused when it shouldn't
               have. The three things that make a report actionable are your
               macOS version, which connectors were running, and what you
               expected instead.
             </p>
-            <span class="channel__action">Open an issue <span class="channel__arrow" aria-hidden="true">→</span></span>
+            <span class="channel__action">github.com/salmuflahi/rabta/issues <span class="channel__arrow" aria-hidden="true">→</span></span>
             <span class="channel__where">github.com/salmuflahi/rabta/issues</span>
           </a>
 
           <a class="card channel" href="https://github.com/salmuflahi/rabta/discussions" rel="noopener noreferrer" target="_blank">
-            <h3>Questions &amp; ideas</h3>
+            <p class="card__eyebrow">Questions &amp; ideas</p>
+            <h3>Start a discussion</h3>
             <p>
               Workflow questions, connector requests, or how something works.
               Public and searchable, so the next person finds the answer too.
               The most useful requests describe the situation you were in, not
               the feature you designed.
             </p>
-            <span class="channel__action">Start a discussion <span class="channel__arrow" aria-hidden="true">→</span></span>
+            <span class="channel__action">github.com/salmuflahi/rabta/discussions <span class="channel__arrow" aria-hidden="true">→</span></span>
             <span class="channel__where">github.com/salmuflahi/rabta/discussions</span>
           </a>
 
           <a class="card channel" href="mailto:support@rabta.build">
-            <h3>Everything else</h3>
+            <p class="card__eyebrow">Everything else</p>
+            <h3>Email us</h3>
             <p>
               Press, licensing, partnerships, or anything that doesn't belong in
               a public thread. Bugs and feature requests are still better as
               issues — they stay visible to everyone else who hits the same
               thing, and they don't get lost in a thread.
             </p>
-            <span class="channel__action">Email <span class="channel__arrow" aria-hidden="true">→</span></span>
+            <span class="channel__action">support@rabta.build <span class="channel__arrow" aria-hidden="true">→</span></span>
             <span class="channel__where">support@rabta.build</span>
           </a>
         </div>

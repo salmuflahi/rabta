@@ -35,25 +35,60 @@
     padding-block: var(--section-close);
   }
 
+  /* One column, left-aligned at the rail edge.
+     This was a two-column grid with the eyebrow parked in a 96px axis track —
+     borrowed from /privacy/, which is a reference document, and wrong for
+     these five. The design puts the eyebrow directly above the heading it
+     names, so the two read as one unit and every section starts on the same
+     left edge as the page title. An axis track put a label in one column and
+     its own heading in another, which is a table of contents, not a section
+     header. */
   .band__inner {
-    display: grid;
-    grid-template-columns: var(--axis) minmax(0, 1fr);
-    gap: var(--gutter);
-    align-items: start;
     width: min(100% - var(--gutter) * 2, var(--rail));
     margin-inline: auto;
   }
 
-  /* The eyebrow sits in the axis track on wide screens and above the heading
-     on narrow ones. It is a label, not a heading — screen readers get the h2. */
+  /* A label, not a heading — screen readers get the h2 below it. */
   .band__label {
-    color: var(--cool-mid);
+    margin-bottom: 14px;
+    color: var(--orange);
     font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: var(--track-mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     line-height: 1.4;
-    padding-top: 10px;
+  }
+
+  /* Where a section's heading and its prose are peers rather than a title and
+     its body — /why/'s opening argument — they take a column each. The heading
+     stops being a lid on the text and starts being the claim the text answers. */
+  .band--split .band__body {
+    display: grid;
+    grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+    gap: var(--gutter);
+    align-items: start;
+  }
+
+  .band--split .band__body > h2 {
+    max-width: 16ch;
+  }
+
+  .band--split .band__prose > p + p {
+    margin-top: var(--s5);
+  }
+
+  .band--split .band__prose > p {
+    max-width: 58ch;
+    color: var(--cool-soft);
+    font-size: 16.5px;
+    line-height: 1.62;
+  }
+
+  /* Media inside a split band spans both columns — it is evidence for the
+     whole section, not for the right-hand paragraph. */
+  .band--split .band__body > figure {
+    grid-column: 1 / -1;
   }
 
   .band__body > h2 {
@@ -94,6 +129,18 @@
   .card:hover {
     border-color: rgba(243, 240, 232, 0.24);
     transform: translateY(-2px);
+  }
+
+  /* The category, above the action. The design leads each channel card with
+     what kind of message it takes and titles it with what you do — so the
+     heading is a verb and the eyebrow is the sorting. */
+  .card__eyebrow {
+    margin-bottom: 10px;
+    color: var(--cool-mid);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
   }
 
   .card h3 {
@@ -515,13 +562,9 @@
       padding-block: var(--section-close);
     }
 
-    .band__inner {
+    .band--split .band__body {
       grid-template-columns: minmax(0, 1fr);
       gap: var(--s5);
-    }
-
-    .band__label {
-      padding-top: 0;
     }
 
     .denials > div,

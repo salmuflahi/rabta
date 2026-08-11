@@ -73,19 +73,37 @@
 
   /* ---- page head ------------------------------------------------------- */
 
+  /* The page head, left-aligned at the rail edge with its label directly above
+     the title.
+
+     It used to be a two-column grid with the label sticky in a 96px axis track
+     — a reference-document device that made sense on /privacy/ and was applied
+     to every page after it. The design has no axis track: the eyebrow names the
+     page immediately above the page's name, and every section below repeats
+     that shape, so the whole page reads down one left edge. */
   .page-head {
     padding-top: var(--s10);
     padding-bottom: var(--s8);
   }
 
+  .page-head__label {
+    margin-bottom: 20px;
+    color: var(--orange);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
   .page-head h1 {
-    font-size: 40px;
-    line-height: 42px;
-    letter-spacing: -0.88px;
-    font-weight: 600;
+    max-width: 18ch;
     color: var(--ivory);
-    padding-block: 6px;
-    max-width: 520px;
+    font-size: clamp(38px, 4.6vw, 58px);
+    font-weight: 560;
+    line-height: 1.04;
+    letter-spacing: -0.04em;
+    text-wrap: balance;
   }
 
   /* The effective-date line under a page-head lede. It used to borrow a
