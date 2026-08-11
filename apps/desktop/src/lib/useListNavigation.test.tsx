@@ -31,6 +31,39 @@ function Harness({ onSelect = vi.fn(), selectedId = "a" as string | null }) {
   );
 }
 
+// Two rows share a first letter so repeated same-letter type-ahead presses
+// have somewhere to cycle to.
+const CYCLE_ITEMS = [
+  { id: "x", label: "Cherry" },
+  { id: "y", label: "Coconut" },
+  { id: "z", label: "Fig" },
+];
+
+// Harness holds selectedId itself (wiring onSelect back into state), unlike
+// the plain Harness above whose selectedId prop is static. Cycling through
+// repeated-letter matches only shows up across renders where selectedId has
+// actually moved on from the previous keystroke.
+function StatefulHarness({ initialSelectedId = null as string | null }) {
+  const [selectedId, setSelectedId] = React.useState(initialSelectedId);
+  const nav = useListNavigation({
+    items: CYCLE_ITEMS,
+    idOf: (i) => i.id,
+    labelOf: (i) => i.label,
+    selectedId,
+    onSelect: setSelectedId,
+    idPrefix: "cycle",
+  });
+  return (
+    <div {...nav.containerProps} aria-label="Cycle list">
+      {CYCLE_ITEMS.map((item, index) => (
+        <div key={item.id} {...nav.getItemProps(item, index)}>
+          {item.label}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 describe("useListNavigation", () => {
   it("marks the container a listbox and rows options", () => {
     renderWithProviders(<Harness />);
@@ -89,6 +122,19 @@ describe("useListNavigation", () => {
     expect(onSelect).toHaveBeenCalledWith("c");
   });
 
+  // Regression for a double-fire found in review: selectAndFocus calls
+  // onSelect(id) directly, then el.focus() — which synchronously dispatches
+  // focus/focusin (confirmed against happy-dom's HTMLElementUtility.focus(),
+  // which dispatches unconditionally), which React delegates to this row's
+  // own onFocus, which must not re-invoke onSelect for a move that already
+  // reported itself.
+  it("calls onSelect exactly once per keyboard move", () => {
+    const onSelect = vi.fn();
+    renderWithProviders(<Harness onSelect={onSelect} selectedId="a" />);
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "ArrowDown" });
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
   it("tolerates an empty list", () => {
     function Empty() {
       const nav = useListNavigation({
@@ -104,5 +150,80 @@ describe("useListNavigation", () => {
     renderWithProviders(<Empty />);
     fireEvent.keyDown(screen.getByRole("listbox"), { key: "ArrowDown" });
     expect(screen.getByRole("listbox")).toBeInTheDocument();
+  });
+
+  // The brief's central click-vs-keyboard distinction, pinned from both
+  // sides: a click reports the new selection without moving focus (the user
+  // may have clicked with focus deliberately elsewhere, e.g. a filter input
+  // above the list); a keyboard move does move focus, onto the row it just
+  // selected.
+  it("does not move focus on click, leaving focus wherever it already was", () => {
+    const onSelect = vi.fn();
+    renderWithProviders(
+      <div>
+        <input aria-label="Elsewhere" />
+        <Harness onSelect={onSelect} selectedId="a" />
+      </div>
+    );
+    const elsewhere = screen.getByRole("textbox", { name: "Elsewhere" });
+    elsewhere.focus();
+    expect(document.activeElement).toBe(elsewhere);
+
+    fireEvent.click(screen.getByRole("option", { name: "Bravo" }));
+
+    expect(onSelect).toHaveBeenCalledWith("b");
+    expect(document.activeElement).toBe(elsewhere);
+  });
+
+  it("focuses the newly selected row after a keyboard move", () => {
+    const onSelect = vi.fn();
+    renderWithProviders(<Harness onSelect={onSelect} selectedId="a" />);
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "ArrowDown" });
+    expect(document.activeElement).toBe(screen.getByRole("option", { name: "Bravo" }));
+  });
+
+  it("cycles through same-letter matches on repeated type-ahead presses", () => {
+    renderWithProviders(<StatefulHarness />);
+    const listbox = screen.getByRole("listbox");
+
+    fireEvent.keyDown(listbox, { key: "c" });
+    expect(screen.getByRole("option", { name: "Cherry" })).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(listbox, { key: "c" });
+    expect(screen.getByRole("option", { name: "Coconut" })).toHaveAttribute("aria-selected", "true");
+
+    // Only two of the three rows start with "c" — the third press cycles
+    // back around to the first match rather than getting stuck or stalling.
+    fireEvent.keyDown(listbox, { key: "c" });
+    expect(screen.getByRole("option", { name: "Cherry" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("treats a selectedId naming no current item as nothing selected", () => {
+    const onSelect = vi.fn();
+    renderWithProviders(<Harness onSelect={onSelect} selectedId="not-a-real-id" />);
+
+    // Falls back to row 0 for the roving tab stop rather than stranding the
+    // list with zero tabbable rows.
+    const tabbable = screen.getAllByRole("option").filter((el) => el.tabIndex === 0);
+    expect(tabbable).toHaveLength(1);
+    expect(tabbable[0]).toHaveTextContent("Alpha");
+
+    // No row claims the stale id, so aria-activedescendant has nothing
+    // truthful to point at.
+    expect(screen.getByRole("listbox")).not.toHaveAttribute("aria-activedescendant");
+
+    // Nothing validly selected reads as "before row 0": ArrowDown reveals
+    // the top row.
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "ArrowDown" });
+    expect(onSelect).toHaveBeenCalledWith("a");
+  });
+
+  it("does not handle Enter or Space", () => {
+    const onSelect = vi.fn();
+    renderWithProviders(<Harness onSelect={onSelect} selectedId="a" />);
+    const listbox = screen.getByRole("listbox");
+    fireEvent.keyDown(listbox, { key: "Enter" });
+    fireEvent.keyDown(listbox, { key: " " });
+    expect(onSelect).not.toHaveBeenCalled();
   });
 });

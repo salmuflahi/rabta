@@ -80,6 +80,19 @@ export function useListNavigation<T>(opts: {
   // stale id can't strand the list with zero tabbable rows.
   const selectedItem = items.find((item) => idOf(item) === selectedId) ?? null;
 
+  // selectAndFocus below calls onSelect(id) and then el.focus() — and
+  // .focus() synchronously dispatches focus/focusin, which React delegates
+  // to that row's own onFocus (see getItemProps below), which also calls
+  // onSelect. Left alone that's a double call for every keyboard move. The
+  // fix is NOT `id !== selectedId` in onFocus: React 18 batches the
+  // onSelect-driven state update, so the onFocus closure that synchronously
+  // fires is still from the render *before* this move — selectedId there is
+  // last move's value, not this one, so it never equals `id` and the guard
+  // never triggers (confirmed: tried it, the "exactly once" test below still
+  // saw 2 calls). A ref sidesteps that — it's written and read within the
+  // same synchronous call, no render/commit in between.
+  const programmaticFocusIdRef = React.useRef<string | null>(null);
+
   // The one place that moves real DOM focus. Both the "move" (Arrow/Home/
   // End) and type-ahead paths funnel through this, so a keyboard action
   // always reports the new selection AND focuses + reveals its row.
@@ -89,8 +102,14 @@ export function useListNavigation<T>(opts: {
     const id = idOf(item);
     onSelect(id);
     const el = itemRefs.current.get(id);
-    el?.focus();
-    el?.scrollIntoView({ block: "nearest" });
+    if (el) {
+      // Marks this focus as one we triggered ourselves, so the onFocus
+      // handler it's about to synchronously fire can skip its own onSelect
+      // — onSelect for this id was just called on the line above.
+      programmaticFocusIdRef.current = id;
+      el.focus();
+      el.scrollIntoView({ block: "nearest" });
+    }
   };
 
   // Moves to `index` if it's in range. Out of range — including every index
@@ -200,13 +219,21 @@ export function useListNavigation<T>(opts: {
         tabIndex,
         onClick: () => onSelect(id),
         // Selection follows focus generally, not just via this hook's own
-        // Arrow/Home/End/type-ahead moves (which already call onSelect
-        // inside selectAndFocus above): Tab landing on the roving stop, or
-        // a real click — which focuses its target natively in a browser —
-        // should select too. This is the one handler that keeps focus and
-        // selection in sync for focus changes this hook didn't itself
-        // initiate.
-        onFocus: () => onSelect(id),
+        // Arrow/Home/End/type-ahead moves: Tab landing on the roving stop,
+        // or a real click — which focuses its target natively in a browser
+        // — should select too. But a move this hook itself just made (see
+        // selectAndFocus above) already called onSelect directly, and its
+        // own el.focus() call is what's about to trigger *this* onFocus —
+        // programmaticFocusIdRef is how this handler tells "focus we caused"
+        // apart from "focus that arrived some other way", so the former
+        // doesn't call onSelect twice.
+        onFocus: () => {
+          if (programmaticFocusIdRef.current === id) {
+            programmaticFocusIdRef.current = null;
+            return;
+          }
+          onSelect(id);
+        },
         // Click deliberately does NOT call .focus()/.scrollIntoView(): the
         // user may have clicked this row with focus sitting elsewhere on
         // purpose (e.g. a filter input above the list), and yanking focus
