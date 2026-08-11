@@ -88,8 +88,32 @@ it("budgets a modal layer separately from the page beneath it", () => {
 
 it("still rejects two accents inside one layer", () => {
   const container = document.createElement("div");
+  // Both buttons share the *same* [data-sheet] ancestor — this is the
+  // in-layer case. (A previous version of this test put both buttons in a
+  // bare <main> with no layer ancestor at all, which only re-proved the
+  // page-group behavior the very first test already covers, not this one.)
   container.innerHTML = `
-    <main><button class="bg-primary">One</button><button class="bg-primary">Two</button></main>
+    <div data-sheet>
+      <button class="bg-primary">One</button>
+      <button class="bg-primary">Two</button>
+    </div>
   `;
   expect(() => expectAtMostOneAccent(container)).toThrow();
+});
+
+it("buckets a nested dialog's accent to the inner dialog, not the outer one", () => {
+  const container = document.createElement("div");
+  // Distinguishes "grouped by the specific nearest layer element" (correct)
+  // from a simpler-but-wrong "grouped by whether an element is in *some*
+  // layer or not" (which would pool Outer and Inner into one bucket of two
+  // and wrongly throw here).
+  container.innerHTML = `
+    <div role="dialog">
+      <button class="bg-primary">Outer</button>
+      <div role="dialog">
+        <button class="bg-primary">Inner</button>
+      </div>
+    </div>
+  `;
+  expect(() => expectAtMostOneAccent(container)).not.toThrow();
 });

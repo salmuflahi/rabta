@@ -430,6 +430,50 @@ describe("CapsulesPage restore", () => {
       restoreMotion();
     }
   });
+
+  // Task 6 review, "if cheap": a scenario nobody tested — CapsulesPage
+  // renders `restoreNode` (RestoreExperience's overlay) directly in its own
+  // tree, not through a portal (see RestoreExperience.tsx's inline
+  // `role="dialog"`), so a live Capsules page with an active Restore really
+  // does put the page's own Restore button and the overlay's own accent in
+  // one container at once. RestoreExperience.test.tsx never catches this —
+  // its Harness renders *only* the overlay, nothing else — and neither of
+  // this file's other two `expectAtMostOneAccent` calls run with a restore
+  // active. The failure stage is used because it's the one stage the
+  // overlay spends a real, counted accent on ("Try again"); opening/
+  // restoring/success show none once the fold mark's data-accent-mark
+  // exclusion is applied, which would pass this assertion even with the
+  // pre-rescope, unpartitioned implementation and prove nothing.
+  it("keeps the restore overlay's accent separate from the page's own Restore button", async () => {
+    const restoreMotion = stubReducedMotion();
+    const gate = deferred<{ restored: string[]; skipped: string[] }>();
+    mockCapsulesInvoke({ activateTask: () => gate.promise });
+
+    try {
+      const { container } = renderWithProviders(<CapsulesPage />);
+      fireEvent.click(await screen.findByRole("button", { name: /Restore/ }));
+      await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("activate_task", expect.anything()));
+
+      await act(async () => {
+        gate.reject(new Error("connector crashed"));
+        await gate.promise.catch(() => {});
+      });
+      await screen.findByText("Couldn't restore workspace");
+
+      // Both accents are genuinely on screen at once: the page's own
+      // Restore button — still labeled "Restoring…" and disabled, since
+      // `restoreActive` (stage !== "idle") stays true through the failure
+      // stage until the overlay is dismissed, but still carrying
+      // variant="primary": Tailwind's disabled: variant is a second class
+      // token, not a replacement of bg-primary in the rendered class list
+      // — and the overlay's "Try again".
+      expect(screen.getByRole("button", { name: /Restor/ })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+      expect(() => expectAtMostOneAccent(container)).not.toThrow();
+    } finally {
+      restoreMotion();
+    }
+  });
 });
 
 describe("CapsulesPage capture and create", () => {

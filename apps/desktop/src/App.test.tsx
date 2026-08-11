@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { expectAtMostOneAccent } from "@/test/accent";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { useStore } from "@/store";
 import App from "./App";
@@ -211,4 +212,56 @@ it("no longer pushes the app down when a connector asks to pair", () => {
   // may sit between the app root and the shell any more.
   expect(screen.queryByText(/wants to connect to Rabta/)).not.toBeInTheDocument();
   expect(screen.getByRole("dialog")).toBeInTheDocument();
+});
+
+it("keeps the sheet's accent separate from the page's own accent underneath it", async () => {
+  // Task 6 review, Finding 1: the accent rescope's stated motivation — a
+  // sheet's accent overlaying a page that already spends its own — was
+  // previously proven only against hand-built DOM strings in
+  // accent.test.tsx, never against a real render. This renders the real
+  // App, with a real page accent underneath a real pending-pairing sheet,
+  // and checks the whole document — not RTL's `container` — because
+  // Sheet's Radix dialog portals to `document.body` as a *sibling* of
+  // `container`, not a descendant of it.
+  //
+  // Uses the Projects view, not Overview/Capsules: those two turned out to
+  // already carry a *second*, pre-existing page-level accent whenever a
+  // capsule is open — Toolbar.tsx's `useContextualAction` spends "New
+  // capsule" as bg-primary on exactly those two views, at the same time as
+  // OverviewPage's hero "Resume" / CapsulesPage's "Restore" or "Capture".
+  // That never shows up in OverviewPage.test.tsx / CapsulesPage.test.tsx
+  // because both render the page alone, without the real Toolbar — so this
+  // App-level test is the first thing in the suite to combine them, and
+  // doing so on Overview trips a real *unlayered* two-in-one-group failure
+  // unrelated to sheets entirely (flagged separately; not this task's fix
+  // to make). Projects doesn't have that problem: with a project already
+  // registered (so the page isn't in its own "no projects yet" empty
+  // state, which has its own bg-primary CTA), ProjectsPage's detail pane
+  // renders no primary button of its own — Toolbar's "Add project" is the
+  // view's only accent, cleanly, which is what this test actually needs.
+  mockInvoke.mockImplementation(async (cmd: string) => {
+    if (cmd === "list_projects") return [FAKE_PROJECT];
+    return [] as unknown[];
+  });
+  useStore.setState({ ...STORE_DEFAULTS, view: "projects", pairings: [] });
+  renderWithProviders(<App />);
+
+  // Confirm the page's own accent is up *before* the pairing arrives: once
+  // the sheet opens, Radix's Dialog marks everything outside its own portal
+  // `aria-hidden` (correct, real screen-reader-facing behavior) so a role
+  // query for "Add project" would stop finding it — that's a property of
+  // `findByRole`'s accessibility-tree filtering, not of whether the button
+  // is still on screen. Adding the pairing afterward, through the same
+  // `addPairing` action the real hub-event listener calls, mirrors how a
+  // request actually arrives: over a page that's already showing its own
+  // accent, not started already-overlaid.
+  await screen.findByRole("button", { name: "Add project" });
+  act(() => {
+    useStore.getState().addPairing({ pairingId: "pair-1", name: "Chrome", kind: "browser" });
+  });
+  await screen.findByRole("dialog");
+
+  // Plain DOM query, unlike the role queries above — unaffected by Radix's
+  // aria-hidden on the rest of the tree, so it still sees "Add project".
+  expect(() => expectAtMostOneAccent(document.body)).not.toThrow();
 });
