@@ -613,6 +613,14 @@
     text-align: center;
   }
 
+  /* Aspect ratios are classes, not inline styles: the site's CSP forbids
+     `style-src 'unsafe-inline'`, and a slot's ratio is a property of the asset
+     it reserves, so it belongs in the stylesheet with the rest of the design. */
+  .media-slot--16x10 { aspect-ratio: 16 / 10; }
+  .media-slot--16x9 { aspect-ratio: 16 / 9; }
+  .media-slot--4x3 { aspect-ratio: 4 / 3; }
+  .media-slot--square { aspect-ratio: 1 / 1; }
+
   .media-slot > span {
     font-family: var(--mono);
     font-size: 13px;

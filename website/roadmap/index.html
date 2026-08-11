@@ -4,6 +4,32 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+<!-- chrome:head -->
+<!-- Security policy, shared by every route.
+
+     GitHub Pages serves static files and cannot set response headers, so this
+     is delivered as a meta element. Two consequences worth stating rather than
+     leaving for someone to discover:
+
+       - `frame-ancestors`, `report-uri` and `sandbox` are ignored in a meta
+         CSP by specification, so clickjacking protection cannot be enforced
+         here. It would need a host that sets real headers.
+       - Everything else below IS enforced.
+
+     The policy is strict because the site earns it: zero third-party requests,
+     zero inline styles, zero inline scripts. `tests/site/site-contract.test.mjs`
+     already fails the build on an off-origin subresource, so the CSP and the
+     test agree — the policy is not aspirational.
+
+     `style-src 'self'` with no 'unsafe-inline' is why media slots carry an
+     aspect-ratio class rather than a style attribute. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests" />
+
+<!-- Send the origin, never the path, to another site — so a link out of the
+     privacy page does not tell the destination which page you were reading. -->
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<!-- /chrome:head -->
+
 <title>Roadmap — Rabta</title>
 <meta name="description" content="What is not built yet, what is next, and what has been deliberately deferred. Scoped honestly, with no dates attached to work that has not started." />
 <link rel="canonical" href="https://rabta.build/roadmap/" />
@@ -168,6 +194,26 @@
 
 <footer class="foot">
 <!-- chrome:foot -->
+  <!-- The receipt fold. It is part of the shell, not a homepage flourish —
+       `tests/site/site-contract.test.mjs`'s "every route wears the same shell"
+       requires exactly one on every route, and the five new pages shipped
+       without it until that guard was widened to cover them. -->
+  <div class="rail foot__receipt">
+    <button class="receipt" type="button" data-receipt-fold data-folded="false" aria-pressed="false" aria-label="Fold the saved workspace receipt" aria-describedby="receipt-summary">
+      <span class="visually-hidden" id="receipt-summary">Saved workspace receipt: 4 files, 3 terminals, 5 browser tabs, branch feat/connector-reconnect, restore result partial.</span>
+      <span class="receipt__kept" aria-hidden="true">YOUR PLACE IS KEPT</span>
+      <span class="receipt__manifest" aria-hidden="true">
+        <span><b>FILES</b><i data-count>4</i></span>
+        <span><b>TERMINALS</b><i data-count>3</i></span>
+        <span><b>BROWSER TABS</b><i data-count>5</i></span>
+        <span><b>BRANCH</b><i>FEAT/CONNECTOR-RECONNECT</i></span>
+        <span><b>RESTORE RESULT</b><i>PARTIAL</i></span>
+      </span>
+      <span class="receipt__target" aria-hidden="true"></span>
+      <span class="receipt__flap" aria-hidden="true"></span>
+    </button>
+  </div>
+
   <div class="rail foot__compact">
     <a class="brand" href="/" aria-label="Rabta — home">
       <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">

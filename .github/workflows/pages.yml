@@ -24,6 +24,7 @@ on:
       # to either has to re-run it.
       - "tests/site/**"
       - "scripts/verify-media.mjs"
+      - "scripts/sync-site-chrome.mjs"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -64,6 +65,12 @@ jobs:
       # third-party subresources, link safety — is the same suite that runs
       # locally, so CI and a developer's machine cannot disagree about what
       # "passing" means.
+      # The eight pages share generated chrome. If a page were edited by hand
+      # instead of regenerating, its nav or footer would drift from the rest —
+      # this fails the deploy rather than shipping the inconsistency.
+      - name: Site chrome is in sync
+        run: node scripts/sync-site-chrome.mjs --check
+
       - name: Verify site contract
         run: node --test tests/site/*.test.mjs
 

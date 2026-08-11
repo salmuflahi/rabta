@@ -1,3 +1,23 @@
+  <!-- The receipt fold. It is part of the shell, not a homepage flourish —
+       `tests/site/site-contract.test.mjs`'s "every route wears the same shell"
+       requires exactly one on every route, and the five new pages shipped
+       without it until that guard was widened to cover them. -->
+  <div class="rail foot__receipt">
+    <button class="receipt" type="button" data-receipt-fold data-folded="false" aria-pressed="false" aria-label="Fold the saved workspace receipt" aria-describedby="receipt-summary">
+      <span class="visually-hidden" id="receipt-summary">Saved workspace receipt: 4 files, 3 terminals, 5 browser tabs, branch feat/connector-reconnect, restore result partial.</span>
+      <span class="receipt__kept" aria-hidden="true">YOUR PLACE IS KEPT</span>
+      <span class="receipt__manifest" aria-hidden="true">
+        <span><b>FILES</b><i data-count>4</i></span>
+        <span><b>TERMINALS</b><i data-count>3</i></span>
+        <span><b>BROWSER TABS</b><i data-count>5</i></span>
+        <span><b>BRANCH</b><i>FEAT/CONNECTOR-RECONNECT</i></span>
+        <span><b>RESTORE RESULT</b><i>PARTIAL</i></span>
+      </span>
+      <span class="receipt__target" aria-hidden="true"></span>
+      <span class="receipt__flap" aria-hidden="true"></span>
+    </button>
+  </div>
+
   <div class="rail foot__compact">
     <a class="brand" href="/" aria-label="Rabta — home">
       <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">

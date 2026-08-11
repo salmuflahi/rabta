@@ -26,8 +26,10 @@ const SITE = join(ROOT, "website");
 
 const NAV = readFileSync(join(SITE, "_chrome/nav.html"), "utf8").trimEnd();
 const FOOT = readFileSync(join(SITE, "_chrome/foot.html"), "utf8").trimEnd();
+const HEAD = readFileSync(join(SITE, "_chrome/head.html"), "utf8").trimEnd();
 
 const BLOCKS = [
+  { name: "head", body: HEAD },
   { name: "nav", body: NAV },
   { name: "foot", body: FOOT },
 ];

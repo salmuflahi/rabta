@@ -4,7 +4,25 @@ import { access, readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { SITE, localReferences, readRoute } from "./helpers.mjs";
 
-const routes = ["/", "/setup/", "/privacy/", "/404.html"];
+// Every route the site serves. The eight-page rebuild added five, and until
+// they were listed here none of them were covered by any guard in this file —
+// not the palette rule, not the no-third-party rule, not the responsibility
+// boundaries. A page that no test knows about is a page that can ship anything.
+const routes = [
+  "/",
+  "/why/",
+  "/setup/",
+  "/faq/",
+  "/roadmap/",
+  "/changelog/",
+  "/contact/",
+  "/privacy/",
+  "/404.html",
+];
+
+/** The eight real pages — `routes` minus the 404, which has no chrome and is
+ * exempt from the nav, footer and metadata rules by design. */
+const pages = routes.filter((route) => route !== "/404.html");
 
 test("all routes use the Living Instrument responsibility boundaries", async () => {
   for (const route of routes) {
