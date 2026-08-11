@@ -1,7 +1,9 @@
 import * as React from "react";
 import { Icon } from "@/components/ui/icon";
+import { PermissionCard } from "@/components/ui/permission-card";
 import { Sheet } from "@/components/ui/sheet";
 import { canSee, neverSees } from "@/lib/connectorFacts";
+import { kindLabel } from "@/lib/connectors";
 import { decidePairing } from "@/lib/pairing";
 import { useStore, type PendingPairing } from "@/store";
 
@@ -16,44 +18,6 @@ import { useStore, type PendingPairing } from "@/store";
  */
 export const ARM_DELAY_MS = 350;
 
-function kindLabel(kind: string): string {
-  if (kind === "browser") return "browser extension";
-  if (kind === "editor") return "editor extension";
-  return kind;
-}
-
-/** One of the two permission columns. `ok` for what it can see, `bad` for
- * what it structurally cannot — the same pairing the Connectors detail view
- * uses, so approving and inspecting later show the same two lists. */
-function PermissionCard({
-  tone,
-  heading,
-  lines,
-}: {
-  tone: "ok" | "bad";
-  heading: string;
-  lines: string[];
-}) {
-  return (
-    <div className="min-w-0 flex-1 rounded-[9px] bg-secondary p-3">
-      <div className={tone === "ok" ? "text-meta font-510 text-ok" : "text-meta font-510 text-bad"}>
-        {heading}
-      </div>
-      <ul className="mt-2 space-y-1.5">
-        {lines.map((line) => (
-          <li key={line} className="flex gap-1.5 text-meta text-muted-foreground">
-            <Icon
-              name={tone === "ok" ? "check" : "x"}
-              className={tone === "ok" ? "mt-0.5 size-3 shrink-0 text-ok" : "mt-0.5 size-3 shrink-0 text-bad"}
-            />
-            <span className="min-w-0">{line}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 /**
  * The moment a connector asks to talk to Rabta.
  *
@@ -62,9 +26,14 @@ function PermissionCard({
  * rather than a smaller floating banner for a reason beyond layout: this is
  * the one moment Rabta's promise — nothing leaves this Mac — is actually
  * tested by the user, and "Chrome wants to connect" with two buttons gives
- * them nothing to decide with. The Can see / Never sees pair is derived from
- * the capabilities *this* request declared, so a connector asking for more
- * than its kind normally does looks different from one that is not.
+ * them nothing to decide with. The Can see / Never sees pair renders through
+ * the same PermissionCard the Connectors detail page shows after approval,
+ * so consenting now and inspecting later are visibly the same claim. Today
+ * that pair always shows its capability-independent baseline —
+ * `PendingPairing` does not carry the connector's declared capabilities yet,
+ * so this sheet cannot show a request asking for more than its kind
+ * normally does any differently from one that isn't (see the note on
+ * `capabilities` below).
  *
  * Suppressed on the Connectors view, which shows its own in-context
  * PairingCard — otherwise the same request appears twice on one screen.
@@ -78,15 +47,39 @@ export function PairingSheet() {
   const queue = pairings.filter((p) => !dismissed.includes(p.pairingId));
   const current: PendingPairing | undefined = view === "connectors" ? undefined : queue[0];
 
-  const [armed, setArmed] = React.useState(false);
+  // The last request actually shown, kept one render past `current` clearing
+  // so Sheet still has real title/subtitle/children to animate out with. If
+  // this component bailed out (`return null`) the instant `current` went
+  // undefined, Sheet would unmount outright instead of ever receiving a
+  // true→false `open` transition — Radix would have no chance to play the
+  // close it plays everywhere else, and the sheet would just vanish. This is
+  // the same "remember a previous value" pattern React's own docs use for
+  // deriving state from a changing prop: guarded by the identity check below,
+  // it only updates when a *new* request arrives, never on the render where
+  // one clears.
+  const [shown, setShown] = React.useState<PendingPairing | undefined>(current);
+  if (current && current !== shown) setShown(current);
+
+  const [armedId, setArmedId] = React.useState<string | null>(null);
+  // Derived from `current`, not effect-set. An earlier version reset a plain
+  // `armed` boolean from inside a useEffect keyed on `current?.pairingId`.
+  // That effect runs after React commits — so for the one render where
+  // `current` moves on to the next request in the queue, that render's
+  // `disabled` attribute *and* its handler closure both still read the
+  // *previous* request's `armed = true`. A click landing in that single
+  // render could approve or deny a request that had been on screen for 0ms:
+  // the exact race ARM_DELAY_MS exists to prevent. Comparing ids directly
+  // means `armed` is correct in the very render `current` changes — there is
+  // no effect in between for a click to land inside.
+  const armed = armedId !== null && armedId === current?.pairingId;
+
   React.useEffect(() => {
     if (!current) return;
-    setArmed(false);
-    const id = setTimeout(() => setArmed(true), ARM_DELAY_MS);
+    const id = setTimeout(() => setArmedId(current.pairingId), ARM_DELAY_MS);
     return () => clearTimeout(id);
   }, [current?.pairingId]);
 
-  if (!current) return null;
+  if (!shown) return null;
 
   // PendingPairing carries no capability list yet. canSee/neverSees tolerate
   // an empty one — neverSees always returns its baseline — so the Never sees
@@ -95,14 +88,14 @@ export function PairingSheet() {
 
   return (
     <Sheet
-      open
+      open={!!current}
       onOpenChange={(open) => {
         // Closing without a decision leaves the request pending; it stays on
         // the Connectors view to be found again.
-        if (!open) setDismissed((d) => [...d, current.pairingId]);
+        if (!open) setDismissed((d) => [...d, shown.pairingId]);
       }}
-      title={`${current.name} wants to connect`}
-      subtitle={`A ${kindLabel(current.kind)} on this Mac is asking to talk to Rabta. Nothing is shared until you approve it.`}
+      title={`${shown.name} wants to connect`}
+      subtitle={`A ${kindLabel(shown.kind)} on this Mac is asking to talk to Rabta. Nothing is shared until you approve it.`}
       cancelLabel="Not now"
       enterAdvances={false}
       secondary={{
@@ -112,8 +105,11 @@ export function PairingSheet() {
         onClick: () => {
           // The handler guard is the real protection; `disabled` is what the
           // user and the test see. A disabled attribute alone can be defeated
-          // by a synthetic click.
-          if (!armed) return;
+          // by a synthetic click. `!current` can only be true while the sheet
+          // is animating out with no live request behind it — armed is
+          // already false then too, but this also satisfies TypeScript that
+          // `current` is defined before it reaches decidePairing.
+          if (!armed || !current) return;
           decidePairing(current, false, removePairing);
         },
       }}
@@ -122,14 +118,14 @@ export function PairingSheet() {
         disabled: !armed,
         onClick: () => {
           // Same belt-and-braces guard as Deny above — see the comment there.
-          if (!armed) return;
+          if (!armed || !current) return;
           decidePairing(current, true, removePairing);
         },
       }}
     >
-      <div className="flex gap-2.5 pb-2">
-        <PermissionCard tone="ok" heading="Can see" lines={canSee(capabilities)} />
-        <PermissionCard tone="bad" heading="Never sees" lines={neverSees(capabilities)} />
+      <div className="grid grid-cols-2 gap-2.5 pb-2">
+        <PermissionCard tone="ok" heading="Can see" glyph="check" lines={canSee(capabilities)} />
+        <PermissionCard tone="bad" heading="Never sees" glyph="x" lines={neverSees(capabilities)} />
       </div>
       <p className="flex items-center gap-1.5 pb-3 text-meta text-tertiary-foreground">
         <Icon name="lock" className="size-3 shrink-0" />

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { PermissionCard } from "@/components/ui/permission-card";
 import { Surface } from "@/components/ui/surface";
 import { canSee, capabilityFacts, neverSees } from "@/lib/connectorFacts";
 import { kindLabel } from "@/lib/connectors";
@@ -106,37 +107,6 @@ function ConnectHowTo({ icon, title, steps }: { icon: IconName; title: string; s
 function GroupHeading({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
     <p className={cn("pl-0.5 text-sub font-semibold text-muted-foreground", className)}>{children}</p>
-  );
-}
-
-/** The permissions pair — the substance of this screen. Green heading and
- * checks on the left, red heading and crosses on the right. */
-function PermissionCard({
-  heading,
-  tone,
-  glyph,
-  lines,
-}: {
-  heading: string;
-  tone: "ok" | "bad";
-  glyph: IconName;
-  lines: string[];
-}) {
-  return (
-    <div className="rounded-[10px] bg-card p-[15px] shadow-raised">
-      <p className={cn("mb-2 text-sub font-semibold", tone === "ok" ? "text-ok" : "text-bad")}>
-        {heading}
-      </p>
-      {lines.map((line) => (
-        <div key={line} className="flex items-center gap-2 py-1 text-sub text-foreground">
-          <Icon
-            name={glyph}
-            className={cn("size-[13px] shrink-0", tone === "ok" ? "text-ok" : "text-bad")}
-          />
-          {line}
-        </div>
-      ))}
-    </div>
   );
 }
 
