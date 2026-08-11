@@ -62,9 +62,9 @@ const REPOS: &[DemoRepo] = &[
 ];
 
 /// Tasks per project, in display order. `(project, title, resources)`.
-type Resource = (&'static str, &'static str, fn(&str) -> serde_json::Value);
+type Resource = (&'static str, &'static str, fn(&str, &str) -> serde_json::Value);
 
-fn editor_payload(repo: &str) -> serde_json::Value {
+fn editor_payload(repo: &str, _branch: &str) -> serde_json::Value {
     json!({
         "folder": format!("~/code/{repo}"),
         "openFiles": [
@@ -81,7 +81,7 @@ fn editor_payload(repo: &str) -> serde_json::Value {
     })
 }
 
-fn tabs_payload(_repo: &str) -> serde_json::Value {
+fn tabs_payload(_repo: &str, _branch: &str) -> serde_json::Value {
     json!({
         "tabs": [
             { "url": "https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent", "title": "WebSocket close codes — MDN" },
@@ -91,8 +91,12 @@ fn tabs_payload(_repo: &str) -> serde_json::Value {
     })
 }
 
-fn branch_payload(repo: &str) -> serde_json::Value {
-    json!({ "branch": "feat/connector-reconnect", "repo": repo })
+/// The branch a capsule records has to be the branch its project is actually
+/// on. Hardcoding one meant `mercury-web` and `ledger-cli` — both on `main` —
+/// showed capsules claiming `feat/connector-reconnect`, which is wrong in the
+/// Overview list and wrong in any screenshot taken of it.
+fn branch_payload(repo: &str, branch: &str) -> serde_json::Value {
+    json!({ "branch": branch, "repo": repo })
 }
 
 const RESOURCES: &[Resource] = &[
@@ -203,7 +207,7 @@ pub fn seed(db: &Db, data_dir: &Path) -> Result<String, String> {
                         task_id: task.id.clone(),
                         connector_kind: (*kind).to_string(),
                         resource_type: (*resource_type).to_string(),
-                        payload: payload(repo.name),
+                        payload: payload(repo.name, repo.branch),
                     })
                     .map_err(|e| e.to_string())?;
                 }
