@@ -16,6 +16,15 @@ const LAYER_SELECTOR = "[data-sheet], [role='dialog']";
  * count — a live-state dot or rail is a mark, not a competing action. Live
  * markers opt out of this count by setting the `data-accent-mark` attribute.
  *
+ * A screen is the chrome *plus* the page, and both can hold a real primary
+ * action — Overview's hero "Resume" against the Toolbar's "New capsule". They
+ * do not race for it: pages declare their spend through `useOwnsViewAccent`
+ * (src/shell/viewAccent.ts) and the Toolbar's contextual action goes neutral
+ * while a claim is held (src/shell/Toolbar.tsx). If this assertion fires on a
+ * page-plus-toolbar render, a missing or mis-scoped claim is the first thing
+ * to check. Note that rendering a page *without* the toolbar cannot catch
+ * that class of failure at all — App.test.tsx renders both together.
+ *
  * The budget is per layer, not per container. A `[data-sheet]` or
  * `[role="dialog"]` element overlays the page rather than competing with
  * it, so it gets its own budget separate from the page beneath it — one

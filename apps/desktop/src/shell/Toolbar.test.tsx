@@ -66,9 +66,11 @@ describe("Toolbar", () => {
   describe("contextual accent action", () => {
     // Per the handoff: "New capsule" on Overview and Capsules, "Add
     // project" on Projects, nothing on Connectors, Activity, or Settings —
-    // this is the toolbar's one spendable accent (the sidebar's selected
-    // row is deliberately neutral), so both the label per view and its
-    // absence on the other three views are pinned.
+    // so both the label per view and its absence on the other three views
+    // are pinned. Accent-filled here because nothing claims the accent in
+    // these renders: the toolbar is the only chrome that can spend one (the
+    // sidebar's selected row is deliberately neutral), and no page is
+    // mounted alongside it to claim it. The demotion case is below.
     //
     // Connectors used to show "Add connector", wired to open the same
     // ConnectionIndicator popover the adjacent pill already opened. No
@@ -150,6 +152,38 @@ describe("Toolbar", () => {
         expectAtMostOneAccent(container);
         unmount();
       }
+    });
+
+    // The page under the toolbar can hold the screen's one accent — Overview's
+    // hero "Resume", Capsules' "Restore" — and says so through
+    // `useOwnsViewAccent` (src/shell/viewAccent.ts). These pin the toolbar's
+    // half of that contract in isolation; App.test.tsx proves the two halves
+    // meet correctly in a real render.
+    it("goes neutral while the page holds the view's accent", () => {
+      useStore.setState({ view: "overview", accentOwnerView: "overview" });
+      renderWithProviders(<Toolbar />);
+
+      const button = screen.getByRole("button", { name: "New capsule" });
+      // Still there and still usable — demoted, not withdrawn.
+      expect(button).toBeInTheDocument();
+      expect(button.className).not.toMatch(/(^|\s)bg-primary(\s|$)/);
+      expect(button.className.split(/\s+/)).toContain("bg-secondary");
+
+      useStore.setState({ accentOwnerView: null });
+    });
+
+    it("ignores a claim belonging to a view that is not on screen", () => {
+      // Keyed by view, so a claim left behind by the page the user just
+      // navigated away from cannot mute the toolbar on the view they landed
+      // on. Without the key this button would render neutral here, leaving
+      // Projects with no accent at all.
+      useStore.setState({ view: "projects", accentOwnerView: "overview" });
+      renderWithProviders(<Toolbar />);
+
+      const button = screen.getByRole("button", { name: "Add project" });
+      expect(button.className.split(/\s+/)).toContain("bg-primary");
+
+      useStore.setState({ accentOwnerView: null });
     });
   });
 

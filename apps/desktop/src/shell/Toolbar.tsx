@@ -27,17 +27,35 @@ function SearchTrigger() {
   );
 }
 
-/** The one accent action a view can offer in the toolbar — see
- * `contextualAction` below for the per-view mapping. Nothing renders when a
- * view has none (Activity, Settings): the accent budget
- * (`expectAtMostOneAccent`, src/test/accent.ts) is spent here or not at
- * all, never defaulted to something generic. */
-function ContextualAction({ label, onClick }: { label: string; onClick: () => void }) {
+/** The contextual action a view can offer in the toolbar — see
+ * `useContextualAction` below for the per-view mapping. Nothing renders when a
+ * view has none (Activity, Settings): the toolbar never defaults to something
+ * generic just to fill the corner.
+ *
+ * `demoted` renders the same button in neutral chrome instead of the accent.
+ * The button stays put and keeps working either way — only its claim to being
+ * *the* action on screen goes away, which is the whole of what the accent
+ * says. See the accent note on `useContextualAction` for when that happens
+ * and why the button is demoted rather than hidden. */
+function ContextualAction({
+  label,
+  onClick,
+  demoted,
+}: {
+  label: string;
+  onClick: () => void;
+  demoted: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-6 shrink-0 items-center gap-[5px] rounded-md bg-primary pl-2 pr-2.5 text-meta font-510 text-primary-foreground transition-colors duration-fast ease-standard hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className={cn(
+        "inline-flex h-6 shrink-0 items-center gap-[5px] rounded-md pl-2 pr-2.5 text-meta font-510 transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        demoted
+          ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+          : "bg-primary text-primary-foreground hover:bg-primary/90",
+      )}
     >
       <Icon name="plus" className="size-3 shrink-0" />
       {label}
@@ -104,10 +122,28 @@ function HistoryChevrons() {
  * project" on Projects, and nothing on Connectors, Activity, or Settings
  * (there's no single sensible "create" for any of the three: Connectors
  * self-pair — no manual-add flow exists anywhere in the app — so an accent
- * button there would create nothing). This is the toolbar's one spendable
- * accent: Sidebar.tsx's selected-row pill is deliberately neutral (see its
- * DELIBERATE DIVERGENCE comment) so the accent budget
- * (`expectAtMostOneAccent`) is spent here or not at all.
+ * button there would create nothing).
+ *
+ * THE ACCENT IS NOT UNCONDITIONALLY THIS BUTTON'S. Within the chrome it is:
+ * Sidebar.tsx's selected-row pill is deliberately neutral (see its DELIBERATE
+ * DIVERGENCE comment) so the toolbar is the only chrome that can spend one.
+ * But a screen is the chrome *plus the page*, and Overview and Capsules — the
+ * two views this offers "New capsule" on — carry a real primary action of
+ * their own: the hero's "Resume", the detail pane's "Restore"/"Capture". Both
+ * were live at the same time as this button, two unlayered accents on one
+ * screen, until pages began declaring their spend (`useOwnsViewAccent`,
+ * src/shell/viewAccent.ts). It went unnoticed because the page tests render
+ * pages without this toolbar and the toolbar tests render it without a page;
+ * App.test.tsx now renders both together on both views.
+ *
+ * When a page holds the claim, this button renders neutral instead. Demoted,
+ * not hidden: "New capsule" is the only create affordance Overview has, and a
+ * control that vanishes when you open a capsule is a worse answer than one
+ * that stays put and stops shouting. What the accent means — *the* action on
+ * this screen — is exactly what's given up, and only for as long as the page
+ * has a better claim to it. Overview with nothing open holds no claim, so the
+ * button is orange there, which is right: with nothing to resume, starting one
+ * is the primary action.
  *
  * `requestNewTask`/`requestNewProject` are the same store actions the
  * ⌘⇧N/⌘N global shortcuts already drive (App.tsx) — reused rather than
@@ -164,6 +200,9 @@ export function Toolbar() {
     [...NAV_ITEMS, SETTINGS_ITEM].find((item) => item.key === view)?.label ?? NAV_ITEMS[0].label;
 
   const action = useContextualAction(view);
+  // Compared against `view`, not read as a bare flag: a claim is only current
+  // if it belongs to the view actually on screen.
+  const contentOwnsAccent = useStore((s) => s.accentOwnerView) === view;
 
   return (
     <header
@@ -204,7 +243,13 @@ export function Toolbar() {
       </h1>
       <div className="flex-1" />
       <SearchTrigger />
-      {action && <ContextualAction label={action.label} onClick={action.onClick} />}
+      {action && (
+        <ContextualAction
+          label={action.label}
+          onClick={action.onClick}
+          demoted={contentOwnsAccent}
+        />
+      )}
     </header>
   );
 }

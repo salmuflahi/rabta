@@ -307,6 +307,28 @@ interface Store {
   newTaskRequest: boolean;
   requestNewTask: () => void;
   clearNewTaskRequest: () => void;
+  /** Which view's *page content* is currently spending the screen's one
+   * accent (the rule `expectAtMostOneAccent` enforces — src/test/accent.ts).
+   *
+   * A screen is the Toolbar plus the page under it, and both can hold a real
+   * primary action: Overview's hero "Resume" and Capsules' "Restore" are the
+   * reason the user is on those screens, while the Toolbar offers "New
+   * capsule" on the same two. Rather than let one silently outrank the other,
+   * the page says when it is spending and the Toolbar's contextual action
+   * steps down to neutral for as long as that holds (Toolbar.tsx).
+   *
+   * Pages declare it through `useOwnsViewAccent` (src/shell/viewAccent.ts)
+   * rather than setting this directly, and the Toolbar never derives the
+   * answer for itself — the conditions are page-local (Capsules' selection
+   * follows a search box the Toolbar cannot see), so re-deriving them in the
+   * chrome would be two copies of one rule, drifting apart.
+   *
+   * Keyed by view, not a bare boolean: on a view change the outgoing page's
+   * cleanup can run after the incoming page has already claimed, and a
+   * boolean would let the departing page clear its successor's claim. */
+  accentOwnerView: NavKey | null;
+  claimViewAccent: (view: NavKey) => void;
+  releaseViewAccent: (view: NavKey) => void;
   // --- Master/detail selection (Console v2 Phase 2) ---
   //
   // The handoff's State block lists one selected id per master/detail
@@ -498,6 +520,12 @@ export const useStore = create<Store>((set) => ({
   newTaskRequest: false,
   requestNewTask: () => set({ newTaskRequest: true }),
   clearNewTaskRequest: () => set({ newTaskRequest: false }),
+  accentOwnerView: null,
+  claimViewAccent: (view) => set({ accentOwnerView: view }),
+  // Only the current holder may release. A page unmounting *after* the next
+  // one has claimed would otherwise clear a claim that is no longer its own.
+  releaseViewAccent: (view) =>
+    set((s) => (s.accentOwnerView === view ? { accentOwnerView: null } : {})),
   mig: null,
   openMigrate: (role) =>
     set({

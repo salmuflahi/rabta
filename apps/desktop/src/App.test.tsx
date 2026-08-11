@@ -202,6 +202,131 @@ describe("App global keyboard shortcuts", () => {
   });
 });
 
+/** The four invokes a page needs before it can show a capsule and its
+ * captured state. Page-level tests each build their own; these two need it at
+ * App level, where the real Toolbar renders above the real page. */
+function seedOpenCapsule() {
+  const task = {
+    id: "task-1",
+    projectId: "p1",
+    title: "Fixture capsule",
+    status: "open",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  };
+  const resource = {
+    id: "res-1",
+    taskId: "task-1",
+    connectorKind: "git",
+    resourceType: "branch",
+    payload: { branch: "main" },
+    createdAt: "2026-08-01T00:00:00.000Z",
+  };
+  mockInvoke.mockClear();
+  mockInvoke.mockImplementation(async (cmd: string) => {
+    if (cmd === "list_projects") return [FAKE_PROJECT];
+    if (cmd === "list_tasks") return [task];
+    if (cmd === "task_resources") return [resource];
+    return [] as unknown[];
+  });
+}
+
+// The one-accent rule is a claim about a *screen*, and a screen is the
+// Toolbar plus the page under it. Every other accent test in the suite
+// renders one of those halves alone — OverviewPage.test.tsx and
+// CapsulesPage.test.tsx mount the page with no Toolbar above it — so the
+// combination went unchecked until the App-level sheet test above tripped
+// over it on Overview. These two close that gap on the two views where the
+// Toolbar's contextual action and the page's own primary action are both
+// live at once.
+describe("one accent per view, Toolbar and page together", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useStore.setState({ ...STORE_DEFAULTS, pairings: [] });
+  });
+
+  it("spends one accent on Overview when a capsule is open", async () => {
+    seedOpenCapsule();
+    useStore.setState({ ...STORE_DEFAULTS, view: "overview", pairings: [] });
+    renderWithProviders(<App />);
+
+    // The hero's Resume is the page's own accent — wait for it, so the
+    // assertion runs against the loaded page rather than its empty state.
+    await screen.findByRole("button", { name: /Resume/ });
+    expect(() => expectAtMostOneAccent(document.body)).not.toThrow();
+
+    // Demoted, not deleted. Asserted because dropping the button entirely
+    // would also satisfy the budget, and that is the wrong fix: it is the
+    // only create affordance Overview has.
+    const newCapsule = screen.getByRole("button", { name: "New capsule" });
+    expect(newCapsule.className).not.toMatch(/(^|\s)bg-primary(\s|$)/);
+  });
+
+  it("spends one accent on Capsules when a capsule is selected", async () => {
+    seedOpenCapsule();
+    useStore.setState({
+      ...STORE_DEFAULTS,
+      view: "capsules",
+      selectedCapsuleId: "task-1",
+      pairings: [],
+    });
+    renderWithProviders(<App />);
+
+    // Restore, not Capture: the seeded resource gives the capsule captured
+    // state, which is the case that renders the detail pane's accent.
+    await screen.findByRole("button", { name: /Restore/ });
+    expect(() => expectAtMostOneAccent(document.body)).not.toThrow();
+
+    const newCapsule = screen.getByRole("button", { name: "New capsule" });
+    expect(newCapsule.className).not.toMatch(/(^|\s)bg-primary(\s|$)/);
+  });
+
+  it("releases the claim on navigation instead of leaking it to the next view", async () => {
+    // The claim is keyed by view precisely for this: Overview holds one while
+    // its hero is up, and Projects — which has no page accent of its own once
+    // a project exists — must get its orange "Add project" back on arrival. A
+    // claim that outlived its page would leave the next screen with no accent
+    // at all, which the budget assertion alone would never catch: zero accents
+    // passes `expectAtMostOneAccent` just as happily as one.
+    seedOpenCapsule();
+    useStore.setState({ ...STORE_DEFAULTS, view: "overview", pairings: [] });
+    renderWithProviders(<App />);
+
+    await screen.findByRole("button", { name: /Resume/ });
+    expect(useStore.getState().accentOwnerView).toBe("overview");
+
+    act(() => {
+      useStore.getState().setView("projects");
+    });
+
+    const addProject = await screen.findByRole("button", { name: "Add project" });
+    expect(useStore.getState().accentOwnerView).toBeNull();
+    expect(addProject.className).toMatch(/(^|\s)bg-primary(\s|$)/);
+    expect(() => expectAtMostOneAccent(document.body)).not.toThrow();
+  });
+
+  it("keeps the Toolbar's accent on Overview when nothing is open", async () => {
+    // The other side of the rule, and the reason the demotion is conditional
+    // rather than a blanket "Overview and Capsules never get the accent":
+    // Overview's empty state has no action of its own, so with nothing to
+    // resume, starting a capsule *is* this screen's primary action and should
+    // carry the orange. A fix that stood the Toolbar down on this view
+    // unconditionally would leave the screen with no accent at all.
+    mockInvoke.mockClear();
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "list_projects") return [FAKE_PROJECT];
+      return [] as unknown[]; // no tasks — nothing open
+    });
+    useStore.setState({ ...STORE_DEFAULTS, view: "overview", pairings: [] });
+    renderWithProviders(<App />);
+
+    await screen.findByText("Nothing open yet");
+    const newCapsule = screen.getByRole("button", { name: "New capsule" });
+    expect(newCapsule.className).toMatch(/(^|\s)bg-primary(\s|$)/);
+    expect(() => expectAtMostOneAccent(document.body)).not.toThrow();
+  });
+});
+
 it("no longer pushes the app down when a connector asks to pair", () => {
   useStore.setState({
     pairings: [{ pairingId: "p1", name: "Chrome", kind: "browser" }],

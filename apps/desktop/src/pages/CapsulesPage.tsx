@@ -29,6 +29,7 @@ import { useDeferredDelete } from "@/lib/useDeferredDelete";
 import { cn } from "@/lib/utils";
 import { activateSummaryToResult, type ActivateSummary } from "@/restore/normalize";
 import { useRestore } from "@/restore/RestoreExperience";
+import { useOwnsViewAccent } from "@/shell/viewAccent";
 import type { RestoreTool } from "@/restore/types";
 import { useStore, type Project, type Task, type TaskResource } from "@/store";
 
@@ -315,6 +316,14 @@ export function CapsulesPage() {
   const selectedProject = selected ? projects.find((p) => p.id === selected.projectId) : undefined;
   const selectedResources = selected ? resources[selected.id] ?? [] : [];
   const hasState = selectedResources.length > 0;
+  // Both of this page's states can hold the screen's one accent: a selected
+  // capsule always shows one (Restore when it has captured state, Capture when
+  // it doesn't), and the no-selection state shows "Register a project" when
+  // there are no projects to make a capsule against. The Toolbar's "New
+  // capsule" goes neutral while either holds (Toolbar.tsx). The remaining case
+  // — projects exist, nothing selected — makes no claim, and there the
+  // Toolbar's orange is the right primary action.
+  useOwnsViewAccent(selected !== null || projects.length === 0);
   const connectedKinds = useMemo(
     () => new Set(connectors.filter((c) => c.connected).map((c) => c.kind.toLowerCase())),
     [connectors],

@@ -6,6 +6,7 @@ import { LoadError } from "@/components/ui/load-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { capsuleBranch, capsuleChips, capsuleSavedAt } from "@/lib/capsuleFacts";
 import { describeEvent, relativeTime } from "@/lib/humanize";
+import { useOwnsViewAccent } from "@/shell/viewAccent";
 import { useStore, type Project, type Task, type TaskResource } from "@/store";
 
 /** A capsule with everything Overview needs to talk about it, resolved once
@@ -200,6 +201,11 @@ export function OverviewPage() {
   }, [tasks, resources, projectName, activeTaskId]);
 
   const hero = openCapsules[0];
+  // The hero's "Resume" is this screen's real primary action, so the Toolbar's
+  // "New capsule" stands down to neutral while it's on screen (Toolbar.tsx).
+  // The empty state below has no action of its own and makes no claim — there,
+  // starting a capsule is the primary action, and the Toolbar keeps the accent.
+  useOwnsViewAccent(Boolean(hero));
   const alsoOpen = openCapsules.slice(1, 4);
   const connectedCount = connectors.filter((c) => c.connected).length;
   const lastCapture = useMemo(() => {
