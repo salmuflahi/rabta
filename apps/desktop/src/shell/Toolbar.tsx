@@ -210,8 +210,20 @@ export function Toolbar() {
       data-tauri-drag-region
       className={cn(
         TOOLBAR_HEIGHT_CLASS,
-        "flex shrink-0 items-center gap-2 border-b-[0.5px] border-border bg-background pr-3",
-        "backdrop-blur-[24px] backdrop-saturate-[1.8]",
+        "flex shrink-0 items-center gap-2 border-b-[0.5px] border-border pr-3",
+        // 85% rather than a flat `bg-background`, so the backdrop-filter on the
+        // next line has something to show through. It shipped opaque, which
+        // meant the blur composited a result that was then completely covered:
+        // the handoff's vibrancy ("chrome color with backdrop-filter:
+        // saturate(180%) blur(24px)") never rendered, and the app paid for the
+        // filter every frame to display nothing. CommandPalette already uses
+        // `bg-background/85` with a real, visible blur — this matches it rather
+        // than inventing a second opacity.
+        //
+        // The reduced-transparency rule in index.css restores full opacity for
+        // users who ask for it; before this change that rule was inert here,
+        // since it re-asserted a colour the surface already had.
+        "bg-background/85 backdrop-blur-[24px] backdrop-saturate-[1.8]",
       )}
       // Clearance for the window controls that sit *over* this strip once
       // the sidebar is out of the way: macOS's traffic lights (windowed
