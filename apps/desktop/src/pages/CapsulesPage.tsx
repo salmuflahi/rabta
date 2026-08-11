@@ -361,8 +361,14 @@ export function CapsulesPage() {
       // Additive to the toast above, not a replacement — a sighted user
       // already sees "Saved state"/"Nothing connected to save"; this is the
       // same event reaching a screen-reader user, who gets nothing from a
-      // toast alone.
-      announce("Capsule captured");
+      // toast alone. Branches on the same `s.captured.length` the toast
+      // does: Capture is reachable with zero tools connected (its disabled
+      // condition below is only `busy || restoreActive`, not "something is
+      // connected"), and toasts carry no independent aria-live wiring here
+      // — this announcement is the only channel that a screen-reader user
+      // has for the event, so it must say what actually happened rather
+      // than always claim success.
+      announce(s.captured.length ? "Capsule captured" : "Nothing connected to save");
       await refresh();
     } catch (e) {
       toastErr(e);

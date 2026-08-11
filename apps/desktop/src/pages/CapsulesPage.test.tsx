@@ -2,6 +2,7 @@ import type { InvokeArgs } from "@tauri-apps/api/core";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/ui/sonner";
+import { subscribeToAnnouncements } from "@/lib/announce";
 import { expectAtMostOneAccent } from "@/test/accent";
 import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { useStore, type Project, type Task, type TaskResource } from "@/store";
@@ -108,6 +109,16 @@ function mockCapsulesInvoke(opts: {
   renameTask?: (args: Record<string, unknown> | undefined) => Task | Promise<Task>;
   duplicateTask?: (args: Record<string, unknown> | undefined) => Task | Promise<Task>;
   postMutationRefresh?: () => Project[] | Promise<Project[]>;
+  /** What `save_capsule` resolves to. Defaults to "nothing captured" — a
+   * real, shape-correct `SaveSummary` rather than the bare `[]` the
+   * untyped `default` switch branch used to fall through to (which made
+   * `s.captured.length` throw inside `save()`'s own try/catch, silently —
+   * harmless for a test that only asserts the invoke call happened, but
+   * not a value any test could assert real capture-outcome behavior
+   * against). */
+  saveCapsule?: (
+    args: Record<string, unknown> | undefined,
+  ) => { captured: string[]; skipped: string[] } | Promise<{ captured: string[]; skipped: string[] }>;
 } = {}) {
   resetSelection();
   // Clear call history (not just the implementation): `invoke` is a single
@@ -132,6 +143,8 @@ function mockCapsulesInvoke(opts: {
         return (opts.activeTask ?? null) as unknown;
       case "activate_task":
         return opts.activateTask ? opts.activateTask(a) : { restored: [], skipped: [] };
+      case "save_capsule":
+        return (await (opts.saveCapsule ? opts.saveCapsule(a) : { captured: [], skipped: [] })) as unknown;
       case "rename_task": {
         const renamed = opts.renameTask
           ? await opts.renameTask(a)
@@ -484,6 +497,47 @@ describe("CapsulesPage capture and create", () => {
     await waitFor(() =>
       expect(mockInvoke).toHaveBeenCalledWith("save_capsule", { taskId: FAKE_TASK.id }),
     );
+  });
+
+  // Task 12 review, Finding 1: the screen-reader announcement used to fire
+  // "Capsule captured" unconditionally, even when save_capsule captured
+  // nothing — telling a screen-reader user the capture succeeded in
+  // exactly the state where the sighted toast says "Nothing connected to
+  // save". This is a reachable, ordinary state, not a hypothetical one:
+  // Capture's own disabled condition is only `busy || restoreActive`, never
+  // "something is connected". Toasts here carry no independent aria-live
+  // wiring, so the announcement is the only channel a screen-reader user
+  // has for this event — both assertions below prove the toast and the
+  // announcement agree, for both outcomes, rather than just checking one
+  // channel in isolation.
+  it("announces the toast's own zero-captured outcome, not a fabricated success", async () => {
+    mockCapsulesInvoke({ saveCapsule: () => ({ captured: [], skipped: ["vscode"] }) });
+    const seen: string[] = [];
+    const stop = subscribeToAnnouncements((a) => seen.push(a.message));
+
+    renderWithProviders(<CapsulesPage />);
+    fireEvent.click(await screen.findByRole("button", { name: /Capture/ }));
+
+    await waitFor(() => expect(mockedSuccessToast()).toHaveBeenCalledWith("Nothing connected to save", undefined));
+    expect(seen).toContain("Nothing connected to save");
+    expect(seen).not.toContain("Capsule captured");
+    stop();
+  });
+
+  it("announces success when save_capsule actually captured something, matching the toast", async () => {
+    mockCapsulesInvoke({ saveCapsule: () => ({ captured: ["vscode"], skipped: [] }) });
+    const seen: string[] = [];
+    const stop = subscribeToAnnouncements((a) => seen.push(a.message));
+
+    renderWithProviders(<CapsulesPage />);
+    fireEvent.click(await screen.findByRole("button", { name: /Capture/ }));
+
+    await waitFor(() =>
+      expect(mockedSuccessToast()).toHaveBeenCalledWith("Saved state", { description: "vscode" }),
+    );
+    expect(seen).toContain("Capsule captured");
+    expect(seen).not.toContain("Nothing connected to save");
+    stop();
   });
 
   // A capsule belongs to a project — the composer adds it to the one you're

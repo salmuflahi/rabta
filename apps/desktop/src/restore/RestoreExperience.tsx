@@ -539,6 +539,33 @@ export interface StartOptions {
 
 type ToolStatusMap = Record<string, { status: ToolRestoreStatus; message?: string }>;
 
+/**
+ * The one-line aggregate outcome announced once a restore's result is
+ * known — shared by both places `runOnce` (below) reaches an ending: the
+ * normal resolved path, and `opts.run()`'s promise rejecting outright.
+ *
+ * Counts a genuinely errored tool (`"failed"`) separately from everything
+ * merely not-yet-applied (`"skipped"`, folded into "waiting" — the same
+ * word the per-row `ToolStatus` label never uses for a real failure
+ * either). Folding `"failed"` into "waiting" would understate a tool that
+ * actually errored — the same misleading-toward-success shape Task 12's
+ * review caught in the capture announcement, so this task's own second
+ * finding gets the same fix. The "N waiting" clause is dropped entirely
+ * when there's nothing left waiting (every tool either applied or failed),
+ * and the "N failed" clause is dropped when nothing failed — the exact
+ * wording the brief specified for the common case, unchanged.
+ */
+function restoreOutcomeAnnouncement(statuses: { status: ToolRestoreStatus }[]): string {
+  const total = statuses.length;
+  const applied = statuses.filter((t) => t.status === "applied").length;
+  const failed = statuses.filter((t) => t.status === "failed").length;
+  const waiting = total - applied - failed;
+  const headline = `Restored ${applied} of ${total}.`;
+  if (failed === 0) return `${headline} ${waiting} waiting.`;
+  if (waiting === 0) return `${headline} ${failed} failed.`;
+  return `${headline} ${waiting} waiting, ${failed} failed.`;
+}
+
 export function useRestore(): { start: (opts: StartOptions) => void; node: ReactNode; active: boolean } {
   const [stage, setStage] = useState<RestoreStage>("idle");
   const [title, setTitle] = useState("Restoring workspace");
@@ -566,6 +593,11 @@ export function useRestore(): { start: (opts: StartOptions) => void; node: React
   const triggerElRef = useRef<HTMLElement | null>(null);
   const openedAtRef = useRef(0);
   const emittedRef = useRef(false);
+  // Set by the `!outcome.ok` branch below (run() itself rejecting) to the
+  // run id whose forced-"failed" merge into `toolStatuses` needs an
+  // aggregate announcement once it actually lands — see the effect right
+  // after this declaration for why it can't announce inline.
+  const pendingFailureAnnounceRef = useRef<number | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -575,6 +607,27 @@ export function useRestore(): { start: (opts: StartOptions) => void; node: React
       timersRef.current = [];
     };
   }, []);
+
+  // Companion to `pendingFailureAnnounceRef`. The `!outcome.ok` branch
+  // merges every not-yet-resolved tool to "failed" via a `setToolStatuses`
+  // updater, then needs to announce an aggregate count of the *result* of
+  // that merge — but a `useState` updater function is not guaranteed to run
+  // synchronously when `setState` is called (confirmed empirically: it
+  // doesn't, reliably enough to build on), so capturing the merged map out
+  // of the updater's own closure and reading it back immediately after
+  // produced an empty, pre-merge snapshot in testing. Reading the
+  // *committed* `toolStatuses` from here instead — an effect keyed on it,
+  // gated on the pending flag — is the version that's actually correct.
+  // The run-id guard rejects a stale flag: if a retry's fresh run has
+  // already started by the time this fires, `runIdRef.current` has moved
+  // on, and this pending announcement belongs to a run that's no longer
+  // current.
+  useEffect(() => {
+    const pendingRunId = pendingFailureAnnounceRef.current;
+    if (pendingRunId === null || pendingRunId !== runIdRef.current) return;
+    pendingFailureAnnounceRef.current = null;
+    announce(restoreOutcomeAnnouncement(Object.values(toolStatuses)));
+  }, [toolStatuses]);
 
   const wait = useCallback((ms: number) => sleepViaTimer(ms, timersRef), []);
 
@@ -633,6 +686,17 @@ export function useRestore(): { start: (opts: StartOptions) => void; node: React
             }
             return next;
           });
+          // Same aggregate voice as the resolved path below — a screen-
+          // reader user should hear one outcome sentence regardless of how
+          // the restore concluded, not silence just because this ending
+          // came from run() throwing rather than resolving. (Task 12
+          // review, Finding 2: this branch previously announced nothing.)
+          // Deferred to the `pendingFailureAnnounceRef` effect above rather
+          // than announced right here: it needs the *result* of the merge
+          // just above, and a `setState` updater's own closure isn't a
+          // reliable way to read that back synchronously — see that
+          // effect's comment.
+          pendingFailureAnnounceRef.current = myRunId;
           runningRef.current = false;
           setStage("failure");
           return;
@@ -673,11 +737,10 @@ export function useRestore(): { start: (opts: StartOptions) => void; node: React
         // just above) got there. Covers success, partial, AND failure:
         // `activateSummaryToResult` (restore/normalize.ts) can resolve with
         // `overall: "failure"` without ever rejecting, so this is the one
-        // place that sees every real outcome — the separate `!outcome.ok`
-        // branch below only handles the run() promise itself throwing.
-        const applied = result.tools.filter((t) => t.status === "applied").length;
-        const total = result.tools.length;
-        announce(`Restored ${applied} of ${total}. ${total - applied} waiting.`);
+        // place that sees most real outcomes — the separate `!outcome.ok`
+        // branch below covers the remaining one, run() itself throwing,
+        // with the same announcement in the same voice.
+        announce(restoreOutcomeAnnouncement(result.tools));
 
         if (result.overall === "success") {
           const elapsed = Date.now() - openedAtRef.current;

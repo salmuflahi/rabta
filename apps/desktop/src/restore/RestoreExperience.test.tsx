@@ -1,6 +1,7 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { subscribeToAnnouncements } from "@/lib/announce";
 import { renderWithProviders } from "@/test/smoke-utils";
 import { expectAtMostOneAccent } from "@/test/accent";
 import { expectFocusRingSuppressed, expectHasFocusRing } from "@/test/no-box";
@@ -107,6 +108,62 @@ describe("useRestore / RestoreExperience", () => {
     expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
     // Stays open — no auto-close for a failure.
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  // Task 12 review, Finding 2: this branch (opts.run() itself rejecting,
+  // not a normally-resolved "failure" overall) used to announce nothing at
+  // all. The per-row `role="status"` region still speaks each tool
+  // flipping to "Couldn't restore" individually, but every other ending
+  // gets one closing aggregate sentence and this one didn't. Neither TOOLS
+  // entry is ever emitted before the rejection, so both are forced to
+  // "failed" — and the Minor finding alongside it means that must show up
+  // as "2 failed", not be silently folded into "waiting" as if nothing
+  // had actually gone wrong.
+  it("failure run: still announces an aggregate outcome, not silence", async () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+
+    const seen: string[] = [];
+    const stop = subscribeToAnnouncements((a) => seen.push(a.message));
+
+    const boom = new Error("connector crashed");
+    const run = vi.fn().mockRejectedValue(boom);
+
+    renderWithProviders(<Harness run={run} />);
+
+    await advanceUntil(() => screen.queryByText("Couldn't restore workspace") !== null);
+
+    expect(seen).toContain("Restored 0 of 2. 2 failed.");
+    stop();
+  });
+
+  // Minor finding, resolved path: a `RestoreResult` can carry a genuinely
+  // failed tool alongside an applied one (e.g. one connector errored, one
+  // didn't) — the announcement must call that tool out as failed rather
+  // than counting it toward the same generic "waiting" bucket as a merely
+  // skipped/pending one, which would understate a real error as nothing
+  // more than "hasn't happened yet".
+  it("resolved outcome distinguishes a genuinely failed tool from one still waiting", async () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+
+    const seen: string[] = [];
+    const stop = subscribeToAnnouncements((a) => seen.push(a.message));
+
+    const result: RestoreResult = {
+      overall: "partial",
+      tools: [
+        { id: "vscode-1", status: "applied" },
+        { id: "chrome-1", status: "failed", message: "Couldn't restore" },
+      ],
+    };
+    const run = vi.fn().mockResolvedValue(result);
+
+    renderWithProviders(<Harness run={run} />);
+    await advanceUntil(() => screen.queryByText("Workspace partially restored") !== null);
+
+    expect(seen).toContain("Restored 1 of 2. 1 failed.");
+    stop();
   });
 
   it("reduced motion: shows every status without throwing, using real timers", async () => {

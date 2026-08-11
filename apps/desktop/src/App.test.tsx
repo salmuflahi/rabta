@@ -388,15 +388,19 @@ it("no longer pushes the app down when a connector asks to pair", () => {
     view: "overview",
   });
   renderWithProviders(<App />);
-  // The old banner was a sibling above the shell in the flex column. Nothing
-  // may sit between the app root and the shell any more. `aria-live` (and
-  // its descendants — queryByText matches the innermost element holding the
-  // text, which is the region's inner span, not the region div itself) is
-  // excluded from the search: Task 12's <LiveRegion /> (mounted app-wide in
-  // App.tsx) legitimately announces this exact phrase to screen readers via
-  // PairingSheet's own mount effect — a deliberate, separate mechanism from
-  // the old visible banner this assertion guards against, and unrelated to
-  // the layout claim being tested here.
+  // The old banner was a sibling above the shell in the flex column, and
+  // pushed it down. Nothing that occupies layout space may sit there any
+  // more — <LiveRegion /> (Task 12) does now sit exactly there, as a
+  // sibling before the shell (see App.tsx), but `sr-only` is stock
+  // Tailwind (zero footprint: absolutely positioned, 1x1px, clipped), so
+  // the actual property this test checks — nothing pushes the app down —
+  // is unaffected. `aria-live` (and its descendants — queryByText matches
+  // the innermost element holding the text, which is the region's inner
+  // span, not the region div itself) is excluded from the search:
+  // <LiveRegion /> legitimately announces this exact phrase to screen
+  // readers via PairingSheet's own mount effect — a deliberate, separate
+  // mechanism from the old visible banner this assertion guards against,
+  // and unrelated to the layout claim being tested here.
   expect(
     screen.queryByText(/wants to connect to Rabta/, {
       ignore: "[aria-live], [aria-live] *, script, style",
