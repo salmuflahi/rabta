@@ -18,6 +18,10 @@ use crate::github::{Issue, StartedTask};
 use crate::projects::RepoInspection;
 
 pub mod capsules;
+/// Demo fixture for screenshots. Debug builds only — see the module docs for
+/// the three layers that keep it away from a real database.
+#[cfg(debug_assertions)]
+pub mod demo_seed;
 pub mod git;
 pub mod github;
 pub mod migrate;
@@ -25,6 +29,10 @@ pub mod projects;
 
 struct HubHandle(Arc<Hub>);
 pub struct DbHandle(pub Db);
+/// The resolved data directory. Managed so debug-only tooling can find the
+/// place this build is actually allowed to write to, rather than re-deriving
+/// it and risking disagreement with `data_dir_for`.
+pub struct DataDir(pub std::path::PathBuf);
 struct CapsulesHandle(Capsules);
 
 /// Snapshot of connected connectors for the UI.
@@ -75,6 +83,32 @@ async fn inspect_repo_path(path: String) -> Result<RepoInspection, String> {
 }
 
 /// Validates registration input and stores the project.
+/// Populate an empty database with the demo fixture, for screenshots of the
+/// real Mac app.
+///
+/// The command exists in every build so the invoke handler stays one list, but
+/// the seeding itself is `#[cfg(debug_assertions)]` — a release binary contains
+/// the refusal below and none of the code that could write a fixture.
+#[tauri::command]
+#[allow(unused_variables)]
+async fn seed_demo_data(
+    db: State<'_, DbHandle>,
+    dir: State<'_, DataDir>,
+) -> Result<String, String> {
+    #[cfg(debug_assertions)]
+    {
+        let db = db.0.clone();
+        let dir = dir.0.clone();
+        return tauri::async_runtime::spawn_blocking(move || demo_seed::seed(&db, &dir))
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(not(debug_assertions))]
+    {
+        Err("demo seeding is only available in debug builds".to_string())
+    }
+}
+
 #[tauri::command]
 async fn create_project(
     db: State<'_, DbHandle>,
@@ -626,6 +660,8 @@ pub fn run() {
             let db = Db::open(&data_dir.join("omnibus.db"), DbConfig::default())
                 .map_err(|e| format!("failed to open omnibus.db: {e}"))?;
 
+            app.manage(DataDir(data_dir.clone()));
+
             let mut hub_cfg = HubConfig::new(data_dir);
             hub_cfg.preferred_port = 17872;
             for (name, kind, token) in db.connector_tokens().map_err(|e| e.to_string())? {
@@ -692,6 +728,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            seed_demo_data,
             connectors,
             send_command,
             recent_events,

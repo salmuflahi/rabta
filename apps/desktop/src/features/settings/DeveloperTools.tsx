@@ -197,6 +197,58 @@ export function RestoreExperiencePlayground() {
 // Raw connector command console. The `send_command` invoke and its exact
 // { target, name, args } shape are preserved verbatim; only surfaced behind
 // the Developer-mode toggle now.
+/**
+ * DEV-only: fill an empty database with the demo fixture.
+ *
+ * The capture rig can already show a populated Rabta, but it runs in a browser
+ * with Tauri mocked — no traffic lights, no vibrancy, wrong window chrome. For
+ * screenshots that have to look like the actual Mac app, the real app needs
+ * real data, and this puts it there.
+ *
+ * Three things keep it away from anyone's real database: the Rust side is
+ * `#[cfg(debug_assertions)]` so the seeding code is not in a release binary at
+ * all, debug builds already write to a separate `.debug` data directory, and
+ * the command refuses to run when the database already holds projects. This
+ * component is additionally gated on `import.meta.env.DEV`.
+ */
+export function DemoFixturePanel() {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+
+  if (!import.meta.env.DEV) return null;
+
+  async function seed() {
+    setBusy(true);
+    setResult(null);
+    try {
+      setResult(await invoke<string>("seed_demo_data"));
+    } catch (e) {
+      // Refusing because the database is already populated is the expected
+      // path on a second click, not a crash — show it rather than swallowing.
+      setResult(typeof e === "string" ? e : String(e));
+      toastErr(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-3">
+      <Button variant="secondary" size="sm" disabled={busy} onClick={() => void seed()}>
+        {busy ? "Seeding…" : "Load demo data"}
+      </Button>
+      {result && (
+        <p className="mt-2 text-meta text-muted-foreground">{result}</p>
+      )}
+      <p className="mt-2 text-meta text-tertiary-foreground">
+        Creates three projects with real throwaway git repositories inside this
+        build&rsquo;s debug data directory, plus six capsules. Restart the app
+        afterwards so every panel re-reads the database.
+      </p>
+    </div>
+  );
+}
+
 export function CommandSenderPanel() {
   const connectors = useStore((s) => s.connectors);
   const [target, setTarget] = useState("");

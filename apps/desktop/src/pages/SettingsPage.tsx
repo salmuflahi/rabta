@@ -15,7 +15,11 @@ import {
 } from "@/components/ui/select";
 import { Swatch } from "@/components/ui/swatch";
 import { SwitchMac } from "@/components/ui/switch-mac";
-import { CommandSenderPanel, RestoreExperiencePlayground } from "@/features/settings/DeveloperTools";
+import {
+  CommandSenderPanel,
+  DemoFixturePanel,
+  RestoreExperiencePlayground,
+} from "@/features/settings/DeveloperTools";
 import { SETTINGS_SECTIONS } from "@/features/settings/sections";
 import { toastErr, toastOk } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -401,6 +405,14 @@ function DeveloperSection() {
                 </p>
               </div>
               <RestoreExperiencePlayground />
+
+              <div className="border-t-[0.5px] border-border pt-5">
+                <p className="text-card-title font-590 text-foreground">Demo fixture</p>
+                <p className="mt-0.5 text-meta text-muted-foreground">
+                  Populate an empty database for screenshots. Dev builds only.
+                </p>
+                <DemoFixturePanel />
+              </div>
             </div>
           )}
         </div>
