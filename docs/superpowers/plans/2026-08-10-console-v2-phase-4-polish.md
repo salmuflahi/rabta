@@ -11,7 +11,10 @@
 ## Global Constraints
 
 - **Spec:** `docs/superpowers/specs/2026-08-10-console-v2-phase-4-polish-design.md`. Read it before starting.
-- **Test runner:** `pnpm --filter desktop test -- <path>` from the repo root. All tests are colocated beside the source as `*.test.ts(x)`.
+- **Test runner**, from the repo root. All tests are colocated beside the source as `*.test.ts(x)`.
+  - Targeted: `pnpm --filter desktop exec vitest run <path>`
+  - Full suite: `pnpm --filter desktop test`
+  - **Not** `pnpm --filter desktop test -- <path>` — pnpm inserts an extra `--`, vitest ignores the path, and the whole suite runs while appearing to be filtered. Task steps below that show the `test --` form are wrong; use the `exec vitest run` form.
 - **Render helper:** `renderWithProviders` from `@/test/smoke-utils` — never bare `render`, the theme provider is required.
 - **Store in tests:** `useStore.setState({ ... })` before render. Reset state between tests where it matters.
 - **Motion rules:** transform/opacity only, never layout properties. Every animation has a `prefers-reduced-motion` path. Reduced motion means *no* animation, not a slower one.
@@ -402,19 +405,31 @@ Replace `setView` and each `select*` action:
       return { ...applyLocation(s.history[index]), historyIndex: index };
     }),
 
+  // Each select* records under the view that OWNS its id — a literal, never
+  // `s.view`. This is load-bearing, not stylistic: three shipped call sites
+  // select *before* navigating (ProjectsPage's per-project capsule list,
+  // OverviewPage's openInCapsules, and four CommandPalette rows all do
+  // `selectCapsule(id)` then `setView("capsules")`). Recording under `s.view`
+  // there pairs the live view with an id belonging to another view, and since
+  // pushLocation decides push-vs-rewrite on view equality, it would always
+  // rewrite — silently clobbering the current entry's real selection. Back
+  // would then restore a capsule id into `selectedProjectId`, and every
+  // consumer's stale-id fallback would quietly land on its first row instead.
   selectedCapsuleId: null,
   selectCapsule: (selectedCapsuleId) =>
-    set((s) => ({ selectedCapsuleId, ...record(s, s.view, selectedCapsuleId) })),
+    set((s) => ({ selectedCapsuleId, ...record(s, "capsules", selectedCapsuleId) })),
   selectedProjectId: null,
   selectProject: (selectedProjectId) =>
-    set((s) => ({ selectedProjectId, ...record(s, s.view, selectedProjectId) })),
+    set((s) => ({ selectedProjectId, ...record(s, "projects", selectedProjectId) })),
   selectedConnectorId: null,
   selectConnector: (selectedConnectorId) =>
-    set((s) => ({ selectedConnectorId, ...record(s, s.view, selectedConnectorId) })),
+    set((s) => ({ selectedConnectorId, ...record(s, "connectors", selectedConnectorId) })),
   selectedEventSeq: null,
   selectEvent: (selectedEventSeq) =>
-    set((s) => ({ selectedEventSeq, ...record(s, s.view, selectedEventSeq) })),
+    set((s) => ({ selectedEventSeq, ...record(s, "activity", selectedEventSeq) })),
 ```
+
+Add a test for the **pre-staged** call order alongside the brief's round-trip test — `selectCapsule(id)` *then* `setView("capsules")`, asserting the outgoing view's own selection survived. The brief's original test only covered selecting after arriving, which is why this defect shipped.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
