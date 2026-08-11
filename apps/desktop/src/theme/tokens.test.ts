@@ -1,33 +1,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+// Console v2 Phase 4, Task 14 — the CSS-token parser moved to
+// tokens-source.ts so contrast.test.ts can reuse it without a second
+// hand-rolled copy. Behaviour here is unchanged.
+import { tokensIn } from "./tokens-source";
 
-const css = readFileSync(resolve(__dirname, "../index.css"), "utf8");
 const tailwindConfig = readFileSync(resolve(__dirname, "../../tailwind.config.js"), "utf8");
-
-/** Extract the `--name: value;` pairs inside a given selector block. */
-function tokensIn(selector: string): Map<string, string> {
-  const start = css.indexOf(`${selector} {`);
-  if (start < 0) throw new Error(`selector ${selector} not found in index.css`);
-  let depth = 0;
-  let end = start;
-  for (let i = css.indexOf("{", start); i < css.length; i++) {
-    if (css[i] === "{") depth++;
-    if (css[i] === "}") {
-      depth--;
-      if (depth === 0) {
-        end = i;
-        break;
-      }
-    }
-  }
-  const body = css.slice(start, end);
-  const out = new Map<string, string>();
-  for (const m of body.matchAll(/(--[a-z-]+):\s*([^;]+);/g)) {
-    out.set(m[1], m[2].trim());
-  }
-  return out;
-}
 
 const REQUIRED = [
   "--sidebar",

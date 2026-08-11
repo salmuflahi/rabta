@@ -42,23 +42,39 @@
     --popover: 0 0% 100%;   /* #FFFFFF */
     --popover-foreground: 240 3% 12%;   /* #1D1D1F */
     --primary: 18 100% 59%;   /* #FF6B2C */
-    --primary-foreground: 0 0% 100%;   /* #FFFFFF */
+    /* Console v2 Phase 4, Task 14 — moved from white (this file's original
+       default). White reads at only 2.81:1 against --primary's tangerine
+       orange, short of WCAG AA's 4.5:1 for text (contrast.test.ts, "accent
+       button label"); --foreground's near-black clears it at 5.94:1 and is
+       reused rather than inventing a new colour. Petrol/sky/sand's accent
+       buttons still want a light label on top of their own (darker)
+       --primary — that per-accent choice is resolved at runtime by
+       applyAccent() (src/theme/accent.ts, resolvePrimaryForeground), whose
+       tangerine-light fallback lands on this exact value, so the static
+       paint before that effect runs already matches it. */
+    --primary-foreground: 240 3% 12%;   /* #1D1D1F — same value as --foreground above */
     /* Console v2 Phase 1, Task 2 — accent tokens (src/theme/accent.ts).
        These static values are the tangerine default, kept identical to
-       --primary above so a fresh install paints correctly before
-       ThemeProvider's layout effect runs; applyAccent() then owns these
-       four properties for real, rewriting them on every accent/theme
-       change. --accent-text is for accent-coloured text on an --accent-soft
-       background — never use --primary for small text on light, it's too
-       dark/saturated there. */
+       --primary (and, since Task 14, --primary-foreground) above so a
+       fresh install paints correctly before ThemeProvider's layout effect
+       runs; applyAccent() then owns all five properties for real,
+       rewriting them on every accent/theme change. --accent-text is for
+       accent-coloured text on an --accent-soft background — never use
+       --primary for small text on light, it's too dark/saturated there. */
     --primary-hover: 17 88% 52%;   /* #F0561A */
     --accent-text: 19 76% 43%;   /* #C2501B */
     --accent-soft: rgba(255,107,44,.14);
     --secondary: 0 0% 92%;   /* #EBEBEB */
     --secondary-foreground: 240 3% 12%;   /* #1D1D1F */
     --muted: 0 0% 96%;   /* #F5F5F5 */
-    --muted-foreground: 240 2% 48%;   /* #78787D */
-    --tertiary-foreground: 240 3% 61%;   /* #99999E */
+    /* Console v2 Phase 4, Task 14 — darkened 2 points (48% -> 46% L) to
+       clear WCAG AA's 4.5:1 for body text; it read 4.21:1 against
+       --background before (contrast.test.ts, "subtitles"). */
+    --muted-foreground: 240 2% 46%;   /* #737378 */
+    /* Console v2 Phase 4, Task 14 — darkened 3 points (61% -> 58% L) to
+       clear WCAG AA's 3:1 for UI text; it read 2.73:1 against --background
+       before (contrast.test.ts, "metadata and counts"). */
+    --tertiary-foreground: 240 3% 58%;   /* #919197 */
     --accent: 0 0% 93%;   /* #EDEDED */
     --accent-foreground: 240 3% 12%;   /* #1D1D1F */
     --destructive: 6 63% 46%;   /* #C0392B */
