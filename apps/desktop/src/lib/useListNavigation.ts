@@ -37,8 +37,31 @@ export interface ListNavigation<T> {
  * - Ends do not wrap: ArrowUp on the first row / ArrowDown on the last does
  *   nothing, rather than jumping to the opposite end. Wrapping in a long
  *   list loses the user's place.
- * - Enter and Space are not handled. Selection already follows focus (see
- *   above), so there is nothing left for either key to confirm.
+ * - Enter and Space are not handled by this hook's own `onKeyDown` — no
+ *   `preventDefault()`, no `onSelect` call — because selection already
+ *   follows focus (see above), so there is nothing left for either key to
+ *   *report*. That is narrower than "nothing happens on a real page,"
+ *   though, and worth being precise about: `getItemProps` doesn't control
+ *   what element it ends up spread onto, and all four master lists spread it
+ *   onto real `<button>`s (see task-11-report.md's addendum on why —
+ *   `role="option"` is applied via props, but the underlying element is
+ *   still a native button). A focused `<button>` activates natively on
+ *   Enter/Space regardless of what this hook's own handler does, and since
+ *   that handler never calls `preventDefault()` for either key, native
+ *   activation isn't suppressed — it re-fires the row's own `onClick`,
+ *   re-selecting the id that's already selected. That's provably harmless
+ *   *today* only because it's calling into an idempotent operation: every
+ *   consuming page's `select*` store action (`selectCapsule`,
+ *   `selectProject`, `selectConnector`, `selectEvent` — see `store.ts`) sets
+ *   the same field to the same value a second time, which is a no-op by
+ *   construction (traced through as far as `pushLocation()`, which is
+ *   itself keyed on whether the value actually changed). This hook leans on
+ *   that invariant without enforcing it: nothing here would fail, loudly or
+ *   quietly, the day a `select*` action grows a side effect that isn't
+ *   idempotent — an analytics call, a toast, a triggered animation — at
+ *   which point a focused native button's Enter/Space keypress starts
+ *   silently firing it twice. Whoever adds that side effect won't learn it
+ *   from this hook; they need to know it going in.
  * - Focus is real, not virtual: `containerProps` carries no
  *   `aria-activedescendant`, and the container itself is never given a
  *   `tabIndex`. That attribute only means anything on the element that

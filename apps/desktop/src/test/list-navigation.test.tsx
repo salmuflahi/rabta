@@ -156,14 +156,19 @@ describe.each(PAGES)("$name master list", ({ Page }) => {
     expect(after).toBe(before + 1);
   });
 
-  // Beyond the brief's own three assertions: the reason Task 11 needed a
-  // forwardRef fix on Row (see row.tsx and task-11-report.md) is that a
-  // dropped ref leaves the hook's aria-selected bookkeeping correct while
-  // its *actual* focus/scrollIntoView calls silently do nothing — a bug the
-  // three tests above cannot see, because none of them look at
-  // document.activeElement. This one does, against the real page (not a
-  // scratch harness), so a regression here fails loudly instead of shipping
-  // quietly the way the original bug did.
+  // Beyond the brief's own three assertions: aria-selected/tabIndex
+  // bookkeeping being correct is not proof that real DOM focus actually
+  // moved — a hook could update both on every row while never calling
+  // `el.focus()`, and none of the three tests above would catch it, since
+  // none of them look at document.activeElement. This one does, against
+  // real pages, not a scratch harness. (This is also what would have caught
+  // the forwardRef bug documented in row.tsx, from when these four lists
+  // briefly spread getItemProps' ref onto `Row` — see task-11-report.md's
+  // addendum for why that wiring was reverted. The rows are native
+  // `<button>`s again now, which accept a plain `ref` directly and don't
+  // need forwardRef at all, so that specific bug can't recur here — but the
+  // test still earns its keep as a general real-focus regression guard,
+  // independent of which bug originally prompted writing it.)
   it("moves real DOM focus onto the newly selected row on ArrowDown", async () => {
     renderWithProviders(<Page />);
     const list = await screen.findByRole("listbox");
@@ -187,5 +192,76 @@ describe.each(PAGES)("$name master list", ({ Page }) => {
     fireEvent.click(options[options.length - 1]);
     expect(options[options.length - 1]).toHaveAttribute("aria-selected", "true");
     expect(document.activeElement).toBe(focusedBeforeClick);
+  });
+
+  // Reviewer note: Home/End, ArrowUp, type-ahead and "ends don't wrap" were,
+  // until now, proven only once, generically, against
+  // useListNavigation.test.tsx's synthetic Harness — parity across the four
+  // real pages was an inference from uniform wiring, not an executed proof.
+  // The three tests below close that gap for the behaviours cheap enough to
+  // prove without page-specific setup.
+
+  // Combines End, Home, and both directions of "ends do not wrap" in one
+  // test (rather than four) because each successive assertion's setup is
+  // free — reaching an end via End/Home is exactly the precondition the
+  // matching no-wrap assertion needs, so there's nothing to gain by paying
+  // for a fresh render per behaviour.
+  it("jumps to the ends with Home/End, and does not wrap past them", async () => {
+    renderWithProviders(<Page />);
+    const list = await screen.findByRole("listbox");
+    const lastIndex = within(list).getAllByRole("option").length - 1;
+    const selectedIndex = () =>
+      within(list)
+        .getAllByRole("option")
+        .findIndex((el) => el.getAttribute("aria-selected") === "true");
+
+    fireEvent.keyDown(list, { key: "End" });
+    expect(selectedIndex()).toBe(lastIndex);
+
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    expect(selectedIndex()).toBe(lastIndex); // no wrap forward, past the last row
+
+    fireEvent.keyDown(list, { key: "Home" });
+    expect(selectedIndex()).toBe(0);
+
+    fireEvent.keyDown(list, { key: "ArrowUp" });
+    expect(selectedIndex()).toBe(0); // no wrap backward, past the first row
+  });
+
+  // ArrowDown-moves-forward is already covered above; this is specifically
+  // ArrowUp's own decrement, which needs a starting point off the first row
+  // (the beforeEach seed starts every page there) — moved forward once via
+  // ArrowDown purely as setup, then the one ArrowUp under test brings it
+  // back, which is only true if ArrowUp genuinely moved rather than no-op'd.
+  it("moves the selection with ArrowUp", async () => {
+    renderWithProviders(<Page />);
+    const list = await screen.findByRole("listbox");
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    fireEvent.keyDown(list, { key: "ArrowUp" });
+    const selected = within(list)
+      .getAllByRole("option")
+      .findIndex((el) => el.getAttribute("aria-selected") === "true");
+    expect(selected).toBe(0);
+  });
+
+  // Reads whatever the row right after the current selection actually
+  // renders — never a hardcoded string — so this proves type-ahead
+  // uniformly across all four pages despite their very different label
+  // shapes (a capsule/project/connector name vs. Activity's humanized event
+  // sentence) without needing page-specific fixtures. This is guaranteed to
+  // land on `target`, not some other row: handleTypeahead in
+  // useListNavigation.ts always checks currentIndex+1 first, and a row's
+  // own label always starts with its own first character, so the very row
+  // this test reads the letter from is the first (and matching) candidate
+  // it checks, regardless of what any other row's label starts with.
+  it("jumps to the next row by typing its first letter", async () => {
+    renderWithProviders(<Page />);
+    const list = await screen.findByRole("listbox");
+    const target = within(list).getAllByRole("option")[1];
+    const firstLetter = target.textContent!.trim().charAt(0).toLowerCase();
+
+    fireEvent.keyDown(list, { key: firstLetter });
+
+    expect(target).toHaveAttribute("aria-selected", "true");
   });
 });
