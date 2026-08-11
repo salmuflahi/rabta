@@ -19,7 +19,6 @@ import { Icon, type IconName } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadError } from "@/components/ui/load-error";
-import { Row } from "@/components/ui/row";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CapsuleItems } from "@/features/capsules/CapsuleItems";
@@ -564,7 +563,6 @@ export function CapsulesPage() {
 
         <div
           data-capsule-list
-          aria-label="Capsules"
           {...listNav.containerProps}
           className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-0.5"
         >
@@ -579,11 +577,13 @@ export function CapsulesPage() {
           ) : (
             groups.map(({ project, rows }) => (
               <div key={project.id}>
-                {/* role="presentation": the listbox's direct-ish descendants
-                    must be options (or transparent), never a heading with an
-                    implicit role of its own — see the module comment above
-                    `flatCapsules` for why these headers don't split the
-                    listbox into one per project. */}
+                {/* role="presentation": the listbox's option children must
+                    stay valid ARIA descendants (option, or a transparent
+                    wrapper) — a heading with an implicit role of its own
+                    sitting directly in that stream is exactly what this
+                    attribute exists to neutralize. See the module comment
+                    above `flatCapsules` for why these headers don't split
+                    the listbox into one per project instead. */}
                 <p
                   role="presentation"
                   className="px-2 pb-[3px] pt-[11px] text-label font-semibold text-tertiary-foreground"
@@ -596,9 +596,12 @@ export function CapsulesPage() {
                   const rs = resources[t.id] ?? [];
                   const savedAt = capsuleSavedAt(rs);
                   return (
-                    <Row
+                    <button
                       key={t.id}
                       {...listNav.getItemProps(t, flatCapsuleIndex.get(t.id)!)}
+                      type="button"
+                      aria-current={isSelected ? "true" : undefined}
+                      onClick={() => selectCapsule(t.id)}
                       className={cn(
                         // DELIBERATE DIVERGENCE FROM THE HANDOFF, matching
                         // the one the sidebar already makes (Sidebar.tsx's
@@ -609,18 +612,13 @@ export function CapsulesPage() {
                         // button for the one-accent budget
                         // (`expectAtMostOneAccent`, src/test/accent.ts) —
                         // and Restore is the action, which is what the
-                        // accent is for. Neutral `--secondary` instead,
-                        // exactly as the nav does it — and full-bleed, not a
-                        // rounded pill: these rows are Row now (Task 11),
-                        // which draws its own edge-to-edge hairline between
-                        // siblings, and a rounded selection floating between
-                        // two straight dividers would read as a mistake, not
-                        // a choice. The other three master lists make the
-                        // same two calls; this is their one shared note.
-                        "cursor-default transition-colors duration-fast ease-standard",
+                        // accent is for. Neutral `--secondary` at weight 510
+                        // instead, exactly as the nav does it.
+                        "block w-full cursor-default rounded-md px-2 py-1.5 text-left transition-colors duration-fast ease-standard",
                         isSelected ? "bg-secondary" : "hover:bg-hover",
                       )}
-                      leading={
+                    >
+                      <span className="flex min-w-0 items-center gap-[7px]">
                         <span
                           aria-hidden
                           data-accent-mark={isActive || undefined}
@@ -633,10 +631,9 @@ export function CapsulesPage() {
                                 : "bg-tertiary-foreground",
                           )}
                         />
-                      }
-                      title={
                         <span
                           className={cn(
+                            "min-w-0 flex-1 truncate text-body",
                             isSelected && "font-510",
                             t.status === "done"
                               ? "text-tertiary-foreground line-through"
@@ -647,14 +644,12 @@ export function CapsulesPage() {
                         >
                           {t.title}
                         </span>
-                      }
-                      subtitle={
-                        <span className="text-tertiary-foreground">
-                          {isActive ? "Active · " : ""}
-                          {savedAt ? `saved ${relativeTime(savedAt)}` : "never captured"}
-                        </span>
-                      }
-                    />
+                      </span>
+                      <span className="mt-0.5 block truncate pl-[14px] text-meta text-tertiary-foreground">
+                        {isActive ? "Active · " : ""}
+                        {savedAt ? `saved ${relativeTime(savedAt)}` : "never captured"}
+                      </span>
+                    </button>
                   );
                 })}
               </div>

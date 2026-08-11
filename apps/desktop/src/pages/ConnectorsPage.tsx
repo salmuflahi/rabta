@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { PermissionCard } from "@/components/ui/permission-card";
-import { Row } from "@/components/ui/row";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Surface } from "@/components/ui/surface";
 import { canSee, capabilityFacts, neverSees } from "@/lib/connectorFacts";
@@ -332,8 +331,7 @@ export function ConnectorsPage() {
   // Passes the *resolved* `selected` (with its stale-id fallback already
   // applied), not the raw `selectedConnectorId` — so the row the hook marks
   // aria-selected always agrees with the connector the detail pane actually
-  // shows. Called unconditionally, before the loading-gate return below:
-  // React's Rules of Hooks don't bend for a skeleton branch.
+  // shows. Called unconditionally, before the loading-gate return below.
   const listNav = useListNavigation({
     items: connectors,
     idOf: (c) => c.id,
@@ -355,7 +353,6 @@ export function ConnectorsPage() {
       <div className="grid min-h-0 flex-1 grid-cols-[296px_minmax(0,1fr)] overflow-hidden">
         <div
           data-connector-list
-          aria-label="Connectors"
           {...listNav.containerProps}
           className="min-h-0 overflow-y-auto border-r-[0.5px] border-border px-2 pb-3 pt-2.5"
         >
@@ -365,25 +362,37 @@ export function ConnectorsPage() {
             connectors.map((c, index) => {
               const isSelected = selected?.id === c.id;
               return (
-                <Row
+                <button
                   key={c.id}
                   {...listNav.getItemProps(c, index)}
+                  type="button"
+                  aria-current={isSelected ? "true" : undefined}
+                  onClick={() => selectConnector(c.id)}
                   className={cn(
-                    // Neutral selection, full-bleed rather than a rounded
-                    // pill now that these are Row (which draws its own
-                    // edge-to-edge hairlines) — see CapsulesPage for the
-                    // full note on both calls.
-                    "cursor-default transition-colors duration-fast ease-standard",
+                    "block w-full cursor-default rounded-md px-2 py-1.5 text-left transition-colors duration-fast ease-standard",
                     isSelected ? "bg-secondary" : "hover:bg-hover",
                   )}
-                  leading={<LiveDot connected={c.connected} size={7} />}
-                  title={<span className={cn(isSelected && "font-510")}>{c.name}</span>}
-                  subtitle={
-                    <span className={c.connected ? "text-ok" : "text-tertiary-foreground"}>
-                      {c.connected ? "Connected" : "Offline"}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <LiveDot connected={c.connected} size={7} />
+                    <span
+                      className={cn(
+                        "min-w-0 flex-1 truncate text-body text-foreground",
+                        isSelected && "font-510",
+                      )}
+                    >
+                      {c.name}
                     </span>
-                  }
-                />
+                  </span>
+                  <span
+                    className={cn(
+                      "mt-0.5 block pl-[15px] text-meta",
+                      c.connected ? "text-ok" : "text-tertiary-foreground",
+                    )}
+                  >
+                    {c.connected ? "Connected" : "Offline"}
+                  </span>
+                </button>
               );
             })
           )}

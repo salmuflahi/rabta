@@ -496,13 +496,9 @@ describe("ProjectsPage ordering", () => {
     await chooseMoreMenuItem("Move down");
 
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
-    // Whole-row text content, not firstElementChild's: a row is now Row
-    // (leading icon, then a title/subtitle stack), so the first element is
-    // the icon, not the name — the row's full text still contains the name
-    // either way, and that's all this assertion is checking.
     const names = list()
       .getAllByRole("option")
-      .map((o) => o.textContent);
+      .map((b) => b.firstElementChild?.textContent?.trim());
     expect(names[0]).toContain("Test Project");
   });
 });

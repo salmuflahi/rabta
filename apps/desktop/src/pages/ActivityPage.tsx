@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Row } from "@/components/ui/row";
 import {
   Select,
   SelectContent,
@@ -194,7 +193,6 @@ export function ActivityPage() {
         <div
           ref={scroller}
           data-event-list
-          aria-label="Activity"
           {...listNav.containerProps}
           className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-4 pt-1"
         >
@@ -209,38 +207,37 @@ export function ActivityPage() {
               const isSelected = selected?.seq === e.seq;
               const aged = now - Date.parse(e.at) > AGED_MS;
               return (
-                <Row
+                <button
                   key={e.seq}
                   {...listNav.getItemProps(e, index)}
+                  type="button"
+                  aria-current={isSelected ? "true" : undefined}
+                  onClick={() => selectEvent(e.seq)}
                   className={cn(
-                    // Neutral selection, full-bleed rather than a rounded
-                    // pill now that these are Row (which draws its own
-                    // edge-to-edge hairlines) — see CapsulesPage for the
-                    // full note on both calls.
-                    "cursor-default transition-colors duration-fast ease-standard",
+                    // Neutral selection, as on every other list in this app
+                    // — see CapsulesPage for the full note.
+                    "flex w-full cursor-default items-center gap-3 rounded-[7px] px-2.5 py-[7px] text-left transition-colors duration-fast ease-standard",
                     isSelected ? "bg-secondary" : "hover:bg-hover",
                   )}
-                  title={
-                    <span
-                      className={cn(
-                        isSelected && "font-510",
-                        aged ? "text-tertiary-foreground" : "text-foreground",
-                      )}
-                    >
-                      {describeEvent(e, resolveName).sentence}
-                    </span>
-                  }
-                  trailing={
-                    <span
-                      className={cn(
-                        "text-meta tabular-nums",
-                        aged ? "text-tertiary-foreground" : "text-muted-foreground",
-                      )}
-                    >
-                      {relativeTime(e.at)}
-                    </span>
-                  }
-                />
+                >
+                  <span
+                    className={cn(
+                      "min-w-0 flex-1 truncate text-body",
+                      isSelected && "font-510",
+                      aged ? "text-tertiary-foreground" : "text-foreground",
+                    )}
+                  >
+                    {describeEvent(e, resolveName).sentence}
+                  </span>
+                  <span
+                    className={cn(
+                      "shrink-0 text-meta tabular-nums",
+                      aged ? "text-tertiary-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    {relativeTime(e.at)}
+                  </span>
+                </button>
               );
             })
           )}

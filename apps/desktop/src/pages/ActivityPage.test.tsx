@@ -158,12 +158,8 @@ describe("ActivityPage age and filtering", () => {
     ]);
     renderWithProviders(<ActivityPage />);
     const rows = eventList().getAllByRole("option");
-    // querySelector("span"), not firstElementChild: a row is now Row (a
-    // leading-less title/subtitle stack wrapping div), so the sentence text
-    // — the one thing this test cares about the colour of — sits on the
-    // first <span> inside the row, not the row's own first element.
-    expect(rows[0].querySelector("span")!.className).toMatch(/text-tertiary-foreground/);
-    expect(rows[1].querySelector("span")!.className).not.toMatch(/text-tertiary-foreground/);
+    expect(rows[0].firstElementChild!.className).toMatch(/text-tertiary-foreground/);
+    expect(rows[1].firstElementChild!.className).not.toMatch(/text-tertiary-foreground/);
   });
 
   // The filter is local state, not the store's `selectedConnectorId`:
@@ -200,7 +196,7 @@ describe("ActivityPage historical events", () => {
     ]);
     renderWithProviders(<ActivityPage />);
     const row = eventList().getAllByRole("option")[0];
-    expect(row.querySelector("span")!.className).not.toMatch(/text-tertiary-foreground/);
+    expect(row.firstElementChild!.className).not.toMatch(/text-tertiary-foreground/);
   });
 });
 
