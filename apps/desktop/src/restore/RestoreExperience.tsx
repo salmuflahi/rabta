@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Row } from "@/components/ui/row";
 import { Section } from "@/components/ui/section";
 import { Surface } from "@/components/ui/surface";
+import { announce } from "@/lib/announce";
 import { RESTORE_SHEET_EASE, prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { RestoreResult, RestoreStage, RestoreTool, ToolRestoreStatus } from "./types";
@@ -662,6 +663,22 @@ export function useRestore(): { start: (opts: StartOptions) => void; node: React
         runningRef.current = false;
         setStage(result.overall);
 
+        // One summary line once the outcome is known, alongside the
+        // per-row `role="status"` region above (which already speaks each
+        // tool's status as it lands) — the thing a screen-reader user
+        // otherwise has to reconstruct by listening to every row in turn.
+        // `result.tools` — not `toolStatuses` — is the source: it's the
+        // value actually driving this render, with no dependency on
+        // whichever async reveal path (staggered emit vs. all-at-once,
+        // just above) got there. Covers success, partial, AND failure:
+        // `activateSummaryToResult` (restore/normalize.ts) can resolve with
+        // `overall: "failure"` without ever rejecting, so this is the one
+        // place that sees every real outcome — the separate `!outcome.ok`
+        // branch below only handles the run() promise itself throwing.
+        const applied = result.tools.filter((t) => t.status === "applied").length;
+        const total = result.tools.length;
+        announce(`Restored ${applied} of ${total}. ${total - applied} waiting.`);
+
         if (result.overall === "success") {
           const elapsed = Date.now() - openedAtRef.current;
           if (elapsed < MIN_VISIBLE_MS) {
@@ -694,6 +711,14 @@ export function useRestore(): { start: (opts: StartOptions) => void; node: React
       setKept([]);
       setDetailsOpen(false);
       setStage("opening");
+
+      // Announced here, not from the "restoring" stage runOnce reaches a
+      // beat later: this is the moment the user's own action (clicking
+      // Resume) actually kicks the run off, which is when a screen-reader
+      // user should hear it — the gap between here and "restoring" is only
+      // sheet-entrance animation timing, which has nothing to say to
+      // someone who isn't watching it.
+      announce(`Restoring ${opts.tools.length} items`);
 
       runOnce(opts, myRunId);
     },

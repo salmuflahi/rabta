@@ -22,6 +22,7 @@ import { LoadError } from "@/components/ui/load-error";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CapsuleItems } from "@/features/capsules/CapsuleItems";
+import { announce } from "@/lib/announce";
 import { capsuleBranch, capsuleSavedAt } from "@/lib/capsuleFacts";
 import { humanizeCapsule, relativeTime } from "@/lib/humanize";
 import { toastErr, toastOk } from "@/lib/toast";
@@ -357,6 +358,11 @@ export function CapsulesPage() {
     try {
       const s = await invoke<SaveSummary>("save_capsule", { taskId: id });
       toastOk(s.captured.length ? "Saved state" : "Nothing connected to save", s.captured.join(", ") || undefined);
+      // Additive to the toast above, not a replacement — a sighted user
+      // already sees "Saved state"/"Nothing connected to save"; this is the
+      // same event reaching a screen-reader user, who gets nothing from a
+      // toast alone.
+      announce("Capsule captured");
       await refresh();
     } catch (e) {
       toastErr(e);

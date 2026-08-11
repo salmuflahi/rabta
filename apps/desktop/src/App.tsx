@@ -1,7 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
+import { LiveRegion } from "./components/ui/live-region";
+import { announce } from "./lib/announce";
 import { saveCapsule } from "./lib/capsule";
+import { describeEvent } from "./lib/humanize";
 import { toastOk } from "./lib/toast";
 import { useSessionTracking } from "./lib/useSessionTracking";
 import { ActivityPage } from "./pages/ActivityPage";
@@ -139,6 +142,21 @@ export default function App() {
       append(e.payload);
       if (e.payload.type === "connectorConnected" || e.payload.type === "connectorDisconnected") {
         refresh();
+        // Same "<name> connected"/"<name> disconnected" sentence the
+        // Activity log already prints for these two event types
+        // (humanize.ts's describeEvent) — reused rather than re-derived so
+        // the announcement can never drift from what's on screen.
+        // `resolveName` reads the store fresh via getState() rather than
+        // closing over a selector: this listener is registered once on
+        // mount, so a value captured from this effect's own render would
+        // stay pinned to the connectors list as it was at mount (empty) and
+        // never resolve a later reconnect's name. Read before refresh()'s
+        // promise settles, while the disconnecting connector's row is still
+        // in the list as "connected" — refresh() only marks it disconnected
+        // once the new snapshot lands, asynchronously.
+        const resolveName = (id: string) =>
+          useStore.getState().connectors.find((c) => c.id === id)?.name;
+        announce(describeEvent(e.payload, resolveName).sentence);
       }
       if (e.payload.type === "pairingRequested") {
         addPairing({
@@ -293,6 +311,10 @@ export default function App() {
 
   return (
     <div className="flex h-screen min-w-0 flex-col overflow-hidden">
+      {/* Screen-reader announcements — mounted exactly once, app-wide. See
+          lib/announce.ts; every call site routes through announce() rather
+          than rendering aria-live itself. */}
+      <LiveRegion />
       <div className="min-h-0 flex-1">
         <MigrateSheet />
         <PairingSheet />

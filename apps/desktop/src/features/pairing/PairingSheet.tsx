@@ -2,6 +2,7 @@ import * as React from "react";
 import { Icon } from "@/components/ui/icon";
 import { PermissionCard } from "@/components/ui/permission-card";
 import { Sheet } from "@/components/ui/sheet";
+import { announce } from "@/lib/announce";
 import { canSee, capabilitiesForKind, neverSees } from "@/lib/connectorFacts";
 import { kindCategory } from "@/lib/connectors";
 import { decidePairing } from "@/lib/pairing";
@@ -127,6 +128,28 @@ export function PairingSheet() {
     const id = setTimeout(() => setArmedId(current.pairingId), ARM_DELAY_MS);
     return () => clearTimeout(id);
   }, [current?.pairingId]);
+
+  // Announce a new pairing request once, assertively — the only interrupt
+  // this app makes. Unlike the queue's own inert-until-armed pacing above,
+  // this request arrived completely unprompted, and a screen-reader user
+  // gets no other signal that something is asking to talk to Rabta. Says
+  // "to Rabta" explicitly, unlike the sheet's own title below
+  // (`${shown.name} wants to connect`) — a sighted user has this whole
+  // sheet, with the app's identity all over it, for context; an assertive
+  // interruption heard with none at all needs to say what it's asking to
+  // connect to.
+  //
+  // Keyed on `shown`, not `current`: `current` blanks out whenever the user
+  // is on the Connectors view (deferring to its own in-context
+  // PairingCard — see this component's doc comment above) even though the
+  // same request is still pending, and re-announcing on every trip back
+  // from that view would fire the assertive interrupt again for a request
+  // already seen and not yet decided. `shown` only changes when a
+  // genuinely new request arrives (see its own comment above).
+  React.useEffect(() => {
+    if (!shown) return;
+    announce(`${shown.name} wants to connect to Rabta`, { assertive: true });
+  }, [shown]);
 
   if (!shown) return null;
 

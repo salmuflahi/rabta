@@ -389,8 +389,19 @@ it("no longer pushes the app down when a connector asks to pair", () => {
   });
   renderWithProviders(<App />);
   // The old banner was a sibling above the shell in the flex column. Nothing
-  // may sit between the app root and the shell any more.
-  expect(screen.queryByText(/wants to connect to Rabta/)).not.toBeInTheDocument();
+  // may sit between the app root and the shell any more. `aria-live` (and
+  // its descendants — queryByText matches the innermost element holding the
+  // text, which is the region's inner span, not the region div itself) is
+  // excluded from the search: Task 12's <LiveRegion /> (mounted app-wide in
+  // App.tsx) legitimately announces this exact phrase to screen readers via
+  // PairingSheet's own mount effect — a deliberate, separate mechanism from
+  // the old visible banner this assertion guards against, and unrelated to
+  // the layout claim being tested here.
+  expect(
+    screen.queryByText(/wants to connect to Rabta/, {
+      ignore: "[aria-live], [aria-live] *, script, style",
+    }),
+  ).not.toBeInTheDocument();
   expect(screen.getByRole("dialog")).toBeInTheDocument();
 });
 
