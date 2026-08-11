@@ -621,7 +621,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 **Interfaces:**
 - Produces: two new optional `SheetProps` fields consumed by Task 5:
   - `enterAdvances?: boolean` — default `true`. When `false`, Enter is swallowed and fires nothing.
-  - `secondary?: { label: string; onClick: () => void; tone?: "bad" } | null` — a third footer button, rendered between Cancel and the primary.
+  - `secondary?: { label: string; onClick: () => void; tone?: "bad"; disabled?: boolean } | null` — a third footer button, rendered between Cancel and the primary. `disabled` exists because Task 5 holds *both* decisions inert during the arm delay, not just the primary.
 
 This exists because the pairing sheet must not let Enter approve a connector, and needs a Deny button that is neither Cancel nor the primary.
 
@@ -701,8 +701,10 @@ In `SheetProps`, after `primary`:
 
 ```ts
   /** A third footer button between Cancel and the primary. `tone: "bad"`
-   * colours it as a destructive/negative choice (Deny, Disconnect). */
-  secondary?: { label: string; onClick: () => void; tone?: "bad" } | null;
+   * colours it as a destructive/negative choice (Deny, Disconnect).
+   * `disabled` exists because the pairing sheet holds *both* decisions
+   * inert while it arms — not just the affirmative one. */
+  secondary?: { label: string; onClick: () => void; tone?: "bad"; disabled?: boolean } | null;
   /** Whether Enter fires the primary action. Default `true`, per the
    * handoff's "enter advances".
    *
@@ -749,6 +751,7 @@ In the footer, between the Back button and the primary:
                   "h-7 rounded-[7px] px-3 text-body",
                   secondary.tone === "bad" && "text-bad hover:text-bad",
                 )}
+                disabled={secondary.disabled}
                 onClick={secondary.onClick}
               >
                 {secondary.label}
@@ -1016,16 +1019,24 @@ export function PairingSheet() {
 }
 ```
 
-The `Deny` button also needs the arm delay. `SheetProps["secondary"]` has no `disabled` field, so gate at the handler instead — change the `secondary.onClick` to:
+The `secondary` block above must also carry the arm gate — Task 4 already added `disabled` to the prop type for exactly this. Use both belts:
 
 ```ts
+      secondary={{
+        label: "Deny",
+        tone: "bad",
+        disabled: !armed,
         onClick: () => {
+          // The handler guard is the real protection; `disabled` is what the
+          // user and the test see. A disabled attribute alone can be defeated
+          // by a synthetic click.
           if (!armed) return;
           decidePairing(current, false, removePairing);
         },
+      }}
 ```
 
-and add `disabled?: boolean` to the `secondary` prop type in `sheet.tsx`, passing it to that `<Button disabled={secondary.disabled}>`, then set `disabled: !armed` here. Do both — the handler guard is the real protection, the `disabled` attribute is what the test and the user see.
+Apply the same handler guard to the primary's `onClick`, which currently relies on `disabled: !armed` alone.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
@@ -1696,7 +1707,7 @@ describe.each(PAGES)("$name master list", ({ Page }) => {
 });
 ```
 
-Each page needs seeded store state to render rows; follow the seeding each page's existing `*.test.tsx` already does.
+Each page fetches its rows through Tauri `invoke`, which `src/test/smoke-utils.tsx` already mocks to resolve `[]`. Seed rows by overriding it per test — `mockInvoke.mockImplementation(...)` keyed on the command name — exactly as `ProjectsPage.test.tsx` already does. Import `mockInvoke` from `@/test/smoke-utils`, never from `@tauri-apps/api/core` directly; the re-export is what guarantees you get the mock regardless of import order.
 
 - [ ] **Step 2: Run test to verify it fails**
 
