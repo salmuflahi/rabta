@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).parent
-SRC = HERE / "cand"
+SRC = HERE / "svg"
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE / "site"
 
 GROUPS = [
@@ -27,7 +27,7 @@ def main():
 
     files = sorted(SRC.glob("*.svg"))
     for f in files:
-        shutil.copy(f, OUT / "svg" / f.name)
+        pass  # svg/ is already the source
 
     seen, sections = set(), []
     for prefix, title, blurb in GROUPS:

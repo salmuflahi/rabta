@@ -62,3 +62,24 @@ icon change means a new Chrome Web Store submission and a new `.vsix`.
 - **`dogear-leaf`** — the fold swallowed the whole glyph.
 - A calligraphic pass abstracted from Arabic letterforms produced a smiley
   face; it is not included.
+
+## Front-runner
+
+`svg/knot-trefoil-v2.svg` — a true trefoil knot. Tangerine sits at the three
+crossings, exactly where the band turns over. It survives 16px, and the mono
+colourway recombines into one continuous unbroken knot. Needs path
+simplification before shipping: the glyph is a sampled polyline, and that
+string is embedded in all 27 derived assets.
+
+Runners-up: `dogear-clasp.svg` (342 bytes, straight lines only),
+`mine-turn.svg` (333 bytes, real arcs), `mine-tre-g.svg` (heavier knot,
+fold reduced to a single crossing).
+
+Marks suffixed `-v2` are refinements of an earlier candidate of the same name;
+both are kept so they can be compared.
+
+## Viewing
+
+`gallery.html` is a single self-contained page — open it directly in a
+browser, no server needed. `index.html` is the same set with download links,
+and needs the `svg/` folder beside it.
