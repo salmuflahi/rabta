@@ -1,0 +1,224 @@
+import * as React from "react";
+
+/** Type-ahead buffer window: consecutive printable keystrokes within this
+ * many ms are treated as one search string; a pause this long clears the
+ * buffer so the next keystroke starts a fresh search. */
+const TYPEAHEAD_TIMEOUT_MS = 600;
+
+export interface ListNavigation<T> {
+  containerProps: { role: "listbox"; "aria-activedescendant"?: string; onKeyDown: (e: React.KeyboardEvent) => void };
+  getItemProps: (item: T, index: number) => {
+    role: "option";
+    id: string;
+    "aria-selected": boolean;
+    tabIndex: 0 | -1;
+    onClick: () => void;
+    onFocus: () => void;
+    ref: (el: HTMLElement | null) => void;
+  };
+}
+
+/**
+ * Keyboard/roving-focus behaviour shared by all four master lists (Capsules,
+ * Projects, Connectors, Activity). Wires a `role="listbox"` container and
+ * `role="option"` rows: arrow keys move, Home/End jump to the ends,
+ * printable characters type-ahead search, and a roving `tabIndex` keeps the
+ * whole list a single Tab stop. This task only builds the hook — nothing
+ * consumes it yet (see Task 11, which wires it into the four pages).
+ *
+ * Three decisions here are deliberate, not oversights:
+ *
+ * - Selection follows focus: there is no separate "active index" state.
+ *   Arrows call `onSelect` directly, keyed off the caller-owned
+ *   `selectedId`. In a master/detail list the detail pane is the point —
+ *   moving a highlight without loading the detail would make arrow keys
+ *   useless — so the row that's highlighted, focused, and loaded in the
+ *   detail pane are always the same row.
+ * - Ends do not wrap: ArrowUp on the first row / ArrowDown on the last does
+ *   nothing, rather than jumping to the opposite end. Wrapping in a long
+ *   list loses the user's place.
+ * - Enter and Space are not handled. Selection already follows focus (see
+ *   above), so there is nothing left for either key to confirm.
+ */
+export function useListNavigation<T>(opts: {
+  items: T[];
+  idOf: (item: T) => string;
+  labelOf: (item: T) => string;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  /** Namespaces each row's DOM `id` (`${idPrefix}-${idOf(item)}`) so
+   * `aria-activedescendant` has a collision-free id to reference even when
+   * several of these lists share a page. */
+  idPrefix: string;
+}): ListNavigation<T> {
+  const { items, idOf, labelOf, selectedId, onSelect, idPrefix } = opts;
+
+  // Every rendered row registers itself here (via getItemProps' `ref`),
+  // keyed by its own (unprefixed) id — regardless of whether it's currently
+  // selected. That means the element a keyboard move is about to land on is
+  // already available synchronously: no need to wait a render cycle for a
+  // fresh selectedId to come back down before we can focus/scroll it.
+  const itemRefs = React.useRef<Map<string, HTMLElement>>(new Map());
+
+  const typeaheadBufferRef = React.useRef("");
+  const typeaheadTimerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // Mirrors the undo-timer cleanup pattern used elsewhere in this codebase
+  // (useDeferredDelete, useSessionTracking): don't leave a pending timeout
+  // dangling past unmount.
+  React.useEffect(() => {
+    return () => {
+      if (typeaheadTimerRef.current !== undefined) {
+        clearTimeout(typeaheadTimerRef.current);
+      }
+    };
+  }, []);
+
+  // The resolved selected item, or null if selectedId is null OR points at
+  // an id that isn't (or is no longer) in `items`. Using this rather than
+  // the raw selectedId for the "is anything selected" checks below means a
+  // stale id can't strand the list with zero tabbable rows.
+  const selectedItem = items.find((item) => idOf(item) === selectedId) ?? null;
+
+  // The one place that moves real DOM focus. Both the "move" (Arrow/Home/
+  // End) and type-ahead paths funnel through this, so a keyboard action
+  // always reports the new selection AND focuses + reveals its row.
+  // getItemProps().onClick deliberately does NOT call this — see its
+  // comment below.
+  const selectAndFocus = (item: T) => {
+    const id = idOf(item);
+    onSelect(id);
+    const el = itemRefs.current.get(id);
+    el?.focus();
+    el?.scrollIntoView({ block: "nearest" });
+  };
+
+  // Moves to `index` if it's in range. Out of range — including every index
+  // on an empty list — is a deliberate no-op: this is what makes the ends
+  // not wrap (see the module doc comment above).
+  const moveTo = (index: number) => {
+    const target = items[index];
+    if (!target) return;
+    selectAndFocus(target);
+  };
+
+  const handleTypeahead = (char: string) => {
+    if (typeaheadTimerRef.current !== undefined) {
+      clearTimeout(typeaheadTimerRef.current);
+    }
+    typeaheadTimerRef.current = setTimeout(() => {
+      typeaheadBufferRef.current = "";
+    }, TYPEAHEAD_TIMEOUT_MS);
+
+    typeaheadBufferRef.current += char.toLowerCase();
+    const buffer = typeaheadBufferRef.current;
+
+    // Repeated presses of one key (e.g. "c" "c" "c") build a buffer like
+    // "ccc", which would never prefix-match a real label. Treat an
+    // all-identical buffer as a search for that single character instead —
+    // combined with searching from just past the current row below, this is
+    // what makes holding one key cycle through every row that starts with
+    // it rather than getting stuck re-matching the first one.
+    const isRepeatedChar = buffer.length > 1 && buffer.split("").every((c) => c === buffer[0]);
+    const query = isRepeatedChar ? buffer[0] : buffer;
+
+    const currentIndex = items.findIndex((item) => idOf(item) === selectedId);
+    // Start just AFTER the current row, wrapping through the whole list
+    // back around to (and including) the current row itself. That's what
+    // lets a same-letter repeat step to the *next* match each time instead
+    // of re-finding the row that's already selected — and it still falls
+    // back to the current row if it's the only match.
+    const startIndex = currentIndex === -1 ? 0 : currentIndex + 1;
+
+    for (let offset = 0; offset < items.length; offset++) {
+      const candidate = items[(startIndex + offset) % items.length];
+      if (labelOf(candidate).toLowerCase().startsWith(query)) {
+        selectAndFocus(candidate);
+        return;
+      }
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    const currentIndex = items.findIndex((item) => idOf(item) === selectedId);
+
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        // No selection yet behaves as "before row 0", so the first press
+        // reveals the top row instead of skipping past it.
+        moveTo(currentIndex + 1);
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        moveTo(currentIndex - 1);
+        break;
+      case "Home":
+        event.preventDefault();
+        moveTo(0);
+        break;
+      case "End":
+        event.preventDefault();
+        moveTo(items.length - 1);
+        break;
+      case "Enter":
+      case " ":
+        // Deliberately not handled — see the module doc comment above.
+        // (Falling through to the default case would also feed the space
+        // character into the type-ahead buffer, which we don't want either.)
+        break;
+      default:
+        // Type-ahead only for an unmodified, single printable character:
+        // longer key names (e.g. "ArrowDown", already handled above but
+        // this guards any other multi-char key) and shortcut chords
+        // (Cmd/Ctrl/Alt+letter) should pass through untouched.
+        if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          event.preventDefault();
+          handleTypeahead(event.key);
+        }
+        break;
+    }
+  };
+
+  return {
+    containerProps: {
+      role: "listbox",
+      "aria-activedescendant": selectedItem ? `${idPrefix}-${idOf(selectedItem)}` : undefined,
+      onKeyDown: handleKeyDown,
+    },
+    getItemProps: (item: T, index: number) => {
+      const id = idOf(item);
+      const selected = selectedItem !== null && id === idOf(selectedItem);
+      // Roving tabIndex: the selected row is the list's one Tab stop. If
+      // nothing is validly selected, row 0 holds that stop instead, so the
+      // list is always reachable by Tab.
+      const tabIndex: 0 | -1 = selected || (selectedItem === null && index === 0) ? 0 : -1;
+      return {
+        role: "option",
+        id: `${idPrefix}-${id}`,
+        "aria-selected": selected,
+        tabIndex,
+        onClick: () => onSelect(id),
+        // Selection follows focus generally, not just via this hook's own
+        // Arrow/Home/End/type-ahead moves (which already call onSelect
+        // inside selectAndFocus above): Tab landing on the roving stop, or
+        // a real click — which focuses its target natively in a browser —
+        // should select too. This is the one handler that keeps focus and
+        // selection in sync for focus changes this hook didn't itself
+        // initiate.
+        onFocus: () => onSelect(id),
+        // Click deliberately does NOT call .focus()/.scrollIntoView(): the
+        // user may have clicked this row with focus sitting elsewhere on
+        // purpose (e.g. a filter input above the list), and yanking focus
+        // into the list would undo that.
+        ref: (el: HTMLElement | null) => {
+          if (el) {
+            itemRefs.current.set(id, el);
+          } else {
+            itemRefs.current.delete(id);
+          }
+        },
+      };
+    },
+  };
+}
