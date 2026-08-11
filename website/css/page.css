@@ -424,6 +424,67 @@
     text-decoration: none;
   }
 
+  /* ---- the closing call to action ------------------------------------------
+     `.cta` and `.hero__actions` were being used on /why/ and /404.html with no
+     rule anywhere that matched them: `.hero__actions` is defined in
+     landing.css, which document routes deliberately never load, and `.cta` was
+     never defined at all. Both rendered as bare block elements — a heading, two
+     links and a line of text stacked with default margins at the end of an
+     otherwise composed page.
+
+     Centred rather than railed, because this is the page ending rather than
+     another section of it. */
+  .cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-block: var(--section-standard);
+    border-top: 1px solid var(--hairline);
+    text-align: center;
+  }
+
+  .cta h2 {
+    max-width: 18ch;
+    color: var(--ivory);
+    font-size: clamp(34px, 3.6vw, 46px);
+    font-weight: 560;
+    line-height: 1.06;
+    letter-spacing: -0.042em;
+    text-wrap: balance;
+  }
+
+  /* `.hero__actions` is landing.css's class and the markup here uses it. Rather
+     than rename it on two pages, it gets a rule scoped inside `.cta` — where
+     landing.css is guaranteed not to be loaded, so there is nothing to
+     conflict with. `.cta__actions` deliberately stays doc.css's, which 404.html
+     already uses left-aligned. */
+  .cta .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s5);
+    margin-top: var(--s7);
+  }
+
+  .cta > .mono {
+    margin-top: var(--s5);
+    color: var(--cool-mid);
+  }
+
+  @media (max-width: 599px) {
+    .cta .hero__actions {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      gap: var(--s3);
+    }
+
+    .cta .hero__actions .button {
+      justify-content: center;
+    }
+  }
+
   /* ---- narrow --------------------------------------------------------------
      The axis track collapses first: a 96px label column beside a 40ch measure
      is a label column with a paragraph trapped next to it. */

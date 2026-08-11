@@ -816,6 +816,56 @@ test("the inner pages are laid out, not just typeset", async () => {
   }
 });
 
+test("no page styles itself with a class no stylesheet it loads defines", async () => {
+  // `/why/` shipped with `class="cta"` and `class="hero__actions"` on its
+  // closing block. `.cta` was defined nowhere at all, and `.hero__actions`
+  // lives in landing.css — which document routes deliberately never load. Both
+  // rendered as bare block elements: a heading, two links and a line of text
+  // stacked with default margins at the end of an otherwise composed page.
+  //
+  // It survived review because nothing was *broken*. The markup was right, the
+  // content was right, the page returned 200. Only the rendering was wrong, and
+  // no assertion in this suite reads rendering. This one reads the next best
+  // thing: whether a class the markup relies on is defined in a stylesheet that
+  // page actually links.
+  const stylesheets = new Map();
+  const cssFor = async (file) => {
+    if (!stylesheets.has(file)) {
+      stylesheets.set(file, await readFile(resolve(SITE, file), "utf8"));
+    }
+    return stylesheets.get(file);
+  };
+
+  // Classes that are hooks rather than styling: JS targets, or names used only
+  // as a descendant qualifier. Each needs a reason, not just an entry.
+  const behavioural = new Set([
+    "visually-hidden", // defined in shell.css's reset layer via [class]
+  ]);
+
+  for (const route of [...routes, "/404.html"]) {
+    const html = await readRoute(route);
+    const links = [...html.matchAll(/<link rel="stylesheet" href="\/([^"]+)"/g)].map(
+      (m) => m[1],
+    );
+    const css = (await Promise.all(links.map(cssFor))).join("\n");
+
+    const main = html.match(/<main\b[\s\S]*?<\/main>/)?.[0] ?? "";
+    const used = new Set(
+      [...main.matchAll(/class="([^"]+)"/g)]
+        .flatMap((m) => m[1].split(/\s+/))
+        .filter(Boolean),
+    );
+
+    for (const name of used) {
+      if (behavioural.has(name)) continue;
+      assert.ok(
+        css.includes(`.${name}`),
+        `${route}: .${name} is used in <main> but defined in none of ${links.join(", ")}`,
+      );
+    }
+  }
+});
+
 test("mobile Return Field offsets fit inside the viewport", async () => {
   const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
   const mobile = css.match(

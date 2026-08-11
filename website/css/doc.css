@@ -278,6 +278,19 @@
     color: var(--cool-soft);
   }
 
+  /* The expected value inside a verification block — today, the SHA-256 the
+     command above it should print. It has to look different from the command:
+     one is a thing you type, the other is a thing you compare against, and on
+     the page whose entire job is "check these match", rendering them
+     identically is the one mistake that matters.
+     `user-select: all` makes the whole hash one click to select. js/main.js's
+     copy-button comment has claimed that behaviour since the control shipped;
+     this rule is what makes the claim true. */
+  .out {
+    color: var(--ivory);
+    user-select: all;
+  }
+
   /* The checksum copy affordance. The button ships `hidden` and js/main.js
      reveals it, so a scriptless page never offers a control that cannot work —
      the hex itself stays selectable either way. */
