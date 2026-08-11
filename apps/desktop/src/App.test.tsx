@@ -200,3 +200,15 @@ describe("App global keyboard shortcuts", () => {
     expect(useStore.getState().newProjectRequest).toBe(false);
   });
 });
+
+it("no longer pushes the app down when a connector asks to pair", () => {
+  useStore.setState({
+    pairings: [{ pairingId: "p1", name: "Chrome", kind: "browser" }],
+    view: "overview",
+  });
+  renderWithProviders(<App />);
+  // The old banner was a sibling above the shell in the flex column. Nothing
+  // may sit between the app root and the shell any more.
+  expect(screen.queryByText(/wants to connect to Rabta/)).not.toBeInTheDocument();
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+});

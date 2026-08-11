@@ -1,10 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect } from "react";
-import { Button } from "./components/ui/button";
 import { saveCapsule } from "./lib/capsule";
-import { kindLabel } from "./lib/connectors";
-import { decidePairing } from "./lib/pairing";
 import { toastOk } from "./lib/toast";
 import { useSessionTracking } from "./lib/useSessionTracking";
 import { ActivityPage } from "./pages/ActivityPage";
@@ -15,6 +12,7 @@ import { ProjectsPage } from "./pages/ProjectsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { AppShell } from "./shell/AppShell";
 import { MigrateSheet } from "./features/migrate/MigrateSheet";
+import { PairingSheet } from "./features/pairing/PairingSheet";
 import { CommandPalette } from "./shell/CommandPalette";
 import {
   useStore,
@@ -58,10 +56,8 @@ export default function App() {
   const requestResume = useStore((s) => s.requestResume);
   const requestNewProject = useStore((s) => s.requestNewProject);
   const requestNewTask = useStore((s) => s.requestNewTask);
-  const pairings = useStore((s) => s.pairings);
   const setPairings = useStore((s) => s.setPairings);
   const addPairing = useStore((s) => s.addPairing);
-  const removePairing = useStore((s) => s.removePairing);
   const setHubPort = useStore((s) => s.setHubPort);
   const toggleCommandOpen = useStore((s) => s.toggleCommandOpen);
   const toggleSidebar = useStore((s) => s.toggleSidebar);
@@ -288,34 +284,11 @@ export default function App() {
     requestNewTask,
   ]);
 
-  function decide(pairing: PendingPairing, ok: boolean) {
-    decidePairing(pairing, ok, removePairing);
-  }
-
   return (
     <div className="flex h-screen min-w-0 flex-col overflow-hidden">
-      {/* Global pairing banner — approve/deny from any page. Suppressed on the
-          Connectors view, which shows its own in-context PairingCard (else the
-          same request appears twice on one screen). */}
-      {view !== "connectors" &&
-        pairings.map((p) => (
-          <div key={p.pairingId} className="flex items-center gap-3 border-b border-warn/30 bg-warn-soft p-2 text-sm text-foreground">
-            <span className="min-w-0 flex-1">
-              <b>{p.name}</b> ({kindLabel(p.kind)}) wants to connect to Rabta
-            </span>
-            {/* secondary, not primary: this banner overlays whichever page is
-                current, and Overview/Capsules already spend that page's one
-                primary on their own live action (Resume/Restore). */}
-            <Button size="sm" variant="secondary" onClick={() => decide(p, true)}>
-              Approve
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => decide(p, false)}>
-              Deny
-            </Button>
-          </div>
-        ))}
       <div className="min-h-0 flex-1">
         <MigrateSheet />
+        <PairingSheet />
         <AppShell>
           <CurrentPage view={view} />
         </AppShell>

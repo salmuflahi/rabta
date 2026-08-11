@@ -76,3 +76,20 @@ describe("expectAtMostOneAccent", () => {
     expect(() => expectAtMostOneAccent(container)).not.toThrow();
   });
 });
+
+it("budgets a modal layer separately from the page beneath it", () => {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <main><button class="bg-primary">Page accent</button></main>
+    <div data-sheet><button class="bg-primary">Sheet accent</button></div>
+  `;
+  expect(() => expectAtMostOneAccent(container)).not.toThrow();
+});
+
+it("still rejects two accents inside one layer", () => {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <main><button class="bg-primary">One</button><button class="bg-primary">Two</button></main>
+  `;
+  expect(() => expectAtMostOneAccent(container)).toThrow();
+});

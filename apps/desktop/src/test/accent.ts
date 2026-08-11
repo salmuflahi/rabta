@@ -1,5 +1,12 @@
 import { expect } from "vitest";
 
+/** Elements that establish their own accent budget. A modal layer sits
+ * *over* the page rather than competing with it, so a sheet's one accent and
+ * the page's one accent are not two accents on one screen. Introduced when
+ * the pairing sheet's Approve button began overlaying pages that already
+ * spend their own accent on Resume/Restore. */
+const LAYER_SELECTOR = "[data-sheet], [role='dialog']";
+
 /**
  * Asserts a rendered view spends the orange accent at most once.
  *
@@ -8,6 +15,15 @@ import { expect } from "vitest";
  * screens grow, so it is checked rather than remembered. Only accent *fills*
  * count — a live-state dot or rail is a mark, not a competing action. Live
  * markers opt out of this count by setting the `data-accent-mark` attribute.
+ *
+ * The budget is per layer, not per container. A `[data-sheet]` or
+ * `[role="dialog"]` element overlays the page rather than competing with
+ * it, so it gets its own budget separate from the page beneath it — one
+ * accent in the sheet and one on the page is not two accents on one screen.
+ * Two accents inside the *same* layer (including two on the bare page) are
+ * still rejected: each accented element is attributed to its nearest
+ * enclosing layer, or to the page itself when it has none, and every group
+ * is checked independently.
  */
 export function expectAtMostOneAccent(container: HTMLElement): void {
   const accented = Array.from(container.querySelectorAll<HTMLElement>("*"))
@@ -17,9 +33,23 @@ export function expectAtMostOneAccent(container: HTMLElement): void {
       return /(^|\s)bg-primary(\s|$)/.test(classStr);
     })
     .filter((el) => !el.hasAttribute("data-accent-mark"));
-  const labels = accented.map((el) => el.textContent?.trim() || "(unlabelled)");
-  expect(
-    accented.length,
-    `expected at most one accent action, found ${accented.length}: ${labels.join(", ")}`,
-  ).toBeLessThanOrEqual(1);
+
+  // Bucket by the nearest enclosing layer element itself (not just "in a
+  // layer or not"), so two separate sheets — were that ever possible — would
+  // also be budgeted independently rather than pooled together.
+  const byLayer = new Map<Element | null, HTMLElement[]>();
+  for (const el of accented) {
+    const layer = el.closest(LAYER_SELECTOR);
+    const group = byLayer.get(layer);
+    if (group) group.push(el);
+    else byLayer.set(layer, [el]);
+  }
+
+  for (const group of byLayer.values()) {
+    const labels = group.map((el) => el.textContent?.trim() || "(unlabelled)");
+    expect(
+      group.length,
+      `expected at most one accent action, found ${group.length}: ${labels.join(", ")}`,
+    ).toBeLessThanOrEqual(1);
+  }
 }
