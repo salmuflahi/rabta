@@ -291,12 +291,41 @@ test("the current route is marked in the nav, not just in the markup", async () 
   assert.match(rule, /transform:\s*translateX\(0\) skewX\(var\(--cut-skew\)\)/);
   assert.match(rule, /transition:\s*none/, "the indicator is a state, not a gesture");
 
-  // And the attribute it depends on is actually on the document routes.
-  for (const route of ["/setup/", "/privacy/"]) {
+  // And the attribute it depends on is actually on every route that has a
+  // chrome link to itself.
+  //
+  // This deliberately does not look only inside `.nav__links`. The eight-page
+  // rebuild moved Privacy and Roadmap into the footer, so a nav-only check
+  // reported those pages as unmarked when they are correctly marked — in the
+  // other nav. What matters is that a page marks itself exactly once, and
+  // marks the link that actually points at it.
+  for (const route of [
+    "/why/",
+    "/setup/",
+    "/faq/",
+    "/roadmap/",
+    "/changelog/",
+    "/contact/",
+    "/privacy/",
+  ]) {
     const html = await readRoute(route);
-    const nav = html.match(/<nav class="nav__links"[\s\S]*?<\/nav>/)?.[0] ?? "";
-    assert.equal((nav.match(/aria-current="page"/g) ?? []).length, 1, route);
+    const marks = html.match(/<a href="([^"]*)"[^>]*aria-current="page"/g) ?? [];
+    assert.equal(marks.length, 1, `${route}: expected exactly one aria-current`);
+    assert.match(
+      marks[0],
+      new RegExp(`href="${route}"`),
+      `${route}: aria-current is on the wrong link`,
+    );
   }
+
+  // Home is the exception, and deliberately so: its chrome link is the brand
+  // mark, not a nav item, so there is nothing to mark.
+  const home = await readRoute("/");
+  assert.equal(
+    (home.match(/aria-current="page"/g) ?? []).length,
+    0,
+    "home marks no nav item",
+  );
 });
 
 test("every enhancement resolves to the finished state without JavaScript", async () => {

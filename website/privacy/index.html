@@ -36,6 +36,7 @@
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
+<!-- chrome:nav -->
 <header class="nav">
   <div class="rail nav__inner">
     <a class="brand" href="/" aria-label="Rabta — home">
@@ -48,14 +49,18 @@
     </a>
 
     <nav class="nav__links" aria-label="Primary">
-      <a href="/#how-it-works">How it works</a>
-      <a href="/privacy/" aria-current="page">Privacy</a>
+      <a href="/why/">Why Rabta</a>
+      <a href="/#how-it-works">Product</a>
       <a href="/setup/">Setup</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/changelog/">Changelog</a>
+      <a href="/contact/">Contact</a>
     </nav>
 
     <a class="button button--small button--primary sweep nav__download" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
   </div>
 </header>
+<!-- /chrome:nav -->
 
 <main id="main" tabindex="-1">
   <div class="wrap railed page-head">
@@ -394,6 +399,7 @@
     </button>
   </div>
 
+<!-- chrome:foot -->
   <div class="rail foot__compact">
     <a class="brand" href="/" aria-label="Rabta — home">
       <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
@@ -405,16 +411,33 @@
     </a>
 
     <nav class="foot__links" aria-label="Footer">
+      <a href="/why/">Why Rabta</a>
       <a href="/setup/">Setup</a>
-      <a href="/privacy/">Privacy</a>
-      <a href="https://github.com/salmuflahi/rabta" target="_blank" rel="noopener noreferrer">GitHub</a>
-      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">Release</a>
-      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener noreferrer">Open VSX</a>
-      <a href="https://github.com/salmuflahi/rabta/issues" target="_blank" rel="noopener noreferrer">Report an issue</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/roadmap/">Roadmap</a>
+      <a href="/changelog/">Changelog</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/" aria-current="page">Privacy</a>
+    </nav>
+
+    <!-- Off-site links are kept in their own row so the footer's first row
+         stays wholly navigational. `rel="me"` lets a profile verify this site
+         back; `noopener noreferrer` is on every external target.
+
+         Instagram and TikTok are requested but not yet linked: their handles
+         have not been supplied, and a dead social link on a launch site is
+         worse than an absent one. Adding each is one <a> in this block —
+         nothing else needs to change, because every page pulls this file. -->
+    <nav class="foot__links foot__links--external" aria-label="Elsewhere">
+      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
+      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release</a>
+      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" rel="noopener noreferrer" target="_blank">Open VSX</a>
+      <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
     </nav>
 
     <p class="foot__meta">v0.1.0 · MIT · Sammy Almuflahi</p>
   </div>
+<!-- /chrome:foot -->
 </footer>
 
 </body>

@@ -10,9 +10,11 @@
 // time. `--check` verifies every page is already in sync and exits non-zero
 // otherwise, which is what CI runs.
 //
-// Per-page state that can't be shared lives in `data-nav` on the page's <body>:
-// the matching nav link gets `aria-current="page"`. That is the only difference
-// permitted between two pages' chrome.
+// Exactly one difference is permitted between two pages' chrome: the link to
+// the page you are on gets `aria-current="page"`. That is derived from the
+// file's own path, so a page cannot disagree with itself about which route it
+// serves — and it is applied to whichever nav actually contains the link, since
+// Privacy and Roadmap live only in the footer.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { readdirSync, statSync } from "node:fs";
@@ -59,13 +61,28 @@ function stamp(html, name, body) {
   return html.slice(0, a + open.length) + "\n" + body + "\n" + html.slice(b);
 }
 
-/** Mark the nav link matching this page's `data-nav`. Applied after stamping,
- * so the canonical fragment stays free of per-page state. */
-function markCurrent(html) {
-  const m = html.match(/<body[^>]*\sdata-nav="([a-z-]+)"/);
-  if (!m) return html;
+/** The site route a page file serves: `website/faq/index.html` → `/faq/`. */
+function routeOf(file) {
+  const rel = relative(SITE, file).replaceAll("\\", "/");
+  if (rel === "index.html") return "/";
+  return "/" + rel.replace(/index\.html$/, "");
+}
+
+/** Mark the current route in whichever chrome nav actually links to it.
+ *
+ * Matching on the route rather than on a `data-nav` name matters because the
+ * two navs are not interchangeable: Privacy and Roadmap live only in the
+ * footer, so keying off a nav-only name left those pages with no "you are
+ * here" mark at all. A screen-reader user on /privacy/ should still be told
+ * which link is the page they are on, and it is the footer's.
+ *
+ * Applied after stamping, so the canonical fragments stay free of per-page
+ * state — this is the one difference permitted between two pages' chrome. */
+function markCurrent(html, file) {
+  const route = routeOf(file);
+  if (route === "/") return html; // Home is the brand link, not a nav item
   return html.replace(
-    new RegExp(`(<a href="[^"]*" data-nav="${m[1]}")`),
+    new RegExp(`(<a href="${route}"(?![^>]*aria-current))`),
     `$1 aria-current="page"`,
   );
 }
@@ -87,7 +104,7 @@ for (const file of pages()) {
   }
   if (!touched) continue;
 
-  after = markCurrent(after);
+  after = markCurrent(after, file);
   if (after === before) continue;
 
   stale.push(relative(ROOT, file));
