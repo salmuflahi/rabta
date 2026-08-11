@@ -15,6 +15,8 @@
 // the paired *_PX constants exist so a test can assert the literal classes
 // actually agree with the numbers, instead of trusting a comment.
 
+import { DUR } from "@/lib/motion";
+
 /** The Toolbar's total rendered height. box-sizing: border-box (Tailwind
  * Preflight) means this already includes the Toolbar's own border-b —
  * no extra math needed when comparing against it.
@@ -165,6 +167,13 @@ export function sidebarToggleLeftPx(fullscreen: boolean): number {
 // content stays mounted for exactly this long after a collapse so it can
 // animate out before unmounting (see useSidebarPresence).
 
-/** Sidebar open/close duration. Must equal Tailwind's `duration-sidebar`
- * and the `--sidebar-width` transition in index.css. */
-export const SIDEBAR_MOTION_MS = 280;
+/** Sidebar open/close duration. Re-exported under this name (rather than
+ * having every call site below import `DUR.sidebar` directly) because this
+ * module, not motion.ts, is where the surrounding geometry constants those
+ * call sites already depend on live. The value itself now traces to
+ * motion.ts's `DUR.sidebar` — the single source both this constant and
+ * Tailwind's `duration-sidebar` utility read from — and must still equal
+ * the `--sidebar-width` transition in index.css, which is hand-kept in
+ * sync (a CSS custom property's transition-duration can't import a JS/TS
+ * value). */
+export const SIDEBAR_MOTION_MS = DUR.sidebar;

@@ -55,3 +55,27 @@ export const BRAND_EASE = "cubic-bezier(0.2, 0.8, 0.2, 1)";
  * `MOTION_STANDARD_MS`, `SIDEBAR_MS`) has been removed; this is the one
  * name for this curve now. */
 export const RESTORE_SHEET_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+
+/**
+ * Durations, in milliseconds, that `tailwind.config.js` publishes as
+ * `duration-*` utilities. This file is the source; the config reads from it.
+ * Before Phase 4 the two restated each other and drifted.
+ */
+export const DUR = {
+  fast: 120,
+  standard: 180,
+  sidebar: 280,
+  switch: 170,
+  /** The Migrate and pairing sheets' slide-down. */
+  sheet: 300,
+} as const;
+
+/**
+ * The app's three easing curves, published by Tailwind as `ease-*`. Three is
+ * the whole budget — a fourth needs a reason written down here.
+ */
+export const EASE = {
+  brand: BRAND_EASE,
+  standard: RESTORE_SHEET_EASE,
+  mac: "cubic-bezier(0.32, 0.72, 0, 1)",
+} as const;

@@ -7,6 +7,9 @@ import {
   STAGGER_MS,
   MAX_RESTORE_MS,
   BRAND_EASE,
+  RESTORE_SHEET_EASE,
+  DUR,
+  EASE,
 } from "@/lib/motion";
 
 describe("prefersReducedMotion", () => {
@@ -53,5 +56,27 @@ describe("timing constants", () => {
 
   it("exports the brand ease as the expected cubic-bezier string", () => {
     expect(BRAND_EASE).toBe("cubic-bezier(0.2, 0.8, 0.2, 1)");
+  });
+});
+
+// Console v2 Phase 4, Task 9 — DUR/EASE are the single source `tailwind.
+// config.js` reads its `duration-*`/`ease-*` utilities from, instead of
+// restating the same numbers a second time. These tests pin the published
+// shape so a future edit can't drift the two apart again.
+describe("motion tokens", () => {
+  it("exports the durations Tailwind publishes", () => {
+    expect(DUR).toEqual({ fast: 120, standard: 180, sidebar: 280, switch: 170, sheet: 300 });
+  });
+
+  it("exports the three easing curves and no more", () => {
+    expect(Object.keys(EASE).sort()).toEqual(["brand", "mac", "standard"]);
+  });
+
+  it("keeps BRAND_EASE and EASE.brand the same value", () => {
+    expect(EASE.brand).toBe(BRAND_EASE);
+  });
+
+  it("keeps RESTORE_SHEET_EASE and EASE.standard the same value", () => {
+    expect(EASE.standard).toBe(RESTORE_SHEET_EASE);
   });
 });

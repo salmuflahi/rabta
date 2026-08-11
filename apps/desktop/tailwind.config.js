@@ -1,3 +1,24 @@
+// Console v2 Phase 4, Task 9 — `DUR`/`EASE` are the single source of truth
+// for every duration/easing value below; this file no longer restates them.
+// A real static `import` (not `require`) because this file is loaded two
+// different ways and only `import` works under both:
+//   - `src/theme/{elevation,type}.test.ts` `import` this file directly, so
+//     Vite/Vitest's own resolver+TS-transform walks this import exactly
+//     like any other `@/lib/motion` import in the app.
+//   - PostCSS loads it through Tailwind's own loader (tailwindcss/lib/lib/
+//     load-config.js), which tries a plain Node `require` first and, since
+//     this package is `"type": "module"`, falls back to jiti (bundled
+//     inside tailwindcss). jiti transpiles this file's ESM to CJS and
+//     serves nested `require`s (including the `plugins` line's existing
+//     `require("tailwindcss-animate")`) from its own loader — so this
+//     `import` gets rewritten to a jiti-resolved `require` there too, and
+//     either way lands on the same file.
+// A plain top-level `require("./src/lib/motion")` was tried first and
+// fails under the first path: Vite hands `.js` config files a Node-style
+// `require` (via `createRequire`) that resolves real packages like
+// `tailwindcss-animate` but not an extensionless relative `.ts` path.
+import { DUR, EASE } from "./src/lib/motion";
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
@@ -179,24 +200,31 @@ export default {
         "skeleton-sweep": "skeleton-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite",
       },
       transitionTimingFunction: {
-        brand: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        brand: EASE.brand,
         // Standard settling ease (Part 17) — smooth ease-out, no overshoot.
-        standard: "cubic-bezier(0.22, 1, 0.36, 1)",
+        standard: EASE.standard,
         // Console v2 Phase 1, Task 5 — the handoff's macOS motion curve.
         // Shared by the Switch knob's translateX (this task) and, per the
         // Motion table, the Migrate sheet's slide-down (Phase 2, same
         // curve, 300ms instead of 170ms) — named for the platform, not the
         // control, so that later consumer can reuse it.
-        mac: "cubic-bezier(0.32, 0.72, 0, 1)",
+        mac: EASE.mac,
       },
       transitionDuration: {
-        fast: "120ms",
-        standard: "180ms",
-        sidebar: "280ms",
+        fast: `${DUR.fast}ms`,
+        standard: `${DUR.standard}ms`,
+        sidebar: `${DUR.sidebar}ms`,
         // Console v2 Phase 1, Task 5 — Switch track fade + knob travel.
         // 170ms is otherwise unused in the handoff's Motion table, so this
         // is named for its one consumer rather than kept generic.
-        switch: "170ms",
+        switch: `${DUR.switch}ms`,
+        // Published alongside the others so a future `duration-sheet` call
+        // site (the Migrate/pairing sheets' slide-down, per DUR.sheet's own
+        // comment in motion.ts) reaches for the token instead of a new
+        // "300ms" literal. Unused today — no class references it — so this
+        // adds no CSS to the current build; Tailwind's JIT only emits
+        // utilities a scanned file actually names.
+        sheet: `${DUR.sheet}ms`,
       },
       boxShadow: {
         // Theme-varying, so the values live in CSS variables — Tailwind

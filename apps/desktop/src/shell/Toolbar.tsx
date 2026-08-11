@@ -1,5 +1,6 @@
 import { Icon } from "@/components/ui/icon";
 import { Kbd } from "@/components/ui/kbd";
+import { EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useStore, type NavKey } from "@/store";
 import { NAV_ITEMS, SETTINGS_ITEM } from "./nav";
@@ -234,7 +235,7 @@ export function Toolbar() {
       // everything after it 8px right.
       style={{
         paddingLeft: CHROME_INSET_PX + (sidebarCollapsed ? chromeLeadWidthPx(fullscreen) : 0),
-        transition: `padding-left ${SIDEBAR_MOTION_MS}ms cubic-bezier(0.32, 0.72, 0, 1)`,
+        transition: `padding-left ${SIDEBAR_MOTION_MS}ms ${EASE.mac}`,
       }}
     >
       <HistoryChevrons />
