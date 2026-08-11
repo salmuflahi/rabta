@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>Contact — Rabta</title>
+<meta name="description" content="Report a bug, ask for a feature, or raise something security-sensitive. Where each kind of message should go, and what happens to it." />
+<link rel="canonical" href="https://rabta.build/contact/" />
+<meta name="theme-color" content="#102526" />
+<meta name="color-scheme" content="dark" />
+
+<link rel="icon" href="/favicon.ico" sizes="32x32" />
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Rabta" />
+<meta property="og:url" content="https://rabta.build/contact/" />
+<meta property="og:title" content="Contact — Rabta" />
+<meta property="og:description" content="Report a bug, ask for a feature, or raise something security-sensitive." />
+<meta property="og:image" content="https://rabta.build/assets/brand/og-cover.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-latin-variable.woff2" crossorigin />
+<link rel="stylesheet" href="/css/tokens.css" />
+<link rel="stylesheet" href="/css/shell.css" />
+<link rel="stylesheet" href="/css/doc.css" />
+<link rel="stylesheet" href="/css/receipt-fold.css" />
+<script type="module" src="/js/main.js"></script>
+</head>
+
+<body data-nav="contact">
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- chrome:nav -->
+<header class="nav">
+  <div class="rail nav__inner">
+    <a class="brand" href="/" aria-label="Rabta — home">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="14" fill="#102526" />
+        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+      </svg>
+      <span>Rabta</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="/why/" data-nav="why">Why Rabta</a>
+      <a href="/#how-it-works" data-nav="product">Product</a>
+      <a href="/setup/" data-nav="setup">Setup</a>
+      <a href="/faq/" data-nav="faq">FAQ</a>
+      <a href="/changelog/" data-nav="changelog">Changelog</a>
+      <a href="/contact/" data-nav="contact" aria-current="page">Contact</a>
+    </nav>
+
+    <a class="button button--small button--primary sweep nav__download" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+  </div>
+</header>
+<!-- /chrome:nav -->
+
+<main id="main" tabindex="-1">
+  <div class="wrap railed page-head">
+    <div><span class="marker">Contact</span></div>
+    <div>
+    <h1>Get in touch</h1>
+    <p class="lede">
+      Rabta is built and maintained by one person, so everything below reaches
+      the same place. What differs is how quickly it gets read and what shape it
+      needs to be in.
+    </p>
+    <p class="mono muted">Sammy Almuflahi · maintainer</p>
+    </div>
+  </div>
+
+  <div class="wrap railed">
+    <div></div>
+    <div class="prose">
+
+      <nav class="toc" aria-labelledby="toc-title">
+        <p id="toc-title">On this page</p>
+        <ol>
+          <li><a href="#bug">Something is broken</a></li>
+          <li><a href="#feature">You want something added</a></li>
+          <li><a href="#security">Something security-sensitive</a></li>
+          <li><a href="#elsewhere">Elsewhere</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="bug">Something is broken</h2>
+      <p>
+        <a href="https://github.com/salmuflahi/rabta/issues/new" rel="noopener noreferrer" target="_blank">Open an issue</a>.
+        The three things that make a report actionable are your macOS version,
+        which connectors were running, and what you expected instead of what
+        happened.
+      </p>
+      <p>
+        If a restore did something surprising, the Activity view records what
+        each connector was asked to do and how it answered. That log is local to
+        your machine — nothing is sent anywhere — so pasting the relevant part
+        into the issue is usually the fastest route to a fix.
+      </p>
+
+      <h2 id="feature">You want something added</h2>
+      <p>
+        Also an <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">issue</a>,
+        and worth checking the <a href="/roadmap/">roadmap</a> first — some
+        things are deliberately not planned, and that page explains why rather
+        than leaving you guessing.
+      </p>
+      <p>
+        The most useful feature requests describe the situation you were in, not
+        the feature you designed. Those get argued with productively.
+      </p>
+
+      <h2 id="security">Something security-sensitive</h2>
+      <p>
+        Please do not open a public issue for it. Use GitHub's
+        <a href="https://github.com/salmuflahi/rabta/security/advisories/new" rel="noopener noreferrer" target="_blank">private vulnerability reporting</a>,
+        which goes to the maintainer without disclosing anything publicly.
+      </p>
+      <p>
+        Rabta's whole claim is that nothing leaves your machine. If you find a
+        case where that is not true, that is the most valuable message this
+        project can receive, and it will be treated that way.
+      </p>
+
+      <h2 id="elsewhere">Elsewhere</h2>
+      <p>
+        The source, the releases and the issue tracker all live on
+        <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>.
+        That is the canonical home; anything else is a mirror of what is there.
+      </p>
+
+      <p class="mono muted">
+        Response times are a person's, not a company's. Security reports come
+        first; everything else gets read in order.
+      </p>
+    </div>
+  </div>
+</main>
+
+<footer class="foot">
+<!-- chrome:foot -->
+  <div class="rail foot__compact">
+    <a class="brand" href="/" aria-label="Rabta — home">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="14" fill="#102526" />
+        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+      </svg>
+      <span>Rabta</span>
+    </a>
+
+    <nav class="foot__links" aria-label="Footer">
+      <a href="/why/">Why Rabta</a>
+      <a href="/setup/">Setup</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/roadmap/">Roadmap</a>
+      <a href="/changelog/">Changelog</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy</a>
+    </nav>
+
+    <!-- Off-site links are kept in their own row so the footer's first row
+         stays wholly navigational. `rel="me"` lets a profile verify this site
+         back; `noopener noreferrer` is on every external target.
+
+         Instagram and TikTok are requested but not yet linked: their handles
+         have not been supplied, and a dead social link on a launch site is
+         worse than an absent one. Adding each is one <a> in this block —
+         nothing else needs to change, because every page pulls this file. -->
+    <nav class="foot__links foot__links--external" aria-label="Elsewhere">
+      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
+      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release</a>
+      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" rel="noopener noreferrer" target="_blank">Open VSX</a>
+      <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
+    </nav>
+
+    <p class="foot__meta">v0.1.0 · MIT · Sammy Almuflahi</p>
+  </div>
+<!-- /chrome:foot -->
+</footer>
+</body>
+</html>

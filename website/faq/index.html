@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>FAQ — Rabta</title>
+<meta name="description" content="What Rabta stores, what the connectors can reach, what happens to a dirty working tree, and what it costs. The questions worth answering before you install it." />
+<link rel="canonical" href="https://rabta.build/faq/" />
+<meta name="theme-color" content="#102526" />
+<meta name="color-scheme" content="dark" />
+
+<link rel="icon" href="/favicon.ico" sizes="32x32" />
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Rabta" />
+<meta property="og:url" content="https://rabta.build/faq/" />
+<meta property="og:title" content="FAQ — Rabta" />
+<meta property="og:description" content="What Rabta stores, what the connectors reach, and what happens to a dirty working tree." />
+<meta property="og:image" content="https://rabta.build/assets/brand/og-cover.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-latin-variable.woff2" crossorigin />
+<link rel="stylesheet" href="/css/tokens.css" />
+<link rel="stylesheet" href="/css/shell.css" />
+<link rel="stylesheet" href="/css/doc.css" />
+<link rel="stylesheet" href="/css/receipt-fold.css" />
+<script type="module" src="/js/main.js"></script>
+</head>
+
+<body data-nav="faq">
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- chrome:nav -->
+<header class="nav">
+  <div class="rail nav__inner">
+    <a class="brand" href="/" aria-label="Rabta — home">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="14" fill="#102526" />
+        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+      </svg>
+      <span>Rabta</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="/why/" data-nav="why">Why Rabta</a>
+      <a href="/#how-it-works" data-nav="product">Product</a>
+      <a href="/setup/" data-nav="setup">Setup</a>
+      <a href="/faq/" data-nav="faq" aria-current="page">FAQ</a>
+      <a href="/changelog/" data-nav="changelog">Changelog</a>
+      <a href="/contact/" data-nav="contact">Contact</a>
+    </nav>
+
+    <a class="button button--small button--primary sweep nav__download" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+  </div>
+</header>
+<!-- /chrome:nav -->
+
+<main id="main" tabindex="-1">
+  <div class="wrap railed page-head">
+    <div><span class="marker">FAQ</span></div>
+    <div>
+    <h1>Questions worth asking first</h1>
+    <p class="lede">
+      Most of these are about what Rabta can reach and what it does with it.
+      Every answer here is checked against the source before it ships; where a
+      thing is not built yet, this page says so rather than implying it is.
+    </p>
+    <p class="mono muted">Applies to Rabta 0.1.0</p>
+    </div>
+  </div>
+
+  <div class="wrap railed">
+    <div></div>
+    <div class="prose">
+
+      <nav class="toc" aria-labelledby="toc-title">
+        <p id="toc-title">On this page</p>
+        <ol>
+          <li><a href="#what">What it does</a></li>
+          <li><a href="#privacy">Privacy and access</a></li>
+          <li><a href="#git">Git and your working tree</a></li>
+          <li><a href="#running">Running it</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="what">What it does</h2>
+
+      <h3>What exactly is a capsule?</h3>
+      <p>
+        The arrangement around one task, written down: which files are open and
+        in what order, the terminal working directories, the Git branch, and the
+        browser tab URLs. Save it, switch away, resume it later.
+      </p>
+
+      <h3>Does it save my work for me?</h3>
+      <p>
+        No. Rabta records <em>where things were</em>, not what was in them. Your
+        editor still saves your files; Git still holds your history. If Rabta
+        vanished, nothing you wrote would go with it.
+      </p>
+
+      <h3>What happens if a tool isn't running when I resume?</h3>
+      <p>
+        The restore reports it per tool — restored, queued for the next time
+        that tool reconnects, or skipped with a reason. It does not claim a
+        success it did not get.
+      </p>
+
+      <h2 id="privacy">Privacy and access</h2>
+
+      <h3>Is there an account?</h3>
+      <p>
+        No, and there is no server to have one on. The hub binds to
+        <code>127.0.0.1</code> and nothing else.
+      </p>
+
+      <h3>Can it read my files?</h3>
+      <p>
+        It stores paths. Not file contents, not diffs, not terminal output.
+      </p>
+
+      <h3>Can the browser extension read the pages I'm on?</h3>
+      <p>
+        No. It requests no host permissions and runs no content scripts — its
+        manifest declares only <code>tabs</code>, <code>storage</code> and
+        <code>alarms</code>. It reads tab URLs and titles, and cannot read page
+        contents, form data or cookies. Incognito tabs and anything that isn't
+        http(s) are excluded.
+      </p>
+
+      <h3>Does it phone home?</h3>
+      <p>
+        No. v0.1.0 makes no outbound request on launch or on a timer. There is
+        no analytics SDK and no crash reporter. The one network call in the app
+        is a Git fetch, and only when you click it.
+      </p>
+
+      <h3>Does it store my GitHub token?</h3>
+      <p>
+        No. The optional GitHub features shell out to your own authenticated
+        <code>gh</code> CLI. Rabta never sees a credential.
+      </p>
+
+      <h2 id="git">Git and your working tree</h2>
+
+      <h3>Will resuming a capsule change my branch?</h3>
+      <p>
+        Only if the switch is safe. A working tree that the switch would disturb
+        refuses it, with a message saying why. Nothing is reset, stashed or
+        discarded on your behalf.
+      </p>
+
+      <h3>Does it close things I'm using?</h3>
+      <p>
+        Not by default — resuming only opens. Focus mode, which is opt-in, will
+        put away what isn't part of the task, and even then it stops at unsaved
+        files, running terminals and anything you've pinned.
+      </p>
+
+      <h2 id="running">Running it</h2>
+
+      <h3>What do I need?</h3>
+      <p>
+        macOS 11 or later on Apple silicon. An Intel or universal build is not
+        available yet — see the <a href="/roadmap/">roadmap</a>.
+      </p>
+
+      <h3>Does it update itself?</h3>
+      <p>
+        No. Auto-update is not wired in 0.1.0, so new versions are a manual
+        download. That also means nothing checks a server on your behalf.
+      </p>
+
+      <h3>What does it cost?</h3>
+      <p>
+        Nothing. It is free and MIT-licensed, and the whole thing is on
+        <a href="https://github.com/salmuflahi/rabta" rel="noopener noreferrer" target="_blank">GitHub</a>
+        if you would rather read it than trust it.
+      </p>
+
+      <h3>Which editors work?</h3>
+      <p>
+        VS Code and Cursor through the editor extension, and Chrome through the
+        browser extension. Setting both up is covered in the
+        <a href="/setup/">setup guide</a>.
+      </p>
+
+      <p class="mono muted">
+        Something not answered here?
+        <a href="/contact/">Get in touch</a>.
+      </p>
+    </div>
+  </div>
+</main>
+
+<footer class="foot">
+<!-- chrome:foot -->
+  <div class="rail foot__compact">
+    <a class="brand" href="/" aria-label="Rabta — home">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="14" fill="#102526" />
+        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+      </svg>
+      <span>Rabta</span>
+    </a>
+
+    <nav class="foot__links" aria-label="Footer">
+      <a href="/why/">Why Rabta</a>
+      <a href="/setup/">Setup</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/roadmap/">Roadmap</a>
+      <a href="/changelog/">Changelog</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy</a>
+    </nav>
+
+    <!-- Off-site links are kept in their own row so the footer's first row
+         stays wholly navigational. `rel="me"` lets a profile verify this site
+         back; `noopener noreferrer` is on every external target.
+
+         Instagram and TikTok are requested but not yet linked: their handles
+         have not been supplied, and a dead social link on a launch site is
+         worse than an absent one. Adding each is one <a> in this block —
+         nothing else needs to change, because every page pulls this file. -->
+    <nav class="foot__links foot__links--external" aria-label="Elsewhere">
+      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
+      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release</a>
+      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" rel="noopener noreferrer" target="_blank">Open VSX</a>
+      <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
+    </nav>
+
+    <p class="foot__meta">v0.1.0 · MIT · Sammy Almuflahi</p>
+  </div>
+<!-- /chrome:foot -->
+</footer>
+</body>
+</html>

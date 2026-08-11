@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>Roadmap — Rabta</title>
+<meta name="description" content="What is not built yet, what is next, and what has been deliberately deferred. Scoped honestly, with no dates attached to work that has not started." />
+<link rel="canonical" href="https://rabta.build/roadmap/" />
+<meta name="theme-color" content="#102526" />
+<meta name="color-scheme" content="dark" />
+
+<link rel="icon" href="/favicon.ico" sizes="32x32" />
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Rabta" />
+<meta property="og:url" content="https://rabta.build/roadmap/" />
+<meta property="og:title" content="Roadmap — Rabta" />
+<meta property="og:description" content="What is not built yet, what is next, and what has been deliberately deferred." />
+<meta property="og:image" content="https://rabta.build/assets/brand/og-cover.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-latin-variable.woff2" crossorigin />
+<link rel="stylesheet" href="/css/tokens.css" />
+<link rel="stylesheet" href="/css/shell.css" />
+<link rel="stylesheet" href="/css/doc.css" />
+<link rel="stylesheet" href="/css/receipt-fold.css" />
+<script type="module" src="/js/main.js"></script>
+</head>
+
+<body data-nav="roadmap">
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- chrome:nav -->
+<header class="nav">
+  <div class="rail nav__inner">
+    <a class="brand" href="/" aria-label="Rabta — home">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="14" fill="#102526" />
+        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+      </svg>
+      <span>Rabta</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="/why/" data-nav="why">Why Rabta</a>
+      <a href="/#how-it-works" data-nav="product">Product</a>
+      <a href="/setup/" data-nav="setup">Setup</a>
+      <a href="/faq/" data-nav="faq">FAQ</a>
+      <a href="/changelog/" data-nav="changelog">Changelog</a>
+      <a href="/contact/" data-nav="contact">Contact</a>
+    </nav>
+
+    <a class="button button--small button--primary sweep nav__download" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+  </div>
+</header>
+<!-- /chrome:nav -->
+
+<main id="main" tabindex="-1">
+  <div class="wrap railed page-head">
+    <div><span class="marker">Roadmap</span></div>
+    <div>
+    <h1>What isn't built yet</h1>
+    <p class="lede">
+      This page carries no dates. Rabta is one person's work, and a date on
+      unstarted work is a promise made with someone else's time. What follows is
+      ordered by intent, not by schedule.
+    </p>
+    <p class="mono muted">Reflects Rabta 0.1.0 · updated 11 August 2026</p>
+    </div>
+  </div>
+
+  <div class="wrap railed">
+    <div></div>
+    <div class="prose">
+
+      <nav class="toc" aria-labelledby="toc-title">
+        <p id="toc-title">On this page</p>
+        <ol>
+          <li><a href="#next">Next</a></li>
+          <li><a href="#considering">Under consideration</a></li>
+          <li><a href="#deferred">Deliberately deferred</a></li>
+          <li><a href="#no">Not planned</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="next">Next</h2>
+      <p>Known gaps with a clear shape, in rough order.</p>
+
+      <h3>A restore report</h3>
+      <p>
+        A restore already knows what applied, what is queued and what was
+        skipped, and it says so per tool while it runs. What it does not yet do
+        is hand you that as a report you can read afterwards. This is the
+        largest gap in the product today.
+      </p>
+
+      <h3>Intel and universal builds</h3>
+      <p>
+        The current bundle is Apple silicon only. Nothing in the app is
+        deliberately arm64-specific; this is packaging work.
+      </p>
+
+      <h3>Store distribution</h3>
+      <p>
+        The editor and browser extensions install by hand today. Publishing them
+        to the VS Code Marketplace and the Chrome Web Store removes the most
+        awkward step in setup.
+      </p>
+
+      <h3>Bulk actions on capsules</h3>
+      <p>Multi-select, so archiving or deleting several is one gesture.</p>
+
+      <h2 id="considering">Under consideration</h2>
+
+      <h3>Auto-update</h3>
+      <p>
+        Not wired, and not free: it needs an update endpoint and a signing
+        keypair, and it means the app would start making a network request it
+        does not make today. That tradeoff is the reason this is here rather
+        than under <em>Next</em>.
+      </p>
+
+      <h3>More connectors</h3>
+      <p>
+        Terminal emulators beyond the built-in support, and other tools that
+        hold part of a task's surface. Each one is a permissions question before
+        it is an engineering one.
+      </p>
+
+      <h3>Other platforms</h3>
+      <p>
+        macOS is the only tested target. The discovery file and the
+        keychain-adjacent parts would need porting; the rest is not deeply
+        macOS-specific.
+      </p>
+
+      <h2 id="deferred">Deliberately deferred</h2>
+      <p>
+        Reasonable ideas, consciously not being worked on: a plugin SDK,
+        automation rules, and integrations with issue trackers and design tools.
+        Each would widen what Rabta reaches, and the product is more valuable
+        narrow and trustworthy than broad and vague.
+      </p>
+
+      <h2 id="no">Not planned</h2>
+      <p>
+        Cloud sync, team collaboration, and accounts. These are not scheduling
+        decisions — they are the shape of the product. Rabta has no server, and
+        the guarantees on the <a href="/why/">Why</a> page hold because of that,
+        not in spite of it. Adding any of the three would mean giving those up.
+      </p>
+
+      <p class="mono muted">
+        Want something on this list?
+        <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Open an issue</a>
+        — that is where this page gets its arguments from.
+      </p>
+    </div>
+  </div>
+</main>
+
+<footer class="foot">
+<!-- chrome:foot -->
+  <div class="rail foot__compact">
+    <a class="brand" href="/" aria-label="Rabta — home">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="14" fill="#102526" />
+        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+      </svg>
+      <span>Rabta</span>
+    </a>
+
+    <nav class="foot__links" aria-label="Footer">
+      <a href="/why/">Why Rabta</a>
+      <a href="/setup/">Setup</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/roadmap/">Roadmap</a>
+      <a href="/changelog/">Changelog</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy</a>
+    </nav>
+
+    <!-- Off-site links are kept in their own row so the footer's first row
+         stays wholly navigational. `rel="me"` lets a profile verify this site
+         back; `noopener noreferrer` is on every external target.
+
+         Instagram and TikTok are requested but not yet linked: their handles
+         have not been supplied, and a dead social link on a launch site is
+         worse than an absent one. Adding each is one <a> in this block —
+         nothing else needs to change, because every page pulls this file. -->
+    <nav class="foot__links foot__links--external" aria-label="Elsewhere">
+      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
+      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release</a>
+      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" rel="noopener noreferrer" target="_blank">Open VSX</a>
+      <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
+    </nav>
+
+    <p class="foot__meta">v0.1.0 · MIT · Sammy Almuflahi</p>
+  </div>
+<!-- /chrome:foot -->
+</footer>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>Changelog — Rabta</title>
+<meta name="description" content="Every Rabta release, newest first, with what changed and what it required of you." />
+<link rel="canonical" href="https://rabta.build/changelog/" />
+<meta name="theme-color" content="#102526" />
+<meta name="color-scheme" content="dark" />
+
+<link rel="icon" href="/favicon.ico" sizes="32x32" />
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Rabta" />
+<meta property="og:url" content="https://rabta.build/changelog/" />
+<meta property="og:title" content="Changelog — Rabta" />
+<meta property="og:description" content="Every Rabta release, newest first." />
+<meta property="og:image" content="https://rabta.build/assets/brand/og-cover.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-latin-variable.woff2" crossorigin />
+<link rel="stylesheet" href="/css/tokens.css" />
+<link rel="stylesheet" href="/css/shell.css" />
+<link rel="stylesheet" href="/css/doc.css" />
+<link rel="stylesheet" href="/css/receipt-fold.css" />
+<script type="module" src="/js/main.js"></script>
+</head>
+
+<body data-nav="changelog">
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- chrome:nav -->
+<header class="nav">
+  <div class="rail nav__inner">
+    <a class="brand" href="/" aria-label="Rabta — home">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="14" fill="#102526" />
+        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+      </svg>
+      <span>Rabta</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="/why/" data-nav="why">Why Rabta</a>
+      <a href="/#how-it-works" data-nav="product">Product</a>
+      <a href="/setup/" data-nav="setup">Setup</a>
+      <a href="/faq/" data-nav="faq">FAQ</a>
+      <a href="/changelog/" data-nav="changelog" aria-current="page">Changelog</a>
+      <a href="/contact/" data-nav="contact">Contact</a>
+    </nav>
+
+    <a class="button button--small button--primary sweep nav__download" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+  </div>
+</header>
+<!-- /chrome:nav -->
+
+<main id="main" tabindex="-1">
+  <div class="wrap railed page-head">
+    <div><span class="marker">Changelog</span></div>
+    <div>
+    <h1>Every release</h1>
+    <p class="lede">
+      Newest first. Each entry says what changed and what it asks of you,
+      because an upgrade that needs a manual step should say so on the way in,
+      not after.
+    </p>
+    <p class="mono muted">
+      Releases are published on
+      <a href="https://github.com/salmuflahi/rabta/releases" rel="noopener noreferrer" target="_blank">GitHub</a>
+    </p>
+    </div>
+  </div>
+
+  <div class="wrap railed">
+    <div></div>
+    <div class="prose">
+
+      <h2 id="v0-1-0">0.1.0 — 29 July 2026</h2>
+      <p class="mono muted">First public release · Apple silicon · macOS 11+</p>
+
+      <p>
+        The first version anyone else can run. Capsules save the arrangement
+        around a task — open files and their order, terminal working
+        directories, the Git branch, browser tab URLs — and put it back when you
+        return.
+      </p>
+
+      <h3>What's in it</h3>
+      <p>
+        A six-section console: Overview, Capsules, Projects, Connectors,
+        Activity and Settings, with a ⌘K command palette. Editor support for VS
+        Code and Cursor, and a Chrome connector for tabs. Restores report per
+        tool, so a partial result reads as partial rather than as success.
+      </p>
+
+      <h3>What it asks of you</h3>
+      <p>
+        The build is unsigned, so the first launch is right-click → <b>Open</b>
+        rather than a double-click. The extensions install by hand — the
+        <a href="/setup/">setup guide</a> covers both. There is no auto-update,
+        so future versions are a manual download.
+      </p>
+
+      <h3>What it does not do</h3>
+      <p>
+        No account, no server, no telemetry. The hub binds
+        <code>127.0.0.1</code>. Details on the <a href="/why/">Why</a> page.
+      </p>
+
+      <p class="mono muted">
+        <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release notes on GitHub</a>
+        ·
+        <a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download the .dmg</a>
+      </p>
+
+      <h2 id="earlier">Before 0.1.0</h2>
+      <p>
+        Rabta was built in the open under its former name, OmniBus. There are no
+        published releases before 0.1.0 — the history is in the
+        <a href="https://github.com/salmuflahi/rabta" rel="noopener noreferrer" target="_blank">repository</a>
+        rather than on this page, because nothing before it was something you
+        could install.
+      </p>
+    </div>
+  </div>
+</main>
+
+<footer class="foot">
+<!-- chrome:foot -->
+  <div class="rail foot__compact">
+    <a class="brand" href="/" aria-label="Rabta — home">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="14" fill="#102526" />
+        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+      </svg>
+      <span>Rabta</span>
+    </a>
+
+    <nav class="foot__links" aria-label="Footer">
+      <a href="/why/">Why Rabta</a>
+      <a href="/setup/">Setup</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/roadmap/">Roadmap</a>
+      <a href="/changelog/">Changelog</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy</a>
+    </nav>
+
+    <!-- Off-site links are kept in their own row so the footer's first row
+         stays wholly navigational. `rel="me"` lets a profile verify this site
+         back; `noopener noreferrer` is on every external target.
+
+         Instagram and TikTok are requested but not yet linked: their handles
+         have not been supplied, and a dead social link on a launch site is
+         worse than an absent one. Adding each is one <a> in this block —
+         nothing else needs to change, because every page pulls this file. -->
+    <nav class="foot__links foot__links--external" aria-label="Elsewhere">
+      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
+      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release</a>
+      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" rel="noopener noreferrer" target="_blank">Open VSX</a>
+      <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
+    </nav>
+
+    <p class="foot__meta">v0.1.0 · MIT · Sammy Almuflahi</p>
+  </div>
+<!-- /chrome:foot -->
+</footer>
+</body>
+</html>
