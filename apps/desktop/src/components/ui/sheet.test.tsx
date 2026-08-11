@@ -22,6 +22,17 @@ function renderSheet(props: Partial<React.ComponentProps<typeof Sheet>> = {}) {
   return { ...view, onOpenChange, primaryClick };
 }
 
+/** Mirrors App.tsx: a bubble-phase listener on `window`, which is what
+ * every global shortcut in this app is bound to. Hoisted to module scope
+ * (rather than living only inside `describe("Sheet keyboard")`) so the
+ * `enterAdvances` block can reuse it for its own regression test below. */
+function spyOnGlobalShortcuts() {
+  const seen: string[] = [];
+  const handler = (e: KeyboardEvent) => seen.push(e.key);
+  window.addEventListener("keydown", handler);
+  return { seen, stop: () => window.removeEventListener("keydown", handler) };
+}
+
 describe("Sheet", () => {
   it("renders its title, subtitle, body and step counter", () => {
     renderSheet();
@@ -68,15 +79,6 @@ describe("Sheet", () => {
 });
 
 describe("Sheet keyboard", () => {
-  /** Mirrors App.tsx: a bubble-phase listener on `window`, which is what
-   * every global shortcut in this app is bound to. */
-  function spyOnGlobalShortcuts() {
-    const seen: string[] = [];
-    const handler = (e: KeyboardEvent) => seen.push(e.key);
-    window.addEventListener("keydown", handler);
-    return { seen, stop: () => window.removeEventListener("keydown", handler) };
-  }
-
   // "When the Migrate sheet is open it swallows all keys — esc closes,
   // enter advances, nothing else fires." Without this, ⌘S mid-transfer
   // captures a capsule and ⌘1 navigates the window out from under a
@@ -168,6 +170,37 @@ describe("enterAdvances", () => {
     fireEvent.keyDown(document, { key: "Enter" });
     expect(onPrimary).not.toHaveBeenCalled();
   });
+
+  // Regression guard on the mechanism, not just the visible outcome: Enter
+  // must be swallowed unconditionally, so no global shortcut can fire
+  // either. event.stopPropagation() has to run outside the enterAdvances
+  // guard — if a future edit moved it inside that guard, this is the only
+  // test that would catch it. The test above would keep passing (the
+  // primary still wouldn't fire) while a global shortcut fired on the same
+  // keypress, reopening exactly the hole enterAdvances exists to close on
+  // the pairing sheet's unprompted, unread approval.
+  it("also keeps global shortcuts suppressed on Enter when enterAdvances is false", () => {
+    const onPrimary = vi.fn();
+    const spy = spyOnGlobalShortcuts();
+    try {
+      renderWithProviders(
+        <Sheet
+          open
+          onOpenChange={() => {}}
+          title="T"
+          enterAdvances={false}
+          primary={{ label: "Approve", onClick: onPrimary }}
+        >
+          body
+        </Sheet>,
+      );
+      fireEvent.keyDown(document, { key: "Enter" });
+      expect(onPrimary).not.toHaveBeenCalled();
+      expect(spy.seen).toEqual([]);
+    } finally {
+      spy.stop();
+    }
+  });
 });
 
 describe("secondary action", () => {
@@ -195,5 +228,27 @@ describe("secondary action", () => {
       </Sheet>,
     );
     expect(screen.queryByRole("button", { name: "Deny" })).not.toBeInTheDocument();
+  });
+
+  // Task 5 holds both Approve and Deny inert while the pairing sheet arms —
+  // this is load-bearing for that, not incidental, unlike primary.disabled
+  // which already had coverage.
+  it("disables a secondary action and does not fire it when clicked", () => {
+    const onSecondary = vi.fn();
+    renderWithProviders(
+      <Sheet
+        open
+        onOpenChange={() => {}}
+        title="T"
+        secondary={{ label: "Deny", onClick: onSecondary, tone: "bad", disabled: true }}
+        primary={{ label: "Approve", onClick: () => {} }}
+      >
+        body
+      </Sheet>,
+    );
+    const deny = screen.getByRole("button", { name: "Deny" });
+    expect(deny).toBeDisabled();
+    fireEvent.click(deny);
+    expect(onSecondary).not.toHaveBeenCalled();
   });
 });
