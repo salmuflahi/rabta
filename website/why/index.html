@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>Why Rabta — the case for workspace memory</title>
+<meta name="description" content="Switching away from a task is cheap. Switching back is not. What Rabta commits to, and the five things it will never do." />
+<link rel="canonical" href="https://rabta.build/why/" />
+<meta name="theme-color" content="#102526" />
+<meta name="color-scheme" content="dark" />
+
+<link rel="icon" href="/favicon.ico" sizes="32x32" />
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Rabta" />
+<meta property="og:url" content="https://rabta.build/why/" />
+<meta property="og:title" content="Why Rabta — the case for workspace memory" />
+<meta property="og:description" content="Switching away is cheap. Switching back is not. What Rabta commits to, and what it will never do." />
+<meta property="og:image" content="https://rabta.build/assets/brand/og-cover.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-latin-variable.woff2" crossorigin />
+<link rel="stylesheet" href="/css/tokens.css" />
+<link rel="stylesheet" href="/css/shell.css" />
+<link rel="stylesheet" href="/css/doc.css" />
+<link rel="stylesheet" href="/css/receipt-fold.css" />
+<script type="module" src="/js/main.js"></script>
+</head>
+
+<body data-nav="why">
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- chrome:nav -->
+<header class="nav">
+  <div class="rail nav__inner">
+    <a class="brand" href="/" aria-label="Rabta — home">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="14" fill="#102526" />
+        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+      </svg>
+      <span>Rabta</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Primary">
+      <a href="/why/" data-nav="why" aria-current="page">Why Rabta</a>
+      <a href="/#how-it-works" data-nav="product">Product</a>
+      <a href="/setup/" data-nav="setup">Setup</a>
+      <a href="/faq/" data-nav="faq">FAQ</a>
+      <a href="/changelog/" data-nav="changelog">Changelog</a>
+      <a href="/contact/" data-nav="contact">Contact</a>
+    </nav>
+
+    <a class="button button--small button--primary sweep nav__download" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+  </div>
+</header>
+<!-- /chrome:nav -->
+
+<main id="main" tabindex="-1">
+  <div class="wrap railed page-head">
+    <div><span class="marker">Why Rabta</span></div>
+    <div>
+    <h1>Switching away is cheap.<br />Switching back is not.</h1>
+    <p class="lede">
+      The code is exactly where you left it. The workspace around it is gone:
+      tabs closed, a different branch checked out, terminals sitting in the
+      wrong directory. Rebuilding that arrangement is quiet, repetitive work,
+      and no tool was doing it for you.
+    </p>
+    <p class="mono muted">
+      A capsule is that arrangement, written down
+    </p>
+    </div>
+  </div>
+
+  <div class="wrap railed">
+    <!-- `.railed` is a two-column grid: a 96px axis track, then content. This
+         empty cell fills the axis so the prose lands in the content column,
+         matching /privacy/. -->
+    <div></div>
+    <div class="prose">
+
+      <nav class="toc" aria-labelledby="toc-title">
+        <p id="toc-title">On this page</p>
+        <ol>
+          <li><a href="#commitments">Three things that do not bend</a></li>
+          <li><a href="#guarantee">What it will not do</a></li>
+        </ol>
+      </nav>
+
+      <p>
+        A capsule is the open files and their order, the terminal working
+        directories, the branch, the tab URLs. Save it, switch away, resume it.
+        The workspace comes back.
+      </p>
+
+      <!-- Placeholder. Real media is added on request; nothing is invented to
+           fill the space. See the media-slot check in tests/site/. -->
+      <figure class="media-slot" data-placeholder data-slot="why-overview" style="aspect-ratio:16/10">
+        <span>Rabta — Overview</span>
+      </figure>
+
+      <h2 id="commitments">Three things that do not bend</h2>
+
+      <h3>Local-first, structurally</h3>
+      <p>
+        No server, no account, no telemetry. The hub binds to
+        <code>127.0.0.1</code> and nothing else. There is no backend to leak
+        from, because there is no backend.
+      </p>
+
+      <h3>Additive by default</h3>
+      <p>
+        Resuming opens things. It closes nothing unless you turn on focus mode,
+        and even then it stops at unsaved files, running terminals and anything
+        pinned.
+      </p>
+
+      <h3>Honest about partial results</h3>
+      <p>
+        A restore reports per tool: restored, queued for the next reload, or
+        skipped with a reason. It never claims a success it did not get.
+      </p>
+
+      <h2 id="guarantee">What it will not do</h2>
+
+      <h3>Read the contents of your files</h3>
+      <p>It stores paths. Not text, not diffs, not terminal output.</p>
+
+      <h3>Force a checkout</h3>
+      <p>
+        A working tree that a switch would disturb refuses the switch, with a
+        message. Nothing is reset, stashed or discarded.
+      </p>
+
+      <h3>Store a GitHub credential</h3>
+      <p>
+        Issues come through your own authenticated <code>gh</code> CLI. Rabta
+        never sees a token.
+      </p>
+
+      <h3>Read a web page</h3>
+      <p>
+        The browser connector requests no host permissions and runs no content
+        scripts. It reads tab URLs and titles, and cannot read anything else.
+      </p>
+
+      <h3>Phone home</h3>
+      <p>
+        v0.1.0 makes no outbound request on launch or on a timer. There is no
+        analytics SDK and no crash reporter.
+      </p>
+
+      <p class="mono muted">
+        Every claim on this page is checked against the source before it ships.
+        The hub's bind address is <code>crates/omnibus-hub/src/hub.rs</code>;
+        the browser connector's permissions are its
+        <code>manifest.json</code>. Both are in the public repository.
+      </p>
+    </div>
+  </div>
+
+  <section class="cta rail" aria-labelledby="cta-title">
+    <h2 id="cta-title">Pick up the task. Not the pieces.</h2>
+    <div class="hero__actions">
+      <a class="button button--primary sweep" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download for macOS</a>
+      <a class="button" href="/setup/">Read the setup guide</a>
+    </div>
+    <p class="mono muted">Free · Apple silicon · macOS 11 or later · no account, no server</p>
+  </section>
+</main>
+
+<footer class="foot">
+<!-- chrome:foot -->
+  <div class="rail foot__compact">
+    <a class="brand" href="/" aria-label="Rabta — home">
+      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="14" fill="#102526" />
+        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
+        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
+      </svg>
+      <span>Rabta</span>
+    </a>
+
+    <nav class="foot__links" aria-label="Footer">
+      <a href="/why/">Why Rabta</a>
+      <a href="/setup/">Setup</a>
+      <a href="/faq/">FAQ</a>
+      <a href="/roadmap/">Roadmap</a>
+      <a href="/changelog/">Changelog</a>
+      <a href="/contact/">Contact</a>
+      <a href="/privacy/">Privacy</a>
+    </nav>
+
+    <!-- Off-site links are kept in their own row so the footer's first row
+         stays wholly navigational. `rel="me"` lets a profile verify this site
+         back; `noopener noreferrer` is on every external target.
+
+         Instagram and TikTok are requested but not yet linked: their handles
+         have not been supplied, and a dead social link on a launch site is
+         worse than an absent one. Adding each is one <a> in this block —
+         nothing else needs to change, because every page pulls this file. -->
+    <nav class="foot__links foot__links--external" aria-label="Elsewhere">
+      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
+      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Release</a>
+      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" rel="noopener noreferrer" target="_blank">Open VSX</a>
+      <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
+    </nav>
+
+    <p class="foot__meta">v0.1.0 · MIT · Sammy Almuflahi</p>
+  </div>
+<!-- /chrome:foot -->
+</footer>
+</body>
+</html>

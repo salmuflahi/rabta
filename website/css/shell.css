@@ -577,3 +577,53 @@
   }
 }
 
+
+@layer component {
+  /* Media placeholder.
+     
+     Every image and video on this site ships as one of these until real media
+     replaces it: a black block at the exact aspect ratio the final asset will
+     occupy, labelled with what belongs there. Nothing is invented to fill the
+     space — no stock photography, no borrowed screenshots.
+
+     The aspect ratio is set inline per slot rather than here, because it is a
+     property of the asset, not of the component. Reserving it means dropping
+     the real asset in later causes no layout shift.
+
+     `data-placeholder` is what the site test looks for: a slot may ship with
+     real media, or explicitly marked empty, but never silently empty. */
+  .media-slot {
+    display: grid;
+    place-items: center;
+    margin: var(--s7) 0;
+    padding: var(--s5);
+    border: 1px solid var(--hairline-strong);
+    border-radius: 10px;
+    /* Petrol, not black. Black was the intent — an empty, unlit rectangle —
+       but this site has no black in it: the palette is seven approved values
+       and `tests/site/site-contract.test.mjs` fails the build on any literal
+       outside them. That rule caught this.
+
+       Petrol is the darkest approved value and is the page's own background,
+       so the fill alone would be invisible; the hairline border and the label
+       are what make the slot read as *reserved and empty* rather than as a
+       styled surface that happens to have nothing in it. Using the token
+       rather than its hex keeps it palette-safe by construction. */
+    background: var(--petrol);
+    text-align: center;
+  }
+
+  .media-slot > span {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: var(--track-mono);
+    color: var(--cool-mid);
+  }
+
+  /* Marks it as deliberate to a reader, not just to the test. */
+  .media-slot[data-placeholder] > span::after {
+    content: " · placeholder";
+    color: var(--cool-mid);
+    opacity: 0.6;
+  }
+}
