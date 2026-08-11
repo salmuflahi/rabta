@@ -6,8 +6,9 @@ import { cn } from "@/lib/utils";
  * A single highlight sweeping left to right, not a pulse: a pulse reads as
  * "this element is doing something", a sweep reads as "this is not real
  * yet", which is what is true. Under reduced motion the sweep is suppressed
- * entirely by the global rule in index.css and it renders as a flat tint —
- * suppressed, not slowed.
+ * entirely by the global rule in index.css: the transform stops moving and
+ * the authored gradient (transparent → 6%-opacity foreground → transparent)
+ * just sits motionless over the muted tint — suppressed, not slowed.
  *
  * The moving highlight lives on `::after`, not on this element itself — the
  * element carries the static `bg-muted` tint and only the pseudo-element's

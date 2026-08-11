@@ -49,6 +49,7 @@ function CurrentPage({ view }: { view: NavKey }) {
 export default function App() {
   const append = useStore((s) => s.append);
   const setConnectors = useStore((s) => s.setConnectors);
+  const setConnectorsAndLogLoaded = useStore((s) => s.setConnectorsAndLogLoaded);
   const preload = useStore((s) => s.preload);
   const view = useStore((s) => s.view);
   const setView = useStore((s) => s.setView);
@@ -155,7 +156,13 @@ export default function App() {
       ])
         .then(([events, known]) => preload(events, known))
         .catch((e) => console.error("history preload failed:", e))
-        .then(refresh);
+        .then(refresh)
+        // Marks the initial connector+log preload settled (success or
+        // failure) — refresh()'s own internal .catch means this always
+        // fires. ConnectorsPage/ActivityPage gate their loading skeleton on
+        // it, since `connectors`/`log` starting empty is otherwise
+        // indistinguishable from "loaded and genuinely empty".
+        .then(() => setConnectorsAndLogLoaded(true));
 
       invoke<PendingPairing[]>("pending_pairings")
         .then(setPairings)
@@ -165,7 +172,7 @@ export default function App() {
     return () => {
       unlistenPromise.then((f) => f());
     };
-  }, [append, setConnectors, preload, setPairings, addPairing]);
+  }, [append, setConnectors, preload, setPairings, addPairing, setConnectorsAndLogLoaded]);
 
   useEffect(() => {
     invoke<number>("hub_port")

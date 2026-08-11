@@ -78,7 +78,7 @@ function ProjectRowSkeleton() {
         <Skeleton className="size-[15px] shrink-0 rounded-[3px]" />
         <Skeleton className="h-3.5 w-32" />
       </div>
-      <Skeleton className="ml-[23px] mt-1.5 h-2.5 w-28" />
+      <Skeleton className="ml-[23px] mt-0.5 h-2.5 w-28" />
     </div>
   );
 }
@@ -107,19 +107,28 @@ function ProjectsSkeleton() {
             <Skeleton className="h-6 w-16 rounded-full" />
           </div>
           <div className="flex items-center gap-2">
-            <Skeleton className="h-6 w-[126px] rounded-md" />
-            <Skeleton className="h-6 w-[74px] rounded-md" />
-            <Skeleton className="size-6 rounded-md" />
+            <Skeleton className="h-6 w-[126px]" />
+            <Skeleton className="h-6 w-[74px]" />
+            <Skeleton className="size-6" />
           </div>
         </div>
         <Skeleton className="mt-7 h-3 w-20" />
-        <div className="mt-[7px] space-y-px rounded-[10px] bg-card p-4 shadow-raised">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="flex items-center gap-3">
-              <Skeleton className="h-3.5 flex-1" />
-              <Skeleton className="h-3 w-10 shrink-0" />
-            </div>
-          ))}
+        {/* This page's own Capsules container (below, in the real render):
+            `overflow-hidden rounded-[10px] bg-card shadow-raised` wrapping
+            `divide-y-[0.5px] divide-border`, each real row its own
+            `px-4 py-2.5` — not OverviewSkeleton's `p-4 space-y-px` recipe,
+            which stands in for a differently-built container on a different
+            page. Hairlines between rows here are real `divide-y` dividers,
+            matching the rows they replace. */}
+        <div className="mt-[7px] overflow-hidden rounded-[10px] bg-card shadow-raised">
+          <div className="divide-y-[0.5px] divide-border">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+                <Skeleton className="h-3.5 flex-1" />
+                <Skeleton className="h-3 w-10 shrink-0" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

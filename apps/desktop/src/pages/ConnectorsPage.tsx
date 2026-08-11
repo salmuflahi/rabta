@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { PermissionCard } from "@/components/ui/permission-card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Surface } from "@/components/ui/surface";
 import { canSee, capabilityFacts, neverSees } from "@/lib/connectorFacts";
 import { kindLabel } from "@/lib/connectors";
@@ -8,6 +9,99 @@ import { describeEvent, relativeTime } from "@/lib/humanize";
 import { decidePairing } from "@/lib/pairing";
 import { cn } from "@/lib/utils";
 import { useStore, type ConnectorRow, type PendingPairing } from "@/store";
+
+/** Mirrors one connector row in the left list: `LiveDot`'s real size (7px,
+ * round — not `ProjectIcon`'s square) next to the name, and the
+ * "Connected"/"Offline" status line below it, offset `ml-[15px]` to match
+ * the real status span's own `pl-[15px]` indent. */
+function ConnectorRowSkeleton() {
+  return (
+    <div className="px-2 py-1.5">
+      <div className="flex items-center gap-2">
+        <Skeleton className="size-[7px] shrink-0 rounded-full" />
+        <Skeleton className="h-3.5 w-28" />
+      </div>
+      <Skeleton className="ml-[15px] mt-0.5 h-2.5 w-16" />
+    </div>
+  );
+}
+
+/**
+ * Stands in for `ConnectorsPage` before `connectorsAndLogLoaded` — mirrors
+ * `ConnectorDetail`'s real geometry: the `LiveDot` + h2 pair, the subtitle
+ * line, `PermissionCard`'s own `p-[15px]` card shape (twice, its heading bar
+ * plus its real per-line `size-[13px]` glyph), and the "What it does" /
+ * "Recent" grouped lists at their real container geometry — `overflow-hidden
+ * rounded-[10px] bg-card shadow-raised` wrapping `divide-y-[0.5px]` hairlines
+ * with each row's own `px-4 py-2.5`, not a padded/space-y stand-in.
+ */
+function ConnectorsSkeleton() {
+  return (
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="grid min-h-0 flex-1 grid-cols-[296px_minmax(0,1fr)] overflow-hidden">
+        <div className="min-h-0 overflow-y-auto border-r-[0.5px] border-border px-2 pb-3 pt-2.5">
+          {[0, 1, 2].map((i) => (
+            <ConnectorRowSkeleton key={i} />
+          ))}
+        </div>
+
+        <div className="mx-auto max-w-[720px] px-8 pb-10 pt-[30px]">
+          <div className="flex items-center gap-2.5">
+            <Skeleton className="size-[10px] shrink-0 rounded-full" />
+            <Skeleton className="h-7 w-40" />
+          </div>
+          <Skeleton className="mt-1.5 h-3.5 w-64" />
+
+          {/* PermissionCard, x2 (Can see / Never sees). */}
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {[0, 1].map((i) => (
+              <div key={i} className="rounded-[10px] bg-card p-[15px] shadow-raised">
+                <Skeleton className="mb-2 h-3 w-16" />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 py-1">
+                    <Skeleton className="size-[13px] shrink-0 rounded-full" />
+                    <Skeleton className="h-3 flex-1" />
+                  </div>
+                  <div className="flex items-center gap-2 py-1">
+                    <Skeleton className="size-[13px] shrink-0 rounded-full" />
+                    <Skeleton className="h-3 w-4/5" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* "What it does": a fixed w-[150px] mono label bar next to a
+              flex-1 description bar — the real row's own two true widths,
+              gap-3.5 like the row it replaces. */}
+          <Skeleton className="mt-7 h-3 w-24" />
+          <div className="mt-[7px] overflow-hidden rounded-[10px] bg-card shadow-raised">
+            <div className="divide-y-[0.5px] divide-border">
+              {[0, 1].map((i) => (
+                <div key={i} className="flex items-center gap-3.5 px-4 py-2.5">
+                  <Skeleton className="h-3 w-[150px] shrink-0" />
+                  <Skeleton className="h-3 flex-1" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Skeleton className="mt-7 h-3 w-16" />
+          <div className="mt-[7px] overflow-hidden rounded-[10px] bg-card shadow-raised">
+            <div className="divide-y-[0.5px] divide-border">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+                  <Skeleton className="h-3 flex-1" />
+                  <Skeleton className="h-2.5 w-10 shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * The page's one raised surface, and the home of its one primary action.
@@ -219,6 +313,7 @@ function ConnectorDetail({ connector }: { connector: ConnectorRow }) {
  */
 export function ConnectorsPage() {
   const connectors = useStore((s) => s.connectors);
+  const connectorsAndLogLoaded = useStore((s) => s.connectorsAndLogLoaded);
   const pairings = useStore((s) => s.pairings);
   const removePairing = useStore((s) => s.removePairing);
   const selectedConnectorId = useStore((s) => s.selectedConnectorId);
@@ -231,6 +326,11 @@ export function ConnectorsPage() {
   // Tolerates a stale id: a connector can go away between selection and
   // render (that is the normal case here, not the exception).
   const selected = connectors.find((c) => c.id === selectedConnectorId) ?? connectors[0] ?? null;
+
+  // `connectors` starts empty and is filled by App.tsx after mount — without
+  // this gate, a user whose landing page is Connectors sees "No connectors
+  // yet" flash before the real (possibly non-empty) list arrives.
+  if (!connectorsAndLogLoaded) return <ConnectorsSkeleton />;
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">

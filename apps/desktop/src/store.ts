@@ -250,6 +250,14 @@ interface Store {
   /** Pre-seed the log with persisted events and the panel with known connectors. */
   preload: (events: PersistedEvent[], known: KnownConnector[]) => void;
   togglePause: () => void;
+  /** True once App.tsx's initial connector + event-log preload has settled
+   * (success or failure). `connectors` and `log` both start empty, which is
+   * indistinguishable from "loaded and genuinely empty" without this flag —
+   * ConnectorsPage and ActivityPage gate their loading skeleton on it rather
+   * than on `connectors.length`/`log.length`, so a slow first fetch shows a
+   * skeleton instead of flashing their real empty state. */
+  connectorsAndLogLoaded: boolean;
+  setConnectorsAndLogLoaded: (loaded: boolean) => void;
   view: NavKey;
   setView: (view: NavKey) => void;
   /** Session-scoped navigation history. Never persisted — a relaunch starts
@@ -470,6 +478,8 @@ export const useStore = create<Store>((set) => ({
   connectors: [],
   log: [],
   paused: false,
+  connectorsAndLogLoaded: false,
+  setConnectorsAndLogLoaded: (connectorsAndLogLoaded) => set({ connectorsAndLogLoaded }),
   view: INITIAL_PREFS.landingPage,
   // history/historyIndex must always be seeded as a consistent pair: a
   // non-empty array together with an index that actually points into it.

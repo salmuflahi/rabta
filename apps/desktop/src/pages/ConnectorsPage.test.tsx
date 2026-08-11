@@ -30,6 +30,11 @@ function seed(state: Partial<Parameters<typeof useStore.setState>[0]> = {}) {
     pairings: [],
     log: [],
     selectedConnectorId: null,
+    // Every test below is about post-load rendering, not the loading gate
+    // itself (see the "ConnectorsPage loading" block) — defaulting this true
+    // keeps all of them asserting exactly what they asserted before the gate
+    // existed, rather than needing their own opt-in.
+    connectorsAndLogLoaded: true,
     ...state,
   });
 }
@@ -248,5 +253,25 @@ describe("ConnectorsPage capability tokens", () => {
     renderWithProviders(<ConnectorsPage />);
     expect(detail().getByText("Opens a saved folder in the editor on restore")).toBeInTheDocument();
     expect(detail().getByText("Reads the open folder and file paths on capture")).toBeInTheDocument();
+  });
+});
+
+describe("ConnectorsPage loading", () => {
+  beforeEach(() => seed());
+
+  // `connectors` starts empty and is filled by App.tsx after mount, which
+  // looks identical to a genuinely empty list without this gate — a skeleton
+  // must show instead of the real "No connectors yet" install instructions.
+  it("shows a skeleton, not the empty state, before the initial load completes", () => {
+    seed({ connectorsAndLogLoaded: false });
+    const { container } = renderWithProviders(<ConnectorsPage />);
+    expect(screen.queryByText("No connectors yet")).toBeNull();
+    expect(container.querySelectorAll('[aria-hidden="true"]').length).toBeGreaterThan(0);
+  });
+
+  it("renders the real empty state once loaded with nothing paired", () => {
+    seed({ connectorsAndLogLoaded: true, connectors: [] });
+    renderWithProviders(<ConnectorsPage />);
+    expect(screen.getByText("No connectors yet")).toBeInTheDocument();
   });
 });

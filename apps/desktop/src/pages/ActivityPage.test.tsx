@@ -18,6 +18,11 @@ function seed(log: LogEntry[], extra: Record<string, unknown> = {}) {
     paused: false,
     connectors: [],
     selectedEventSeq: null,
+    // Every test below is about post-load rendering, not the loading gate
+    // itself (see the "ActivityPage loading" block) — defaulting this true
+    // keeps all of them asserting exactly what they asserted before the gate
+    // existed, rather than needing their own opt-in.
+    connectorsAndLogLoaded: true,
     ...extra,
   });
 }
@@ -192,5 +197,25 @@ describe("ActivityPage historical events", () => {
     renderWithProviders(<ActivityPage />);
     const row = eventList().getAllByRole("button")[0];
     expect(row.firstElementChild!.className).not.toMatch(/text-tertiary-foreground/);
+  });
+});
+
+describe("ActivityPage loading", () => {
+  beforeEach(() => seed([]));
+
+  // `log` starts empty and is filled by App.tsx after mount, which looks
+  // identical to a genuinely empty log without this gate — a skeleton must
+  // show instead of the real "Nothing yet" copy.
+  it("shows a skeleton, not the empty state, before the initial load completes", () => {
+    seed([], { connectorsAndLogLoaded: false });
+    const { container } = renderWithProviders(<ActivityPage />);
+    expect(screen.queryByText(/Nothing yet/)).toBeNull();
+    expect(container.querySelectorAll('[aria-hidden="true"]').length).toBeGreaterThan(0);
+  });
+
+  it("renders the real empty state once loaded with nothing recorded", () => {
+    seed([], { connectorsAndLogLoaded: true });
+    renderWithProviders(<ActivityPage />);
+    expect(screen.getByText(/Nothing yet — connector events/)).toBeInTheDocument();
   });
 });

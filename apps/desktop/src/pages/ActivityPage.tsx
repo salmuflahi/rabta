@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { describeEvent, relativeTime } from "@/lib/humanize";
 import { cn } from "@/lib/utils";
 import { useStore, type LogEntry } from "@/store";
@@ -26,6 +27,57 @@ function entryConnectorId(e: LogEntry): string | undefined {
   return (e.connectorId as string | undefined) ?? (e.connector as { id?: string } | undefined)?.id;
 }
 
+/** Mirrors one event row: no leading icon (the real row has none), a
+ * flex-1 title bar and a trailing time-width bar — the row's own
+ * `gap-3 rounded-[7px] px-2.5 py-[7px]`. */
+function ActivityRowSkeleton() {
+  return (
+    <div className="flex items-center gap-3 rounded-[7px] px-2.5 py-[7px]">
+      <Skeleton className="h-3.5 flex-1" />
+      <Skeleton className="h-2.5 w-10 shrink-0" />
+    </div>
+  );
+}
+
+/**
+ * Stands in for `ActivityPage` before `connectorsAndLogLoaded` — the whole
+ * screen swaps out (matching Overview/Projects), including the filter bar:
+ * `shown.length` and the Select's connector options both depend on data
+ * that has not arrived yet, so real controls acting on it would be
+ * half-functional rather than merely undecorated. The details pane mirrors
+ * its populated shape (a title + meta line), the same convention
+ * `OverviewSkeleton`'s hero uses rather than pre-empting the genuinely-empty
+ * "Select an event" state.
+ */
+function ActivitySkeleton() {
+  return (
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_320px] overflow-hidden">
+      <div className="flex min-h-0 flex-col overflow-hidden">
+        <div className="flex shrink-0 items-center gap-2.5 px-4 pb-1 pt-2.5">
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-6 w-28" />
+          <div className="flex-1" />
+          <Skeleton className="h-2.5 w-14" />
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-4 pt-1">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <ActivityRowSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+
+      <div className="flex min-h-0 flex-col overflow-hidden border-l-[0.5px] border-border bg-muted/40">
+        <div className="shrink-0 px-[18px] pt-4">
+          <Skeleton className="h-3 w-14" />
+          <Skeleton className="mt-[7px] h-4 w-full" />
+          <Skeleton className="mt-1 h-2.5 w-32" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Activity — the handoff's two-pane event browser.
  *
@@ -43,6 +95,7 @@ export function ActivityPage() {
   const paused = useStore((s) => s.paused);
   const togglePause = useStore((s) => s.togglePause);
   const connectors = useStore((s) => s.connectors);
+  const connectorsAndLogLoaded = useStore((s) => s.connectorsAndLogLoaded);
   const selectedEventSeq = useStore((s) => s.selectedEventSeq);
   const selectEvent = useStore((s) => s.selectEvent);
   const scroller = useRef<HTMLDivElement>(null);
@@ -76,6 +129,11 @@ export function ActivityPage() {
   // can age out from under the selection.
   const selected = shown.find((e) => e.seq === selectedEventSeq) ?? shown[shown.length - 1] ?? null;
   const now = Date.now();
+
+  // `log` starts empty and is filled by App.tsx after mount — without this
+  // gate, a user whose landing page is Activity sees "Nothing yet" flash
+  // before the real (possibly non-empty) log arrives.
+  if (!connectorsAndLogLoaded) return <ActivitySkeleton />;
 
   return (
     <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_320px] overflow-hidden">
