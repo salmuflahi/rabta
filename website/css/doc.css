@@ -237,10 +237,10 @@
 
   /* ---- machine data ---------------------------------------------------- */
 
-  /* Every path, command, identifier and flag. Same 12px mono register as the
-     homepage — on a document page it does most of the work. */
-  .prose code,
-  .mono {
+  /* Every path, command, identifier and flag. `.mono` itself lives in
+     shell.css — the homepage uses it too and does not load this file — and
+     this rule only extends the same register to inline code. */
+  .prose code {
     font-family: var(--mono);
     font-size: 12px;
     letter-spacing: var(--track-mono);

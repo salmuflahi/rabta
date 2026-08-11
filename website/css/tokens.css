@@ -124,6 +124,20 @@
     --fold-duration: 520ms;
     --fold-delay: 100ms;
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* The landing page's two larger beats. Everything on this site that
+       responds to a pointer uses --hover-dur; these are for the two gestures
+       that are not responses:
+
+       --open-dur is a row unfolding to four times its height. At --hover-dur
+       that is a jump-cut — the eye needs to see the row grow for the layout
+       shift to read as intentional rather than as reflow.
+
+       --entrance-dur is the headline rising into place, once, on first view.
+       It is the slowest thing on the site because it is the only one that
+       happens while the visitor is still deciding whether to read. */
+    --open-dur: 420ms;
+    --entrance-dur: 760ms;
   }
 
   /* Matches the nav's own 699px step in shell.css. */

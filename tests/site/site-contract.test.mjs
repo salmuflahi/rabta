@@ -77,21 +77,17 @@ test("token literals stay within the approved Living Instrument palette", async 
 
 test("homepage hero retains the approved responsive display scale", async () => {
   const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
-  const desktop = css.match(/\.hero h1\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-  const tablet = css.slice(
-    css.indexOf("@media (max-width: 899px)"),
-    css.indexOf("@media (max-width: 599px)"),
-  );
-  const mobile = css.slice(css.indexOf("@media (max-width: 599px)"));
-  const tabletHero = tablet.match(/\.hero h1\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-  const mobileHero = mobile.match(/\.hero h1\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+  const hero = css.match(/\.hero h1 \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
 
-  assert.match(desktop, /font-size:\s*72px/);
-  assert.match(desktop, /line-height:\s*0\.98/);
-  assert.match(tabletHero, /font-size:\s*46px/);
-  assert.doesNotMatch(tabletHero, /line-height:/);
-  assert.match(mobileHero, /font-size:\s*36px/);
-  assert.doesNotMatch(mobileHero, /line-height:/);
+  // The redesigned hero is one fluid clamp rather than three fixed steps: it
+  // is centred and its measure is capped in `ch`, so a per-breakpoint size
+  // would only ever be re-deriving what the clamp already gives. The bounds
+  // are the contract — 42px is the smallest the two lines stay two lines at,
+  // and 82px is where the second line stops fitting a 1440px rail.
+  assert.match(hero, /font-size:\s*clamp\(42px,\s*6\.6vw,\s*82px\)/);
+  assert.match(hero, /line-height:\s*0\.98/);
+  assert.match(hero, /letter-spacing:\s*-0\.045em/);
+  assert.match(hero, /text-wrap:\s*balance/);
 });
 
 test("homepage surfaces stay within the approved Living Instrument palette", async () => {
@@ -119,41 +115,31 @@ test("homepage surfaces stay within the approved Living Instrument palette", asy
 
 test("homepage uses the exact approved responsive section rhythm", async () => {
   const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
-  const desktop = css.slice(0, css.indexOf("@media (max-width: 899px)"));
+  const desktop = css.slice(0, css.indexOf("@media (max-width: 980px)"));
   const tablet = css.slice(
-    css.indexOf("@media (max-width: 899px)"),
-    css.indexOf("@media (max-width: 599px)"),
+    css.indexOf("@media (max-width: 980px)"),
+    css.indexOf("@media (max-width: 640px)"),
   );
-  const mobile = css.slice(css.indexOf("@media (max-width: 599px)"));
 
-  for (const [source, selector, spacing] of [
-    [desktop, ".hero", "144px 64px"],
-    [desktop, ".thesis", "160px"],
-    [desktop, ".pieces", "128px 160px"],
-    [desktop, ".honest-return", "160px"],
-    [desktop, ".local", "96px"],
-    [desktop, ".download", "160px"],
-    [tablet, ".thesis", "112px"],
-    [tablet, ".pieces", "92px 112px"],
-    [tablet, ".honest-return", "112px"],
-    [tablet, ".local", "72px"],
-    [tablet, ".download", "112px"],
-    [mobile, ".hero", "88px 40px"],
-    [mobile, ".thesis", "88px"],
-    [mobile, ".pieces", "72px 88px"],
-    [mobile, ".honest-return", "88px"],
-    [mobile, ".local", "56px"],
-    [mobile, ".download", "88px"],
-  ]) {
-    const body = source.match(
-      new RegExp(`\\${selector}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`),
+  // One rhythm, not six hand-picked numbers: every section on the redesigned
+  // page opens on the same 104px beat, and the closing band is the only one
+  // that differs — it is the page ending, so it gets more air above and below.
+  for (const selector of [".moves", ".holds", ".focus", ".history", ".local"]) {
+    const body = desktop.match(
+      new RegExp(`\\${selector} \\{([\\s\\S]*?)\\n\\s*\\}`),
     )?.[1] ?? "";
-    assert.match(
-      body,
-      new RegExp(`padding-block:\\s*${spacing}`),
-      `${selector} ${spacing}`,
-    );
+    assert.match(body, /padding-top:\s*104px/, `${selector} desktop`);
   }
+
+  const hero = desktop.match(/\.hero \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+  assert.match(hero, /padding-top:\s*92px/);
+
+  const download = desktop.match(/\.download \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+  assert.match(download, /padding-block:\s*120px 110px/);
+
+  // The tablet step collapses the whole rhythm at once, so the sections cannot
+  // drift apart from each other on the way down.
+  assert.match(tablet, /\.moves,\n\s*\.holds,\n\s*\.focus,\n\s*\.history,\n\s*\.local \{\s*\n\s*padding-top:\s*80px/);
 });
 
 /** WCAG relative luminance of a #rrggbb string. */
@@ -351,10 +337,11 @@ test("every enhancement resolves to the finished state without JavaScript", asyn
   // modules only opt elements into being animated on the way there.
   const landing = await readFile(resolve(SITE, "css/landing.css"), "utf8");
 
-  // The restore caption's rows are only hidden once JS has marked them pending.
-  assert.match(landing, /\[data-resolve="pending"\] > \* \{[\s\S]*?opacity:\s*0/);
+  // The headline's lines are only hidden once js/reveal.js has marked their
+  // section pending. Nothing in the markup carries that state, so a page whose
+  // script never runs renders the finished thing rather than an empty box.
+  assert.match(landing, /\[data-reveal="pending"\] \.rise > span \{[\s\S]*?opacity:\s*0/);
   const html = await readRoute("/");
-  assert.match(html, /<figcaption data-resolve>/, "the markup ships no state");
   assert.doesNotMatch(html, /data-resolve="pending"/);
   assert.doesNotMatch(html, /data-reveal="pending"/);
 
@@ -362,7 +349,16 @@ test("every enhancement resolves to the finished state without JavaScript", asyn
   for (const [, value] of html.matchAll(/data-count>(\d+)</g)) {
     assert.ok(Number.parseInt(value, 10) > 0, `counter ships ${value}`);
   }
-  assert.equal((html.match(/data-count/g) ?? []).length, 6);
+  // Three, in the footer's receipt. The homepage's own counters went with the
+  // bento; the receipt's are the shell's and appear on every route.
+  assert.equal((html.match(/data-count/g) ?? []).length, 3);
+
+  // The focus receipt is the same rule in a different shape: its three tallies
+  // ship their real values, so the section reads correctly before home.js runs.
+  for (const [, value] of html.matchAll(/data-tally="[a-z]+">(\d+)</g)) {
+    assert.ok(Number.parseInt(value, 10) >= 0, `tally ships ${value}`);
+  }
+  assert.equal((html.match(/data-tally=/g) ?? []).length, 3);
 
   const instrument = await readFile(resolve(SITE, "js/instrument.js"), "utf8");
   // Counting and sequencing are motion with no meaning of their own, so both
@@ -391,28 +387,24 @@ test("homepage metadata uses the approved contrast pairings", async () => {
   const landing = await readFile(resolve(SITE, "css/landing.css"), "utf8");
   const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");
 
-  for (const selector of [
-    ".requirement",
-    ".release-strip",
-    ".bento__cell--product figcaption",
-    ".bento p",
-    ".return-demo figcaption",
+  // Mono metadata is the quietest text on the page and the easiest to render
+  // unreadable. Every instance of it resolves to a checked token rather than a
+  // hand-dimmed value.
+  for (const [selector, token] of [
+    [".requirement,\n  .download__meta", "cool-mid"],
+    [".marquee__logo", "cool-mid"],
+    [".figcard__fig", "cool-mid"],
+    [".hero__lede", "cool-soft"],
+    [".moves__hint", "cool-soft"],
   ]) {
     const body = landing.match(
-      new RegExp(`\\${selector.replaceAll(" ", "\\s+")}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`),
+      new RegExp(`\\${selector.replaceAll(" ", "\\s+")} \\{([\\s\\S]*?)\\n\\s*\\}`),
     )?.[1] ?? "";
-    assert.match(body, /color:\s*var\(--cool-soft\)/, selector);
-  }
-
-  for (const selector of [".local .eyebrow", ".availability"]) {
-    const body = landing.match(
-      new RegExp(`\\${selector.replaceAll(" ", "\\s+")}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`),
-    )?.[1] ?? "";
-    assert.match(body, /color:\s*var\(--(?:petrol|cool-panel)\)/, selector);
+    assert.match(body, new RegExp(`color:\\s*var\\(--${token}\\)`), selector);
   }
 
   const livingShell = shell.slice(shell.indexOf("Living Instrument shared shell"));
-  const footerMeta = livingShell.match(/\.foot__meta\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+  const footerMeta = livingShell.match(/\.foot__meta \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
   assert.match(footerMeta, /color:\s*var\(--cool-soft\)/);
 });
 
@@ -624,11 +616,10 @@ test("every declared media source is on disk", async () => {
   const regions = home.match(/data-product-media="[^"]+"/g) ?? [];
   // Pinned as a set rather than a count: what matters is which demos the page
   // declares, and a bare number says nothing about which one went missing.
-  assert.deepEqual(regions.sort(), [
-    'data-product-media="capture"',
-    'data-product-media="hero"',
-    'data-product-media="return"',
-  ]);
+  // One, since the rebuild — the design's composition has a single demo slot,
+  // the window under the headline. `capture` and `return` are still built and
+  // still in the manifest; they have no section to sit in on this page.
+  assert.deepEqual(regions.sort(), ['data-product-media="hero"']);
 
   // These are attached by JavaScript, so no crawler and no earlier contract
   // would ever notice them going missing.
@@ -714,47 +705,6 @@ test("no stylesheet or module reaches off this origin", async () => {
   }
 });
 
-test("homepage has the approved narrative and removes the stale architecture", async () => {
-  const html = await readRoute("/");
-
-  // The approved narrative, rewritten to the eight-page redesign. This list is
-  // an editorial contract, not a description — it exists so the homepage's
-  // argument cannot drift a sentence at a time without someone deciding to.
-  // Changed deliberately when Home was rebuilt to the design; the previous
-  // list ("A task is more than a folder.", "Local is not a privacy setting.",
-  // "Come back to the work.") is retired, not lost.
-  for (const copy of [
-    "Workspace memory for macOS",
-    "Pick up the task.",
-    "Not the pieces.",
-    "Three moves.",
-    "Nothing else to learn.",
-    "A capsule is the whole surface of a task.",
-    "Saving it is the whole ritual.",
-    "The return, shown honestly.",
-    "There is no account, because there is no server.",
-    "Stop rebuilding",
-  ]) {
-    assert.ok(html.includes(copy), copy);
-  }
-
-  for (const id of ["how-it-works", "pieces", "return", "local", "download"]) {
-    assert.match(html, new RegExp(`id="${id}"`));
-  }
-
-  for (const removed of [
-    'class="rack',
-    'class="evidence',
-    'class="switch',
-    'class="ledger',
-  ]) {
-    assert.doesNotMatch(html, new RegExp(removed));
-  }
-
-  assert.ok(html.includes("no Intel build"));
-  assert.ok(html.includes("Workspace partially restored"));
-  assert.ok(html.includes("On next reload"));
-});
 
 test("the inner pages are laid out, not just typeset", async () => {
   // Five pages shipped as `.prose` documents — the right shape for /setup/ and
@@ -866,121 +816,165 @@ test("no page styles itself with a class no stylesheet it loads defines", async 
   }
 });
 
-test("mobile Return Field offsets fit inside the viewport", async () => {
-  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
-  const mobile = css.match(
-    /@media \(max-width: 599px\) \{[\s\S]*?\.return-field \{([\s\S]*?)\n\s*\}/,
-  )?.[1];
+// ---------------------------------------------------------------------------
+// The redesigned homepage.
+//
+// The seven guards these replace described the previous composition — the
+// Return Field, the two full-bleed colour chapters, the bento, the product
+// stages. None of those elements exists any more; the page was rebuilt to the
+// design comp, which is centre-weighted and built from a hero window, three
+// hover rows, four figure cards, a focus receipt, a contribution graph and two
+// closing bands.
+//
+// Deleting a guard because the thing it guarded is gone is correct. Deleting
+// it without writing its replacement is how a page ends up with no coverage at
+// all, so each of the properties worth holding is re-stated below against what
+// actually shipped.
 
-  assert.ok(mobile, "mobile Return Field rule exists");
-  assert.match(mobile, /width:\s*auto/);
-  assert.match(mobile, /margin-inline:\s*12px/);
+test("homepage has the approved narrative", async () => {
+  const html = await readRoute("/");
+
+  // An editorial contract, not a description: the page's argument cannot drift
+  // a sentence at a time without someone deciding to.
+  for (const copy of [
+    "Pick up the task.",
+    "Not the pieces.",
+    "New — focus mode puts away what isn't in the task",
+    "Three moves. Nothing else to learn.",
+    "A capsule is the whole surface of a task.",
+    "Resuming can also put away what isn't in the task.",
+    "Nothing is lost.",
+    "Every task you came back to.",
+    "There is no account, because there is no server.",
+    "Stop rebuilding the same workspace.",
+  ]) {
+    assert.ok(html.includes(copy), copy);
+  }
+
+  for (const id of ["how-it-works", "pieces", "focus", "history", "local", "download"]) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+
+  // The previous composition's classes, so a half-finished revert is caught.
+  for (const removed of [
+    'class="return-field',
+    'class="bento',
+    'class="thesis',
+    'class="honest-return',
+    'class="chapter-heading',
+  ]) {
+    assert.doesNotMatch(html, new RegExp(removed), removed);
+  }
+});
+
+test("the homepage's claims about the build match what ships", async () => {
+  // Comments stripped: the source explains at length why the design's numbers
+  // were not used, and quoting a wrong claim in order to reject it must not
+  // read as making it.
+  const html = (await readRoute("/")).replace(/<!--[\s\S]*?-->/g, "");
+
+  // The design comp says "Apple silicon & Intel", "macOS 13 or later", "14 MB"
+  // and "Free while in beta". All four are wrong for the artifact this page
+  // links to, and the last one implies a price that does not exist. The layout
+  // is the design's; these numbers are the product's.
+  assert.ok(html.includes("no Intel build"), "names the missing Intel build");
+  assert.ok(html.includes("macOS 11+"), "the real floor");
+  assert.ok(html.includes("5.5 MB"), "the real size");
+  assert.ok(html.includes("MIT-licensed"), "the real licence");
+
+  assert.doesNotMatch(html, /Apple silicon &amp; Intel|Apple silicon & Intel/);
+  assert.doesNotMatch(html, /macOS 13/);
+  assert.doesNotMatch(html, /while in beta/);
+  assert.doesNotMatch(html, /14 MB/);
 });
 
 test("homepage is a focused download narrative", async () => {
   const html = await readRoute("/");
 
-  // Three, deliberately — raised from two when the capture demo was added.
-  // This number is an editorial budget, not a description: the page shows the
-  // loop (capture, return) plus the hero, and a fourth would need an argument.
-  assert.equal((html.match(/<video\b/g) ?? []).length, 3);
+  // One video. The design comp has a single demo slot — the window under the
+  // headline — and the two loops the previous page carried have no home in
+  // this composition. Raising this number needs a section to put one in, not
+  // just an asset.
+  assert.equal((html.match(/<video\b/g) ?? []).length, 1);
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
-
-  const pieces =
-    html.match(/<section\b[^>]*id="pieces"[\s\S]*?<\/section>/)?.[0] ?? "";
-  assert.equal((pieces.match(/<img\b/g) ?? []).length, 1);
 
   assert.doesNotMatch(html, /type="radio"/);
   assert.doesNotMatch(html, /3978ec57|86M2X6MUA3/);
 });
 
-test("the two colour chapters are full-bleed surfaces", async () => {
+test("the hover rows are a disclosure, not a hover-only secret", async () => {
+  const html = await readRoute("/");
+  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
+
+  // Every row is focusable, so the description is reachable without a pointer.
+  assert.equal((html.match(/class="move" tabindex="0"/g) ?? []).length, 3);
+
+  // And the text is in the markup at full weight — folded by opacity, which
+  // keeps it in the accessibility tree, never `display: none`.
+  for (const copy of [
+    "Files, terminals, tabs and the branch, sealed into one capsule",
+    "Resuming closes what is not in the task, and says what it kept",
+    "Everything comes back, branch first, with a receipt",
+  ]) {
+    assert.ok(html.includes(copy), copy);
+  }
+  const desc = css.match(/\.move__desc \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+  assert.match(desc, /opacity:\s*0/);
+  assert.doesNotMatch(desc, /display:\s*none|visibility:\s*hidden/);
+
+  // A pointer-less device gets them all open rather than none.
+  const noHover = css.slice(css.indexOf("@media not all and (hover: hover)"));
+  assert.match(noHover, /\.move__desc \{[\s\S]*?opacity:\s*1/);
+});
+
+test("the focus switch ships in the state that makes its section legible", async () => {
   const html = await readRoute("/");
 
-  // The cool panel and the ivory reset are the world changing colour, not
-  // centred cards. Carrying a rail/shell here would also charge the product
-  // stage inside a double gutter.
-  for (const id of ["return", "local"]) {
-    const open = html.match(new RegExp(`<section\\b[^>]*id="${id}"[^>]*>`))?.[0] ?? "";
-    assert.ok(open, id);
-    assert.doesNotMatch(open, /class="[^"]*\b(?:rail|shell)\b/, id);
-  }
+  // With no JavaScript the toggle cannot move, so the page must ship showing
+  // the interesting half: focus mode on, and a receipt that has something in
+  // it. Shipping "off" would leave a scriptless visitor reading a section
+  // about a feature next to a result where nothing happened.
+  const toggle = html.match(/<button[^>]*data-focus-toggle[^>]*>/)?.[0] ?? "";
+  assert.ok(toggle, "the switch exists");
+  assert.match(toggle, /role="switch"/, "a real switch, not a styled div");
+  assert.match(toggle, /aria-checked="true"/, "ships on");
+  assert.match(toggle, /type="button"/);
+
+  assert.ok(html.includes("6 tabs closed · 4 kept"));
+  assert.ok(html.includes("focus mode on"));
 });
 
-test("product stages declare their own shape", async () => {
-  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
-  const desktop = css.slice(0, css.indexOf("@media (max-width: 899px)"));
-  const stage =
-    desktop.match(/\[data-product-media\] video \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-
-  // Never `height: auto` alone: that hands the stage's height to whichever
-  // source is attached, so a post-load breakpoint change restyles the page.
-  assert.match(stage, /aspect-ratio:\s*1280\s*\/\s*720/);
-  assert.match(stage, /object-fit:\s*contain/);
-
-  for (const selector of [".return-field__stage video", ".return-demo video"]) {
-    const body =
-      desktop.match(
-        new RegExp(`\\${selector.replaceAll(" ", "\\s+")} \\{([\\s\\S]*?)\\n\\s*\\}`),
-      )?.[1] ?? "";
-    assert.doesNotMatch(body, /aspect-ratio|object-fit/, selector);
-  }
-});
-
-test("mobile product media is a deliberate portrait crop", async () => {
-  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
-  const mobile = css.slice(css.indexOf("@media (max-width: 599px)"));
-
-  const stage =
-    mobile.match(/\[data-product-media\] video \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-  assert.match(stage, /aspect-ratio:\s*390\s*\/\s*700/);
-  assert.match(stage, /object-fit:\s*cover/);
-
-  const hero =
-    mobile.match(
-      /\[data-product-media="hero"\] video \{([\s\S]*?)\n\s*\}/,
-    )?.[1] ?? "";
-  const restore =
-    mobile.match(
-      /\[data-product-media="return"\] video \{([\s\S]*?)\n\s*\}/,
-    )?.[1] ?? "";
-
-  assert.match(hero, /object-position:/);
-  assert.match(restore, /object-position:/);
-  assert.notEqual(
-    hero.trim(),
-    restore.trim(),
-    "each loop keeps its own crop position",
-  );
-
-  // The crop is CSS-only: the intrinsic ratio the browser uses before the
-  // stylesheet applies must still be the recorded one.
-  const capture =
-    mobile.match(
-      /\[data-product-media="capture"\] video \{([\s\S]*?)\n\s*\}/,
-    )?.[1] ?? "";
-  assert.match(capture, /object-position:/);
-  assert.notEqual(capture.trim(), hero.trim(), "capture keeps its own crop");
-
+test("the contribution graph is markup, not a runtime artefact", async () => {
   const html = await readRoute("/");
-  const videos = [...html.matchAll(/<video\b[^>]*>/g)].map((match) => match[0]);
-  assert.equal(videos.length, 3);
-  for (const video of videos) {
-    assert.match(video, /width="1280"/);
-    assert.match(video, /height="720"/);
-  }
+
+  // 140 cells: twenty weeks of seven days, written into the page. It is
+  // illustrative and it never changes, so generating it at runtime would only
+  // mean a scriptless visitor sees an empty box where the argument was.
+  const grid = html.match(/<div class="heat__grid"[\s\S]*?<\/div>/)?.[0] ?? "";
+  assert.equal((grid.match(/class="heat__cell"/g) ?? []).length, 140);
+
+  // It is a graphic with one accessible name, not 140 announced spans.
+  assert.match(grid, /role="img"/);
+  assert.match(grid, /aria-label="[^"]+"/);
 });
 
-test("Return Field paints the orange fold outside the clipped cool sheet", async () => {
-  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
-  const field = css.match(/\.return-field \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-  const sheet =
-    css.match(/\.return-field::before \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-  const fold =
-    css.match(/\.return-field::after \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
+test("the marquee names only apps a connector actually speaks to", async () => {
+  const html = await readRoute("/");
+  const marquee = html.match(/<div class="marquee"[\s\S]*?<\/div>\s*<\/div>/)?.[0] ?? "";
 
-  assert.doesNotMatch(field, /clip-path/);
-  assert.match(sheet, /background:\s*var\(--cool-field\)/);
-  assert.match(sheet, /clip-path/);
-  assert.match(fold, /background:\s*var\(--orange\)/);
+  // A logo wall is a claim. Everything on it is an editor the Open VSX
+  // extension installs into, a terminal those editors host, or a browser the
+  // Chrome connector runs in — nothing aspirational.
+  for (const app of ["VS Code", "Cursor", "Zed", "Ghostty", "iTerm2", "Terminal", "Warp", "Chrome", "Arc", "Firefox"]) {
+    assert.ok(marquee.includes(`>${app}</span>`), app);
+  }
+
+  // Duplicated once so the CSS can translate the track by exactly -50% and
+  // loop seamlessly without measuring anything.
+  assert.equal((marquee.match(/class="marquee__logo"/g) ?? []).length, 20);
+
+  // Decorative: the same list is given to assistive technology once, as a
+  // sentence, rather than twice as twenty orphaned labels.
+  assert.match(marquee, /aria-hidden="true"/);
+  assert.ok(html.includes("Connectors currently speak to VS Code"));
 });

@@ -480,6 +480,22 @@
     justify-self: end;
   }
 
+  /* The mono register: every path, command, identifier, count and label that
+     should read as machine output rather than prose.
+
+     It lives in the shell rather than in doc.css because both halves of the
+     site use it — the landing page's requirement lines and receipt labels, and
+     every document page's inline code. It was in doc.css, which the homepage
+     does not load, so `class="mono"` there rendered as body text. */
+  .mono {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: var(--track-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--ivory);
+    overflow-wrap: anywhere;
+  }
+
   .foot {
     padding-block: 48px;
     border-top: 1px solid rgba(169, 190, 194, 0.14);

@@ -164,10 +164,17 @@ test("the homepage plays exactly the sources the manifest describes", async () =
     .map((match) => match[1])
     .sort();
 
-  assert.deepEqual(
-    referenced,
-    manifest.videos.map((v) => v.file).sort(),
-  );
+  // A subset, not an equality, since the homepage rebuild. The manifest is the
+  // inventory of what was produced and verified; the page plays the one the
+  // design's composition has a slot for. What still has to hold is the
+  // direction that matters: nothing the page plays may be absent from the
+  // manifest, because an unverified source is one nobody has checked the codec,
+  // duration or audio track of.
+  const described = new Set(manifest.videos.map((v) => v.file));
+  for (const file of referenced) {
+    assert.ok(described.has(file), `${file} is not described by the manifest`);
+  }
+  assert.ok(referenced.length > 0, "the homepage plays something");
 
   const posters = [
     ...html.matchAll(/poster="\/assets\/demos\/([^"]+)"/g),

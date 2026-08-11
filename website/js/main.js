@@ -3,6 +3,7 @@
 import { initProductMedia } from "./media.js";
 import { initReceiptFolds } from "./receipt-fold.js";
 import { initChapterMarks } from "./reveal.js";
+import { initFocusSwitch } from "./home.js";
 import { initCounters, initDirectionalCut, initRestoreSequence } from "./instrument.js";
 
 /**
@@ -59,6 +60,7 @@ function boot() {
   safely("media", initProductMedia);
   safely("receipt", initReceiptFolds);
   safely("chapter marks", initChapterMarks);
+  safely("focus switch", initFocusSwitch);
   safely("directional cut", initDirectionalCut);
   safely("counters", initCounters);
   safely("restore sequence", initRestoreSequence);
