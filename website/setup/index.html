@@ -98,30 +98,31 @@
       Everything here applies to Rabta 0.1.0 on macOS. It takes a few minutes,
       and none of it involves creating an account.
     </p>
+    <p class="page-head__meta">11 sections · install · verify · connect · troubleshoot · uninstall</p>
   </div>
 
-  <div class="wrap railed">
-    <div></div>
-    <div class="prose">
+  <div class="wrap">
+    <div class="doc-grid">
+      <nav class="doc-nav" aria-labelledby="toc-title">
+              <p id="toc-title">On this page</p>
+              <ol>
+                <li><a href="#requirements">What you need</a></li>
+                <li><a href="#install">Install the app</a></li>
+                <li><a href="#verify">Verify the download</a></li>
+                <li><a href="#editor">Connect your editor</a></li>
+                <li><a href="#browser">The browser connector</a></li>
+                <li><a href="#pairing">Pairing and permissions</a></li>
+                <li><a href="#first-capsule">Your first capsule</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+                <li><a href="#diagnostics">Logs and diagnostics</a></li>
+                <li><a href="#uninstall">Uninstall and remove data</a></li>
+                <li><a href="#report">Report a bug</a></li>
+              </ol>
+            </nav>
 
-    <nav class="toc" aria-labelledby="toc-title">
-      <p id="toc-title">On this page</p>
-      <ol>
-        <li><a href="#requirements">1. What you need</a></li>
-        <li><a href="#install">2. Install the app</a></li>
-        <li><a href="#verify">3. Verify the download</a></li>
-        <li><a href="#editor">4. Connect your editor</a></li>
-        <li><a href="#browser">5. The browser connector</a></li>
-        <li><a href="#pairing">6. Pairing and permissions</a></li>
-        <li><a href="#first-capsule">7. Your first capsule</a></li>
-        <li><a href="#troubleshooting">8. Troubleshooting</a></li>
-        <li><a href="#diagnostics">9. Logs and diagnostics</a></li>
-        <li><a href="#uninstall">10. Uninstall and remove data</a></li>
-        <li><a href="#report">11. Report a bug</a></li>
-      </ol>
-    </nav>
+      <div class="prose doc-body">
 
-    <h2 id="requirements">1. What you need</h2>
+    <h2 id="requirements">What you need</h2>
 
     <ul role="list">
       <li><strong>macOS 11.0 (Big Sur) or later.</strong></li>
@@ -142,7 +143,7 @@
       "Chip: Apple M…" means Apple Silicon.
     </p>
 
-    <h2 id="install">2. Install the app</h2>
+    <h2 id="install">Install the app</h2>
 
     <ol>
       <li>Download
@@ -187,7 +188,7 @@
       </p>
     </div>
 
-    <h2 id="verify">3. Verify the download</h2>
+    <h2 id="verify">Verify the download</h2>
 
     <p>Optional, and worth doing. All of it is checkable from the file itself.</p>
 
@@ -232,7 +233,7 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
       </p>
     </div>
 
-    <h2 id="editor">4. Connect your editor</h2>
+    <h2 id="editor">Connect your editor</h2>
 
     <p>
       The extension is published as <strong>Rabta Connector</strong>
@@ -301,7 +302,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
       idle and connects later.
     </p>
 
-    <h2 id="browser">5. The browser connector</h2>
+    <h2 id="browser">The browser connector</h2>
 
     <p>
       Install <strong>Rabta Connector</strong> from the
@@ -323,7 +324,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
       content scripts, so it is structurally unable to read page contents.
     </p>
 
-    <h2 id="pairing">6. Pairing and permissions</h2>
+    <h2 id="pairing">Pairing and permissions</h2>
 
     <p>
       Rabta has two different trust paths, because the two connectors sit in
@@ -357,7 +358,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
         Recording, Camera, Microphone or Contacts.</li>
     </ul>
 
-    <h2 id="first-capsule">7. Your first capsule</h2>
+    <h2 id="first-capsule">Your first capsule</h2>
 
     <h3>Register a project</h3>
     <ol>
@@ -417,7 +418,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
       </p>
     </div>
 
-    <h2 id="troubleshooting">8. Troubleshooting</h2>
+    <h2 id="troubleshooting">Troubleshooting</h2>
 
     <h3>The app won't launch</h3>
     <ul role="list">
@@ -489,7 +490,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
       went out and what came back.
     </p>
 
-    <h2 id="diagnostics">9. Logs and diagnostics</h2>
+    <h2 id="diagnostics">Logs and diagnostics</h2>
 
     <p>
       Rabta's log is in the app, not a file you have to hunt for.
@@ -515,7 +516,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
       connector-command console if you want to watch the wire traffic directly.
     </p>
 
-    <h2 id="uninstall">10. Uninstall and remove data</h2>
+    <h2 id="uninstall">Uninstall and remove data</h2>
 
     <p>There is nothing to deauthorize and no account to close.</p>
 
@@ -537,7 +538,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
       never touched by any of this: Rabta only ever stored pointers to them.
     </p>
 
-    <h2 id="report">11. Report a bug</h2>
+    <h2 id="report">Report a bug</h2>
 
     <p>
       Open an issue at
@@ -561,7 +562,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
         Have a look before pasting them into a public issue.
       </p>
     </div>
-
+      </div>
     </div>
   </div>
 </main>

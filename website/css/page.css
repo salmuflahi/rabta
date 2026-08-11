@@ -574,3 +574,170 @@
     }
   }
 }
+
+@layer section {
+  /* ---- the document grid --------------------------------------------------
+     /setup/ and /privacy/ are the two pages people read *while doing
+     something*: installing, or checking what is stored before they trust the
+     app. They are the only pages long enough to get lost in — eleven and twelve
+     sections — and the only ones where "where am I, and what is left" is a
+     real question.
+
+     So they get what the comp gives them: a sidebar that stays put, numbered
+     sections, and a marker beside each heading. The other five pages are read
+     top to bottom in one pass and would only be cluttered by it.
+
+     This replaces a boxed table of contents that sat at the top and scrolled
+     away — useful once, then gone exactly when it starts mattering. */
+  .doc-grid {
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 64px;
+    width: min(100% - var(--gutter) * 2, var(--rail));
+    margin-inline: auto;
+    align-items: start;
+  }
+
+  .doc-nav {
+    position: sticky;
+    top: calc(var(--nav-h) + 32px);
+    /* Its own scroller: twelve entries plus the nav can exceed a short
+       viewport, and a sidebar you cannot reach the bottom of is worse than no
+       sidebar. */
+    max-height: calc(100vh - var(--nav-h) - 64px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .doc-nav > p {
+    margin-bottom: 16px;
+    color: var(--cool-mid);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .doc-nav ol {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: doc-nav;
+  }
+
+  .doc-nav a {
+    display: flex;
+    gap: 10px;
+    padding: 5px 8px 5px 0;
+    color: var(--cool-soft);
+    font-size: 13.5px;
+    line-height: 1.45;
+    text-decoration: none;
+    border-radius: var(--r1);
+  }
+
+  /* The number is generated rather than typed, so re-ordering a section cannot
+     leave the sidebar counting wrong. */
+  .doc-nav li {
+    counter-increment: doc-nav;
+  }
+
+  .doc-nav a::before {
+    content: counter(doc-nav);
+    flex: none;
+    min-width: 1.4em;
+    color: var(--cool-mid);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    text-align: right;
+  }
+
+  .doc-nav a:hover,
+  .doc-nav a:focus-visible {
+    color: var(--ivory);
+  }
+
+  .doc-nav a:hover::before,
+  .doc-nav a:focus-visible::before {
+    color: var(--orange);
+  }
+
+  /* ---- numbered sections ---------------------------------------------------
+     The marker is generated from the same counter, so the heading text no
+     longer carries "1." / "2." by hand — which is how /setup/'s prose and its
+     table of contents had drifted out of step before. */
+  .doc-body {
+    counter-reset: doc-section;
+  }
+
+  .doc-body > h2 {
+    counter-increment: doc-section;
+    margin-top: var(--s11);
+    color: var(--ivory);
+    font-size: clamp(26px, 2.6vw, 32px);
+    font-weight: 560;
+    line-height: 1.12;
+    letter-spacing: -0.03em;
+    scroll-margin-top: calc(var(--nav-h) + 32px);
+  }
+
+  .doc-body > h2:first-child {
+    margin-top: 0;
+  }
+
+  .doc-body > h2::before {
+    content: "0" counter(doc-section);
+    display: block;
+    margin-bottom: 12px;
+    color: var(--orange);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.09em;
+  }
+
+  /* Past nine the leading zero is wrong. */
+  .doc-body > h2:nth-of-type(n + 10)::before {
+    content: counter(doc-section);
+  }
+
+  /* ---- the page-head meta line --------------------------------------------
+     What the page contains, before you commit to reading it. */
+  .page-head__meta {
+    margin-top: var(--s5);
+    color: var(--cool-mid);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: var(--track-mono);
+  }
+
+  @media (max-width: 900px) {
+    .doc-grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 40px;
+    }
+
+    /* Sticky is meaningless once it is a block at the top of the page, and a
+       210px column of links above the content is a wall. It collapses to a
+       plain index. */
+    .doc-nav {
+      position: static;
+      max-height: none;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--hairline);
+    }
+
+    .doc-nav ol {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2px 20px;
+    }
+
+    .doc-body > h2 {
+      margin-top: var(--s10);
+    }
+  }
+}
