@@ -11,7 +11,7 @@
     "finalLabel": "Workspace partially restored",
     "restoreResult": {
       "VS Code": "Restored",
-      "Chrome": "On next reload",
+      "Chrome": "When Chrome reconnects",
       "Git": "Restored"
     }
   },
@@ -20,10 +20,10 @@
       "file": "hero-return-desktop.m4v",
       "demo": "hero-return",
       "variant": "desktop",
-      "durationSeconds": 7.833333,
+      "durationSeconds": 8.0,
       "width": 1280,
       "height": 720,
-      "bytes": 684144,
+      "bytes": 618691,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "hero-return.png"
@@ -32,10 +32,10 @@
       "file": "hero-return-mobile.m4v",
       "demo": "hero-return",
       "variant": "mobile",
-      "durationSeconds": 7.833333,
+      "durationSeconds": 7.8,
       "width": 390,
       "height": 700,
-      "bytes": 289954,
+      "bytes": 247806,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "hero-return.png"
@@ -47,7 +47,7 @@
       "durationSeconds": 4.833333,
       "width": 1280,
       "height": 720,
-      "bytes": 375110,
+      "bytes": 417351,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "honest-return.png"
@@ -59,7 +59,7 @@
       "durationSeconds": 4.8,
       "width": 390,
       "height": 700,
-      "bytes": 154817,
+      "bytes": 137171,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "honest-return.png"
@@ -70,13 +70,13 @@
       "file": "hero-return.png",
       "width": 2560,
       "height": 1440,
-      "bytes": 401914
+      "bytes": 385880
     },
     {
       "file": "honest-return.png",
       "width": 2560,
       "height": 1440,
-      "bytes": 396399
+      "bytes": 386138
     }
   ]
 }
