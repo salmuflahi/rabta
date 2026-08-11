@@ -705,15 +705,23 @@ test("no stylesheet or module reaches off this origin", async () => {
 test("homepage has the approved narrative and removes the stale architecture", async () => {
   const html = await readRoute("/");
 
+  // The approved narrative, rewritten to the eight-page redesign. This list is
+  // an editorial contract, not a description — it exists so the homepage's
+  // argument cannot drift a sentence at a time without someone deciding to.
+  // Changed deliberately when Home was rebuilt to the design; the previous
+  // list ("A task is more than a folder.", "Local is not a privacy setting.",
+  // "Come back to the work.") is retired, not lost.
   for (const copy of [
     "Workspace memory for macOS",
     "Pick up the task.",
     "Not the pieces.",
-    "A task is more than a folder.",
-    "The pieces you usually reconstruct by hand.",
+    "Three moves.",
+    "Nothing else to learn.",
+    "A capsule is the whole surface of a task.",
+    "Saving it is the whole ritual.",
     "The return, shown honestly.",
-    "Local is not a privacy setting.",
-    "Come back to the work.",
+    "There is no account, because there is no server.",
+    "Stop rebuilding",
   ]) {
     assert.ok(html.includes(copy), copy);
   }

@@ -398,8 +398,52 @@
   /* The capture half of the loop. Same 160px beat as the sections around it —
      with one typeface and one accent, the rhythm is most of what holds the
      page together, so a new section joins it rather than inventing a value. */
-  .capture {
+  .capture,
+  .focus,
+  .history {
     padding-block: 160px;
+  }
+
+  .focus__lede,
+  .history .chapter-heading p {
+    max-width: 62ch;
+    margin-top: var(--s4);
+    color: var(--cool-soft);
+  }
+
+  .focus__guarantees {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--gap);
+    margin-top: var(--s8);
+  }
+
+  .focus__guarantees dt {
+    color: var(--ivory);
+    font-weight: 500;
+  }
+
+  .focus__guarantees dd {
+    margin: var(--s2) 0 0;
+    color: var(--cool-soft);
+  }
+
+  .history__shot {
+    margin-top: var(--s8);
+  }
+
+  .history__shot img {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    border: 1px solid var(--hairline-strong);
+  }
+
+  .history__shot figcaption {
+    margin-top: var(--s3);
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--cool-mid);
   }
 
   .capture__lede {
@@ -630,7 +674,9 @@
       gap: 56px;
     }
 
-    .capture {
+    .capture,
+    .focus,
+    .history {
       padding-block: 112px;
     }
 
