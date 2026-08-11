@@ -101,24 +101,42 @@ function hexToRgba(hex: string, alpha: number): string {
 // action), in preference order, per theme.
 //
 // --primary-foreground cannot be one static value per theme the way
-// --foreground or --muted-foreground can: the four accents' bases span a
-// wide lightness range (tangerine light is a mid-bright orange; petrol dark
-// is a mid-tone teal), and no single label colour clears WCAG AA's 4.5:1
-// against all four (contrast.test.ts asserts every accent/theme
-// combination). The first entry is this app's normal choice for the theme
-// (white on light, near-black on dark) and is all that's needed for 6 of
-// the 8 accent/theme combinations — order matters, because an accent that
+// --foreground or --muted-foreground can. In *light* theme that's a hard
+// mathematical fact, not just a gap in today's candidate list: a dark label
+// needs relative luminance <= .033 to clear 4.5:1 against tangerine's base,
+// while a light label needs relative luminance >= .42 to clear 4.5:1
+// against petrol's — two disjoint ranges, so no single colour (achromatic
+// or not) can serve both. *Dark* theme isn't forced the same way — pure
+// black (0 0% 0%) actually clears 4.5:1 against all four dark bases
+// (margins 4.57-7.46:1, contrast.test.ts's accent sweep) — but defaulting
+// to it everywhere would repaint tangerine/sky/sand's labels away from
+// their current near-black for no legibility gain. So both themes use the
+// same ordered-candidate mechanism, and pure black is reserved as dark
+// theme's fallback rather than promoted to its default.
+//
+// The first entry is this app's normal choice for the theme (white on
+// light, near-black on dark) and is all that's needed for 6 of the 8
+// accent/theme combinations — order matters, because an accent that
 // already reads fine must keep today's exact colour rather than jump to a
 // more extreme one for no reason. The remaining entries exist only as a
 // fallback for the two that don't:
 //   - tangerine/light needs --foreground's near-black (white is 2.81:1).
+//     A minimal achromatic nudge off white (~"0 0% 19%", 4.66:1) would also
+//     have cleared the bar with a smaller move than --foreground's L12%
+//     (5.94:1) — unlike --muted-foreground/--tertiary-foreground below,
+//     which each moved by the smallest step that clears their bar, this one
+//     reuses an existing, already-visible-elsewhere token on purpose:
+//     judged a better trade than a one-off grey invented solely to shave a
+//     few more points of lightness.
 //   - petrol/dark needs pure black — neither of this app's own two text
 //     tones is dark/light enough (near-black 4.01:1, near-white 4.15:1);
 //     pure black clears it at 4.57:1. Pure white is deliberately not a
 //     dark-theme candidate: it isn't needed today, and reaching for it
 //     would be a bigger visual jump than pure black for the one accent
-//     that needs a fallback at all.
-const LABEL_CANDIDATES: Record<"light" | "dark", string[]> = {
+//     that needs a fallback at all. Pure black itself has no other
+//     precedent as a token value in this file or index.css — flagged here
+//     for whoever next audits the palette for one-offs.
+export const LABEL_CANDIDATES: Record<"light" | "dark", string[]> = {
   // "0 0% 100%" is --primary-foreground's own :root default (index.css);
   // "240 3% 12%" is --foreground's :root value, reused rather than
   // inventing a new colour.
@@ -136,16 +154,30 @@ const WCAG_AA_BODY = 4.5;
  * AA (4.5:1) against a resolved `--primary` background. `base` must be a
  * bare "H S% L%" triplet, as produced by `hexToHslTriplet`.
  *
- * Falls back to the theme's normal default if none clear the bar. That
- * should not happen for any accent in `ACCENTS` today — contrast.test.ts
- * asserts every accent/theme combination clears it — but an illegible
- * button beats a thrown exception during paint if a future accent's base
- * ever needs a candidate this list doesn't yet have.
+ * Falls back to the *best-available* candidate — the highest ratio among
+ * all of them, not simply the first — if none clear the bar. That should
+ * not happen for any accent in `ACCENTS` today (contrast.test.ts's accent
+ * sweep asserts every accent/theme combination clears it), and this branch
+ * carries its own direct test (contrast.test.ts, "the fallback of last
+ * resort") precisely because nothing else exercises it: an untested branch
+ * in a function whose entire job is guaranteeing contrast is the one place
+ * a silent regression could hide. An illegible button beats a thrown
+ * exception during paint, and the *most* legible option of a bad set beats
+ * an arbitrary one.
  */
 function resolvePrimaryForeground(base: string, theme: "light" | "dark"): string {
   const candidates = LABEL_CANDIDATES[theme];
-  return candidates.find((candidate) => contrastRatio(candidate, base) >= WCAG_AA_BODY) ?? candidates[0];
+  const passing = candidates.find((candidate) => contrastRatio(candidate, base) >= WCAG_AA_BODY);
+  if (passing) return passing;
+  return candidates.reduce((best, candidate) =>
+    contrastRatio(candidate, base) > contrastRatio(best, base) ? candidate : best
+  );
 }
+
+// Exported for contrast.test.ts's direct fallback-branch test only — not
+// meant as a general public API. Everything else should go through
+// `applyAccent`, which is what the running app actually calls.
+export { resolvePrimaryForeground };
 
 /**
  * Writes the resolved accent's five custom properties onto `root` (defaults

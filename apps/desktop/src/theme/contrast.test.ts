@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "./contrast";
 import { tokensIn } from "./tokens-source";
-import { ACCENTS, applyAccent, type AccentId } from "./accent";
+import { ACCENTS, applyAccent, LABEL_CANDIDATES, resolvePrimaryForeground, type AccentId } from "./accent";
 
 // WCAG AA: 4.5:1 for body text, 3:1 for large text and UI components.
 const BODY = 4.5;
@@ -63,5 +63,35 @@ describe.each(["light", "dark"] as const)("%s theme, every accent's button label
     const fg = root.style.getPropertyValue("--primary-foreground");
     const bg = root.style.getPropertyValue("--primary");
     expect(contrastRatio(fg, bg)).toBeGreaterThanOrEqual(BODY);
+  });
+});
+
+// Review follow-up — resolvePrimaryForeground's "nothing cleared the bar"
+// branch (accent.ts) never fires for any of today's 8 real accent/theme
+// combinations, so without a dedicated test it has zero coverage: a future
+// edit to that branch could start returning an arbitrarily bad candidate
+// and nothing above would catch it, since the sweep only ever exercises the
+// passing path. This drives the resolver directly with a contrived base no
+// real accent has, so the branch is covered and its behaviour — return the
+// *best available* candidate, not just the first one tried — is pinned.
+describe("resolvePrimaryForeground's fallback of last resort", () => {
+  it("returns the best-available candidate, not just the first, when none clears the bar", () => {
+    // Achromatic "0 0% 50%": both of light theme's candidates fail 4.5:1
+    // against it (white ~3.98:1, --foreground ~4.20:1) — the "impossible"
+    // band for this candidate pair is L 47%-51%, found by scanning; 50% is
+    // comfortably inside it either way. Crucially the two don't fail
+    // *equally* — otherwise "best available" and "just the first" would be
+    // indistinguishable and this test would prove nothing.
+    const contrivedBase = "0 0% 50%";
+    const [first, second] = LABEL_CANDIDATES.light;
+    const firstRatio = contrastRatio(first, contrivedBase);
+    const secondRatio = contrastRatio(second, contrivedBase);
+    expect(firstRatio).toBeLessThan(BODY);
+    expect(secondRatio).toBeLessThan(BODY);
+    expect(secondRatio).toBeGreaterThan(firstRatio);
+
+    // The old (fixed) behaviour would have returned `first` unconditionally
+    // — this asserts the actual best of the two, `second`, instead.
+    expect(resolvePrimaryForeground(contrivedBase, "light")).toBe(second);
   });
 });
