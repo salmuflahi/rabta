@@ -147,10 +147,32 @@
     background: var(--cool-panel);
   }
 
+  .shot {
+    position: relative;
+  }
+
   .shot img {
     display: block;
     width: 100%;
     height: auto;
+  }
+
+  /* Same fade the homepage's hero window uses, for the same reason: the shot
+     should settle into its frame rather than end at a line. Kept on a
+     pseudo-element so the image itself stays untouched — a mask here would
+     also eat the caption rule below it. */
+  .shot picture {
+    position: relative;
+    display: block;
+  }
+
+  .shot picture::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 28%;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent, rgba(4, 12, 13, 0.55));
   }
 
   .shot figcaption {

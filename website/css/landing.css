@@ -367,6 +367,20 @@
     grid-template-areas: "stage";
   }
 
+  /* The demo fades into the frame's own floor rather than stopping at a hard
+     line. The window already carries a border and two shadows; without this the
+     video's bottom edge is a third, harder edge inside them, and the whole
+     thing reads as a rectangle pasted onto the page. */
+  .window__stage::after {
+    content: "";
+    grid-area: stage;
+    z-index: 1;
+    pointer-events: none;
+    align-self: end;
+    height: 34%;
+    background: linear-gradient(to bottom, transparent, rgba(4, 12, 13, 0.72));
+  }
+
   .window__stage > * {
     grid-area: stage;
   }
@@ -518,21 +532,46 @@
       border-color var(--open-dur) var(--ease-out);
   }
 
+  /* The crop, which is most of what makes these read as a set.
+     `object-position: left top` put a 1024x640 screenshot in a 68px band and
+     showed the top-left tenth of it — three different slivers of three
+     different screens, at a zoom where nothing was legible. Anchoring to the
+     top centre and dropping the scale to 1.02 shows each app's header and
+     sidebar, which is the region all three shots have in common: that is what
+     makes them match. The 1.02 exists only so the expand has somewhere to
+     travel from. */
   .move img {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: left top;
-    transform: scale(1.06);
+    object-position: 50% 0;
+    transform: scale(1.02);
     transition: transform var(--entrance-dur) var(--ease-out);
+    /* The screenshot dissolves at its own bottom edge instead of being cut off
+       by it, so the row reads as a surface the image sits on rather than a
+       window punched through it. */
+    -webkit-mask-image:
+      linear-gradient(to bottom, rgb(4 12 13) 45%, transparent 100%),
+      linear-gradient(to left, transparent, rgb(4 12 13) 14%);
+    mask-image:
+      linear-gradient(to bottom, rgb(4 12 13) 45%, transparent 100%),
+      linear-gradient(to left, transparent, rgb(4 12 13) 14%);
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
   }
 
+  /* Two gradients, not one. The horizontal keeps the label legible over
+     whatever the screenshot happens to be doing on the left; the vertical
+     seats the image into the row's own colour at the bottom, which is where
+     the text baseline sits. */
   .move__scrim {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to right, rgba(4, 12, 13, 0.78), rgba(4, 12, 13, 0.3) 50%, rgba(4, 12, 13, 0.16));
+    background:
+      linear-gradient(to right, rgba(4, 12, 13, 0.86), rgba(4, 12, 13, 0.42) 46%, rgba(4, 12, 13, 0.12)),
+      linear-gradient(to bottom, transparent 30%, rgba(23, 50, 57, 0.86) 92%);
   }
 
   .move__row {
@@ -607,6 +646,21 @@
     .move:hover img,
     .move:focus-visible img {
       transform: scale(1);
+      -webkit-mask-image:
+        linear-gradient(to bottom, rgb(4 12 13) 68%, transparent 100%),
+        linear-gradient(to left, transparent, rgb(4 12 13) 10%);
+      mask-image:
+        linear-gradient(to bottom, rgb(4 12 13) 68%, transparent 100%),
+        linear-gradient(to left, transparent, rgb(4 12 13) 10%);
+    }
+
+    /* Expanded, the screenshot is the point, so the scrim steps back to what
+       the text actually needs and the image keeps more of its own bottom. */
+    .move:hover .move__scrim,
+    .move:focus-visible .move__scrim {
+      background:
+        linear-gradient(to right, rgba(4, 12, 13, 0.72), rgba(4, 12, 13, 0.22) 52%, transparent),
+        linear-gradient(to bottom, transparent 52%, rgba(23, 50, 57, 0.9) 98%);
     }
 
     .move:hover .move__desc,

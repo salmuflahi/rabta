@@ -237,17 +237,18 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
 
     <p>
       The extension is published as <strong>Rabta Connector</strong>
-      (<code>rabta-connect.rabta-vscode</code>, version 0.1.0) on
-      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener noreferrer">Open VSX</a>.
-      That is the registry <strong>Cursor, VSCodium and Windsurf</strong>
-      install from. It is <strong>not yet on the Microsoft VS&nbsp;Code
-      Marketplace</strong> &mdash; for stock VS Code, install the identical
-      <code>.vsix</code> directly (below).
+      (<code>rabta-connect.rabta-vscode</code>, version 0.1.0) on both
+      registries: the
+      <a href="https://marketplace.visualstudio.com/items?itemName=rabta-connect.rabta-vscode" target="_blank" rel="noopener noreferrer">Visual Studio Marketplace</a>,
+      which stock <strong>VS&nbsp;Code</strong> reads, and
+      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" target="_blank" rel="noopener noreferrer">Open VSX</a>,
+      which <strong>Cursor, VSCodium and Windsurf</strong> read. Whichever you
+      use, it is in the Extensions panel.
     </p>
 
-    <h3>Cursor, VSCodium and Windsurf</h3>
+    <h3>Any of the four editors</h3>
 
-    <p>These install from Open VSX directly, so it's in the Extensions panel:</p>
+    <p>Search and install, the same way in each:</p>
 
     <ol>
       <li>Open the Extensions panel (<code>⇧⌘X</code>).</li>
@@ -255,23 +256,17 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
       <li>Install it, then reload the window.</li>
     </ol>
 
-    <p>Or from a terminal:</p>
-    <pre class="code" tabindex="0">cursor --install-extension rabta-connect.rabta-vscode</pre>
-
-    <h3>VS Code</h3>
-
-    <p>
-      Stock VS Code reads the Microsoft Marketplace, where Rabta Connector is
-      <strong>not published yet</strong>, so searching the Extensions panel
-      will not find it. Install the packaged extension instead &mdash; it is
-      the same build Open VSX serves.
-    </p>
+    <p>Or from a terminal, with whichever binary you have:</p>
+    <pre class="code" tabindex="0">code --install-extension rabta-connect.rabta-vscode
+<span class="cmt"># or</span>
+cursor --install-extension rabta-connect.rabta-vscode</pre>
 
     <h3 id="vsix">Installing the file directly</h3>
 
     <p>
-      This is the route for stock VS Code today, and it works in any of the
-      four editors:
+      Not the normal route any more &mdash; both registries serve it &mdash;
+      but useful on a machine that cannot reach one of them, or to pin a
+      specific version:
     </p>
 
     <ol>

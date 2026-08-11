@@ -224,13 +224,40 @@ test("the extension distribution story is the same on every page that tells it",
     );
   }
 
-  // The one hand-install that IS still real — stock VS Code, which reads
-  // Microsoft's Marketplace rather than Open VSX. If that stops being true,
-  // this assertion is the reminder that /setup/ and /roadmap/ both say so.
+  // This assertion used to require the opposite. It asked /setup/ to explain
+  // why stock VS Code needed a hand-installed .vsix — and it kept passing after
+  // `rabta-connect.rabta-vscode` had been live on the Visual Studio Marketplace
+  // since 28 July, publisher flagged `verified`. A guard that pins a fact
+  // nobody re-checks does not protect the fact; it preserves it after it stops
+  // being true, and this one was actively holding four pages wrong.
+  //
+  // So it is inverted: the Marketplace is a place the extension IS, and no page
+  // may say otherwise.
+  for (const [route, html] of Object.entries(pages)) {
+    const prose = html.replace(/<!--[\s\S]*?-->/g, "");
+    assert.doesNotMatch(
+      prose,
+      /not (?:yet )?(?:on|published)[^.]{0,80}Marketplace|Marketplace[^.]{0,80}not (?:yet )?published/i,
+      `${route}: says the extension is missing from the Marketplace — it is not`,
+    );
+    assert.doesNotMatch(
+      prose,
+      /Azure DevOps token/i,
+      `${route}: still describes the Marketplace listing as blocked`,
+    );
+  }
+
+  // And /setup/ points at both registries, so a reader on any of the four
+  // editors is told where theirs gets it from.
   assert.match(
     pages["/setup/"],
-    /not (?:yet )?(?:on|published)[\s\S]{0,80}Marketplace|Marketplace[\s\S]{0,80}not published yet/i,
-    "/setup/: no longer explains why stock VS Code needs the .vsix",
+    /marketplace\.visualstudio\.com\/items\?itemName=rabta-connect\.rabta-vscode/,
+    "/setup/: no link to the Marketplace listing",
+  );
+  assert.match(
+    pages["/setup/"],
+    /open-vsx\.org\/extension\/rabta-connect\/rabta-vscode/,
+    "/setup/: no link to the Open VSX listing",
   );
 });
 
