@@ -2224,7 +2224,7 @@ Launch the app (`pnpm --filter desktop tauri dev`) and confirm by hand, since no
 
 - [ ] **Step 5: Confirm the toolbar accent fix landed**
 
-Shipped separately (see Task 15's "Not in this task" note), so this is a check, not a change. Landed in `443a3ed`, which added `useOwnsViewAccent` (`src/shell/viewAccent.ts`) and `accentOwnerView` to the store.
+Shipped separately (see Task 15's "Not in this task" note), so this is a check, not a change. Landed in `443a3ed` for Overview and Capsules, which added `useOwnsViewAccent` (`src/shell/viewAccent.ts`) and `accentOwnerView` to the store, plus a follow-up covering Projects.
 
 It resolves one step finer than "neutral on `overview` and `capsules`": the toolbar goes neutral **while the page is actually spending its accent**, which is what "the page hero keeps the accent" amounts to in the states where there is no hero. A flat per-view rule would have left Overview's empty state with no accent anywhere — and that is the one screen where starting a capsule genuinely *is* the primary action. Confirmed with the user.
 
@@ -2236,19 +2236,21 @@ It resolves one step finer than "neutral on `overview` and `capsules`": the tool
 | Capsules, projects registered but no capsules | **accent** — the page shows no action of its own |
 | Capsules, no projects at all | neutral — the page's "Register a project" is the accent |
 | Projects, a project registered | **accent** — the detail pane spends nothing |
-| Projects, none registered | **two accents — known defect, see below** |
+| Projects, none registered | neutral — the page's "Register project" is the accent |
 
 Verify: `pnpm --filter desktop exec vitest run src/App.test.tsx src/shell/Toolbar.test.tsx`
 
 The App-level cases are the ones that matter — they render `<App />`, so the Toolbar and the page are on screen together. That combination is what the whole defect hid behind: page tests render pages without the Toolbar and `Toolbar.test.tsx` renders the Toolbar without a page, so no test in the suite had ever put the two together. Any future accent assertion for these views belongs at App level for the same reason.
 
-Two of those tests fail if someone "fixes" this by deleting the toolbar's accent outright rather than yielding it — zero accents satisfies `expectAtMostOneAccent` just as happily as one, so the tests pin the accent's presence as well as its absence.
+Several of those tests fail if someone "fixes" this by deleting the toolbar's accent outright rather than yielding it — zero accents satisfies `expectAtMostOneAccent` just as happily as one, so the tests pin the accent's presence as well as its absence.
 
-**Open: the same defect on Projects, still unfixed.** With no projects registered, the Projects view spends two accents — the toolbar's "Add project" alongside `ProjectsPage.tsx`'s "Register project" empty-state CTA (`src/pages/ProjectsPage.tsx`, the `!selected` branch of the detail pane). Confirmed by probe against a real `<App />` render: `found 2: Add project, Register project`.
+**A third instance turned up on Projects and is also fixed.** With no projects registered, that view spent two accents — the toolbar's "Add project" alongside `ProjectsPage.tsx`'s "Register project" empty-state CTA. Found while checking the table above row by row rather than assuming it, and fixed the same way: `useOwnsViewAccent(selected === null)`.
 
-It hid the same way the other two did, and one step further: `App.test.tsx`'s existing sheet test deliberately seeds a project *specifically* to dodge it, so even the App-level tests walk around this state. It is reachable — App.tsx's first-run effect redirects to Overview when `list_projects` is empty, but that runs once on mount, and nothing stops the user walking to Projects from the sidebar afterward.
+Projects inverts the other two, which is worth knowing before reading the code: here it is the *empty* detail pane that spends the accent and the populated one that spends nothing, so the toolbar yields when there are no projects and keeps its accent once one exists — the opposite of Overview.
 
-The fix is the same one line the other two pages take, and the ruling already covers it (the page's action is the primary one): `useOwnsViewAccent(selected === null)` in `ProjectsPage.tsx`, plus an App-level case navigating to Projects *after* mount with no projects seeded. Left out of `443a3ed` because that commit's scope was the Overview/Capsules ruling. **Do not sign off Task 16 with this open** — either fix it or record it as a deliberate carry in the Step 6 outcome doc.
+**No page claims while it is loading.** All three claims are gated on `!loading`, because Task 7's skeletons return before the real content and an unloaded page is indistinguishable from an empty one — no hero, no selection, no projects. Without the gate, Capsules and Projects demoted the toolbar while their own skeleton (which spends no accent) was up, leaving the screen with **zero** accents for the length of every load. `expectAtMostOneAccent` is blind to that failure — at-most-one is satisfied just as well by none — so its regression test counts accents instead of calling the helper. Worth remembering for any future claim: the assertion that guards this rule only catches the double, never the absence.
+
+It hid one layer deeper than the other two. `App.test.tsx`'s pairing-sheet test seeds a project *specifically* so ProjectsPage isn't in this state, so even the App-level tests walked around it. Its regression test therefore navigates to Projects **after** mount: App.tsx's first-run effect redirects an empty install to Overview, so a test that starts on `projects` gets routed away and proves nothing — while a real user walking there from the sidebar lands on it fine.
 
 - [ ] **Step 6: Record what shipped and what diverged**
 

@@ -305,6 +305,61 @@ describe("one accent per view, Toolbar and page together", () => {
     expect(() => expectAtMostOneAccent(document.body)).not.toThrow();
   });
 
+  it("spends one accent on Projects when none are registered", async () => {
+    // The third instance of the same defect, and the best-hidden: the sheet
+    // test further down seeds a project *specifically* so ProjectsPage isn't
+    // in this state, so even the App-level tests walked around it.
+    mockInvoke.mockClear();
+    mockInvoke.mockImplementation(async () => [] as unknown[]);
+    useStore.setState({ ...STORE_DEFAULTS, view: "overview", pairings: [] });
+    renderWithProviders(<App />);
+    await screen.findByText("Nothing open yet");
+
+    // Navigated to, not started on: App's first-run effect routes an empty
+    // install to Overview, but it runs once on mount and nothing stops the
+    // user walking to Projects from the sidebar afterwards. Starting the
+    // render on "projects" would be redirected away and prove nothing.
+    act(() => {
+      useStore.getState().setView("projects");
+    });
+    await screen.findByText("No projects yet");
+
+    expect(() => expectAtMostOneAccent(document.body)).not.toThrow();
+
+    // The page's "Register project" holds the accent here, so the Toolbar's
+    // "Add project" is the one that yields. Queried by text above rather than
+    // by button name because the register dialog puts a second "Register
+    // project" button in the tree.
+    const addProject = screen.getByRole("button", { name: "Add project" });
+    expect(addProject.className).not.toMatch(/(^|\s)bg-primary(\s|$)/);
+  });
+
+  it("keeps exactly one accent up while a page is still loading", () => {
+    // An unloaded page looks like an empty one — no hero, no selection, no
+    // projects — so a page that claims off that data demotes the toolbar while
+    // its own skeleton, which spends no accent, is on screen. The result is a
+    // screen with *zero* accents for the length of every load, and
+    // `expectAtMostOneAccent` is blind to it: at-most-one is satisfied just as
+    // well by none. Hence counting here rather than asserting the helper.
+    for (const view of ["overview", "capsules", "projects"] as const) {
+      mockInvoke.mockClear();
+      mockInvoke.mockImplementation(() => new Promise(() => {})); // never settles: hold the skeleton
+      useStore.setState({ ...STORE_DEFAULTS, view, pairings: [], accentOwnerView: null });
+      const { unmount } = renderWithProviders(<App />);
+
+      const accents = Array.from(document.body.querySelectorAll<HTMLElement>("*")).filter(
+        (el) =>
+          /(^|\s)bg-primary(\s|$)/.test(el.getAttribute("class") || "") &&
+          !el.hasAttribute("data-accent-mark"),
+      );
+      expect(accents.map((el) => el.textContent?.trim()), `while ${view} is loading`).toHaveLength(
+        1,
+      );
+
+      unmount();
+    }
+  });
+
   it("keeps the Toolbar's accent on Overview when nothing is open", async () => {
     // The other side of the rule, and the reason the demotion is conditional
     // rather than a blanket "Overview and Capsules never get the accent":

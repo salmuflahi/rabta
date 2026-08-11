@@ -49,6 +49,7 @@ import { moveProject, moveProjectBy } from "@/lib/project-order";
 import { toastErr, toastOk } from "@/lib/toast";
 import { useDeferredDelete } from "@/lib/useDeferredDelete";
 import { cn } from "@/lib/utils";
+import { useOwnsViewAccent } from "@/shell/viewAccent";
 import {
   useStore,
   type Project,
@@ -470,6 +471,17 @@ export function ProjectsPage() {
 
   // Tolerates a stale id: the selected project can be archived or deleted.
   const selected = visibleProjects.find((p) => p.id === selectedProjectId) ?? visibleProjects[0] ?? null;
+  // Backwards from the other two pages: here it's the *empty* detail pane that
+  // spends the accent — "Register project" — while a selected project's pane
+  // has no primary of its own. So the Toolbar's "Add project" yields on the
+  // empty state and keeps the accent once a project exists (Toolbar.tsx).
+  //
+  // Gated on `!loading` because this page returns a skeleton below until the
+  // fetch lands, and an unloaded page looks exactly like an empty one:
+  // `selected` is null either way. Claiming from that would demote the toolbar
+  // while the skeleton — which spends no accent — is up, leaving the whole
+  // screen with none. Nothing claims until it knows what it is showing.
+  useOwnsViewAccent(!loading && selected === null);
   const selectedIndex = selected ? visibleProjects.findIndex((p) => p.id === selected.id) : -1;
   const status = useGitStatus(selected?.id, gitNonce);
   const projectCapsules = selected ? tasks[selected.id] ?? [] : [];

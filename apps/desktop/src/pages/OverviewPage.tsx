@@ -205,7 +205,12 @@ export function OverviewPage() {
   // "New capsule" stands down to neutral while it's on screen (Toolbar.tsx).
   // The empty state below has no action of its own and makes no claim — there,
   // starting a capsule is the primary action, and the Toolbar keeps the accent.
-  useOwnsViewAccent(Boolean(hero));
+  // `!loading` holds the same line the other two pages do — no page claims
+  // from data it hasn't loaded. Redundant here today, since `hero` is
+  // undefined until the fetch lands anyway, but stated rather than relied on:
+  // the rule is uniform across the three claiming pages, and a future default
+  // or optimistic hero would otherwise blank the screen's accent mid-load.
+  useOwnsViewAccent(!loading && Boolean(hero));
   const alsoOpen = openCapsules.slice(1, 4);
   const connectedCount = connectors.filter((c) => c.connected).length;
   const lastCapture = useMemo(() => {

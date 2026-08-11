@@ -323,7 +323,11 @@ export function CapsulesPage() {
   // capsule" goes neutral while either holds (Toolbar.tsx). The remaining case
   // — projects exist, nothing selected — makes no claim, and there the
   // Toolbar's orange is the right primary action.
-  useOwnsViewAccent(selected !== null || projects.length === 0);
+  // `!loading` for the same reason as ProjectsPage: until the fetch lands this
+  // page returns a skeleton that spends no accent, while `projects.length ===
+  // 0` is trivially true — so claiming would demote the toolbar and leave the
+  // screen with no accent at all for the length of the load.
+  useOwnsViewAccent(!loading && (selected !== null || projects.length === 0));
   const connectedKinds = useMemo(
     () => new Set(connectors.filter((c) => c.connected).map((c) => c.kind.toLowerCase())),
     [connectors],
