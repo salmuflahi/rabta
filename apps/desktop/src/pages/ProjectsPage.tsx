@@ -634,7 +634,7 @@ export function ProjectsPage() {
       </div>
 
       {/* --- Detail --- */}
-      <div data-project-detail className="min-h-0 overflow-y-auto">
+      <aside data-project-detail aria-label="Details" className="min-h-0 overflow-y-auto">
         {!selected ? (
           <div className="mx-auto max-w-[720px] px-8 pb-10 pt-[30px]">
             <p className="text-card-title font-590 text-foreground">No projects yet</p>
@@ -833,7 +833,7 @@ export function ProjectsPage() {
             </p>
           </div>
         )}
-      </div>
+      </aside>
     </div>
   );
 }

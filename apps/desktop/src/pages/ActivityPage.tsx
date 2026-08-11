@@ -163,8 +163,9 @@ export function ActivityPage() {
         </div>
       </div>
 
-      <div
+      <aside
         data-event-details
+        aria-label="Details"
         className="flex min-h-0 flex-col overflow-hidden border-l-[0.5px] border-border bg-muted/40"
       >
         <div className="shrink-0 px-[18px] pt-4">
@@ -198,7 +199,7 @@ export function ActivityPage() {
             </pre>
           </div>
         )}
-      </div>
+      </aside>
     </div>
   );
 }

@@ -44,6 +44,20 @@ export function AppShell({ children }: { children: ReactNode }) {
     // that: the grid stays the sidebar/main split, StatusBar sits below it
     // at the full shell width.
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      {/* Skip link — the first focusable element in the whole shell, ahead of
+          the sidebar. Visually hidden until it receives focus (sr-only /
+          focus:not-sr-only) so it costs sighted mouse users nothing, but a
+          keyboard user tabbing in lands here first and can jump straight to
+          `#main` instead of walking every sidebar row first. `<main>` below
+          carries the matching `id` and a `tabIndex={-1}` so it's a legal,
+          focusable jump target despite never sitting in the normal tab
+          order itself. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[60] focus:rounded-md focus:bg-popover focus:px-3 focus:py-1.5 focus:text-body focus:text-foreground focus:shadow-modal focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        Skip to content
+      </a>
       {/* The grid columns are the single source of truth for the sidebar/main
           boundary — one continuous vertical edge, no separate title-bar backing.
           `overflow-hidden` + `min-h-0` on every region keep the shell fixed and
@@ -80,7 +94,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               already wrapped both in one scroller with 16px of padding.
               Screens that are a single column (Overview) simply scroll
               themselves and set their own measure. */}
-          <main className="min-h-0 flex-1 overflow-hidden">
+          {/* `id="main"` + `tabIndex={-1}`: the skip link's jump target.
+              -1 keeps it out of the normal tab sequence (it's not itself a
+              control) while still letting the browser focus it as the
+              destination of an in-page `#main` navigation. */}
+          <main id="main" tabIndex={-1} className="min-h-0 flex-1 overflow-hidden">
             <div key={view} className="h-full min-h-0 animate-page-in">
               {children}
             </div>

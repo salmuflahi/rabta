@@ -226,3 +226,14 @@
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
 }
+
+/* Reduced transparency: the blurred chrome becomes opaque rather than
+   merely less blurred. A user who asked for no transparency wants none. */
+@media (prefers-reduced-transparency: reduce) {
+  [data-tauri-drag-region],
+  [data-sheet],
+  .backdrop-blur-\[24px\] {
+    backdrop-filter: none;
+    background-color: hsl(var(--background));
+  }
+}

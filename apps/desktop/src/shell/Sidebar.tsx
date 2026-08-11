@@ -373,8 +373,12 @@ export function Sidebar() {
 
       {/* Navigation — split into the Workspace and This Mac groups. Each
           group renders its own header and owns its own sliding selection
-          pill (see NavGroup above for why the pill is scoped per group). */}
-      <nav className="flex flex-col pt-3">
+          pill (see NavGroup above for why the pill is scoped per group).
+          `aria-label` gives this landmark a real name — a screen-reader
+          user jumping between landmarks otherwise hears only the generic
+          "navigation" for it, same as they would for a second nav region
+          anywhere else in the app. */}
+      <nav aria-label="Sections" className="flex flex-col pt-3">
         {navGroups.map((group) => (
           <NavGroup
             key={group.name}

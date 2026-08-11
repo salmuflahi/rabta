@@ -282,7 +282,7 @@ export function ConnectorsPage() {
           )}
         </div>
 
-        <div data-connector-detail className="min-h-0 overflow-y-auto">
+        <aside data-connector-detail aria-label="Details" className="min-h-0 overflow-y-auto">
           {selected ? (
             <ConnectorDetail connector={selected} />
           ) : (
@@ -318,7 +318,7 @@ export function ConnectorsPage() {
               </p>
             </div>
           )}
-        </div>
+        </aside>
       </div>
     </div>
   );

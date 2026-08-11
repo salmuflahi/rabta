@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { renderWithProviders } from "@/test/smoke-utils";
 import { useStore } from "@/store";
@@ -68,5 +69,27 @@ describe("AppShell sidebar collapse", () => {
     // Same 280ms in the stylesheet, the Tailwind `duration-sidebar` token
     // and the JS constant that times the content's unmount.
     expect(css).toMatch(new RegExp(`\\.sidebar-track\\s*\\{[^}]*${SIDEBAR_MOTION_MS}ms`));
+  });
+});
+
+describe("landmarks", () => {
+  it("exposes a navigation landmark", () => {
+    renderWithProviders(<AppShell><div /></AppShell>);
+    expect(screen.getByRole("navigation")).toBeInTheDocument();
+  });
+
+  it("gives main an id and a focus target for the skip link", () => {
+    renderWithProviders(<AppShell><div /></AppShell>);
+    const main = screen.getByRole("main");
+    expect(main).toHaveAttribute("id", "main");
+    expect(main).toHaveAttribute("tabindex", "-1");
+  });
+
+  // A keyboard user should not have to tab the whole sidebar to reach
+  // content on every view change.
+  it("offers a skip link to the main region", () => {
+    renderWithProviders(<AppShell><div /></AppShell>);
+    const skip = screen.getByRole("link", { name: /skip to (main )?content/i });
+    expect(skip).toHaveAttribute("href", "#main");
   });
 });

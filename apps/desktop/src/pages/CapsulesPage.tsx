@@ -629,7 +629,7 @@ export function CapsulesPage() {
       </div>
 
       {/* --- Detail --- */}
-      <div data-capsule-detail className="min-h-0 overflow-y-auto">
+      <aside data-capsule-detail aria-label="Details" className="min-h-0 overflow-y-auto">
         {!selected ? (
           <div className="mx-auto max-w-[720px] px-8 pb-10 pt-[30px]">
             <p className="text-card-title font-590 text-foreground">No capsule selected</p>
@@ -822,7 +822,7 @@ export function CapsulesPage() {
             </p>
           </div>
         )}
-      </div>
+      </aside>
     </div>
   );
 }
