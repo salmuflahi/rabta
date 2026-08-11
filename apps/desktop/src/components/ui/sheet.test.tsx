@@ -137,3 +137,63 @@ describe("Sheet keyboard", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });
+
+describe("enterAdvances", () => {
+  it("fires the primary on Enter by default", () => {
+    const onPrimary = vi.fn();
+    renderWithProviders(
+      <Sheet open onOpenChange={() => {}} title="T" primary={{ label: "Go", onClick: onPrimary }}>
+        body
+      </Sheet>,
+    );
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(onPrimary).toHaveBeenCalled();
+  });
+
+  // The pairing sheet's core safety property: a security decision must never
+  // be reachable by a keypress that was already in flight.
+  it("fires nothing on Enter when enterAdvances is false", () => {
+    const onPrimary = vi.fn();
+    renderWithProviders(
+      <Sheet
+        open
+        onOpenChange={() => {}}
+        title="T"
+        enterAdvances={false}
+        primary={{ label: "Approve", onClick: onPrimary }}
+      >
+        body
+      </Sheet>,
+    );
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(onPrimary).not.toHaveBeenCalled();
+  });
+});
+
+describe("secondary action", () => {
+  it("renders and fires a secondary button", () => {
+    const onSecondary = vi.fn();
+    renderWithProviders(
+      <Sheet
+        open
+        onOpenChange={() => {}}
+        title="T"
+        secondary={{ label: "Deny", onClick: onSecondary, tone: "bad" }}
+        primary={{ label: "Approve", onClick: () => {} }}
+      >
+        body
+      </Sheet>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
+    expect(onSecondary).toHaveBeenCalled();
+  });
+
+  it("renders no secondary when not given one", () => {
+    renderWithProviders(
+      <Sheet open onOpenChange={() => {}} title="T" primary={{ label: "Go", onClick: () => {} }}>
+        body
+      </Sheet>,
+    );
+    expect(screen.queryByRole("button", { name: "Deny" })).not.toBeInTheDocument();
+  });
+});

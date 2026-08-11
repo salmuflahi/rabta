@@ -14,6 +14,19 @@ export interface SheetProps {
   onBack?: () => void;
   /** The one accent action. `null` renders no primary at all. */
   primary?: { label: string; onClick: () => void; disabled?: boolean } | null;
+  /** A third footer button between Cancel and the primary. `tone: "bad"`
+   * colours it as a destructive/negative choice (Deny, Disconnect).
+   * `disabled` exists because the pairing sheet holds *both* decisions
+   * inert while it arms — not just the affirmative one. */
+  secondary?: { label: string; onClick: () => void; tone?: "bad"; disabled?: boolean } | null;
+  /** Whether Enter fires the primary action. Default `true`, per the
+   * handoff's "enter advances".
+   *
+   * The pairing sheet sets this `false`: approving a connector is a security
+   * decision, and an Enter keypress already in flight when the sheet appears
+   * must not be able to make it. With this off, Enter is still swallowed —
+   * no global shortcut fires — it simply does nothing. */
+  enterAdvances?: boolean;
   cancelLabel?: string;
   children: React.ReactNode;
 }
@@ -54,6 +67,8 @@ export function Sheet({
   step,
   onBack,
   primary,
+  secondary,
+  enterAdvances = true,
   cancelLabel = "Cancel",
   children,
 }: SheetProps) {
@@ -80,7 +95,7 @@ export function Sheet({
           el instanceof HTMLTextAreaElement ||
           el instanceof HTMLButtonElement ||
           el instanceof HTMLAnchorElement;
-        if (!ownsEnter) {
+        if (enterAdvances && !ownsEnter) {
           const action = primaryRef.current;
           if (action && !action.disabled) {
             event.preventDefault();
@@ -97,7 +112,7 @@ export function Sheet({
     }
     document.addEventListener("keydown", onKeyDown, true);
     return () => document.removeEventListener("keydown", onKeyDown, true);
-  }, [open]);
+  }, [open, enterAdvances]);
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -161,6 +176,20 @@ export function Sheet({
                 onClick={onBack}
               >
                 Back
+              </Button>
+            )}
+            {secondary && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className={cn(
+                  "h-7 rounded-[7px] px-3 text-body",
+                  secondary.tone === "bad" && "text-bad hover:text-bad",
+                )}
+                disabled={secondary.disabled}
+                onClick={secondary.onClick}
+              >
+                {secondary.label}
               </Button>
             )}
             {primary && (
