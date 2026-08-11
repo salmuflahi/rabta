@@ -217,6 +217,19 @@ export default function App() {
         return;
       }
 
+      // ⌘[ / ⌘] — the macOS standard back/forward binding, matching the
+      // toolbar chevrons.
+      if (e.metaKey && !e.shiftKey && e.key === "[") {
+        e.preventDefault();
+        useStore.getState().goBack();
+        return;
+      }
+      if (e.metaKey && !e.shiftKey && e.key === "]") {
+        e.preventDefault();
+        useStore.getState().goForward();
+        return;
+      }
+
       // ⌘S saves the active capsule from anywhere (heads-down in the editor,
       // you shouldn't have to come back to the Capsules page to capture).
       if (key === "s") {

@@ -187,14 +187,27 @@ describe("Toolbar", () => {
   });
 
   describe("back/forward chevrons", () => {
-    it("renders Back disabled at 40% opacity and Forward enabled-looking", () => {
-      useStore.setState({ view: "overview" });
+    // Task 3 makes both controls live (see "history chevrons" below), which
+    // makes this test's original premise obsolete: before, only Back's 40%
+    // opacity was hardcoded, because Forward was permanently (fakely)
+    // inert and never needed a real disabled look of its own. Now both
+    // toggle for real off `history`/`historyIndex`, so both carry the same
+    // `disabled:opacity-40` Tailwind variant — active only while the
+    // `disabled` attribute is actually present, which the "history
+    // chevrons" tests below cover via `toBeDisabled`/`toBeEnabled`. What's
+    // still worth pinning here is that the handoff's 40%-opacity treatment
+    // is wired up at all.
+    it("both chevrons carry the handoff's 40%-opacity disabled treatment", () => {
+      useStore.setState({
+        view: "overview",
+        history: [{ view: "overview", selection: null }],
+        historyIndex: 0,
+      });
       renderWithProviders(<Toolbar />);
       const back = screen.getByRole("button", { name: "Back" });
       const forward = screen.getByRole("button", { name: "Forward" });
-      expect(back).toBeDisabled();
-      expect(back.className.split(/\s+/)).toContain("opacity-40");
-      expect(forward.className.split(/\s+/)).not.toContain("opacity-40");
+      expect(back.className.split(/\s+/)).toContain("disabled:opacity-40");
+      expect(forward.className.split(/\s+/)).toContain("disabled:opacity-40");
     });
   });
 
@@ -251,5 +264,61 @@ describe("Toolbar", () => {
       expect(header.style.transition).toContain("padding-left");
       expect(header.style.transition).toContain(`${SIDEBAR_MOTION_MS}ms`);
     });
+  });
+});
+
+describe("history chevrons", () => {
+  it("disables back with nothing behind us", () => {
+    useStore.setState({
+      view: "overview",
+      history: [{ view: "overview", selection: null }],
+      historyIndex: 0,
+    });
+    renderWithProviders(<Toolbar />);
+    expect(screen.getByRole("button", { name: /^Back$/ })).toBeDisabled();
+  });
+
+  // The label names where you are going, not just "Back" — the whole reason
+  // to make these live is that the user can tell what they do.
+  it("names the destination once there is one", () => {
+    useStore.setState({
+      view: "projects",
+      history: [
+        { view: "capsules", selection: null },
+        { view: "projects", selection: null },
+      ],
+      historyIndex: 1,
+    });
+    renderWithProviders(<Toolbar />);
+    expect(screen.getByRole("button", { name: "Back to Capsules" })).toBeEnabled();
+  });
+
+  it("goes back on click", () => {
+    useStore.setState({
+      view: "projects",
+      history: [
+        { view: "capsules", selection: null },
+        { view: "projects", selection: null },
+      ],
+      historyIndex: 1,
+    });
+    renderWithProviders(<Toolbar />);
+    fireEvent.click(screen.getByRole("button", { name: "Back to Capsules" }));
+    expect(useStore.getState().view).toBe("capsules");
+  });
+
+  it("enables forward only after going back", () => {
+    useStore.setState({
+      view: "projects",
+      history: [
+        { view: "capsules", selection: null },
+        { view: "projects", selection: null },
+      ],
+      historyIndex: 1,
+    });
+    renderWithProviders(<Toolbar />);
+    expect(screen.getByRole("button", { name: /^Forward$/ })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Back to Capsules" }));
+    expect(screen.getByRole("button", { name: "Forward to Projects" })).toBeEnabled();
   });
 });

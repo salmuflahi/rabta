@@ -45,34 +45,53 @@ function ContextualAction({ label, onClick }: { label: string; onClick: () => vo
   );
 }
 
-/** Non-functional browser-style back/forward chrome. Console v2 Phase 1
- * hasn't built a navigation-history stack (there's no state anywhere this
- * shell can read to know what "back" would even mean yet), so both buttons
- * are real `disabled` controls rather than fake live ones — matching the
- * handoff's own prototype, which wires neither to a click handler either.
- * Back reads at 40% opacity per the handoff ("back is disabled at 50%
- * opacity" in prose; the prototype markup's own `opacity:.4` is what's
- * actually rendered, and per this project's rule the markup wins ties).
- * Forward stays full-opacity chrome, also inert, for the same reason. */
+/** Browser-style back/forward, now live against the store's navigation
+ * history (src/shell/history.ts).
+ *
+ * DELIBERATE DIVERGENCE from the handoff, which specifies both as dead
+ * chrome ("back is disabled at 50% opacity") and wires neither to a
+ * handler. A permanently disabled control in a shipping app reads as broken
+ * software rather than as restraint — so these navigate. The handoff's
+ * rendered `opacity:.4` is kept for the genuinely-disabled state, where it
+ * now means "nothing behind you" rather than "not built".
+ *
+ * Labels name the destination because that is the whole point of making
+ * them live: "Back to Capsules" tells you what will happen, "Back" does
+ * not. */
 function HistoryChevrons() {
+  const history = useStore((s) => s.history);
+  const historyIndex = useStore((s) => s.historyIndex);
+  const goBack = useStore((s) => s.goBack);
+  const goForward = useStore((s) => s.goForward);
+
+  const back = historyIndex > 0 ? history[historyIndex - 1] : undefined;
+  const forward = historyIndex < history.length - 1 ? history[historyIndex + 1] : undefined;
+
+  const label = (dir: "Back" | "Forward", loc: { view: NavKey } | undefined) =>
+    loc
+      ? `${dir} to ${[...NAV_ITEMS, SETTINGS_ITEM].find((i) => i.key === loc.view)?.label ?? NAV_ITEMS[0].label}`
+      : dir;
+
   return (
     <div className="ml-0.5 flex shrink-0 items-center overflow-hidden rounded-md bg-secondary shadow-[0_0_0_0.5px_hsl(var(--border))]">
       <button
         type="button"
-        disabled
-        aria-label="Back"
-        title="Back"
-        className="grid h-[22px] w-[27px] place-items-center text-tertiary-foreground opacity-40"
+        disabled={!back}
+        onClick={goBack}
+        aria-label={label("Back", back)}
+        title={label("Back", back)}
+        className="grid h-[22px] w-[27px] place-items-center text-tertiary-foreground transition-opacity duration-fast ease-standard hover:text-foreground disabled:opacity-40 disabled:hover:text-tertiary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Icon name="chevron-left" className="size-3" />
       </button>
       <span aria-hidden className="h-[13px] w-px shrink-0 bg-border" />
       <button
         type="button"
-        disabled
-        aria-label="Forward"
-        title="Forward"
-        className="grid h-[22px] w-[27px] place-items-center text-muted-foreground"
+        disabled={!forward}
+        onClick={goForward}
+        aria-label={label("Forward", forward)}
+        title={label("Forward", forward)}
+        className="grid h-[22px] w-[27px] place-items-center text-muted-foreground transition-opacity duration-fast ease-standard hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Icon name="chevron-right" className="size-3" />
       </button>
