@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_PREFS, readPrefs, useStore, writePrefs } from "@/store";
+import { HISTORY_LIMIT } from "./shell/history";
 
 describe("connector store carries reported version", () => {
   beforeEach(() => {
@@ -127,5 +128,70 @@ describe("connector reconnect doesn't strand a duplicate offline row", () => {
     const vscode = useStore.getState().connectors.filter((r) => r.name === "VS Code");
     expect(vscode).toHaveLength(1);
     expect(vscode[0].connected).toBe(false);
+  });
+});
+
+describe("navigation history", () => {
+  beforeEach(() => {
+    useStore.setState({
+      view: "overview",
+      history: [{ view: "overview", selection: null }],
+      historyIndex: 0,
+      selectedCapsuleId: null,
+      selectedProjectId: null,
+    });
+  });
+
+  it("records a view change", () => {
+    useStore.getState().setView("capsules");
+    const s = useStore.getState();
+    expect(s.history).toHaveLength(2);
+    expect(s.historyIndex).toBe(1);
+  });
+
+  it("goes back to the previous view", () => {
+    useStore.getState().setView("capsules");
+    useStore.getState().goBack();
+    expect(useStore.getState().view).toBe("overview");
+    expect(useStore.getState().historyIndex).toBe(0);
+  });
+
+  // The invariant: moving through history must not itself write history.
+  it("does not record the act of going back", () => {
+    useStore.getState().setView("capsules");
+    const before = useStore.getState().history.length;
+    useStore.getState().goBack();
+    expect(useStore.getState().history).toHaveLength(before);
+  });
+
+  it("restores the selection that was live in the view being returned to", () => {
+    useStore.getState().setView("capsules");
+    useStore.getState().selectCapsule("task-7");
+    useStore.getState().setView("projects");
+    useStore.getState().goBack();
+    expect(useStore.getState().view).toBe("capsules");
+    expect(useStore.getState().selectedCapsuleId).toBe("task-7");
+  });
+
+  it("goes forward again after going back", () => {
+    useStore.getState().setView("capsules");
+    useStore.getState().goBack();
+    useStore.getState().goForward();
+    expect(useStore.getState().view).toBe("capsules");
+  });
+
+  it("ignores goBack at the start and goForward at the end", () => {
+    useStore.getState().goBack();
+    expect(useStore.getState().view).toBe("overview");
+    expect(useStore.getState().historyIndex).toBe(0);
+    useStore.getState().goForward();
+    expect(useStore.getState().historyIndex).toBe(0);
+  });
+
+  it("never grows past the cap", () => {
+    for (let i = 0; i < HISTORY_LIMIT + 5; i++) {
+      useStore.getState().setView(i % 2 ? "capsules" : "projects");
+    }
+    expect(useStore.getState().history.length).toBeLessThanOrEqual(HISTORY_LIMIT);
   });
 });

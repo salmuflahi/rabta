@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { MotionPref } from "@/lib/motion";
 import type { AccentId } from "@/theme/accent";
 import { ACCENTS } from "@/theme/accent";
+import { pushLocation, type Location } from "./shell/history";
 
 export interface ConnectorInfo {
   id: string;
@@ -251,6 +252,12 @@ interface Store {
   togglePause: () => void;
   view: NavKey;
   setView: (view: NavKey) => void;
+  /** Session-scoped navigation history. Never persisted — a relaunch starts
+   * at the landing page with an empty past. */
+  history: Location[];
+  historyIndex: number;
+  goBack: () => void;
+  goForward: () => void;
   projects: Project[];
   setProjects: (projects: Project[]) => void;
   activeTaskId: string | null;
@@ -359,12 +366,95 @@ interface Store {
   resetPrefs: () => void;
 }
 
+/** The selected id that belongs to a view. Overview has none. */
+function selectionFor(s: Store, view: NavKey): Location["selection"] {
+  switch (view) {
+    case "capsules":
+      return s.selectedCapsuleId;
+    case "projects":
+      return s.selectedProjectId;
+    case "connectors":
+      return s.selectedConnectorId;
+    case "activity":
+      return s.selectedEventSeq;
+    case "settings":
+      return s.settingsSection;
+    case "overview":
+      return null;
+    default: {
+      const _exhaustive: never = view;
+      return _exhaustive;
+    }
+  }
+}
+
+/** The state patch that puts the app *at* a location. Used only by
+ * goBack/goForward — it deliberately does not touch history, because
+ * travelling through history must never rewrite it. */
+function applyLocation(loc: Location): Partial<Store> {
+  switch (loc.view) {
+    case "capsules":
+      return { view: loc.view, selectedCapsuleId: loc.selection as string | null };
+    case "projects":
+      return { view: loc.view, selectedProjectId: loc.selection as string | null };
+    case "connectors":
+      return { view: loc.view, selectedConnectorId: loc.selection as string | null };
+    case "activity":
+      return { view: loc.view, selectedEventSeq: loc.selection as number | null };
+    case "settings":
+      // settingsSection is a non-nullable string (default "general"), unlike
+      // the other three selections — a location recorded before a section
+      // existed, or with a null selection, must still land somewhere valid.
+      return { view: loc.view, settingsSection: (loc.selection as string) ?? "general" };
+    case "overview":
+      return { view: loc.view };
+    default: {
+      const _exhaustive: never = loc.view;
+      return _exhaustive;
+    }
+  }
+}
+
+/** Record where we now are. Called after any state change that moves the
+ * user — a view switch, or a selection inside the current view. */
+function record(s: Store, view: NavKey, selection: Location["selection"]): Partial<Store> {
+  const { history, index } = pushLocation(s.history, s.historyIndex, { view, selection });
+  return { history, historyIndex: index };
+}
+
 export const useStore = create<Store>((set) => ({
   connectors: [],
   log: [],
   paused: false,
   view: INITIAL_PREFS.landingPage,
-  setView: (view) => set({ view }),
+  // history/historyIndex must always be seeded as a consistent pair: a
+  // non-empty array together with an index that actually points into it.
+  // pushLocation (shell/history.ts) assumes it's only ever called with the
+  // pair it last returned — index -1 against a non-empty history makes it
+  // silently drop every existing entry. Starting empty-with-index-0 would be
+  // just as inconsistent the other way. So: one entry for the landing page,
+  // index 0, together, here, and nowhere else sets either field alone.
+  history: [{ view: INITIAL_PREFS.landingPage, selection: null }],
+  historyIndex: 0,
+  setView: (view) =>
+    set((s) => ({ view, ...record(s, view, selectionFor(s, view)) })),
+  // goBack/goForward apply a past location WITHOUT recording it — recording
+  // is what setView/select* do when the user moves forward under their own
+  // steam. If travelling through history also wrote to history, Back would
+  // push the very entry it just left, corrupting the trail (and Forward
+  // would never have anything to redo).
+  goBack: () =>
+    set((s) => {
+      if (s.historyIndex <= 0) return {};
+      const index = s.historyIndex - 1;
+      return { ...applyLocation(s.history[index]), historyIndex: index };
+    }),
+  goForward: () =>
+    set((s) => {
+      if (s.historyIndex >= s.history.length - 1) return {};
+      const index = s.historyIndex + 1;
+      return { ...applyLocation(s.history[index]), historyIndex: index };
+    }),
   projects: [],
   setProjects: (projects) => set({ projects }),
   activeTaskId: null,
@@ -404,13 +494,17 @@ export const useStore = create<Store>((set) => ({
   patchMigrate: (patch) =>
     set((s) => (s.mig ? { mig: { ...s.mig, ...patch } } : {})),
   selectedCapsuleId: null,
-  selectCapsule: (selectedCapsuleId) => set({ selectedCapsuleId }),
+  selectCapsule: (selectedCapsuleId) =>
+    set((s) => ({ selectedCapsuleId, ...record(s, s.view, selectedCapsuleId) })),
   selectedProjectId: null,
-  selectProject: (selectedProjectId) => set({ selectedProjectId }),
+  selectProject: (selectedProjectId) =>
+    set((s) => ({ selectedProjectId, ...record(s, s.view, selectedProjectId) })),
   selectedConnectorId: null,
-  selectConnector: (selectedConnectorId) => set({ selectedConnectorId }),
+  selectConnector: (selectedConnectorId) =>
+    set((s) => ({ selectedConnectorId, ...record(s, s.view, selectedConnectorId) })),
   selectedEventSeq: null,
-  selectEvent: (selectedEventSeq) => set({ selectedEventSeq }),
+  selectEvent: (selectedEventSeq) =>
+    set((s) => ({ selectedEventSeq, ...record(s, s.view, selectedEventSeq) })),
   settingsSection: "general",
   setSettingsSection: (settingsSection) => set({ settingsSection }),
   capsuleFilter: "open",
