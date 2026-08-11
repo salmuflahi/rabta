@@ -30,6 +30,40 @@ function withArticle(noun: string): string {
 export const ARM_DELAY_MS = 350;
 
 /**
+ * Stands in for the "Can see" `PermissionCard` when `capabilitiesForKind`
+ * comes back empty — which, now that chrome/vscode/cursor/fake are all
+ * grounded, means exactly one thing: this build doesn't recognize the
+ * connector's kind at all. `PermissionCard` always renders its heading and
+ * just maps zero rows for an empty list, so left alone this would show a
+ * real, checkmark-styled "Can see" box with nothing in it — indistinguishable
+ * from "verified minimal", for the one kind where minimal is the least
+ * justified assumption. Same shape as `PermissionCard` (so the two-column
+ * grid still lines up) but `text-warn`/`alert` instead of `text-ok`/`check`,
+ * and a sentence instead of a checklist, since there is nothing to check.
+ *
+ * Currently unreachable: `ConnectorKind` is a closed three-variant enum and
+ * the hub's strict serde rejects anything else at the protocol boundary,
+ * and the hub compiles into the same binary as this frontend — no request
+ * today can carry a kind this switch doesn't know. This is
+ * forward-compatibility for a fourth connector kind shipping against an
+ * older build of this app, not a live gap.
+ */
+function UnrecognizedKindCard() {
+  return (
+    <div className="rounded-[10px] bg-card p-[15px] shadow-raised">
+      <p className="mb-2 text-sub font-semibold text-warn">Can see</p>
+      <div className="flex items-start gap-2 text-sub text-muted-foreground">
+        <Icon name="alert" className="mt-0.5 size-[13px] shrink-0 text-warn" />
+        <span>
+          Rabta doesn't recognize this connector type yet, so it can't say in advance what it will
+          ask for. The real list shows on Connectors once it's connected.
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
  * The moment a connector asks to talk to Rabta.
  *
  * This replaced a full-width banner rendered above the toolbar, which pushed
@@ -102,6 +136,9 @@ export function PairingSheet() {
   // never empty regardless, since neverSees always includes its
   // capability-independent baseline.
   const capabilities = capabilitiesForKind(shown.kind);
+  // Computed once and reused below: an empty result feeds UnrecognizedKindCard
+  // instead of an empty PermissionCard — see that component's doc comment.
+  const seenLines = canSee(capabilities);
   // Built as one string, like `subtitle` below, rather than interpolated
   // directly in JSX — one text node instead of several sibling ones, which
   // is what lets a test match the whole sentence with one getByText call.
@@ -145,7 +182,11 @@ export function PairingSheet() {
       }}
     >
       <div className="grid grid-cols-2 gap-2.5 pb-2">
-        <PermissionCard tone="ok" heading="Can see" glyph="check" lines={canSee(capabilities)} />
+        {seenLines.length > 0 ? (
+          <PermissionCard tone="ok" heading="Can see" glyph="check" lines={seenLines} />
+        ) : (
+          <UnrecognizedKindCard />
+        )}
         <PermissionCard tone="bad" heading="Never sees" glyph="x" lines={neverSees(capabilities)} />
       </div>
       {/* The pair above is what this *kind* of connector typically asks for,

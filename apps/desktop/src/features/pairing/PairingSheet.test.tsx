@@ -12,6 +12,11 @@ import { renderWithProviders } from "@/test/smoke-utils";
 // below was exercising the component against fiction.
 const chrome = { pairingId: "p1", name: "Chrome", kind: "chrome" };
 const cursor = { pairingId: "p2", name: "Cursor", kind: "vscode" };
+// Not a real wire value — ConnectorKind is presently closed to
+// fake/vscode/chrome, so the hub itself would reject this. Exists purely to
+// exercise capabilitiesForKind's forward-compatibility fallback: a kind a
+// future protocol version adds, seen by a build of this app that predates it.
+const mystery = { pairingId: "p3", name: "Mystery", kind: "unknown-thing" };
 
 describe("PairingSheet", () => {
   beforeEach(() => {
@@ -90,6 +95,27 @@ describe("PairingSheet", () => {
         "What browser extensions typically ask for — not what this one declared. The real list shows on Connectors once it's connected."
       )
     ).toBeInTheDocument();
+  });
+
+  // Round-2 follow-up: an empty capabilitiesForKind result now means exactly
+  // one thing — a kind this build has never seen. PermissionCard would still
+  // render an empty, checkmark-styled "Can see" box for that: indistinguishable
+  // from "verified minimal", the same misleading-in-the-reassuring-direction
+  // failure fixed once already, surviving in the one branch nobody looks at.
+  // Unreachable today (ConnectorKind is a closed enum the hub itself
+  // validates), but this pins the forward-compatibility fallback regardless.
+  it("shows an honest unrecognized-kind message instead of an empty affirmative card", () => {
+    useStore.setState({ pairings: [mystery] });
+    renderWithProviders(<PairingSheet />);
+    const heading = screen.getByText("Can see");
+    expect(heading.className.split(/\s+/)).not.toContain("text-ok");
+    expect(
+      screen.getByText(
+        "Rabta doesn't recognize this connector type yet, so it can't say in advance what it will ask for. The real list shows on Connectors once it's connected."
+      )
+    ).toBeInTheDocument();
+    // "Never sees" is unaffected — its baseline line holds regardless of kind.
+    expect(screen.getByText("Passwords, tokens or keychain items")).toBeInTheDocument();
   });
 
   it("holds both decisions inert until armed", () => {

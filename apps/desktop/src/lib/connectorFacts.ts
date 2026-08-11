@@ -80,9 +80,14 @@ export function capabilityFacts(capabilities: string[]): CapabilityFact[] {
  * this request declare" but "what does a connector of this *kind* typically
  * ask for", grounded in the same facts this module's header documents
  * (Chrome's tabs capability; VS Code/Cursor's workspace+editor+terminal) —
- * confirmed against connectors/chrome/src/background.ts and
- * connectors/vscode/src/extension.ts's own `capabilities: [...]` literals,
- * not invented here.
+ * confirmed against connectors/chrome/src/background.ts,
+ * connectors/vscode/src/extension.ts and connectors/fake/src/main.ts's own
+ * `capabilities: [...]` literals, not invented here. `fake` is included for
+ * the same reason as the other two, even though it's `"private": true` and
+ * dev-only (excluded from packaging, so no end user's pairing sheet ever
+ * shows it) — there was real data to ground it in, in the same tree already
+ * being read for the other two, so there was no reason to leave it as an
+ * ungrounded default instead.
  *
  * Forwarding real capabilities on the `pair` frame would let the sheet show
  * the actual request instead of the kind's usual one, and would let it flag
@@ -91,10 +96,19 @@ export function capabilityFacts(capabilities: string[]): CapabilityFact[] {
  * a protocol change, logged as a follow-up for the security audit rather
  * than made here. Any caller using this instead of a real capability list
  * must say so in its copy — see PairingSheet's line under the two cards.
+ *
+ * An empty result now means exactly one thing: a kind this build doesn't
+ * recognize at all. `ConnectorKind` is presently a closed three-variant
+ * enum (`fake | vscode | chrome`), so that can't happen today — this is
+ * forward-compatibility for a kind a future protocol version adds, running
+ * against a build of this app that predates it. Callers must not render
+ * that empty result as an empty affirmative list — see PairingSheet's
+ * unrecognized-kind branch.
  */
 export function capabilitiesForKind(kind: string): string[] {
   if (kind === "chrome") return ["tabs"];
   if (kind === "vscode" || kind === "cursor") return ["workspace", "editor", "terminal"];
+  if (kind === "fake") return ["workspace", "editor"];
   return [];
 }
 
