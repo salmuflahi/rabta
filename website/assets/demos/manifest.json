@@ -63,6 +63,30 @@
       "codec": "h264",
       "audioStreams": 0,
       "poster": "honest-return.png"
+    },
+    {
+      "file": "capture-desktop.m4v",
+      "demo": "capture",
+      "variant": "desktop",
+      "durationSeconds": 7.783008,
+      "width": 1280,
+      "height": 720,
+      "bytes": 323464,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "capture.png"
+    },
+    {
+      "file": "capture-mobile.m4v",
+      "demo": "capture",
+      "variant": "mobile",
+      "durationSeconds": 7.783333,
+      "width": 390,
+      "height": 700,
+      "bytes": 124344,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "capture.png"
     }
   ],
   "posters": [
@@ -77,6 +101,12 @@
       "width": 2560,
       "height": 1440,
       "bytes": 386138
+    },
+    {
+      "file": "capture.png",
+      "width": 2560,
+      "height": 1440,
+      "bytes": 578823
     }
   ]
 }

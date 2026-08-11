@@ -30,6 +30,10 @@ export const DEMOS = resolve(ROOT, "website/assets/demos");
 export const TARGETS = {
   "hero-return": { seconds: 8.0, tolerance: 0.5, desktopBytes: 2_500_000 },
   "honest-return": { seconds: 5.0, tolerance: 0.4, desktopBytes: 1_500_000 },
+  // The capture half of the loop. Budget is deliberately tighter than the
+  // hero's: this one sits mid-page, below the fold, so it is never on the
+  // critical path for first paint.
+  capture: { seconds: 7.8, tolerance: 0.5, desktopBytes: 1_200_000 },
 };
 
 /** A mobile variant may not exceed this share of its desktop pair. */

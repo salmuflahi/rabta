@@ -610,24 +610,27 @@ test("every declared media source is on disk", async () => {
   const home = await readRoute("/");
 
   const regions = home.match(/data-product-media="[^"]+"/g) ?? [];
-  assert.equal(regions.length, 2);
-  assert.deepEqual(
-    regions.sort(),
-    ['data-product-media="hero"', 'data-product-media="return"'],
-  );
+  // Pinned as a set rather than a count: what matters is which demos the page
+  // declares, and a bare number says nothing about which one went missing.
+  assert.deepEqual(regions.sort(), [
+    'data-product-media="capture"',
+    'data-product-media="hero"',
+    'data-product-media="return"',
+  ]);
 
   // These are attached by JavaScript, so no crawler and no earlier contract
   // would ever notice them going missing.
   const sources = [
     ...home.matchAll(/data-src-(?:desktop|mobile)="(\/[^"]+)"/g),
   ].map((match) => match[1]);
-  assert.equal(sources.length, 4);
+  // Two variants (desktop, mobile) per demo region.
+  assert.equal(sources.length, regions.length * 2);
   for (const source of sources) {
     await access(resolve(SITE, `.${source}`));
   }
 
   const posters = [...home.matchAll(/poster="(\/[^"]+)"/g)].map((m) => m[1]);
-  assert.equal(posters.length, 2);
+  assert.equal(posters.length, regions.length);
   for (const poster of posters) {
     await access(resolve(SITE, `.${poster}`));
   }
@@ -747,7 +750,10 @@ test("mobile Return Field offsets fit inside the viewport", async () => {
 test("homepage is a focused download narrative", async () => {
   const html = await readRoute("/");
 
-  assert.equal((html.match(/<video\b/g) ?? []).length, 2);
+  // Three, deliberately — raised from two when the capture demo was added.
+  // This number is an editorial budget, not a description: the page shows the
+  // loop (capture, return) plus the hero, and a fourth would need an argument.
+  assert.equal((html.match(/<video\b/g) ?? []).length, 3);
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
 
   const pieces =
@@ -819,9 +825,16 @@ test("mobile product media is a deliberate portrait crop", async () => {
 
   // The crop is CSS-only: the intrinsic ratio the browser uses before the
   // stylesheet applies must still be the recorded one.
+  const capture =
+    mobile.match(
+      /\[data-product-media="capture"\] video \{([\s\S]*?)\n\s*\}/,
+    )?.[1] ?? "";
+  assert.match(capture, /object-position:/);
+  assert.notEqual(capture.trim(), hero.trim(), "capture keeps its own crop");
+
   const html = await readRoute("/");
   const videos = [...html.matchAll(/<video\b[^>]*>/g)].map((match) => match[0]);
-  assert.equal(videos.length, 2);
+  assert.equal(videos.length, 3);
   for (const video of videos) {
     assert.match(video, /width="1280"/);
     assert.match(video, /height="720"/);

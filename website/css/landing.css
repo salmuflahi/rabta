@@ -395,6 +395,19 @@
   .bento[data-resolve="shown"] > *:nth-child(4) { transition-delay: calc(var(--resolve-step) * 3); }
   .bento[data-resolve="shown"] > *:nth-child(5) { transition-delay: calc(var(--resolve-step) * 4); }
 
+  /* The capture half of the loop. Same 160px beat as the sections around it —
+     with one typeface and one accent, the rhythm is most of what holds the
+     page together, so a new section joins it rather than inventing a value. */
+  .capture {
+    padding-block: 160px;
+  }
+
+  .capture__lede {
+    max-width: 62ch;
+    margin-top: var(--s4);
+    color: var(--cool-soft);
+  }
+
   .honest-return {
     padding-block: 160px;
     background: var(--cool-panel);
@@ -617,6 +630,10 @@
       gap: 56px;
     }
 
+    .capture {
+      padding-block: 112px;
+    }
+
     .honest-return {
       padding-block: 112px;
     }
@@ -705,6 +722,14 @@
        partial-restore heading and its three app rows stay readable. */
     [data-product-media="return"] video {
       object-position: 35% 50%;
+    }
+
+    /* 50%: the capture gesture happens in the middle of the window — the
+       Capture button and the capsule detail beside it — so unlike the other
+       two this one frames dead centre. Each loop keeps its own crop because
+       the interesting region differs; a shared value would cut one of them. */
+    [data-product-media="capture"] video {
+      object-position: 50% 50%;
     }
 
     .release-strip {
