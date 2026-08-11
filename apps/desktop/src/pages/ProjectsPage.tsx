@@ -65,18 +65,61 @@ interface ArchiveProjectResult {
   warnings: string[];
 }
 
+/** Mirrors one `ProjectRow`: a size-[15px] leading icon next to the title,
+ * and the "N open capsules · saved" line below it indented `ml-[23px]` to
+ * clear the icon+gap exactly like the real row's `pl-[23px]`. Rows are
+ * stacked with no gap of their own, matching the real list — each row's
+ * padding (not a parent `gap-*`) is what spaces them. */
+function ProjectRowSkeleton() {
+  return (
+    <div className="px-2 py-1.5">
+      <div className="flex items-center gap-2">
+        <Skeleton className="size-[15px] shrink-0 rounded-[3px]" />
+        <Skeleton className="h-3.5 w-32" />
+      </div>
+      <Skeleton className="ml-[23px] mt-1.5 h-2.5 w-28" />
+    </div>
+  );
+}
+
 function ProjectsSkeleton() {
   return (
     <div className="grid h-full min-h-0 grid-cols-[296px_minmax(0,1fr)] overflow-hidden">
-      <div className="flex min-h-0 flex-col gap-2 border-r-[0.5px] border-border p-3">
+      <div className="flex min-h-0 flex-col overflow-hidden border-r-[0.5px] border-border px-2 pb-3 pt-2.5">
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-9 w-full" />
+          <ProjectRowSkeleton key={i} />
         ))}
       </div>
+
+      {/* Detail: the h2 title + mono repo path, the branch/status chip row
+          against the Reveal/Archive/⋯ actions (the trailing controls'
+          own h-6 / size-6 exactly, since those are fixed on the real
+          buttons), and the Capsules list. GitLine and GitHubSection carry
+          their own internal loading and aren't mimicked here — the same
+          scope OverviewSkeleton draws around the hero's nested chip row. */}
       <div className="mx-auto w-full max-w-[720px] px-8 pt-[30px]">
-        <Skeleton className="h-7 w-64" />
-        <Skeleton className="mt-2 h-4 w-80" />
-        <Skeleton className="mt-4 h-6 w-full" />
+        <Skeleton className="h-7 w-52" />
+        <Skeleton className="mt-1.5 h-3.5 w-72" />
+        <div className="mt-3.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-6 w-24 rounded-full" />
+            <Skeleton className="h-6 w-16 rounded-full" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-6 w-[126px] rounded-md" />
+            <Skeleton className="h-6 w-[74px] rounded-md" />
+            <Skeleton className="size-6 rounded-md" />
+          </div>
+        </div>
+        <Skeleton className="mt-7 h-3 w-20" />
+        <div className="mt-[7px] space-y-px rounded-[10px] bg-card p-4 shadow-raised">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="h-3.5 flex-1" />
+              <Skeleton className="h-3 w-10 shrink-0" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

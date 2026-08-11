@@ -22,6 +22,30 @@ interface ArchivedProjectsDialogProps {
   onActiveChanged: () => Promise<void> | void;
 }
 
+/** Mirrors one archived-project row below: a size-8 leading icon box (the
+ * real `ProjectIcon` sits in an identically-sized `bg-muted` box), the name
+ * and "Archived …" lines stacked, and the Restore (default `size="sm"`,
+ * h-8) / delete (`size="icon"`, size-9) buttons' true sizes on the trailing
+ * edge. Neither button has a className override here the way Projects'
+ * detail-pane actions do, so their default buttonVariants sizes are exact. */
+function ArchivedProjectRowSkeleton() {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+      <div className="flex min-w-0 items-center gap-3">
+        <Skeleton className="size-8 shrink-0 rounded-md" />
+        <div className="min-w-0 space-y-1.5">
+          <Skeleton className="h-3.5 w-32" />
+          <Skeleton className="h-2.5 w-24" />
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <Skeleton className="h-8 w-16 rounded-md" />
+        <Skeleton className="size-9 rounded-md" />
+      </div>
+    </div>
+  );
+}
+
 export function ArchivedProjectsDialog({
   open,
   onOpenChange,
@@ -84,8 +108,8 @@ export function ArchivedProjectsDialog({
         </DialogHeader>
         {loading ? (
           <div className="space-y-2">
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
+            <ArchivedProjectRowSkeleton />
+            <ArchivedProjectRowSkeleton />
           </div>
         ) : visibleProjects.length === 0 ? (
           <div className="rounded-md border border-dashed p-6 text-center">

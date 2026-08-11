@@ -161,6 +161,13 @@ export default {
           "0%": { transform: "scale(1)", opacity: "0.5" },
           "75%, 100%": { transform: "scale(2.4)", opacity: "0" },
         },
+        // Skeleton stand-in sweep — one highlight travelling left to right.
+        // Transform-only so it never triggers layout, and neutralized under
+        // reduced motion by the global rule in index.css.
+        "skeleton-sweep": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -169,6 +176,7 @@ export default {
         "restore-pulse": "restore-pulse 1.8s ease-in-out infinite",
         "live-ping": "live-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite",
         "page-in": "page-in 150ms ease-out both",
+        "skeleton-sweep": "skeleton-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite",
       },
       transitionTimingFunction: {
         brand: "cubic-bezier(0.2, 0.8, 0.2, 1)",
