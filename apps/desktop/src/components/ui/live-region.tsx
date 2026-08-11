@@ -30,8 +30,15 @@ const IDLE: RegionState = { text: "", nonce: 0 };
  * Mounts the app's two `aria-live` regions — polite for routine status,
  * assertive for the pairing sheet's unprompted interrupt — and renders
  * whatever `announce()` (lib/announce.ts) sends through. `announce()` is the
- * only supported way to reach this component: nothing else should render
- * `aria-live` directly, and nothing here is ever imported by a call site.
+ * only way to reach this component — nothing here is ever imported by a call
+ * site.
+ *
+ * These are the app-wide regions, not the only live regions in the tree. A
+ * view that owns a region tied to its own visible content keeps it local:
+ * `RestoreExperience` narrates a restore in progress, `ProjectsPage` marks a
+ * dirty-tree dot `role="status"`. Both are scoped to something on screen and
+ * unmount with it. Use `announce()` for anything that has to be heard when
+ * the thing that caused it is not — or is about to stop being — on screen.
  *
  * Mount exactly once (App.tsx). A second instance would subscribe
  * independently and double-speak every announcement.

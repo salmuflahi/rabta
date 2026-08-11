@@ -1,5 +1,6 @@
 import { Icon } from "@/components/ui/icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import {
@@ -56,8 +57,11 @@ export function SidebarToggle() {
         height: SIDEBAR_TITLEBAR_SPACER_HEIGHT_PX,
         paddingLeft: sidebarToggleLeftPx(fullscreen),
         // The inset transitions too, so entering or leaving fullscreen
-        // slides the control across instead of teleporting it.
-        transition: `padding-left ${SIDEBAR_MOTION_MS}ms cubic-bezier(0.32, 0.72, 0, 1)`,
+        // slides the control across instead of teleporting it. Both halves
+        // come from their module — the duration was already a constant while
+        // the curve was retyped as a literal on this same line, which is how
+        // a "shared" curve quietly stops being shared.
+        transition: `padding-left ${SIDEBAR_MOTION_MS}ms ${EASE.mac}`,
       }}
     >
       <Tooltip>

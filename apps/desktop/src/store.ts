@@ -63,6 +63,30 @@ function readSidebarCollapsed(): boolean {
   }
 }
 
+/** Every view the shell can show, as data rather than only as a type.
+ *
+ * A bare union would be enough for the compiler, and was — until `landingPage`
+ * proved that the one place it is not enough is the boundary where a view
+ * arrives as a string at runtime: `readPrefs` parses it out of localStorage,
+ * and MigrateSheet writes an imported bundle's preferences straight into that
+ * key. Neither of those is a hand-edit; both are product features. So the list
+ * exists at runtime, `readPrefs` checks against it, and the union is derived
+ * from the list so the two cannot drift.
+ *
+ * Declared here, above `readPrefs`, because `INITIAL_PREFS` calls it during
+ * module initialisation — a `const` further down the file would be in its
+ * temporal dead zone by then. */
+export const NAV_KEYS = [
+  "overview",
+  "capsules",
+  "projects",
+  "connectors",
+  "activity",
+  "settings",
+] as const;
+
+export type NavKey = (typeof NAV_KEYS)[number];
+
 /** User preferences (Settings). All client-side, persisted to one localStorage
  * key. Only settings that actually change app behavior live here. */
 export type ThemePref = "system" | "light" | "dark";
@@ -123,6 +147,15 @@ export function readPrefs(): Prefs {
     // the default instead of trusting whatever JSON.parse produced.
     if (typeof merged.statusbar !== "boolean") {
       merged.statusbar = DEFAULT_PREFS.statusbar;
+    }
+
+    // Validate landingPage: it seeds `view` and `history[0]`, so a value
+    // outside NavKey does not fail loudly — it renders as the main content
+    // area and propagates into navigation state. This is the boundary that
+    // makes the union real; `applyLocation` and `App.tsx`'s switch can only
+    // be exhaustive over NavKey if nothing outside NavKey gets in here.
+    if (!(NAV_KEYS as readonly string[]).includes(merged.landingPage)) {
+      merged.landingPage = DEFAULT_PREFS.landingPage;
     }
 
     return merged;
@@ -196,8 +229,6 @@ export interface PendingPairing {
   name: string;
   kind: string;
 }
-
-export type NavKey = "overview" | "capsules" | "projects" | "connectors" | "activity" | "settings";
 
 /** Which direction a migration is going. */
 export type MigrateRole = "send" | "receive";
@@ -441,13 +472,13 @@ function applyLocation(loc: Location): Partial<Store> {
     default: {
       // `never` here is a compile-time-only guarantee — NavKey is a closed
       // union, but `loc.view` can still hold a runtime value outside it.
-      // `history[0].view` is seeded from INITIAL_PREFS.landingPage, which
-      // comes from readPrefs()'s unvalidated `JSON.parse` of localStorage;
-      // unlike `accent`/`statusbar`, `landingPage` is never validated
-      // against NavKey (Toolbar.tsx's title already defends against
-      // exactly this for display, falling back to NAV_ITEMS[0]). Before
-      // Task 3 nothing ever called goBack/goForward, so this branch was
-      // dead code; the chevrons and ⌘[/⌘] make it reachable now.
+      // `readPrefs` now validates `landingPage` against NAV_KEYS, which
+      // closes the one route that was known to reach here (a corrupt or
+      // imported `rabta.prefs` seeding history[0].view). This branch is kept
+      // anyway: it costs nothing, and it is the only thing standing between
+      // an unforeseen bad `view` and a store patch built by spreading it.
+      // Before Task 3 nothing ever called goBack/goForward, so it was dead
+      // code; the chevrons and ⌘[/⌘] make it reachable now.
       //
       // Returning `_exhaustive` itself (as the other branches' pattern
       // does with their real values) would return the raw corrupt string

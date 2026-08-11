@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { DEFAULT_PREFS, readPrefs, useStore, writePrefs, type NavKey } from "@/store";
+import { DEFAULT_PREFS, NAV_KEYS, readPrefs, useStore, writePrefs, type NavKey } from "@/store";
 import { HISTORY_LIMIT } from "./shell/history";
 
 describe("connector store carries reported version", () => {
@@ -95,6 +95,68 @@ describe("readPrefs with corrupt persisted statusbar", () => {
     writePrefs({ ...DEFAULT_PREFS, statusbar: true });
     const prefs = readPrefs();
     expect(prefs.statusbar).toBe(true);
+  });
+});
+
+// `landingPage` was the last preference `readPrefs` trusted straight out of
+// `JSON.parse`, and the only one that is also a *view*: it seeds `view` and
+// `history[0].view`, so a bad value does not fail loudly — `App.tsx`'s switch
+// falls through to its `never` branch and React renders the raw string as a
+// text node where the page should be.
+//
+// It was reachable without hand-editing localStorage: `MigrateSheet` writes an
+// imported bundle's preferences string into `rabta.prefs` verbatim, so the
+// value can arrive from another machine's app — or from a bundle file. That is
+// what makes this a boundary rather than a curiosity.
+describe("readPrefs with a persisted landingPage outside NavKey", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("returns the default when the view no longer exists", () => {
+    // The realistic case: a preference written by a build where the view was
+    // called something else, read back by one where it isn't.
+    localStorage.setItem("rabta.prefs", JSON.stringify({ landingPage: "tasks" }));
+    expect(readPrefs().landingPage).toBe(DEFAULT_PREFS.landingPage);
+  });
+
+  it("returns the default when the persisted value is not a string at all", () => {
+    localStorage.setItem("rabta.prefs", JSON.stringify({ landingPage: { view: "capsules" } }));
+    expect(readPrefs().landingPage).toBe(DEFAULT_PREFS.landingPage);
+  });
+
+  it("returns the default when the persisted value is null", () => {
+    localStorage.setItem("rabta.prefs", JSON.stringify({ landingPage: null }));
+    expect(readPrefs().landingPage).toBe(DEFAULT_PREFS.landingPage);
+  });
+
+  it("does not accept a JavaScript prototype property as a view", () => {
+    // `includes` on the array is doing the checking, not `in` on an object —
+    // this is the assertion that would catch a future refactor to a lookup
+    // object, where "toString" and "constructor" both pass an `in` check.
+    localStorage.setItem("rabta.prefs", JSON.stringify({ landingPage: "toString" }));
+    expect(readPrefs().landingPage).toBe(DEFAULT_PREFS.landingPage);
+  });
+
+  it("preserves other valid preferences when landingPage is corrupt", () => {
+    localStorage.setItem(
+      "rabta.prefs",
+      JSON.stringify({ landingPage: "nope", theme: "dark", accent: "petrol" })
+    );
+    const prefs = readPrefs();
+    expect(prefs.landingPage).toBe(DEFAULT_PREFS.landingPage);
+    expect(prefs.theme).toBe("dark");
+    expect(prefs.accent).toBe("petrol");
+  });
+
+  it("round-trips every real view untouched", () => {
+    // The check has to accept all six, not merely reject a bad one — a
+    // validator that quietly forced everyone onto the default would pass a
+    // rejection-only test.
+    for (const view of NAV_KEYS) {
+      writePrefs({ ...DEFAULT_PREFS, landingPage: view });
+      expect(readPrefs().landingPage).toBe(view);
+    }
   });
 });
 
@@ -216,16 +278,13 @@ describe("navigation history", () => {
     expect(useStore.getState().history.length).toBeLessThanOrEqual(HISTORY_LIMIT);
   });
 
-  // `NavKey` is a closed union, but `history[0].view` is seeded from
-  // INITIAL_PREFS.landingPage, which comes from readPrefs()'s unvalidated
-  // `JSON.parse` of localStorage — unlike `accent`/`statusbar`, `landingPage`
-  // is never checked against NavKey. A stale/hand-edited persisted value can
-  // put a string outside NavKey into a history entry, and applyLocation's
-  // exhaustiveness switch only guards this at compile time (`never`) — the
-  // runtime value flows straight through. Before Task 3 nothing ever called
-  // goBack/goForward, so this was dead code; now the chevrons (and ⌘[/⌘])
-  // make it reachable. This test seeds a corrupt entry directly, standing in
-  // for that unvalidated-localStorage path.
+  // `NavKey` is a closed union, but `applyLocation`'s exhaustiveness switch
+  // only guards that at compile time (`never`) — a runtime value outside the
+  // union flows straight through. `readPrefs` now validates `landingPage`
+  // against NAV_KEYS (see the describe below), which closes the route that
+  // was known to reach here. This test keeps the belt: it seeds a corrupt
+  // entry directly, so the fail-safe is still proven independently of
+  // whichever upstream path might produce one.
   it("goBack into a corrupt history entry does not scatter it across the store", () => {
     useStore.setState({
       view: "capsules",

@@ -82,9 +82,13 @@ export function useListNavigation<T>(opts: {
   labelOf: (item: T) => string;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  /** Namespaces each row's DOM `id` (`${idPrefix}-${idOf(item)}`) so
-   * `aria-activedescendant` has a collision-free id to reference even when
-   * several of these lists share a page. */
+  /** Namespaces each row's DOM `id` (`${idPrefix}-${idOf(item)}`) so two of
+   * these lists sharing a page cannot mint the same id. Nothing inside this
+   * hook resolves a row by id — `itemRefs` does that — so the prefix exists
+   * purely to keep the document's ids unique, which any `aria-labelledby` or
+   * test query into a row depends on. It is deliberately not referenced by
+   * `aria-activedescendant`; this hook moves real focus instead, for the
+   * reason the module comment above gives. */
   idPrefix: string;
 }): ListNavigation<T> {
   const { items, idOf, labelOf, selectedId, onSelect, idPrefix } = opts;

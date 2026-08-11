@@ -96,11 +96,12 @@ fail — before accepting a fix — is what caught the last of them.
 
 ## Carried forward
 
-**Needs a decision:** `Toolbar.tsx:213` sets an opaque `bg-background` alongside
-`backdrop-blur-[24px]`, so the toolbar's blur has never rendered and the
-reduced-transparency rule is inert for that surface. A one-token fix
-(`bg-background/85`, matching `CommandPalette`, whose blur *is* real) restores
-the vibrancy the handoff specifies, but visibly changes the app's main chrome.
+**Decided and done (`f27dfce`):** `Toolbar.tsx` set an opaque `bg-background`
+alongside `backdrop-blur-[24px]`, so the toolbar's blur had never rendered and
+the reduced-transparency rule was inert for that surface. Now
+`bg-background/85 backdrop-blur-[24px]`, matching `CommandPalette`, whose blur
+was always real. It visibly changes the app's main chrome, which is why it
+waited for a decision rather than shipping as a cleanup.
 
 **Logged for the security audit:** pairing is parked on a `pair` frame carrying
 only name and kind, so the approval sheet shows capabilities derived from the

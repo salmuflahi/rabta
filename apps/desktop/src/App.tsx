@@ -312,8 +312,8 @@ export default function App() {
   return (
     <div className="flex h-screen min-w-0 flex-col overflow-hidden">
       {/* Screen-reader announcements — mounted exactly once, app-wide. See
-          lib/announce.ts; every call site routes through announce() rather
-          than rendering aria-live itself. */}
+          lib/announce.ts. Views may still own a live region scoped to their
+          own visible content; live-region.tsx's comment draws the line. */}
       <LiveRegion />
       <div className="min-h-0 flex-1">
         <MigrateSheet />

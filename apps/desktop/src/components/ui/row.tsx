@@ -20,9 +20,9 @@ export interface RowProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "ti
  * the whole separation model — no boxes, no dividers as elements.
  *
  * Today's two call sites are `CapsuleItems`' pin rows and
- * `RestoreExperience`'s "kept" list. Both nest their own interactive
- * children — a pin button, a link — inside an otherwise inert row, and
- * neither passes `role="option"`.
+ * `RestoreExperience`'s "kept" list. The first nests a pin button inside an
+ * otherwise inert row; the second passes only `title` and `subtitle` and is
+ * wholly inert. Neither passes `role="option"`.
  *
  * `forwardRef` and the focus-visible ring in the class list below are not
  * exercised by either of those, and are kept anyway, deliberately, for a
