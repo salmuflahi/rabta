@@ -409,8 +409,30 @@ function applyLocation(loc: Location): Partial<Store> {
     case "overview":
       return { view: loc.view };
     default: {
+      // `never` here is a compile-time-only guarantee — NavKey is a closed
+      // union, but `loc.view` can still hold a runtime value outside it.
+      // `history[0].view` is seeded from INITIAL_PREFS.landingPage, which
+      // comes from readPrefs()'s unvalidated `JSON.parse` of localStorage;
+      // unlike `accent`/`statusbar`, `landingPage` is never validated
+      // against NavKey (Toolbar.tsx's title already defends against
+      // exactly this for display, falling back to NAV_ITEMS[0]). Before
+      // Task 3 nothing ever called goBack/goForward, so this branch was
+      // dead code; the chevrons and ⌘[/⌘] make it reachable now.
+      //
+      // Returning `_exhaustive` itself (as the other branches' pattern
+      // does with their real values) would return the raw corrupt string
+      // at runtime. goBack/goForward spread this function's result into
+      // the store patch (`{...applyLocation(loc), historyIndex}`), and
+      // spreading a string scatters its characters as numeric-indexed
+      // keys — `{...{"not-a-real-view"}}` becomes `{0:"n",1:"o",...}`
+      // sitting on the store. Fail safe instead: treat a corrupt entry as
+      // nothing to apply. historyIndex (set by the caller, not here) still
+      // moves past it, so a second goBack/goForward isn't stuck retrying
+      // the same entry, but view/selection are left exactly as they were
+      // rather than corrupted.
       const _exhaustive: never = loc.view;
-      return _exhaustive;
+      void _exhaustive;
+      return {};
     }
   }
 }

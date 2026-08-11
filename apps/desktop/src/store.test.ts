@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { DEFAULT_PREFS, readPrefs, useStore, writePrefs } from "@/store";
+import { DEFAULT_PREFS, readPrefs, useStore, writePrefs, type NavKey } from "@/store";
 import { HISTORY_LIMIT } from "./shell/history";
 
 describe("connector store carries reported version", () => {
@@ -214,5 +214,46 @@ describe("navigation history", () => {
       useStore.getState().setView(i % 2 ? "capsules" : "projects");
     }
     expect(useStore.getState().history.length).toBeLessThanOrEqual(HISTORY_LIMIT);
+  });
+
+  // `NavKey` is a closed union, but `history[0].view` is seeded from
+  // INITIAL_PREFS.landingPage, which comes from readPrefs()'s unvalidated
+  // `JSON.parse` of localStorage — unlike `accent`/`statusbar`, `landingPage`
+  // is never checked against NavKey. A stale/hand-edited persisted value can
+  // put a string outside NavKey into a history entry, and applyLocation's
+  // exhaustiveness switch only guards this at compile time (`never`) — the
+  // runtime value flows straight through. Before Task 3 nothing ever called
+  // goBack/goForward, so this was dead code; now the chevrons (and ⌘[/⌘])
+  // make it reachable. This test seeds a corrupt entry directly, standing in
+  // for that unvalidated-localStorage path.
+  it("goBack into a corrupt history entry does not scatter it across the store", () => {
+    useStore.setState({
+      view: "capsules",
+      history: [
+        { view: "not-a-real-view" as NavKey, selection: null },
+        { view: "capsules", selection: null },
+      ],
+      historyIndex: 1,
+      selectedCapsuleId: "task-1",
+    });
+
+    useStore.getState().goBack();
+
+    const s = useStore.getState() as unknown as Record<string, unknown>;
+    // The bug this guards against: applyLocation's default branch returning
+    // the raw `never`-typed string, which goBack then spreads into the
+    // store patch (`{...applyLocation(loc), historyIndex}`). Spreading a
+    // string scatters its characters as numeric-indexed keys —
+    // "not-a-real-view" would leave a literal `s["0"] === "n"` sitting on
+    // the store.
+    expect(s["0"]).toBeUndefined();
+    expect(s["1"]).toBeUndefined();
+    expect(Object.keys(s).some((k) => /^\d+$/.test(k))).toBe(false);
+    // Fail-safe degradation: the index still moves past the corrupt entry
+    // (so a second goBack isn't stuck retrying it), but view/selection are
+    // left exactly as they were rather than corrupted.
+    expect(useStore.getState().historyIndex).toBe(0);
+    expect(useStore.getState().view).toBe("capsules");
+    expect(useStore.getState().selectedCapsuleId).toBe("task-1");
   });
 });

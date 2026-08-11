@@ -192,12 +192,19 @@ describe("Toolbar", () => {
     // opacity was hardcoded, because Forward was permanently (fakely)
     // inert and never needed a real disabled look of its own. Now both
     // toggle for real off `history`/`historyIndex`, so both carry the same
-    // `disabled:opacity-40` Tailwind variant — active only while the
-    // `disabled` attribute is actually present, which the "history
-    // chevrons" tests below cover via `toBeDisabled`/`toBeEnabled`. What's
-    // still worth pinning here is that the handoff's 40%-opacity treatment
-    // is wired up at all.
-    it("both chevrons carry the handoff's 40%-opacity disabled treatment", () => {
+    // `disabled:opacity-40` Tailwind variant.
+    //
+    // The class assertion alone is not behavioral coverage: `disabled:` is
+    // a Tailwind variant, sitting in the static `className` string
+    // unconditionally — the browser's `:disabled` pseudo-class decides
+    // whether the rule applies, not React, so that assertion alone would
+    // still pass even if `disabled={!back}` were changed to
+    // `disabled={false}`. `toBeDisabled()` is what actually exercises the
+    // real attribute. This seeded state (single-entry history, index 0)
+    // genuinely has nothing behind or ahead, so both are actually disabled
+    // here, and both assertions are meaningful together: the real disabled
+    // state, and the handoff's 40%-opacity treatment being wired to it.
+    it("both chevrons are disabled here, with the handoff's 40%-opacity treatment", () => {
       useStore.setState({
         view: "overview",
         history: [{ view: "overview", selection: null }],
@@ -206,6 +213,8 @@ describe("Toolbar", () => {
       renderWithProviders(<Toolbar />);
       const back = screen.getByRole("button", { name: "Back" });
       const forward = screen.getByRole("button", { name: "Forward" });
+      expect(back).toBeDisabled();
+      expect(forward).toBeDisabled();
       expect(back.className.split(/\s+/)).toContain("disabled:opacity-40");
       expect(forward.className.split(/\s+/)).toContain("disabled:opacity-40");
     });
