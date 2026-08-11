@@ -493,18 +493,31 @@ export const useStore = create<Store>((set) => ({
   closeMigrate: () => set({ mig: null }),
   patchMigrate: (patch) =>
     set((s) => (s.mig ? { mig: { ...s.mig, ...patch } } : {})),
+  // Each select* action records under the view its id belongs to — NOT
+  // s.view. A caller is often still on a *different* page when it selects:
+  // ProjectsPage's "open this capsule" row, OverviewPage's "Also open", and
+  // every cross-list row in CommandPalette all call selectCapsule(id) and
+  // THEN setView("capsules"), selection before navigation. If this recorded
+  // against s.view (the page the caller is still on), pushLocation would
+  // see that view match the current history entry and rewrite it in
+  // place — clobbering the very entry the user is about to leave with an
+  // id that belongs to a different view entirely. Recording under the
+  // owning view instead makes pushLocation push a fresh entry whenever the
+  // owning view differs from wherever the user currently is, and still
+  // collapses harmlessly into a same-view rewrite when the caller really is
+  // already on that view (e.g. arrow-keying a list in place).
   selectedCapsuleId: null,
   selectCapsule: (selectedCapsuleId) =>
-    set((s) => ({ selectedCapsuleId, ...record(s, s.view, selectedCapsuleId) })),
+    set((s) => ({ selectedCapsuleId, ...record(s, "capsules", selectedCapsuleId) })),
   selectedProjectId: null,
   selectProject: (selectedProjectId) =>
-    set((s) => ({ selectedProjectId, ...record(s, s.view, selectedProjectId) })),
+    set((s) => ({ selectedProjectId, ...record(s, "projects", selectedProjectId) })),
   selectedConnectorId: null,
   selectConnector: (selectedConnectorId) =>
-    set((s) => ({ selectedConnectorId, ...record(s, s.view, selectedConnectorId) })),
+    set((s) => ({ selectedConnectorId, ...record(s, "connectors", selectedConnectorId) })),
   selectedEventSeq: null,
   selectEvent: (selectedEventSeq) =>
-    set((s) => ({ selectedEventSeq, ...record(s, s.view, selectedEventSeq) })),
+    set((s) => ({ selectedEventSeq, ...record(s, "activity", selectedEventSeq) })),
   settingsSection: "general",
   setSettingsSection: (settingsSection) => set({ settingsSection }),
   capsuleFilter: "open",

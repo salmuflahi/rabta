@@ -173,6 +173,27 @@ describe("navigation history", () => {
     expect(useStore.getState().selectedCapsuleId).toBe("task-7");
   });
 
+  // The real call sites (ProjectsPage's "open this capsule", OverviewPage's
+  // "Also open", every cross-list row in CommandPalette) select *before*
+  // navigating — selectCapsule(id) fires while still on the origin view,
+  // then setView("capsules") follows. That's the opposite order from the
+  // test above (select-after-arriving). If a select* action records under
+  // the live view instead of the view its id belongs to, this order
+  // rewrites the origin view's own history entry with the wrong-view
+  // selection instead of pushing a new one for the destination — silently
+  // corrupting the entry Back is supposed to return to.
+  it("keeps the origin view's own selection when selecting precedes navigating away (select-then-navigate order)", () => {
+    useStore.getState().setView("projects");
+    useStore.getState().selectProject("proj-1");
+    // Still on "projects" here — exactly like ProjectsPage's capsule-row
+    // onClick, which calls selectCapsule before setView("capsules").
+    useStore.getState().selectCapsule("task-9");
+    useStore.getState().setView("capsules");
+    useStore.getState().goBack();
+    expect(useStore.getState().view).toBe("projects");
+    expect(useStore.getState().selectedProjectId).toBe("proj-1");
+  });
+
   it("goes forward again after going back", () => {
     useStore.getState().setView("capsules");
     useStore.getState().goBack();
