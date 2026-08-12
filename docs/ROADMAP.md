@@ -24,11 +24,11 @@ ships and what the site says ships.
 
 | # | Item | Size | Blocked on |
 |---|---|---|---|
-| 1 | **Publish connectors 0.2.0** to all three registries | 30 min | Your Open VSX token and Azure DevOps PAT. Tooling is installed and working under Node 22. |
+| 1 | ~~Publish connectors 0.2.0~~ | done | Open VSX and Marketplace live; Chrome in review. |
 | 2 | ~~Re-shoot the Overview screenshot~~ | done | All six shots now come from the real app. |
 | 3 | ~~Claim the Open VSX namespace~~ — **filed [#12484](https://github.com/EclipseFdn/open-vsx.org/issues/12484)** | done | Awaiting a maintainer. |
 | 4 | ~~Instagram and TikTok in the footer~~ | done | — |
-| 5 | **Bump the site to the published connector version** | 10 min | Item 1 landing. |
+| 5 | ~~Bump the site to the published connector version~~ | done | — |
 
 ### On the namespace claim
 
@@ -155,10 +155,9 @@ Kept here so the answer is written down rather than re-litigated:
 
 ## Sequencing, in one line
 
-**Publish 0.2.0 connectors → Intel build → focus mode's close half → decide on
-Windows.**
+**Intel build → focus mode's close half → decide on Windows.**
 
-Three of the five 0.1.1 items are done. Publishing is the only one left that
-needs doing rather than waiting, and it removes
-something the site currently has to apologise for. Do those before starting
+0.1.1 is done. Every item on it is either shipped or waiting on someone else —
+the Chrome review and the Eclipse namespace claim. Nothing on the site has
+anything left to apologise for, which was the point of the release. Start
 anything in 0.2.0.
