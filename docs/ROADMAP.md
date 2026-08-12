@@ -26,7 +26,7 @@ ships and what the site says ships.
 |---|---|---|---|
 | 1 | **Publish connectors 0.2.0** to all three registries | 30 min | Your Open VSX token and Azure DevOps PAT. Tooling is installed and working under Node 22. |
 | 2 | **Re-shoot the Overview screenshot** from the real app | 20 min | You. Reseed on a clean debug db, restart, capture. |
-| 3 | **Claim the Open VSX namespace** (3rd attempt) | 15 min | Nothing — the evidence now exists. See below. |
+| 3 | ~~Claim the Open VSX namespace~~ — **filed [#12484](https://github.com/EclipseFdn/open-vsx.org/issues/12484)** | done | Awaiting a maintainer. |
 | 4 | **Instagram and TikTok in the footer** | 2 min | The two handles. |
 | 5 | **Bump the site to the published connector version** | 10 min | Item 1 landing. |
 
@@ -46,9 +46,16 @@ That proof exists now and did not obviously exist then:
   `github.com/salmuflahi/rabta`.
 - That repository is owned by `salmuflahi` — the account filing the claim.
 
-A third issue should say exactly that, in that order, and nothing else. Two
-closed threads is already a pattern; a third that restates the checkbox rather
-than answering the question would be worse than not filing.
+[#12484](https://github.com/EclipseFdn/open-vsx.org/issues/12484) says exactly
+that, in that order. It also does the thing both earlier attempts missed: the
+template requires a *sub-choice* under Option 1 and a filled-in **Claim
+evidence** section, and warns in its own preamble that without them "your
+request will not be approved." Neither closed issue had either. This one ticks
+"the extension repo is owned by the GitHub ID making this request", names the
+repo, and links a commit by that ID to the exact `package.json` the Marketplace
+listing declares.
+
+Nothing to do now but wait for a maintainer.
 
 **Unverified is not broken.** The extension installs normally. The listing
 carries no publisher badge, which is a trust signal on a product whose entire
