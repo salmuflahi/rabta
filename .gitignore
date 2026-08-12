@@ -13,3 +13,23 @@ dist-artifacts/
 
 # macOS
 .DS_Store
+
+# ---- working material, deliberately outside version control ----------------
+# Video project files and renders. `video-editing/` alone is ~1 GB; git is the
+# wrong store for it and a stray `git add` is one keystroke away from a repo
+# nobody can clone. Kept on disk, kept out of history.
+/video-editing/
+/video-exports/
+
+# Marketing renders that live under website/ but are not part of the site.
+# `.github/workflows/pages.yml` uploads the WHOLE website/ directory, so
+# anything committed here is published at rabta.build whether or not a page
+# links it — 17 MB of social cuts would have become publicly fetchable without
+# ever appearing on a page. Nothing references these; they stay local.
+/website/assets/social/
+/website/assets/demos/micro/
+
+# Card renders. The .svg beside each one is the source and `build.mjs`
+# regenerates the .png, so committing both stores the same image twice and
+# invites them to disagree.
+apps/desktop/capture/cards/*.svg.png

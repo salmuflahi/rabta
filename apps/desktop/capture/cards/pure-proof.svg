@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <rect width="1080" height="1920" fill="#0b0e0e"/>
+  <text x="540" y="260" text-anchor="middle" fill="#ffffff" font-family="SF Pro Display, Helvetica" font-size="60" font-weight="700">Watch the workspace come back.</text>
+  <text x="540" y="355" text-anchor="middle" fill="#aeb7b4" font-family="SF Pro Display, Helvetica" font-size="43">Files. Tabs. Branch. Context.</text>
+  <rect x="50" y="540" width="980" height="590" rx="34" fill="#151a19" stroke="#303936" stroke-width="2"/>
+  <text x="540" y="1440" text-anchor="middle" fill="#ff7043" font-family="SF Pro Display, Helvetica" font-size="52" font-weight="650">One click to resume.</text>
+  <text x="540" y="1520" text-anchor="middle" fill="#6f7a77" font-family="SF Pro Display, Helvetica" font-size="32">rabta.build</text>
+</svg>

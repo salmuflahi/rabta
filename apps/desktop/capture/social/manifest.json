@@ -1,0 +1,86 @@
+{
+  "$comment": "Every social video is declared here. Add an entry, run `node build.mjs`, get a video. Copy lives in this file, not in code or hand-written SVG. Cards render as HTML through Chrome, so long headlines wrap and shrink instead of running off the frame.",
+
+  "output": "website/assets/social",
+  "canvas": { "width": 1080, "height": 1920 },
+
+  "$safeAreas": "Platform chrome covers the top 180px, bottom 320px, and rightmost 120px. The card layout keeps all copy inside those bounds.",
+
+  "$shotQuality": "activity.png and connectors.png were captured with nothing connected — they read 'No connectors yet' / 'No connectors online'. Do NOT use them under copy that claims Rabta is connected to your tools; the screenshot contradicts the words. Strong shots: restore, overview, projects. Mixed: capsules (good list, empty detail pane). Recapture activity/connectors in a connected state to unlock them.",
+
+  "url": "rabta.build",
+
+  "videos": [
+    {
+      "id": "app-tour",
+      "type": "dump",
+      "duration": 18,
+      "headline": "This is all of Rabta.",
+      "subhead": "Save a task. Get the workspace back.",
+      "tagline": "A save state for coding.",
+      "shots": ["overview", "projects", "capsules", "restore"]
+    },
+    {
+      "id": "many-tasks",
+      "type": "dump",
+      "duration": 12,
+      "headline": "Every task keeps its own context.",
+      "subhead": "Switch freely. Nothing bleeds over.",
+      "tagline": "Pick up any of them, any time.",
+      "shots": ["projects", "capsules", "overview"]
+    },
+    {
+      "id": "knows-your-tools",
+      "type": "dump",
+      "duration": 10,
+      "headline": "It knows your tools.",
+      "subhead": "VS Code. Chrome. Git.",
+      "tagline": "Connected, not guessing.",
+      "shots": ["restore", "overview"]
+    },
+    {
+      "id": "capture-flow",
+      "type": "demo",
+      "duration": 12,
+      "headline": "Saving a task is one click.",
+      "subhead": "Files, terminals, tabs, branch.",
+      "tagline": "Capture it. Then walk away.",
+      "source": "capture-desktop.m4v"
+    },
+    {
+      "id": "what-restores",
+      "type": "demo",
+      "duration": 12,
+      "headline": "It shows you what came back.",
+      "subhead": "And what didn't.",
+      "tagline": "No pretend restores.",
+      "source": "honest-return-desktop.m4v"
+    },
+
+    {
+      "$note": "Carousels output a folder of 1080x1920 PNGs, not a video. Post as a TikTok photo post or an Instagram carousel. TikTok requires 4-35 slides; completion rate is ranked, so few strong slides beat many weak ones. Slide 1 is the cover — it has to work as a still.",
+      "id": "cost-of-switching",
+      "type": "carousel",
+      "slides": [
+        { "kind": "hook", "text": "you don't lose the work. you lose the setup.", "sub": "here's what actually disappears." },
+        { "kind": "item", "text": "the branch you were on" },
+        { "kind": "item", "text": "the files you had open" },
+        { "kind": "item", "text": "the terminals, and what was running in them" },
+        { "kind": "item", "text": "the tabs. docs, a PR, that one stack overflow answer" },
+        { "kind": "item", "text": "and twenty minutes putting it all back" },
+        { "kind": "cta", "text": "rabta saves the whole state.", "sub": "one click and the task is back." }
+      ]
+    },
+    {
+      "id": "honest-restore",
+      "type": "carousel",
+      "slides": [
+        { "kind": "hook", "text": "most demos hide the failure state.", "sub": "here's ours, on purpose." },
+        { "kind": "item", "text": "VS Code — restored" },
+        { "kind": "item", "text": "Git — restored, on the right branch" },
+        { "kind": "item", "text": "Chrome — on next reload. not before." },
+        { "kind": "cta", "text": "it tells you which is which.", "sub": "local-first. no account. no telemetry." }
+      ]
+    }
+  ]
+}
