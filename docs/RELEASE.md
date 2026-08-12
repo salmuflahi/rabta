@@ -34,7 +34,10 @@ The developer accounts this required (for reference):
 - **Chrome extension:** Chrome Web Store developer account — **$5 one-time** (adult-owned account) — published
 - **VS Code / Cursor extension:** Open VSX (free — this is what **Cursor**
   installs from, not the MS Marketplace) — **done**; the MS VS Code Marketplace
-  publisher (free) exists but is **not yet published** (Azure DevOps PAT blocker)
+  publisher is **published** — updates go through the publisher management UI
+  (Manage → ⋮ → Update → drop the .vsix), which needs no PAT and no Azure
+  DevOps organization. `vsce` is only needed for CLI publishing, and creating
+  an org for its PAT now requires a linked Azure subscription.
 
 Repo facts this checklist assumes:
 - App: `apps/desktop`, productName **Rabta**, bundle id **`com.omnibus.dev`**,

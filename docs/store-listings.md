@@ -10,8 +10,8 @@ manifests (see `docs/RELEASE.md` §0).
 **Item name:** Rabta Connector
 
 **Summary** (≤132 chars):
-> Lets Rabta capture and restore your browser tabs as part of a task's
-> workspace. Local-only — nothing leaves your machine.
+> Saves, restores and closes your browser tabs as part of a task workspace.
+> Local-only — nothing leaves your machine.
 
 **Description:**
 > Rabta is a local-first "shared brain" for your dev tools: it captures the
