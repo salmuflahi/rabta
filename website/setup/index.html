@@ -248,7 +248,7 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
 
     <p>
       The extension is published as <strong>Rabta Connector</strong>
-      (<code>rabta-connect.rabta-vscode</code>, version 0.1.0) on both
+      (<code>rabta-connect.rabta-vscode</code>, version 0.2.0) on both
       registries: the
       <a href="https://marketplace.visualstudio.com/items?itemName=rabta-connect.rabta-vscode" target="_blank" rel="noopener noreferrer">Visual Studio Marketplace</a>,
       which stock <strong>VS&nbsp;Code</strong> reads, and
@@ -256,6 +256,17 @@ spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
       which <strong>Cursor, VSCodium and Windsurf</strong> read. Whichever you
       use, it is in the Extensions panel.
     </p>
+
+    <div class="note">
+      <p>
+        <strong>0.2.0 raises the editor floor</strong> from VS&nbsp;Code
+        <strong>1.85</strong> to <strong>1.93</strong>. Busy-terminal detection
+        needs shell-execution events that are only stable from 1.93, and there
+        is no fallback. On an older editor the registry keeps offering you
+        0.1.0 rather than failing, which is the correct behaviour but is worth
+        knowing before you go looking for a version you cannot see.
+      </p>
+    </div>
 
     <h3>Any of the four editors</h3>
 
@@ -282,10 +293,10 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
 
     <ol>
       <li>Download
-        <a href="https://open-vsx.org/api/rabta-connect/rabta-vscode/0.1.0/file/rabta-connect.rabta-vscode-0.1.0.vsix"><code>rabta-connect.rabta-vscode-0.1.0.vsix</code></a>
+        <a href="https://open-vsx.org/api/rabta-connect/rabta-vscode/0.2.0/file/rabta-connect.rabta-vscode-0.2.0.vsix"><code>rabta-connect.rabta-vscode-0.2.0.vsix</code></a>
         from Open VSX.</li>
       <li>Install it:
-        <pre class="code" tabindex="0">code --install-extension ~/Downloads/rabta-connect.rabta-vscode-0.1.0.vsix</pre>
+        <pre class="code" tabindex="0">code --install-extension ~/Downloads/rabta-connect.rabta-vscode-0.2.0.vsix</pre>
         or use <strong>Extensions panel › … › Install from VSIX…</strong>
       </li>
       <li>Reload the window.</li>

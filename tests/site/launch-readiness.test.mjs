@@ -262,14 +262,18 @@ test("the extension distribution story is the same on every page that tells it",
 });
 
 test("the pinned .vsix matches the version the page says it is", async () => {
-  // Open VSX serves one version of this extension. If the prose and the pinned
-  // download URL ever disagree, the page hands over a build it just described
-  // as something else — and the claim "it is the same build Open VSX serves"
-  // stops being checkable by the reader.
+  // /setup/ can legitimately be in two states: both registries on the same
+  // version, or briefly split while one upload catches up. Either way the
+  // pinned download and the prose must agree, or the page hands over a build it
+  // just described as something else.
   const setup = await read("setup/index.html");
-  const stated = setup.match(/rabta-vscode<\/code>, version ([\d.]+)\)/)?.[1];
-  assert.ok(stated, "/setup/: no stated extension version");
 
+  const unified = setup.match(/rabta-vscode<\/code>, version ([\d.]+)\)/)?.[1];
+  const openVsx = setup.match(/Open VSX serves\s*<strong>([\d.]+)<\/strong>/)?.[1];
+  const stated = unified ?? openVsx;
+  assert.ok(stated, "/setup/: states no extension version at all");
+
+  // The pinned file is served by Open VSX, so it tracks that registry's number.
   const pinned = [
     ...setup.matchAll(/open-vsx\.org\/api\/rabta-connect\/rabta-vscode\/([\d.]+)\//g),
   ].map((m) => m[1]);
@@ -281,6 +285,16 @@ test("the pinned .vsix matches the version the page says it is", async () => {
     setup.includes(`rabta-connect.rabta-vscode-${stated}.vsix`),
     "/setup/: the filename in the install command is not the stated version",
   );
+
+  // A split has to name both sides. Naming only one is how a reader on the
+  // other registry ends up looking for something that is not there.
+  if (!unified) {
+    assert.match(
+      setup,
+      /Marketplace still serves\s*<strong>[\d.]+<\/strong>/,
+      "/setup/: names the Open VSX version but not the Marketplace one",
+    );
+  }
 });
 
 test("no page claims fewer network calls than another page documents", async () => {

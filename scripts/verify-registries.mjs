@@ -12,7 +12,7 @@
  * truth lives on two registries. This does the only thing that would have
  * worked — asks the registries.
  *
- * It is deliberately NOT part of `node --test tests/site/`. It needs the
+ * It is deliberately NOT part of `pnpm test:site`. It needs the
  * network, so in CI it would be a flake generator, and a guard that fails for
  * reasons unrelated to the change is a guard people learn to ignore. Run it
  * before a release, or any time the distribution story changes:
@@ -119,21 +119,62 @@ async function marketplace() {
 async function site(published) {
   const setup = await readFile(resolve(ROOT, "website/setup/index.html"), "utf8");
 
-  const stated = setup.match(/rabta-vscode<\/code>, version ([\d.]+)\)/)?.[1];
-  if (!stated) {
-    problems.push("/setup/: no stated extension version to check");
-  } else {
-    notes.push(`/setup/ says   ${stated}`);
+  // The page may be in either of two states, and both are legitimate:
+  //
+  //   unified — both registries serve the same version, and the prose names it
+  //             once: "rabta-connect.rabta-vscode, version X".
+  //   split   — they disagree, which happens for as long as it takes the second
+  //             upload to land, and the prose names both explicitly.
+  //
+  // A checker that only understood the unified case would flag the split as an
+  // error and push toward hiding it, which is the opposite of what the page
+  // should do.
+  const unified = setup.match(/rabta-vscode<\/code>, version ([\d.]+)\)/)?.[1];
+  const splitOpenVsx = setup.match(/Open VSX serves\s*<strong>([\d.]+)<\/strong>/)?.[1];
+  const splitMarket = setup.match(
+    /Marketplace still serves\s*<strong>([\d.]+)<\/strong>/,
+  )?.[1];
+
+  if (unified) {
+    notes.push(`/setup/ says   ${unified} (both registries)`);
     for (const [registry, version] of Object.entries(published)) {
-      if (version && version !== stated) {
+      if (version && version !== unified) {
         problems.push(
-          `/setup/ says version ${stated}, but ${registry} serves ${version}`,
+          `/setup/ says version ${unified}, but ${registry} serves ${version}`,
         );
       }
     }
+    // If the registries have since diverged, the unified sentence is no longer
+    // true no matter which number it names.
+    const distinct = new Set(Object.values(published).filter(Boolean));
+    if (distinct.size > 1) {
+      problems.push(
+        `/setup/ names one version but the registries serve ${[...distinct].join(" and ")}`,
+      );
+    }
+  } else if (splitOpenVsx || splitMarket) {
+    notes.push(`/setup/ says   Open VSX ${splitOpenVsx}, Marketplace ${splitMarket}`);
+    if (splitOpenVsx && splitOpenVsx !== published["Open VSX"]) {
+      problems.push(
+        `/setup/ says Open VSX serves ${splitOpenVsx}, but it serves ${published["Open VSX"]}`,
+      );
+    }
+    if (splitMarket && splitMarket !== published.Marketplace) {
+      problems.push(
+        `/setup/ says the Marketplace serves ${splitMarket}, but it serves ${published.Marketplace}`,
+      );
+    }
+    // Once they agree again, the split note is stale and should come out.
+    if (published["Open VSX"] && published["Open VSX"] === published.Marketplace) {
+      problems.push(
+        "the registries agree again — /setup/ still carries the split note",
+      );
+    }
+  } else {
+    problems.push("/setup/: states no extension version at all");
   }
 
-  // The pinned .vsix must be a version that exists, or the download 404s.
+  // The pinned .vsix follows Open VSX, which is where that file is served from.
   for (const [, pinned] of setup.matchAll(
     /open-vsx\.org\/api\/rabta-connect\/rabta-vscode\/([\d.]+)\//g,
   )) {
@@ -158,7 +199,7 @@ async function site(published) {
   for (const [registry, version] of Object.entries(published)) {
     if (version && version !== pkg.version) {
       notes.push(
-        `  → ${registry} is behind the repo (${version} vs ${pkg.version}) — packaged, not published`,
+        `  \u2192 ${registry} is behind the repo (${version} vs ${pkg.version}) — packaged, not published`,
       );
     }
   }
