@@ -10,6 +10,9 @@
 
   "url": "rabta.build",
 
+  "$audio": "Background bed mixed onto every video. `lufs` is the loudness target — LOWER IS QUIETER. Typical music masters near -14; -22 sits clearly underneath. Set a video's \"audio\": false to keep it silent, or give it its own {file, lufs}. Drop any royalty-free track into audio/ and point `file` at it. NOTE: a TikTok Business Account may only use TikTok's Commercial Sounds Library — burned-in music can get the post muted. This bed is synthesised in-house (no rights attached), so it is safe, but adding sound in-app is still the better route on TikTok.",
+  "audio": { "file": "ambient-bed.wav", "lufs": -22 },
+
   "videos": [
     {
       "id": "app-tour",

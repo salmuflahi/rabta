@@ -33,3 +33,8 @@ dist-artifacts/
 # regenerates the .png, so committing both stores the same image twice and
 # invites them to disagree.
 apps/desktop/capture/cards/*.svg.png
+
+# The social generator's scratch and source audio. `.work/` is intermediate
+# frames it regenerates; `audio/` is source material it does not.
+apps/desktop/capture/social/.work/
+apps/desktop/capture/social/audio/

@@ -117,6 +117,26 @@ function page({ headline, subhead, tagline, url, stage, box }) {
   <div class="url">${esc(url)}</div>`;
 }
 
+// Mixes a background bed onto a finished silent video. Normalised to a target
+// LUFS so "not too loud" is one number, not a guess — lower is quieter.
+// Typical music sits near -14; -20 or below reads as background.
+function attachAudio(videoPath, duration, cfg) {
+  const bed = join(HERE, 'audio', cfg.file);
+  if (!existsSync(bed)) throw new Error(`missing audio bed: ${bed}`);
+  const tmp = videoPath.replace(/\.mp4$/, '.aud.mp4');
+  const fade = Math.min(1.5, duration / 4);
+  sh('ffmpeg', ['-y', '-loglevel', 'error',
+    '-i', videoPath,
+    '-stream_loop', '-1', '-i', bed,
+    '-filter_complex',
+    `[1:a]loudnorm=I=${cfg.lufs}:TP=-2:LRA=11,` +
+    `afade=t=in:st=0:d=${fade},afade=t=out:st=${(duration - fade).toFixed(2)}:d=${fade}[a]`,
+    '-map', '0:v', '-map', '[a]',
+    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k',
+    '-t', String(duration), '-movflags', '+faststart', tmp]);
+  sh('mv', [tmp, videoPath]);
+}
+
 function buildDump(v) {
   const n = v.shots.length;
   const per = (v.duration + (n - 1) * TRANSITION) / n;
@@ -253,6 +273,8 @@ for (const v of queue) {
     else if (v.type === 'demo') buildDemo(v);
     else throw new Error(`unknown type "${v.type}"`);
     const out = join(OUT, `${v.id}.mp4`);
+    const audio = v.audio === false ? null : (v.audio || manifest.audio);
+    if (audio) attachAudio(out, v.duration, audio);
     const probe = sh('ffprobe', ['-v', 'error', '-select_streams', 'v:0',
       '-show_entries', 'stream=width,height', '-show_entries', 'format=duration',
       '-of', 'csv=p=0', out]).toString().trim().split('\n');
