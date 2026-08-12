@@ -124,18 +124,31 @@
         </p>
         </div>
 
-        <!-- The Overview shot rather than a placeholder: this page's argument
-             is "the arrangement is a thing you can see", and 650px of empty
-             box directly under that sentence argues the opposite. It is the
-             one shot still rendered by the capture rig rather than the real
-             Mac app — the content is accurate, the window chrome is not, and
-             it is swapped when a corrected native shot exists. -->
-        <figure class="shot" data-slot="why-overview">
-          <picture>
-            <source type="image/avif" srcset="/assets/shots/overview-640.avif 640w, /assets/shots/overview-1024.avif 1024w, /assets/shots/overview-1600.avif 1600w" sizes="(max-width: 899px) calc(100vw - 48px), 1044px" />
-            <source type="image/webp" srcset="/assets/shots/overview-640.webp 640w, /assets/shots/overview-1024.webp 1024w, /assets/shots/overview-1600.webp 1600w" sizes="(max-width: 899px) calc(100vw - 48px), 1044px" />
-            <img src="/assets/shots/overview-1024.png" width="1024" height="640" loading="lazy" decoding="async" alt="Rabta's Overview: three projects down the left, their capsules listed with the branch and connector counts each one saved." />
-          </picture>
+        <!-- The same macOS frame the homepage hero uses. The comp puts this
+             shot in one, and it is the right call for a reason beyond
+             consistency: an unframed screenshot of a Mac app is just a
+             rectangle of UI, and the frame is what says the thing you are
+             looking at is a window on your own machine.
+
+             It is still the capture-rig render rather than the real app —
+             accurate content, wrong window chrome — which the frame now
+             quietly fixes. It is swapped when a corrected native shot exists. -->
+        <figure class="window window--shot" data-slot="why-overview">
+          <div class="window__frame">
+            <div class="window__bar">
+              <span class="window__lights" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </span>
+              <span class="window__title">Rabta — Overview</span>
+            </div>
+            <div class="window__stage">
+              <picture>
+                <source type="image/avif" srcset="/assets/shots/overview-640.avif 640w, /assets/shots/overview-1024.avif 1024w, /assets/shots/overview-1600.avif 1600w" sizes="(max-width: 899px) calc(100vw - 48px), 1044px" />
+                <source type="image/webp" srcset="/assets/shots/overview-640.webp 640w, /assets/shots/overview-1024.webp 1024w, /assets/shots/overview-1600.webp 1600w" sizes="(max-width: 899px) calc(100vw - 48px), 1044px" />
+                <img src="/assets/shots/overview-1024.png" width="1024" height="640" loading="lazy" decoding="async" alt="Rabta's Overview: three projects down the left, their capsules listed with the branch and connector counts each one saved." />
+              </picture>
+            </div>
+          </div>
           <figcaption>Three projects, six capsules, and what each one is holding</figcaption>
         </figure>
       </div>

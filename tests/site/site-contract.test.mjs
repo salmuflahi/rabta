@@ -122,22 +122,25 @@ test("homepage surfaces stay within the approved Living Instrument palette", asy
   // An exception that can spread is not an exception, it is a second palette.
   // Each quoted colour must appear exactly once, and only in the traffic-light
   // rule it was granted for.
-  const landing = await readFile(resolve(SITE, "css/landing.css"), "utf8");
+  // The window component lives in page.css now — the homepage and /why/ both
+  // use it, and two copies of a window chrome is how two windows stop looking
+  // like the same product.
+  const owner = await readFile(resolve(SITE, "css/page.css"), "utf8");
   for (const value of quoted) {
     assert.equal(
-      (landing.match(new RegExp(value, "gi")) ?? []).length,
+      (owner.match(new RegExp(value, "gi")) ?? []).length,
       1,
       `${value} is used more than once`,
     );
     assert.match(
-      landing,
+      owner,
       new RegExp(`\\.window__lights span:nth-child\\(\\d\\) \\{\\s*background: ${value};`, "i"),
       `${value} is used outside the traffic lights`,
     );
   }
 
-  // And nowhere but landing.css at all.
-  for (const file of ["css/shell.css", "css/doc.css", "css/page.css", "css/tokens.css"]) {
+  // And nowhere but page.css at all.
+  for (const file of ["css/shell.css", "css/doc.css", "css/landing.css", "css/tokens.css"]) {
     const source = await readFile(resolve(SITE, file), "utf8");
     for (const value of quoted) {
       assert.doesNotMatch(source, new RegExp(value, "i"), `${file}: ${value}`);

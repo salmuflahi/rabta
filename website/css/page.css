@@ -741,3 +741,171 @@
     }
   }
 }
+
+@layer section {
+  /* ---- key / value ---------------------------------------------------------
+     The signing identifiers on /setup/. They were a table, which is the right
+     semantics and the wrong affordance: every one of these is a value you
+     compare against what `codesign` just printed, and a table cell is
+     something you drag a selection across and usually get wrong.
+
+     Each value is its own selectable token on its own row. Still a <dl>, so a
+     screen reader hears the pairing. */
+  .kv {
+    margin-top: var(--s6);
+    border-top: 1px solid var(--hairline);
+  }
+
+  .kv > div {
+    display: grid;
+    grid-template-columns: 140px minmax(0, 1fr);
+    gap: var(--s5);
+    align-items: baseline;
+    padding-block: 14px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .kv dt {
+    color: var(--cool-mid);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: var(--track-mono);
+    text-transform: uppercase;
+  }
+
+  .kv dd {
+    margin: 0;
+    min-width: 0;
+  }
+
+  .kv code {
+    display: inline-block;
+    max-width: 100%;
+    padding: 4px 9px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r1);
+    background: rgba(4, 12, 13, 0.4);
+    color: var(--cool-field);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    /* One click selects the whole identifier — the thing you actually want to
+       compare — rather than a word of it. */
+    user-select: all;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 640px) {
+    .kv > div {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+    }
+  }
+}
+
+@layer section {
+  /* ---- the window ---------------------------------------------------------
+     Moved here from landing.css, which only the homepage loads. The comp puts
+     /why/'s Overview shot in the same macOS frame as the hero demo, and two
+     copies of a window chrome is how two windows stop looking like the same
+     product. The traffic-light colours are the one documented palette
+     exception; the guard that scopes them moved with the rule. */
+  /* ---- the window ---------------------------------------------------------
+     A frame around the demo, because a bare 16:9 rectangle in the middle of a
+     page could be anything. The traffic lights are decorative: real-looking
+     controls that do nothing are worse than none, so they are `aria-hidden`
+     and unclickable. */
+  .window {
+    position: relative;
+    max-width: 980px;
+    margin: 58px auto 0;
+  }
+  .window__frame {
+    position: relative;
+    z-index: 1;
+    border: 1px solid rgba(243, 240, 232, 0.13);
+    border-radius: 13px;
+    background: rgba(4, 12, 13, 0.55);
+    box-shadow:
+      inset 0 1px 0 rgba(243, 240, 232, 0.06),
+      0 30px 80px rgba(4, 12, 13, 0.65),
+      0 70px 150px rgba(4, 12, 13, 0.5);
+    overflow: hidden;
+    text-align: left;
+  }
+  .window__bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 42px;
+    padding-inline: 16px;
+    border-bottom: 1px solid var(--hairline);
+    background: rgba(243, 240, 232, 0.025);
+  }
+  .window__lights {
+    display: flex;
+    gap: 8px;
+  }
+  /* The only three colours on this site that are not Rabta's.
+
+     They are macOS's own window controls, reproduced at their system values,
+     and they are here as a quotation rather than as design: the frame says
+     "this is a Mac app", and a Mac app's close button is that red. Substituting
+     palette colours would make the frame a stylised drawing of a window rather
+     than a window.
+
+     The palette contract in tests/site/site-contract.test.mjs is widened for
+     exactly these three literals and asserts they appear nowhere but this rule,
+     so the exception cannot spread into the rest of the page. */
+  .window__lights span {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  .window__lights span:nth-child(1) {
+    background: #ff5f57;
+  }
+  .window__lights span:nth-child(2) {
+    background: #febc2e;
+  }
+  .window__lights span:nth-child(3) {
+    background: #28c840;
+  }
+  .window__title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--cool-mid);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+  }
+
+  /* On a document page the frame wraps a still rather than a video, so the
+     stage is whatever the image is. */
+  .window--shot .window__stage {
+    aspect-ratio: auto;
+  }
+}
+
+@layer section {
+  /* A framed shot inside a band: the frame is the window component, the
+     caption belongs to the figure around it. */
+  .window--shot {
+    margin-top: var(--s8);
+  }
+
+  .window--shot .window__stage img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .window--shot figcaption {
+    margin-top: 14px;
+    color: var(--cool-mid);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: var(--track-mono);
+  }
+}

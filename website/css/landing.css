@@ -250,16 +250,6 @@
     opacity: 1;
   }
 
-  /* ---- the window ---------------------------------------------------------
-     A frame around the demo, because a bare 16:9 rectangle in the middle of a
-     page could be anything. The traffic lights are decorative: real-looking
-     controls that do nothing are worse than none, so they are `aria-hidden`
-     and unclickable. */
-  .window {
-    position: relative;
-    max-width: 980px;
-    margin: 58px auto 0;
-  }
 
   .window__glow {
     left: 50%;
@@ -271,74 +261,13 @@
     filter: blur(22px);
   }
 
-  .window__frame {
-    position: relative;
-    z-index: 1;
-    border: 1px solid rgba(243, 240, 232, 0.13);
-    border-radius: 13px;
-    background: rgba(4, 12, 13, 0.55);
-    box-shadow:
-      inset 0 1px 0 rgba(243, 240, 232, 0.06),
-      0 30px 80px rgba(4, 12, 13, 0.65),
-      0 70px 150px rgba(4, 12, 13, 0.5);
-    overflow: hidden;
-    text-align: left;
-  }
 
-  .window__bar {
-    position: relative;
-    display: flex;
-    align-items: center;
-    height: 42px;
-    padding-inline: 16px;
-    border-bottom: 1px solid var(--hairline);
-    background: rgba(243, 240, 232, 0.025);
-  }
 
-  .window__lights {
-    display: flex;
-    gap: 8px;
-  }
 
-  /* The only three colours on this site that are not Rabta's.
 
-     They are macOS's own window controls, reproduced at their system values,
-     and they are here as a quotation rather than as design: the frame says
-     "this is a Mac app", and a Mac app's close button is that red. Substituting
-     palette colours would make the frame a stylised drawing of a window rather
-     than a window.
 
-     The palette contract in tests/site/site-contract.test.mjs is widened for
-     exactly these three literals and asserts they appear nowhere but this rule,
-     so the exception cannot spread into the rest of the page. */
-  .window__lights span {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-  }
 
-  .window__lights span:nth-child(1) {
-    background: #ff5f57;
-  }
 
-  .window__lights span:nth-child(2) {
-    background: #febc2e;
-  }
-
-  .window__lights span:nth-child(3) {
-    background: #28c840;
-  }
-
-  .window__title {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    color: var(--cool-mid);
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.2px;
-    white-space: nowrap;
-  }
 
   .window__stage {
     position: relative;

@@ -213,13 +213,24 @@ xcrun stapler validate ~/Downloads/Rabta_0.1.0_aarch64.dmg
 spctl -a -vv -t install ~/Downloads/Rabta_0.1.0_aarch64.dmg
 <span class="cmt"># -> accepted, source=Notarized Developer ID</span></pre>
 
-    <table>
-      <tbody>
-        <tr><th scope="row">Team ID</th><td><code>86M2X6MUA3</code></td></tr>
-        <tr><th scope="row">Bundle ID</th><td><code>com.omnibus.dev</code> &mdash; see the note below</td></tr>
-        <tr><th scope="row">Identity</th><td><code>Developer ID Application: sammy almuflahi (86M2X6MUA3)</code></td></tr>
-      </tbody>
-    </table>
+    <!-- Values you compare against what the commands above printed, so each
+         one is a single selectable token on its own line rather than a table
+         cell you have to drag across. Still a <dl>: these are terms and their
+         definitions, and a screen reader should hear them paired. -->
+    <dl class="kv">
+      <div>
+        <dt>Team ID</dt>
+        <dd><code>86M2X6MUA3</code></dd>
+      </div>
+      <div>
+        <dt>Bundle ID</dt>
+        <dd><code>com.omnibus.dev</code></dd>
+      </div>
+      <div>
+        <dt>Identity</dt>
+        <dd><code>Developer ID Application: sammy almuflahi (86M2X6MUA3)</code></dd>
+      </div>
+    </dl>
 
     <div class="note">
       <p>
