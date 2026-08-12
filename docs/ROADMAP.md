@@ -25,9 +25,9 @@ ships and what the site says ships.
 | # | Item | Size | Blocked on |
 |---|---|---|---|
 | 1 | **Publish connectors 0.2.0** to all three registries | 30 min | Your Open VSX token and Azure DevOps PAT. Tooling is installed and working under Node 22. |
-| 2 | **Re-shoot the Overview screenshot** from the real app | 20 min | You. Reseed on a clean debug db, restart, capture. |
+| 2 | ~~Re-shoot the Overview screenshot~~ | done | All six shots now come from the real app. |
 | 3 | ~~Claim the Open VSX namespace~~ — **filed [#12484](https://github.com/EclipseFdn/open-vsx.org/issues/12484)** | done | Awaiting a maintainer. |
-| 4 | **Instagram and TikTok in the footer** | 2 min | The two handles. |
+| 4 | ~~Instagram and TikTok in the footer~~ | done | — |
 | 5 | **Bump the site to the published connector version** | 10 min | Item 1 landing. |
 
 ### On the namespace claim
@@ -155,9 +155,10 @@ Kept here so the answer is written down rather than re-litigated:
 
 ## Sequencing, in one line
 
-**Publish 0.2.0 connectors → claim the namespace → re-shoot Overview → Intel
-build → focus mode's close half → decide on Windows.**
+**Publish 0.2.0 connectors → Intel build → focus mode's close half → decide on
+Windows.**
 
-The first three are hours of work between them and every one of them removes
+Three of the five 0.1.1 items are done. Publishing is the only one left that
+needs doing rather than waiting, and it removes
 something the site currently has to apologise for. Do those before starting
 anything in 0.2.0.

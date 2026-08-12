@@ -500,8 +500,23 @@ test("every route wears the same shell", async () => {
       "https://github.com/salmuflahi/rabta/releases/tag/v0.1.0",
       "open-vsx.org",
       "https://github.com/salmuflahi/rabta/issues",
+      "https://www.instagram.com/rabtaconnector/",
+      "https://www.tiktok.com/@rabtaconnector",
     ]) {
       assert.ok(footer.includes(link), `${route} footer → ${link}`);
+    }
+
+    // `rel="me"` is the link-back half of identity verification: it is what
+    // lets each profile prove it belongs to this site rather than merely
+    // pointing at it. Dropping it turns three verified profiles into three
+    // ordinary links and nothing visibly breaks, which is why it is asserted.
+    for (const profile of [
+      "https://github.com/salmuflahi/rabta",
+      "https://www.instagram.com/rabtaconnector/",
+      "https://www.tiktok.com/@rabtaconnector",
+    ]) {
+      const tag = footer.match(new RegExp(`<a href="${profile.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*>`))?.[0] ?? "";
+      assert.match(tag, /rel="[^"]*\bme\b/, `${route}: ${profile} lacks rel="me"`);
     }
 
     // Four labelled columns, not one undifferentiated row. The labels are what

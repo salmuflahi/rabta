@@ -315,16 +315,17 @@
       <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
     </nav>
 
-    <!-- Instagram and TikTok belong in this column and are not here: their
-         handles have not been supplied, and a dead social link on a launch
-         site is worse than an absent one. Adding each is one <a> in this
-         block — nothing else needs to change, because every page pulls this
-         file through scripts/sync-site-chrome.mjs. -->
+    <!-- `rel="me"` on all three: it is the link-back half of identity
+         verification, and it is what lets a profile prove it belongs to this
+         site rather than merely pointing at it. GitHub already carried it;
+         the two social profiles are the same claim. -->
     <nav class="foot__col" aria-label="Contact and legal">
       <p class="foot__head">Contact &amp; legal</p>
       <a href="/contact/">Contact</a>
       <a href="/privacy/">Privacy</a>
       <a href="mailto:support@rabta.build">support@rabta.build</a>
+      <a href="https://www.instagram.com/rabtaconnector/" rel="me noopener noreferrer" target="_blank">Instagram</a>
+      <a href="https://www.tiktok.com/@rabtaconnector" rel="me noopener noreferrer" target="_blank">TikTok</a>
     </nav>
   </div>
 
