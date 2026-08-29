@@ -289,4 +289,8 @@ for (const v of queue) {
 
 rmSync(WORK, { recursive: true, force: true });
 console.log(`\nBuilt ${built}/${queue.length} into ${manifest.output}/`);
-console.log('Videos are silent by design — add sound from the platform\'s own library.');
+if (manifest.audio) {
+  console.log(`Audio bed: ${manifest.audio.file} at ${manifest.audio.lufs} LUFS ` +
+    '(lower is quieter). Carousels are images and carry no audio — give those a ' +
+    'sound in the app.');
+}
