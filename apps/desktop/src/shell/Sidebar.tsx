@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
+import { RESTORE_SHEET_EASE, prefersReducedMotion } from "@/lib/motion";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useStore, type NavKey } from "@/store";
@@ -19,10 +20,21 @@ import {
   TRAFFIC_LIGHT_WRAPPER_INSET_CLASS,
 } from "./titlebar";
 
-/** The mark, inlined so `currentColor` inherits the sidebar's ivory.
- * The tiled `rabta-mark.svg` stays the Dock icon, where it sits against
- * the desktop and reads properly. */
+/** The mark — the return glyph — inlined so the stroke inherits the
+ * sidebar's foreground via `currentColor` (an SVG behind <img src> is an
+ * isolated document where currentColor resolves to black). The arrowhead is
+ * brand orange and stays literal: it is the identity, not an accent. On
+ * mount the stroke draws itself and the head lands; reduced motion renders
+ * the finished mark outright. */
 function BrandMark({ className }: { className?: string }) {
+  const reduced = prefersReducedMotion();
+  const [drawn, setDrawn] = useState(reduced);
+  useEffect(() => {
+    if (reduced) return;
+    const id = requestAnimationFrame(() => setDrawn(true));
+    return () => cancelAnimationFrame(id);
+  }, [reduced]);
+  const LEN = 42;
   return (
     <svg
       data-brand-mark
@@ -32,11 +44,28 @@ function BrandMark({ className }: { className?: string }) {
       className={className}
     >
       <path
-        fill="currentColor"
-        fillRule="evenodd"
-        d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"
+        d="M48 15 V28 A12 12 0 0 1 36 40 H27"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="7"
+        strokeLinecap="round"
+        style={{
+          strokeDasharray: LEN,
+          strokeDashoffset: reduced ? 0 : drawn ? 0 : LEN,
+          transition: reduced ? undefined : `stroke-dashoffset 420ms ${RESTORE_SHEET_EASE}`,
+        }}
       />
-      <path fill="currentColor" d="M41.5 8v14.5H56Z" />
+      <path
+        d="M15 40 L29 32.5 L29 47.5 Z"
+        fill="#FF6B2C"
+        stroke="#FF6B2C"
+        strokeWidth="3.5"
+        strokeLinejoin="round"
+        style={{
+          opacity: reduced ? 1 : drawn ? 1 : 0,
+          transition: reduced ? undefined : `opacity 200ms ${RESTORE_SHEET_EASE} 260ms`,
+        }}
+      />
     </svg>
   );
 }
@@ -131,7 +160,7 @@ function NavRow({
           {hint && (
             <kbd
               className={cn(
-                "shrink-0 font-mono text-[11px]",
+                "shrink-0 font-mono text-label",
                 active ? "text-secondary-foreground/70" : "text-tertiary-foreground",
               )}
             >
@@ -142,7 +171,7 @@ function NavRow({
       </TooltipTrigger>
       <TooltipContent side="right" className="flex items-center gap-3">
         <span>{item.label}</span>
-        <span className="font-mono text-[11px] text-muted-foreground">{item.shortcut}</span>
+        <span className="font-mono text-label text-muted-foreground">{item.shortcut}</span>
       </TooltipContent>
     </Tooltip>
   );
@@ -295,7 +324,7 @@ export function Sidebar() {
   //
   // What's new in Phase 2 is *when* that happens: the contents outlive the
   // flag by one animation (useSidebarPresence) so the panel that slides out
-  // is the sidebar rather than an empty petrol box, and only then unmount.
+  // is the sidebar rather than an empty ink box, and only then unmount.
   if (!present) {
     return <aside aria-hidden="true" className="h-full w-0 shrink-0 overflow-hidden bg-sidebar" />;
   }
@@ -339,11 +368,11 @@ export function Sidebar() {
         ref={contentRef}
         aria-hidden={collapsed || undefined}
         style={{ width: SIDEBAR_EXPANDED_WIDTH_PX }}
-        // One continuous petrol edge (border-r) — on this column rather
+        // One continuous ink edge (border-r) — on this column rather
         // than the frame, so it travels with the panel. Left on the frame it
         // would still paint a hairline at zero width, which is exactly the
         // seam the collapsed state is supposed to be free of.
-        className="absolute inset-y-0 right-0 flex flex-col overflow-hidden border-r border-sidebar-border/60 bg-sidebar px-[10px] text-sidebar-foreground"
+        className="absolute inset-y-0 right-0 flex flex-col overflow-hidden border-r-[0.5px] border-sidebar-border bg-sidebar px-[10px] text-sidebar-foreground"
       >
       {/* Row 1 — macOS titlebar strip. The OS overlays the traffic lights
           here (never drawn by this app — see src-tauri/tauri.conf.json's

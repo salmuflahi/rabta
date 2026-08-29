@@ -89,19 +89,19 @@ describe("ThemeProvider accent wiring", () => {
   // explicit theme-pref flip (not just an OS "system" flip) must repaint it.
   it("reapplies the accent when the theme pref flips light -> dark", () => {
     stubMatchMedia();
-    setPrefs({ theme: "light", accent: "petrol" });
+    setPrefs({ theme: "light", accent: "iris" });
     render(
       <ThemeProvider>
         <div />
       </ThemeProvider>
     );
     const lightPrimary = document.documentElement.style.getPropertyValue("--primary");
-    expect(lightPrimary).toBe("183 58% 19%"); // petrol light base #14494C
+    expect(lightPrimary).toBe("239 63% 59%"); // iris light base #5558D9
 
     act(() => setPrefs({ theme: "dark" }));
     const darkPrimary = document.documentElement.style.getPropertyValue("--primary");
     expect(darkPrimary).not.toBe(lightPrimary);
-    expect(darkPrimary).toBe("183 49% 35%"); // petrol dark base #2E8286
+    expect(darkPrimary).toBe("238 82% 72%"); // iris dark base #7B7FF2
   });
 
   // The case the brief calls out specifically: on "system", an OS-level

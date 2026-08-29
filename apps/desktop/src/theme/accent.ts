@@ -8,7 +8,22 @@
 
 import { contrastRatio } from "./contrast";
 
-export type AccentId = "tangerine" | "petrol" | "sky" | "sand";
+export type AccentId = "tangerine" | "iris" | "sky" | "sand";
+
+/** Accent ids that shipped in earlier builds and were since redesigned
+ * away. Persisted prefs are migrated through this map (see
+ * `normalizeAccent`) rather than falling back to the default — a user who
+ * picked the old cool accent should land on its successor, not on
+ * tangerine. */
+export const LEGACY_ACCENTS: Record<string, AccentId> = { petrol: "iris" };
+
+/** Resolve any persisted accent value — current, legacy, or garbage — to a
+ * valid AccentId. */
+export function normalizeAccent(id: string | undefined | null): AccentId {
+  if (id && id in ACCENTS) return id as AccentId;
+  if (id && id in LEGACY_ACCENTS) return LEGACY_ACCENTS[id];
+  return "tangerine";
+}
 
 export interface AccentVariant {
   /** The accent's primary fill — buttons, selected rows, the live dot. */
@@ -29,10 +44,15 @@ export const ACCENTS: Record<AccentId, { light: AccentVariant; dark: AccentVaria
     light: { base: "#FF6B2C", hover: "#F0561A", text: "#C2501B" },
     dark: { base: "#FF6B2C", hover: "#FF7F45", text: "#FF8A5C" },
   },
-  petrol: {
-    label: "Petrol",
-    light: { base: "#14494C", hover: "#0E3739", text: "#14494C" },
-    dark: { base: "#2E8286", hover: "#379A9E", text: "#67BFC2" },
+  // Ink redesign (2026-08) — "iris" replaces the retired petrol accent
+  // (see LEGACY_ACCENTS). A violet-blue that sits on the new ink surfaces
+  // without repeating their hue; both variants clear WCAG AA with their
+  // theme's first label candidate (light: white 5.6:1, dark: near-black
+  // 4.98:1 — verified by contrast.test.ts's accent sweep).
+  iris: {
+    label: "Iris",
+    light: { base: "#5558D9", hover: "#4649C7", text: "#4F52CE" },
+    dark: { base: "#7B7FF2", hover: "#8C90F5", text: "#A5A8F7" },
   },
   sky: {
     label: "Sky",
@@ -101,18 +121,11 @@ function hexToRgba(hex: string, alpha: number): string {
 // action), in preference order, per theme.
 //
 // --primary-foreground cannot be one static value per theme the way
-// --foreground or --muted-foreground can. In *light* theme that's a hard
-// mathematical fact, not just a gap in today's candidate list: a dark label
-// needs relative luminance <= .033 to clear 4.5:1 against tangerine's base,
-// while a light label needs relative luminance >= .42 to clear 4.5:1
-// against petrol's — two disjoint ranges, so no single colour (achromatic
-// or not) can serve both. *Dark* theme isn't forced the same way — pure
-// black (0 0% 0%) actually clears 4.5:1 against all four dark bases
-// (margins 4.57-7.46:1, contrast.test.ts's accent sweep) — but defaulting
-// to it everywhere would repaint tangerine/sky/sand's labels away from
-// their current near-black for no legibility gain. So both themes use the
-// same ordered-candidate mechanism, and pure black is reserved as dark
-// theme's fallback rather than promoted to its default.
+// --foreground or --muted-foreground can: light theme's dark accents
+// (iris/sky/sand) want a light label while tangerine needs a dark one, so
+// no single colour serves every base. Both themes use the same
+// ordered-candidate mechanism; contrast.test.ts's accent sweep asserts
+// every accent/theme combination clears WCAG AA with some candidate.
 //
 // The first entry is this app's normal choice for the theme (white on
 // light, near-black on dark) and is all that's needed for 6 of the 8
@@ -128,14 +141,12 @@ function hexToRgba(hex: string, alpha: number): string {
 //     reuses an existing, already-visible-elsewhere token on purpose:
 //     judged a better trade than a one-off grey invented solely to shave a
 //     few more points of lightness.
-//   - petrol/dark needs pure black — neither of this app's own two text
-//     tones is dark/light enough (near-black 4.01:1, near-white 4.15:1);
-//     pure black clears it at 4.57:1. Pure white is deliberately not a
-//     dark-theme candidate: it isn't needed today, and reaching for it
-//     would be a bigger visual jump than pure black for the one accent
-//     that needs a fallback at all. Pure black itself has no other
-//     precedent as a token value in this file or index.css — flagged here
-//     for whoever next audits the palette for one-offs.
+//   - dark theme's pure-black entry was added for the retired petrol
+//     accent (which neither app text tone could label legibly). Every
+//     current dark accent — iris included — passes with the first
+//     candidate, so pure black is now an unused last resort, kept because
+//     a future darker accent may need it and removing a fallback saves
+//     nothing.
 export const LABEL_CANDIDATES: Record<"light" | "dark", string[]> = {
   // "0 0% 100%" is --primary-foreground's own :root default (index.css);
   // "240 3% 12%" is --foreground's :root value, reused rather than
@@ -204,8 +215,9 @@ export function applyAccent(
   theme: "light" | "dark",
   root: HTMLElement = document.documentElement
 ): void {
-  // Validate id is a key in ACCENTS; fall back to default if not
-  const accentId: AccentId = id in ACCENTS ? id : "tangerine";
+  // Validate id is a key in ACCENTS; legacy ids (petrol -> iris) migrate,
+  // anything else falls back to the default.
+  const accentId: AccentId = normalizeAccent(id);
   const variant = ACCENTS[accentId][theme];
   const primary = hexToHslTriplet(variant.base);
   root.style.setProperty("--primary", primary);

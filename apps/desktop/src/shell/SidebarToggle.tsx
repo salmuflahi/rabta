@@ -34,7 +34,7 @@ import {
  * of by two components agreeing on arithmetic.
  *
  * What still changes with state is its *tone*: expanded, it sits over the
- * sidebar's petrol surface and takes the `--sidebar-*` tokens; collapsed,
+ * sidebar's ink surface and takes the `--sidebar-*` tokens; collapsed,
  * it sits over the toolbar and takes the regular chrome tokens. The swap is
  * a plain class change with `transition-colors`, so it cross-fades over the
  * same duration the panel takes to leave.

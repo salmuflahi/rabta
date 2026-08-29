@@ -1,13 +1,13 @@
 import { Check, Circle, GitBranch, Globe, Minus, TriangleAlert, Code2, Terminal as TerminalIcon, Box } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import markUrl from "@/assets/brand/rabta-mark.svg";
+import { AnimatedMark } from "@/components/AnimatedMark";
 import { Button } from "@/components/ui/button";
 import { Row } from "@/components/ui/row";
 import { Section } from "@/components/ui/section";
 import { Surface } from "@/components/ui/surface";
 import { announce } from "@/lib/announce";
-import { RESTORE_SHEET_EASE, prefersReducedMotion } from "@/lib/motion";
+import { RESTORE_SHEET_EASE, SPRING_EASE, prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { RestoreResult, RestoreStage, RestoreTool, ToolRestoreStatus } from "./types";
 
@@ -25,19 +25,20 @@ import type { RestoreResult, RestoreStage, RestoreTool, ToolRestoreStatus } from
  * `run`s in the meantime.
  */
 
-// ---- timing (ms) — see spec's FRAME 3/4 and row/fold sections ----
+// ---- timing (ms) — see spec's FRAME 3/4 and row sections ----
 const SHEET_DELAY_MS = 50; // sheet begins ~40-60ms after the backdrop
 const SHEET_MS = 200;
-const FOLD_DELAY_MS = 100; // fold starts ~100ms after the sheet enters
-const FOLD_MS = 180;
 const ROW_MS = 155;
 const ROW_STAGGER_MS = 30;
 const EMIT_REVEAL_STAGGER_MS = 40; // PATH-B: 35-50ms stagger revealing finals
-const HOLD_MS = 220; // hold ~180-250ms in the completed state before closing
+// Ink redesign (2026-08, recorded divergence): the completed state holds
+// long enough for the check draw (240ms, immediate) and the bloom's peak
+// to land before the close begins — roughly double the handoff's 220ms,
+// still short enough that Resume never feels gated on theatre.
+const HOLD_MS = 480;
 const CLOSE_MS = 170;
 const MIN_VISIBLE_MS = 450; // dismissal-only minimum; never delays the real restore
 const REDUCED_MS = 110; // reduced-motion: simple ~100-120ms opacity
-const FOLD_SIZE = 28;
 
 function sleepViaTimer(ms: number, timersRef: React.MutableRefObject<ReturnType<typeof setTimeout>[]>): Promise<void> {
   return new Promise((resolve) => {
@@ -120,10 +121,15 @@ export function ToolStatus({
     status === "applied"
       ? "text-ok"
       : status === "failed"
-        ? "text-warn"
+        ? "text-bad"
         : status === "restoring"
           ? "text-foreground"
           : "text-muted-foreground";
+
+  // "Applied" is the terminal good news — it lands with a small overshoot
+  // pop (SPRING_EASE) where every other change keeps the settling curve.
+  const transformEase = status === "applied" ? SPRING_EASE : RESTORE_SHEET_EASE;
+  const unsettledScale = status === "applied" ? "scale(0.7)" : "scale(0.8)";
 
   let icon: ReactNode;
   if (status === "waiting") icon = <Circle className="size-3.5" />;
@@ -145,13 +151,24 @@ export function ToolStatus({
   else if (status === "skipped") icon = <Minus className="size-3.5" />;
   else icon = <TriangleAlert className="size-3.5" />;
 
+  // The terminal states land as tinted pills — good news is green material,
+  // not just green letters. In-flight states stay quiet, unchipped text.
+  const pillClass =
+    status === "applied"
+      ? "rounded-full bg-ok-soft px-2 py-[3px]"
+      : status === "failed"
+        ? "rounded-full bg-bad-soft px-2 py-[3px]"
+        : status === "skipped"
+          ? "rounded-full bg-muted px-2 py-[3px]"
+          : "";
+
   return (
     <span
-      className={cn("flex items-center gap-1.5 text-label", toneClass)}
+      className={cn("flex items-center gap-1.5 text-label", toneClass, pillClass)}
       style={{
         opacity: reducedMotion ? 1 : settled ? 1 : 0.35,
-        transform: reducedMotion ? "none" : settled ? "scale(1)" : "scale(0.8)",
-        transition: `opacity ${ROW_MS}ms ${RESTORE_SHEET_EASE}, transform ${ROW_MS}ms ${RESTORE_SHEET_EASE}`,
+        transform: reducedMotion ? "none" : settled ? "scale(1)" : unsettledScale,
+        transition: `opacity ${ROW_MS}ms ${RESTORE_SHEET_EASE}, transform ${ROW_MS}ms ${transformEase}`,
       }}
     >
       {icon}
@@ -188,7 +205,7 @@ function ToolRestoreRow({
 
   return (
     <div
-      className="flex min-h-[40px] items-center justify-between gap-3 border-b border-border/60 py-2 last:border-b-0"
+      className="flex min-h-[40px] items-center justify-between gap-3 border-b-[0.5px] border-border py-2 last:border-b-0"
       style={{
         opacity: reducedMotion ? 1 : visible ? 1 : 0,
         transform: reducedMotion ? "none" : visible ? "translateY(0)" : "translateY(4px)",
@@ -196,8 +213,12 @@ function ToolRestoreRow({
         transitionDelay: reducedMotion ? "0ms" : `${index * ROW_STAGGER_MS}ms`,
       }}
     >
-      <span className="flex min-w-0 items-center gap-2 text-body text-foreground">
-        <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+      <span className="flex min-w-0 items-center gap-2.5 text-body text-foreground">
+        {/* Icon chip: the tool sits in its own small surface, tinted by its
+            terminal outcome so the row's news reads at a glance. */}
+        <span className="grid size-7 shrink-0 place-items-center rounded-[7px] bg-muted text-muted-foreground">
+          <Icon className="size-3.5" />
+        </span>
         <span className="truncate">{tool.name}</span>
       </span>
       <ToolStatus status={status} message={message} reducedMotion={reducedMotion} />
@@ -205,6 +226,9 @@ function ToolRestoreRow({
   );
 }
 
+/** The crown — the restore's progress as the sheet's top edge, not a
+ * buried underline. Ember shimmer while indeterminate; on resolve the tone
+ * fill sweeps closed left-to-right (transform-only). */
 function RestoreProgress({ stage, reducedMotion }: { stage: RestoreStage; reducedMotion: boolean }) {
   const resolved = stage === "success" || stage === "partial" || stage === "failure" || stage === "closing";
   const toneClass =
@@ -213,41 +237,123 @@ function RestoreProgress({ stage, reducedMotion }: { stage: RestoreStage; reduce
       : stage === "partial"
         ? "bg-warn"
         : stage === "failure"
-          ? "bg-destructive"
+          ? "bg-bad"
           : "bg-primary";
 
+  const [swept, setSwept] = useState(false);
+  useEffect(() => {
+    if (!resolved || reducedMotion) return;
+    const id = requestAnimationFrame(() => setSwept(true));
+    return () => cancelAnimationFrame(id);
+  }, [resolved, reducedMotion]);
+
   return (
-    <div className="relative mt-4 h-[2px] w-full overflow-hidden rounded-full bg-muted" aria-hidden="true">
+    <div
+      className="absolute inset-x-0 top-0 h-[3px] overflow-hidden rounded-t-2xl bg-muted/70"
+      aria-hidden="true"
+    >
       {resolved ? (
         <div
-          className={cn("h-full rounded-full", toneClass)}
-          style={{ width: "100%", transition: `background-color ${reducedMotion ? REDUCED_MS : 160}ms ${RESTORE_SHEET_EASE}` }}
+          className={cn("h-full", toneClass)}
+          style={{
+            width: "100%",
+            transformOrigin: "0 50%",
+            transform: reducedMotion ? "none" : swept ? "scaleX(1)" : "scaleX(0.35)",
+            transition: reducedMotion
+              ? `background-color ${REDUCED_MS}ms ${RESTORE_SHEET_EASE}`
+              : `transform 320ms ${RESTORE_SHEET_EASE}, background-color 160ms ${RESTORE_SHEET_EASE}`,
+          }}
         />
       ) : reducedMotion ? (
         // Reduced-motion indeterminate: a neutral full-width track with a
         // gentle opacity-only pulse — never a fixed partial fill, which
-        // could be misread as measured (and stalled) progress. No
-        // width/transform movement, no percentage. Completes to the
-        // resolved (tangerine) branch above exactly as full-motion does.
-        <div className="h-full w-full rounded-full bg-muted-foreground/50 animate-restore-pulse" />
+        // could be misread as measured (and stalled) progress.
+        <div className="h-full w-full bg-muted-foreground/50 animate-restore-pulse" />
       ) : (
-        <div className="absolute inset-y-0 w-1/3 animate-restore-shimmer rounded-full bg-primary/80" />
+        <div className="absolute inset-y-0 w-1/3 animate-restore-shimmer rounded-full" style={{ background: "var(--ember-line)" }} />
       )}
     </div>
   );
 }
 
-function RestoreHeader({ title, subtitle, stage, titleId }: { title: string; subtitle?: string; stage: RestoreStage; titleId: string }) {
+/** The success badge: the check draws itself (stroke-dashoffset) while the
+ * badge pops in with a slight overshoot — the ceremony's "it landed"
+ * gesture. Reduced motion renders the finished badge outright. */
+function SuccessBadge({ reducedMotion }: { reducedMotion: boolean }) {
+  const [drawn, setDrawn] = useState(reducedMotion);
+  useEffect(() => {
+    if (reducedMotion) return;
+    const id = requestAnimationFrame(() => setDrawn(true));
+    return () => cancelAnimationFrame(id);
+  }, [reducedMotion]);
+  // The check path is ~12.1 units long at this geometry; 13 covers it.
+  const DASH = 13;
+  return (
+    <span
+      className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full bg-ok text-card"
+      style={{
+        opacity: reducedMotion ? 1 : drawn ? 1 : 0,
+        transform: reducedMotion ? "none" : drawn ? "scale(1)" : "scale(0.5)",
+        transition: reducedMotion ? "none" : `opacity 200ms ${RESTORE_SHEET_EASE}, transform 260ms ${SPRING_EASE}`,
+      }}
+    >
+      <svg viewBox="0 0 12 12" className="size-2.5" fill="none" aria-hidden="true">
+        <path
+          d="M2.5 6.5 L5 9 L9.5 3.5"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray={DASH}
+          strokeDashoffset={reducedMotion ? 0 : drawn ? 0 : DASH}
+          style={reducedMotion ? undefined : { transition: `stroke-dashoffset 240ms ${RESTORE_SHEET_EASE}` }}
+        />
+      </svg>
+    </span>
+  );
+}
+
+function RestoreHeader({
+  title,
+  subtitle,
+  stage,
+  titleId,
+  reducedMotion,
+}: {
+  title: string;
+  subtitle?: string;
+  stage: RestoreStage;
+  titleId: string;
+  reducedMotion: boolean;
+}) {
   const showCheck = stage === "success";
   return (
-    <div className="flex items-center gap-3">
+    <div className="relative flex items-center gap-3">
+      {/* Success bloom — one brand-warm breath radiating from the mark.
+          Behind the header content, opacity/transform only, plays once. */}
+      {showCheck && !reducedMotion && (
+        <span
+          className="pointer-events-none absolute -left-16 -top-16 size-40 animate-restore-bloom rounded-full"
+          style={{ background: "radial-gradient(circle, #FF6B2C 0%, transparent 65%)" }}
+          aria-hidden="true"
+        />
+      )}
       <span className="relative inline-flex shrink-0">
-        <img src={markUrl} width={32} height={32} alt="" className="rounded-[7px]" />
-        {showCheck && (
-          <span className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full bg-ok text-card">
-            <Check className="size-2.5" />
-          </span>
-        )}
+        {/* The Bond on its ink badge — Rabta's orange link draws and
+            un-draws while tools re-link, and completes when the work does.
+            The badge is always ink, in both themes: it is the brand object,
+            not a themed surface. */}
+        <span
+          className="grid size-9 place-items-center rounded-[9px]"
+          style={{ background: "#0C0E12" }}
+        >
+          <AnimatedMark
+            mode={reducedMotion ? "static" : stage === "opening" || stage === "restoring" ? "enter" : "complete"}
+            size={26}
+            stroke="#F3F0E8"
+          />
+        </span>
+        {showCheck && <SuccessBadge reducedMotion={reducedMotion} />}
       </span>
       <span className="min-w-0">
         <h2 id={titleId} className="truncate text-sheet font-semibold leading-tight text-foreground">
@@ -363,21 +469,11 @@ function RestoreOverlay({
   titleId: string;
 }) {
   const [entered, setEntered] = useState(false);
-  const [foldIn, setFoldIn] = useState(reducedMotion);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(id);
   }, []);
-
-  useEffect(() => {
-    if (reducedMotion) {
-      setFoldIn(true);
-      return;
-    }
-    const id = setTimeout(() => setFoldIn(true), SHEET_DELAY_MS + FOLD_DELAY_MS);
-    return () => clearTimeout(id);
-  }, [reducedMotion]);
 
   useEffect(() => {
     if (stage === "opening") {
@@ -398,15 +494,17 @@ function RestoreOverlay({
         ? "none"
         : "translateY(8px) scale(0.985)";
 
-  const clipPath = `polygon(0 0, calc(100% - ${FOLD_SIZE}px) 0, 100% ${FOLD_SIZE}px, 100% 100%, 0 100%)`;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* RestoreBackdrop */}
       <div
         className="absolute inset-0"
         style={{
-          backgroundColor: "hsl(var(--foreground) / 0.18)",
+          // --scrim, not --foreground: in dark theme --foreground is
+          // near-WHITE, so tinting with it washed the whole app grey behind
+          // the sheet. --scrim is the theme-correct dim (black .5 dark /
+          // black .18 light) and exists for exactly this.
+          backgroundColor: "var(--scrim)",
           opacity: backdropOpacity,
           transition: `opacity ${reducedMotion ? REDUCED_MS : 160}ms ${RESTORE_SHEET_EASE}`,
         }}
@@ -421,12 +519,14 @@ function RestoreOverlay({
         aria-labelledby={titleId}
         tabIndex={-1}
         className="relative w-full max-w-[440px] outline-none focus-visible:ring-0"
-        style={{ maxWidth: "calc(100vw - 32px)" }}
+        // min(): the inline style must never widen past the class's 440px —
+        // a bare calc(100vw - 32px) overrides max-w-[440px] outright and
+        // stretched the "compact sheet" across wide windows.
+        style={{ maxWidth: "min(440px, calc(100vw - 32px))" }}
       >
         <div
-          className="relative rounded-2xl border border-foreground/10 bg-card p-6 shadow-raised"
+          className="surface-rich relative rounded-2xl p-6 shadow-modal"
           style={{
-            clipPath,
             opacity: sheetOpacity,
             transform: sheetTransform,
             transition: reducedMotion
@@ -434,7 +534,9 @@ function RestoreOverlay({
               : `opacity ${SHEET_MS}ms ${RESTORE_SHEET_EASE} ${SHEET_DELAY_MS}ms, transform ${SHEET_MS}ms ${RESTORE_SHEET_EASE} ${SHEET_DELAY_MS}ms`,
           }}
         >
-          <RestoreHeader title={title} subtitle={subtitle} stage={stage} titleId={titleId} />
+          <RestoreProgress stage={stage} reducedMotion={reducedMotion} />
+
+          <RestoreHeader title={title} subtitle={subtitle} stage={stage} titleId={titleId} reducedMotion={reducedMotion} />
 
           <div role="status" aria-live="polite" className="mt-4">
             {tools.length === 0 ? (
@@ -485,8 +587,6 @@ function RestoreOverlay({
             </Section>
           )}
 
-          <RestoreProgress stage={stage} reducedMotion={reducedMotion} />
-
           <RestoreActions
             stage={stage}
             resultError={resultError}
@@ -497,27 +597,6 @@ function RestoreOverlay({
           />
         </div>
 
-        {/* Folded-corner brand detail: the clip-path above is STATIC (a
-            fixed cut of the sheet's top-right corner); only this separate
-            tangerine fold element's opacity+scale animate in, per spec
-            ("keep the clip STATIC ... reliability > complexity"). */}
-        <div
-          data-accent-mark
-          className="pointer-events-none absolute right-0 top-0 bg-primary"
-          style={{
-            width: FOLD_SIZE,
-            height: FOLD_SIZE,
-            clipPath: "polygon(100% 0, 0 0, 100% 100%)",
-            opacity: closing ? 0 : foldIn ? 1 : 0,
-            transform: closing ? undefined : foldIn ? "scale(1)" : reducedMotion ? "scale(1)" : "scale(0.65)",
-            transformOrigin: "100% 0%",
-            transition: reducedMotion
-              ? `opacity ${REDUCED_MS}ms ${RESTORE_SHEET_EASE}`
-              : `opacity ${FOLD_MS}ms ${RESTORE_SHEET_EASE}, transform ${FOLD_MS}ms ${RESTORE_SHEET_EASE}`,
-            boxShadow: "inset 1px 1px 0 hsl(var(--foreground) / 0.15)",
-          }}
-          aria-hidden="true"
-        />
       </div>
     </div>
   );

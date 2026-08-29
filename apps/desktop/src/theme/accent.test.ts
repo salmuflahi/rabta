@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ACCENTS, applyAccent, type AccentId } from "./accent";
 
-const IDS: AccentId[] = ["tangerine", "petrol", "sky", "sand"];
+const IDS: AccentId[] = ["tangerine", "iris", "sky", "sand"];
 
 describe("ACCENTS table", () => {
   it.each(IDS)("resolves %s in both themes", (id) => {
@@ -36,9 +36,10 @@ describe("ACCENTS table", () => {
         light: { base: "#FF6B2C", hover: "#F0561A", text: "#C2501B" },
         dark: { base: "#FF6B2C", hover: "#FF7F45", text: "#FF8A5C" },
       },
-      petrol: {
-        light: { base: "#14494C", hover: "#0E3739", text: "#14494C" },
-        dark: { base: "#2E8286", hover: "#379A9E", text: "#67BFC2" },
+      // Ink redesign (2026-08): iris replaced the retired petrol accent.
+      iris: {
+        light: { base: "#5558D9", hover: "#4649C7", text: "#4F52CE" },
+        dark: { base: "#7B7FF2", hover: "#8C90F5", text: "#A5A8F7" },
       },
       sky: {
         light: { base: "#2E6F88", hover: "#245A70", text: "#2E6F88" },
@@ -80,7 +81,7 @@ describe("applyAccent", () => {
   // never wrapped in hsl(). Same split enforced for Task 1's tokens.
   it("writes --accent-soft as a literal rgba(), not an HSL triplet", () => {
     const root = freshRoot();
-    applyAccent("petrol", "light", root);
+    applyAccent("iris", "light", root);
     const value = root.style.getPropertyValue("--accent-soft");
     expect(value).toMatch(/^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*\.?\d+(\.\d+)?\s*\)$/);
   });
@@ -100,8 +101,8 @@ describe("applyAccent", () => {
   it("the same accent id resolves to different values per theme", () => {
     const light = freshRoot();
     const dark = freshRoot();
-    applyAccent("petrol", "light", light);
-    applyAccent("petrol", "dark", dark);
+    applyAccent("iris", "light", light);
+    applyAccent("iris", "dark", dark);
     expect(light.style.getPropertyValue("--primary")).not.toBe(dark.style.getPropertyValue("--primary"));
     expect(light.style.getPropertyValue("--accent-soft")).not.toBe(dark.style.getPropertyValue("--accent-soft"));
   });

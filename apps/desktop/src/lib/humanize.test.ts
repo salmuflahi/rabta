@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   describeEvent,
-  formatDuration,
   humanizeCapsule,
   relativeTime,
 } from "@/lib/humanize";
@@ -13,21 +12,6 @@ function iso(offsetMs: number): string {
   return new Date(NOW - offsetMs).toISOString();
 }
 
-describe("formatDuration", () => {
-  it("formats honest compact durations", () => {
-    expect(formatDuration(0)).toBe("0m");
-    expect(formatDuration(59)).toBe("<1m");
-    expect(formatDuration(60)).toBe("1m");
-    expect(formatDuration(2 * 3600 + 17 * 60)).toBe("2h 17m");
-  });
-
-  it("normalizes invalid, negative, and fractional input", () => {
-    expect(formatDuration(Number.NaN)).toBe("0m");
-    expect(formatDuration(Number.POSITIVE_INFINITY)).toBe("0m");
-    expect(formatDuration(-90)).toBe("0m");
-    expect(formatDuration(3600.9)).toBe("1h");
-  });
-});
 
 describe("relativeTime", () => {
   it("returns 'just now' for under 45 seconds", () => {

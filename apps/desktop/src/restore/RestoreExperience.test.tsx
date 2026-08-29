@@ -447,12 +447,10 @@ describe("useRestore / RestoreExperience", () => {
     expect(classTokens).not.toContain("text-title");
   });
 
-  // The sheet renders a `bg-primary` folded-corner brand detail on every
-  // stage, and — in the failure stage only — a `bg-primary` "Try again"
-  // button. Two whole-token bg-primary fills at once would violate the
-  // one-accent-per-view rule, so the fold is a live/brand mark
-  // (`data-accent-mark`) that opts out of the count; the button is the
-  // page's one legitimate primary action and must stay counted.
+  // The failure stage renders a `bg-primary` "Try again" button — the
+  // page's one legitimate primary action. (The folded-corner brand detail
+  // was removed in the ink redesign; the gate now simply asserts the
+  // budget holds on every stage.)
   describe("accent gate", () => {
     it("restoring stage: at most one accent fill", async () => {
       stubMatchMedia(false);
@@ -520,7 +518,7 @@ describe("useRestore / RestoreExperience", () => {
       expectAtMostOneAccent(container);
     });
 
-    it("failure stage: at most one accent fill (the fold mark plus the legitimate Try again action)", async () => {
+    it("failure stage: at most one accent fill (the legitimate Try again action)", async () => {
       stubMatchMedia(false);
       vi.useFakeTimers();
 
@@ -530,8 +528,7 @@ describe("useRestore / RestoreExperience", () => {
       const { container } = renderWithProviders(<Harness run={run} />);
       await advanceUntil(() => screen.queryByText("Couldn't restore workspace") !== null);
 
-      // The fold mark is present and unmarked would double the count — this
-      // stage is the one where the gate actually has something to gate.
+      // The Try again button is the one accent fill this stage carries.
       expect(container.querySelectorAll(".bg-primary").length).toBeGreaterThanOrEqual(1);
       expectAtMostOneAccent(container);
     });

@@ -137,7 +137,7 @@ export default {
         // them in hsl() would compile to the nonsensical hsl(rgba(...)).
         ok: { DEFAULT: "hsl(var(--ok))", soft: "var(--ok-soft)" },
         warn: { DEFAULT: "hsl(var(--warn))", soft: "var(--warn-soft)" },
-        bad: "hsl(var(--bad))",
+        bad: { DEFAULT: "hsl(var(--bad))", soft: "var(--bad-soft)" },
         field: "hsl(var(--field))",
         hover: "var(--hover)",
         shadow: { DEFAULT: "var(--shadow)", lg: "var(--shadow-lg)" },
@@ -157,8 +157,6 @@ export default {
       },
       borderRadius: { lg: "var(--radius)", md: "calc(var(--radius) - 2px)", sm: "calc(var(--radius) - 4px)" },
       keyframes: {
-        "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
-        "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
         // Restore Experience's PATH-B indeterminate progress shimmer — a
         // gentle left->right highlight while waiting on the final result
         // (no fabricated percentages). See RestoreProgress in
@@ -189,15 +187,24 @@ export default {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(100%)" },
         },
+        // Restore ceremony's success bloom — one soft brand-warm breath
+        // radiating from the mark when a restore lands. Opacity/transform
+        // only, plays once, neutralized under reduced motion by the global
+        // index.css rule. See RestoreHeader in
+        // src/restore/RestoreExperience.tsx.
+        "restore-bloom": {
+          "0%": { opacity: "0", transform: "scale(0.35)" },
+          "30%": { opacity: "0.16" },
+          "100%": { opacity: "0", transform: "scale(1.25)" },
+        },
       },
       animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
         "restore-shimmer": "restore-shimmer 1.1s ease-in-out infinite",
         "restore-pulse": "restore-pulse 1.8s ease-in-out infinite",
         "live-ping": "live-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite",
         "page-in": "page-in 150ms ease-out both",
         "skeleton-sweep": "skeleton-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite",
+        "restore-bloom": "restore-bloom 900ms cubic-bezier(0.16, 1, 0.3, 1) both",
       },
       transitionTimingFunction: {
         brand: EASE.brand,

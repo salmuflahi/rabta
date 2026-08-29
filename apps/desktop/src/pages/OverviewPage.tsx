@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import markUrl from "@/assets/brand/rabta-mark.svg";
+import { AnimatedMark } from "@/components/AnimatedMark";
 import { Icon } from "@/components/ui/icon";
 import { LoadError } from "@/components/ui/load-error";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -66,7 +66,7 @@ function OverviewSkeleton() {
     <div className="mx-auto h-full max-w-[660px] overflow-y-auto px-8 pb-11 pt-10">
       <Skeleton className="h-7 w-56" />
       <Skeleton className="mt-3 h-4 w-80" />
-      <div className="mt-[26px] rounded-[10px] bg-card p-[18px] shadow-raised">
+      <div className="mt-[26px] rounded-[10px] bg-card p-[18px]">
         <div className="flex items-start gap-3.5">
           <Skeleton className="size-[38px] shrink-0 rounded-[9px]" />
           <div className="min-w-0 flex-1 space-y-2">
@@ -248,10 +248,21 @@ export function OverviewPage() {
       {hero ? (
         <section
           aria-label="Pick up where you left off"
-          className="mt-[26px] rounded-[10px] bg-card p-[18px] shadow-raised"
+          // Ember redesign (2026-08): the hero is THIS screen's live surface
+          // — ember veil + ember hairline ring (surface-live carries its own
+          // ring shadow, so shadow-raised would double the hairline).
+          className="surface-live mt-[26px] rounded-[10px] p-[18px]"
         >
           <div className="flex items-start gap-3.5">
-            <img src={markUrl} alt="" width={38} height={38} className="shrink-0 rounded-[9px]" />
+            {/* Ink badge, not the orange Dock tile — an orange field here
+                would sit beside the hero's bg-primary Resume and read as a
+                second accent fill. Same treatment as the restore header. */}
+            <span
+              className="grid size-[38px] shrink-0 place-items-center rounded-[9px]"
+              style={{ background: "#0C0E12" }}
+            >
+              <AnimatedMark mode="static" size={27} stroke="#F3F0E8" />
+            </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 {/* The "this is the live one" mark. Legitimately the accent
@@ -326,7 +337,7 @@ export function OverviewPage() {
               >
                 <span className="min-w-0 flex-1 truncate text-body text-foreground">{c.task.title}</span>
                 {c.branch && (
-                  <span className="shrink-0 font-mono text-[11px] text-tertiary-foreground">{c.branch}</span>
+                  <span className="shrink-0 font-mono text-label text-tertiary-foreground">{c.branch}</span>
                 )}
                 <span className="w-[78px] shrink-0 text-right text-meta text-tertiary-foreground">
                   {c.savedAt ? relativeTime(c.savedAt) : "—"}

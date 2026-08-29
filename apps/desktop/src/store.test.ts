@@ -146,7 +146,9 @@ describe("readPrefs with a persisted landingPage outside NavKey", () => {
     const prefs = readPrefs();
     expect(prefs.landingPage).toBe(DEFAULT_PREFS.landingPage);
     expect(prefs.theme).toBe("dark");
-    expect(prefs.accent).toBe("petrol");
+    // "petrol" is a legacy accent id — it migrates to its successor rather
+    // than being preserved or dropped to the default (LEGACY_ACCENTS).
+    expect(prefs.accent).toBe("iris");
   });
 
   it("round-trips every real view untouched", () => {

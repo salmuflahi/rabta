@@ -136,7 +136,7 @@ export function Sheet({
             // card that happens to be near the top.
             "fixed left-1/2 top-0 z-50 flex w-[620px] max-w-[calc(100vw-32px)] -translate-x-1/2 flex-col",
             "max-h-[84vh] overflow-hidden rounded-b-[12px] bg-background shadow-modal",
-            "duration-300 ease-mac data-[state=closed]:animate-out data-[state=open]:animate-in",
+            "duration-sheet ease-mac data-[state=closed]:animate-out data-[state=open]:animate-in",
             "data-[state=closed]:slide-out-to-top-full data-[state=open]:slide-in-from-top-full",
           )}
         >

@@ -30,19 +30,17 @@ export function prefersReducedMotion(pref: MotionPref = "system"): boolean {
   }
 }
 
-// Timing constants (ms) for the fold → restore → unfold → fade ceremony.
-// FOLD_MS used to be declared here too, but nothing outside this file's own
-// test ever referenced it — the fold → restore ceremony's real fold timing
-// lives as its own local constant in RestoreExperience.tsx, which is the
-// only place it's actually used.
-export const RESTORE_MIN_MS = 260;
-export const UNFOLD_MS = 180;
-export const FADE_MS = 120;
-export const STAGGER_MS = 60;
-export const MAX_RESTORE_MS = 4000;
+/** Brand ease — matches Tailwind's `ease-brand` utility.
+ * Ink redesign (2026-08): retuned from (0.2, 0.8, 0.2, 1) to a crisper
+ * expo-out — near-instant attack, long settle — so state changes feel
+ * placed rather than eased. */
+export const BRAND_EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 
-/** Brand ease — matches Tailwind's `ease-brand` utility. */
-export const BRAND_EASE = "cubic-bezier(0.2, 0.8, 0.2, 1)";
+/** Completion pop — a slight overshoot for terminal "it landed" moments
+ * only (the restore ceremony's check badge and row ticks). Never for
+ * layout-affecting motion; the overshoot reads as bounce on anything
+ * larger than an icon. */
+export const SPRING_EASE = "cubic-bezier(0.34, 1.45, 0.64, 1)";
 
 /** Ease used by the Restore Experience sheet/backdrop/fold (a gentler,
  * more "settling" curve than `BRAND_EASE` — no bounce/overshoot). See
@@ -62,12 +60,18 @@ export const RESTORE_SHEET_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
  * Before Phase 4 the two restated each other and drifted.
  */
 export const DUR = {
-  fast: 120,
-  standard: 180,
+  // Ink redesign (2026-08): fast/standard/switch/sheet each dropped one
+  // step — the crisper BRAND_EASE front-loads its travel, so the same
+  // perceived settle now happens in less clock time. `sidebar` stays 280:
+  // that number is pinned in three places (index.css's @property
+  // transition, SIDEBAR_MOTION_MS, and this token) and the boundary slide
+  // is long-travel enough that shortening it reads as a snap.
+  fast: 100,
+  standard: 160,
   sidebar: 280,
-  switch: 170,
+  switch: 150,
   /** The Migrate and pairing sheets' slide-down. */
-  sheet: 300,
+  sheet: 260,
 } as const;
 
 /**

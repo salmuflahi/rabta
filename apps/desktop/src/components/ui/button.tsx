@@ -10,8 +10,11 @@ const buttonVariants = cva(
       variant: {
         // Orange is opt-in. Disabled primary reads as a neutral unavailable
         // surface — orange is reserved for actions actually available.
+        // Ember redesign (2026-08): hover answers with the real
+        // --primary-hover token (not an opacity fade of base). No hover
+        // travel — active:scale is the one press gesture buttons make.
         primary:
-          "bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100",
+          "bg-primary text-primary-foreground hover:bg-primary-hover disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",

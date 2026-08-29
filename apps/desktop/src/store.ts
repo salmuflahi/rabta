@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { MotionPref } from "@/lib/motion";
 import type { AccentId } from "@/theme/accent";
-import { ACCENTS } from "@/theme/accent";
+import { normalizeAccent } from "@/theme/accent";
 import { pushLocation, type Location } from "./shell/history";
 
 export interface ConnectorInfo {
@@ -137,10 +137,9 @@ export function readPrefs(): Prefs {
     const parsed = JSON.parse(raw) as Partial<Prefs>;
     const merged = { ...DEFAULT_PREFS, ...parsed };
 
-    // Validate accent: if it's not a valid key in ACCENTS, use the default
-    if (merged.accent && !(merged.accent in ACCENTS)) {
-      merged.accent = DEFAULT_PREFS.accent;
-    }
+    // Validate accent: legacy ids migrate to their successor (petrol ->
+    // iris, LEGACY_ACCENTS); anything unrecognized falls to the default.
+    merged.accent = normalizeAccent(merged.accent);
 
     // Validate statusbar: a persisted non-boolean ("true", null, 0, ...)
     // must not make the bar render or hide unpredictably — fall back to

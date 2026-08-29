@@ -78,7 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             cards a lit canvas to lift off of instead of a flat fill. Lives on
             the non-scrolling column so it stays put; the main region is
             transparent over it. Tuned faint (card tone at low alpha) and
-            theme-safe — reads on ivory and petrol alike. */}
+            theme-safe — reads on ivory and ink alike. */}
         <div
           className="flex min-h-0 min-w-0 flex-col overflow-hidden"
           style={{

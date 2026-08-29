@@ -79,7 +79,7 @@
     --accent-foreground: 240 3% 12%;   /* #1D1D1F */
     --destructive: 6 63% 46%;   /* #C0392B */
     --destructive-foreground: 0 0% 100%;   /* #FFFFFF */
-    --border: 0 0% 88%;   /* #E0E0E0 — hairlines use border-border/60 */
+    --border: 0 0% 88%;   /* #E0E0E0 — hairlines are 0.5px at full token (border-*-[0.5px] border-border) */
     --input: 0 0% 84%;   /* #D6D6D6 */
     --ring: 18 100% 59%;   /* #FF6B2C */
     /* Console v2 Phase 1, Task 4 — hairline shadow ring. Supersedes the
@@ -128,19 +128,33 @@
     --bad: 8 59% 44%;   /* #B3402E */
     --ok-soft: rgba(23,143,121,.12);
     --warn-soft: rgba(176,123,30,.14);
+    --bad-soft: rgba(179,64,46,.12);
     --hover: rgba(0,0,0,.05);
     --shadow: rgba(0,0,0,.05);
     --shadow-lg: rgba(0,0,0,.28);
     --scrim: rgba(0,0,0,.18);
     --field: 0 0% 100%;   /* #FFFFFF */
+
+    /* Ember redesign (2026-08) — the brand's warmth as surface material,
+       not just button paint. `--ember-veil` washes the live surface;
+       `--ember-line` is the live hairline. Alpha-carrying, so literal
+       rgba() bound directly, per this file's convention. Derived from
+       --primary's tangerine; applyAccent does NOT rewrite these — the
+       ember is brand warmth, constant across accent choices. */
+    --ember-veil: rgba(255,107,44,.05);
+    --ember-line: rgba(255,107,44,.45);
   }
+  /* Ink redesign (2026-08), modern-neutral pass — dark surfaces sit on a
+     near-neutral cool axis (~220 at 15-20% saturation, the register modern
+     enterprise dark themes use) instead of the earlier saturated blue.
+     Secondary text lifted for readability. Same token architecture. */
   .dark {
-    --background: 192 8% 12%;   /* #1D2122 */
-    --foreground: 180 14% 95%;   /* #EFF3F3 */
-    --card: 190 7% 16%;   /* #272C2D */
-    --card-foreground: 180 14% 95%;   /* #EFF3F3 */
-    --popover: 190 7% 16%;   /* #272C2D */
-    --popover-foreground: 180 14% 95%;   /* #EFF3F3 */
+    --background: 223 17% 8%;   /* #111318 */
+    --foreground: 228 16% 94%;   /* #EDEEF2 */
+    --card: 220 16% 11%;   /* #181B21 */
+    --card-foreground: 228 16% 94%;   /* #EDEEF2 */
+    --popover: 220 16% 11%;   /* #181B21 */
+    --popover-foreground: 228 16% 94%;   /* #EDEEF2 */
     --primary: 18 100% 59%;   /* #FF6B2C */
     --primary-foreground: 19 38% 8%;   /* #1D120D */
     /* Console v2 Phase 1, Task 2 — accent tokens, tangerine default. See the
@@ -148,17 +162,17 @@
     --primary-hover: 19 100% 64%;   /* #FF7F45 */
     --accent-text: 17 100% 68%;   /* #FF8A5C */
     --accent-soft: rgba(255,107,44,.2);
-    --secondary: 190 8% 21%;   /* #2F3637 */
-    --secondary-foreground: 180 14% 95%;   /* #EFF3F3 */
-    --muted: 190 8% 15%;   /* #232829 */
-    --muted-foreground: 185 5% 56%;   /* #8A9596 */
-    --tertiary-foreground: 185 5% 45%;   /* #6C7778 */
-    --accent: 190 7% 19%;   /* #2E3435 */
-    --accent-foreground: 180 14% 95%;   /* #EFF3F3 */
+    --secondary: 220 16% 15%;   /* #20242C */
+    --secondary-foreground: 228 16% 94%;   /* #EDEEF2 */
+    --muted: 220 18% 10%;   /* #14171D */
+    --muted-foreground: 216 11% 64%;   /* #99A1AD */
+    --tertiary-foreground: 216 8% 49%;   /* #737B87 */
+    --accent: 220 18% 13%;   /* #1C2028 */
+    --accent-foreground: 228 16% 94%;   /* #EDEEF2 */
     --destructive: 6 74% 64%;   /* #E76B5D */
     --destructive-foreground: 19 38% 8%;   /* #1D120D */
-    --border: 188 7% 24%;   /* #383F40 — hairlines use border-border/60 */
-    --input: 188 7% 28%;   /* #414849 */
+    --border: 220 15% 19%;   /* #292E38 — hairlines are 0.5px at full token (border-*-[0.5px] border-border) */
+    --input: 220 16% 23%;   /* #313743 */
     --ring: 18 100% 59%;   /* #FF6B2C */
     /* Hairline ring model — see the light theme's comment above for the
        full rationale. Removed: the lit top edge (`inset 0 1px 0
@@ -170,13 +184,13 @@
     --shadow-grouped: 0 0 0 0.5px hsl(var(--border));
     --shadow-modal: 0 0 0 0.5px hsl(var(--border)), 0 30px 70px var(--shadow-lg);
 
-    --sidebar: 189 15% 9%;   /* #141A1B */
-    --sidebar-foreground: 180 14% 95%;   /* #EFF3F3 */
+    --sidebar: 220 20% 6%;   /* #0C0E12 — near-black, one step under the canvas */
+    --sidebar-foreground: 228 16% 94%;   /* #EDEEF2 */
     --sidebar-primary: 18 100% 59%;   /* #FF6B2C */
     --sidebar-primary-foreground: 19 38% 8%;   /* #1D120D */
-    --sidebar-accent: 190 9% 19%;   /* #2C3335 */
-    --sidebar-accent-foreground: 180 14% 95%;   /* #EFF3F3 */
-    --sidebar-border: 189 12% 16%;   /* #242B2C */
+    --sidebar-accent: 218 19% 12%;   /* #181C23 */
+    --sidebar-accent-foreground: 228 16% 94%;   /* #EDEEF2 */
+    --sidebar-border: 221 18% 14%;   /* #1D212A */
     --sidebar-ring: 18 100% 59%;   /* #FF6B2C */
 
     /* Console v2 Phase 1, Task 1 — see the light-theme block above for the
@@ -186,11 +200,16 @@
     --bad: 10 68% 64%;   /* #E27A66 */
     --ok-soft: rgba(70,183,158,.16);
     --warn-soft: rgba(214,163,66,.16);
+    --bad-soft: rgba(226,122,102,.16);
     --hover: rgba(255,255,255,.07);
     --shadow: rgba(0,0,0,.4);
     --shadow-lg: rgba(0,0,0,.6);
     --scrim: rgba(0,0,0,.5);
-    --field: 190 8% 15%;   /* #232829 */
+    --field: 220 18% 10%;   /* #14171D */
+
+    /* Ember redesign (2026-08) — see the light block's comment. */
+    --ember-veil: rgba(255,107,44,.08);
+    --ember-line: rgba(255,107,44,.52);
   }
 }
 
@@ -218,6 +237,24 @@
   }
   .card-lift:hover {
     @apply -translate-y-0.5 shadow-raised;
+  }
+
+  /* Ember redesign (2026-08) — surface materials.
+
+     `.surface-rich` replaces the flat slab on hero surfaces: the card tone
+     with a gentle top-light gradient, so panels read as material instead of
+     a grey rectangle. `.surface-live` is the one live surface per screen —
+     the same gradient warmed by the ember veil, ringed by a 0.5px ember
+     hairline (the same half-pixel every elevation ring uses). Both resolve
+     entirely from tokens, so they follow the theme without overrides. */
+  .surface-rich {
+    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted)) 130%);
+  }
+  .surface-live {
+    background:
+      linear-gradient(130deg, var(--ember-veil) 0%, transparent 52%),
+      linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted)) 130%);
+    box-shadow: 0 0 0 0.5px var(--ember-line), 0 1px 2px var(--shadow);
   }
 }
 

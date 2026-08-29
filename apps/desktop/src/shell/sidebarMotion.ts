@@ -5,7 +5,7 @@ import { SIDEBAR_MOTION_MS } from "./titlebar";
 /** Whether the sidebar's *contents* should be in the document right now.
  *
  * `sidebarCollapsed` alone can't answer this once collapsing is animated.
- * The panel takes SIDEBAR_MOTION_MS to slide out, and an empty petrol box
+ * The panel takes SIDEBAR_MOTION_MS to slide out, and an empty ink box
  * sliding away is not the same picture as the sidebar sliding away — the
  * nav has to still be in it. So presence lags the flag on the way out and
  * leads it on the way in:

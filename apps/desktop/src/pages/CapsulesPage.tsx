@@ -709,8 +709,7 @@ export function CapsulesPage() {
                   Done
                 </span>
               ) : selected.id === activeTaskId ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-[9px] py-[3px] text-meta font-590 text-accent-text">
-                  <span data-accent-mark aria-hidden className="size-1.5 rounded-full bg-primary" />
+                <span className="inline-flex items-center rounded-full bg-accent-soft px-[9px] py-[3px] text-meta font-590 text-accent-text">
                   Active
                 </span>
               ) : (
@@ -799,7 +798,7 @@ export function CapsulesPage() {
               </DropdownMenu>
             </div>
 
-            <p className="mt-[11px] text-sub text-tertiary-foreground">
+            <p className="mt-[11px] text-sub text-muted-foreground">
               Restore puts your editor, tabs and branch back the way you left them.
             </p>
 
@@ -811,18 +810,26 @@ export function CapsulesPage() {
                     <div
                       key={card.kind}
                       data-inside-card={card.kind}
-                      className="rounded-[10px] bg-card p-[13px] shadow-raised"
+                      className="surface-rich card-lift rounded-[10px] p-[13px] shadow-raised"
                     >
                       <div className="flex items-center justify-between">
-                        <Icon name={card.icon} className="size-4 text-muted-foreground" />
+                        {/* One state carrier: the tinted chip. Live is the
+                            good, quiet case; only waiting-on-reconnect gets
+                            the warn tint. The wording itself ("restores
+                            now" vs "when X reconnects") is the non-colour
+                            cue. */}
                         <span
-                          aria-hidden
-                          className={cn("size-[7px] rounded-full", card.live ? "bg-ok" : "bg-warn")}
-                        />
+                          className={cn(
+                            "grid size-8 place-items-center rounded-[7px]",
+                            card.live ? "bg-ok-soft text-ok" : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          <Icon name={card.icon} className="size-4" />
+                        </span>
                       </div>
                       <p className="mt-2.5 text-card-title font-590 text-foreground">{card.count}</p>
                       <p className="mt-0.5 text-sub text-muted-foreground">{card.name}</p>
-                      <p className={cn("mt-[7px] text-label", card.live ? "text-ok" : "text-warn")}>
+                      <p className={cn("mt-[7px] text-label", card.live ? "text-muted-foreground" : "text-warn")}>
                         {card.when}
                       </p>
                     </div>

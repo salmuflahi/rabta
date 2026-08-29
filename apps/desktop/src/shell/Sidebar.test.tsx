@@ -100,7 +100,8 @@ describe("Sidebar collapse", () => {
 
     const column = aside!.firstElementChild as HTMLElement | null;
     expect(column).not.toBeNull();
-    expect(column!.className.split(/\s+/)).toContain("border-r");
+    // Hairline recipe standardized (ink redesign): 0.5px at full token.
+    expect(column!.className.split(/\s+/)).toContain("border-r-[0.5px]");
     expect(column!.style.width).toBe(`${SIDEBAR_EXPANDED_WIDTH_PX}px`);
   });
 
