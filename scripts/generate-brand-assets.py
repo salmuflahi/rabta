@@ -9,8 +9,9 @@ Source of truth
 `website/assets/brand/rabta-mark.svg` — the ONLY brand-mark source in this
 repository. Every favicon, app icon, connector icon and social image below is
 derived from it, including the `-primary` (transparent) and `-mono`
-(currentColor) colourways, which are re-emitted from the canonical path data
-so they can never drift from the mark.
+(currentColor) colourways, which are re-emitted from the canonical glyph group
+— transform, stroke weight and joins included — so they can never drift from
+the mark.
 
 This script has no fallback geometry and no mark colour literals of its own:
 if the source SVG is missing it exits rather than drawing anything. It is
@@ -74,10 +75,16 @@ def note(path: Path) -> None:
 # --------------------------------------------------------------- source
 
 def read_source() -> tuple[str, str, str]:
-    """Returns (glyph_path_d, fold_path_d, tile_radius) from the canonical mark.
+    """Returns (glyph_open_tag, glyph_body, tile_radius) from the canonical mark.
 
     Parsed rather than hard-coded so the mark's geometry lives in exactly one
     place. Any edit to the SVG flows into every derived asset on the next run.
+
+    The mark is a stroked glyph — an R whose leg is the Arabic ر — so what is
+    lifted is the whole `<g>`: its transform, stroke-width and joins as well as
+    its paths. Only the stroke colour is substituted per colourway. Pulling the
+    `d`s out on their own would leave the weight and placement behind, which is
+    most of the drawing.
     """
     if not SOURCE.exists():
         fail(
@@ -86,40 +93,66 @@ def read_source() -> tuple[str, str, str]:
             "artwork by design."
         )
 
-    svg = SOURCE.read_text()
-    paths = re.findall(r'<path\b[^>]*\bd="([^"]+)"', svg)
-    if len(paths) != 2:
-        fail(f"expected 2 <path> elements in the mark, found {len(paths)}")
+    # Comments carry the geometry's rationale and belong in the source, not in
+    # sixteen derived files. Dropped before parsing so prose can never be
+    # mistaken for markup either.
+    svg = re.sub(r"<!--.*?-->", "", SOURCE.read_text(), flags=re.S)
 
     rx = re.search(r'<rect\b[^>]*\brx="([\d.]+)"', svg)
     if not rx:
         fail("expected a rounded <rect> tile in the mark")
 
-    return paths[0], paths[1], rx.group(1)
+    group = re.search(r"(<g\b[^>]*>)(.*?)</g>", svg, re.S)
+    if not group:
+        fail("expected the glyph to be one <g> element")
+    open_tag, body = group.group(1), group.group(2)
+
+    if "<g" in body:
+        fail(
+            "the glyph group is nested; flatten it so the composed transform "
+            "is visible in one place and survives a single-pass parse"
+        )
+    if not re.findall(r'<path\b[^>]*\bd="[^"]+"', body):
+        fail("the glyph group holds no <path>")
+    for attr in ("stroke-width", "fill"):
+        if f'{attr}="' not in open_tag:
+            fail(
+                f'the glyph group must declare {attr}. The mark is stroked, so '
+                f'a group without it renders at the wrong weight or as a blob.'
+            )
+
+    return open_tag, body, rx.group(1)
 
 
-GLYPH_D, FOLD_D, TILE_RX = read_source()
+GLYPH_OPEN, GLYPH_BODY, TILE_RX = read_source()
 
 INK = "#102526"      # tile / glyph on light
 CREAM = "#F3F0E8"    # glyph on tile
-TANGERINE = "#FF6B2C"  # the fold
+
+
+def compact(markup: str) -> str:
+    """One line, no gaps between tags. The source is indented for reading; a
+    generated asset is not read, so it ships without the whitespace."""
+    return re.sub(r">\s+<", "><", re.sub(r"\s+", " ", markup)).strip()
+
+
+def glyph(stroke: str) -> str:
+    """The canonical group, re-emitted in one colourway. Every attribute but
+    the stroke colour is carried through from the source verbatim."""
+    open_tag = compact(re.sub(r'\s+stroke="[^"]*"', "", GLYPH_OPEN))
+    open_tag = f'{open_tag[:-1]} stroke="{stroke}">'
+    return f"{open_tag}{compact(GLYPH_BODY)}</g>"
 
 
 def svg_tile(scale: float = 1.0) -> str:
     """The mark on its tile. `scale` < 1 insets the glyph for maskable icons,
     where platforms crop to a circle inscribed in the square."""
-    if scale == 1.0:
-        inner = (
-            f'<path fill="{CREAM}" fill-rule="evenodd" d="{GLYPH_D}"/>'
-            f'<path fill="{TANGERINE}" d="{FOLD_D}"/>'
-        )
-    else:
+    inner = glyph(CREAM)
+    if scale != 1.0:
         offset = 32 * (1 - scale)
         inner = (
             f'<g transform="translate({offset:.3f} {offset:.3f}) scale({scale})">'
-            f'<path fill="{CREAM}" fill-rule="evenodd" d="{GLYPH_D}"/>'
-            f'<path fill="{TANGERINE}" d="{FOLD_D}"/>'
-            f"</g>"
+            f"{inner}</g>"
         )
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
@@ -136,9 +169,7 @@ def svg_maskable() -> str:
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
         f'<rect width="64" height="64" fill="{INK}"/>'
         f'<g transform="translate({offset:.3f} {offset:.3f}) scale(0.62)">'
-        f'<path fill="{CREAM}" fill-rule="evenodd" d="{GLYPH_D}"/>'
-        f'<path fill="{TANGERINE}" d="{FOLD_D}"/>'
-        "</g></svg>\n"
+        f"{glyph(CREAM)}</g></svg>\n"
     )
 
 
@@ -146,9 +177,7 @@ def svg_primary() -> str:
     """Transparent background, ink glyph — for light surfaces."""
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
-        f'<path fill="{INK}" fill-rule="evenodd" d="{GLYPH_D}"/>'
-        f'<path fill="{TANGERINE}" d="{FOLD_D}"/>'
-        "</svg>\n"
+        f"{glyph(INK)}</svg>\n"
     )
 
 
@@ -156,9 +185,7 @@ def svg_mono() -> str:
     """Single-colour, inherits `currentColor` — for tinted contexts."""
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
-        f'<path fill="currentColor" fill-rule="evenodd" d="{GLYPH_D}"/>'
-        f'<path fill="currentColor" d="{FOLD_D}"/>'
-        "</svg>\n"
+        f"{glyph('currentColor')}</svg>\n"
     )
 
 

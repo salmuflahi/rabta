@@ -1,5 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="14" fill="#102526"/>
-  <path fill="#F3F0E8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"/>
-  <path fill="#FF6B2C" d="M41.5 8v14.5H56Z"/>
+  <!-- The mark: an R whose leg is the Arabic ر of رابطة. Stem and bowl read
+       as R; the leg sweeps out and curls back left as a descender, so the two
+       letters share one stroke count.
+
+       Drawn on a 0-100 grid and placed at 62.5% of the tile, which is the
+       ratio the artboards were reviewed at (106/170, 40/64, 18/28, 11/16).
+       The transform is the composition of that placement with the glyph's own
+       offset: translate(12 12) scale(0.4) . translate(4.5 -5). Kept flat
+       rather than nested so the group survives a single-pass parse. -->
+  <g transform="translate(13.8 10) scale(0.4)" fill="none" stroke="#F3F0E8"
+     stroke-width="12" stroke-linejoin="round">
+    <path d="M25 22V84"/>
+    <path d="M25 28H46a16 16 0 0 1 0 32H25"/>
+    <path d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6"/>
+  </g>
 </svg>

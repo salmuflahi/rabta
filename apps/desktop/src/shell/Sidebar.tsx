@@ -31,12 +31,17 @@ function BrandMark({ className }: { className?: string }) {
       aria-label="Rabta"
       className={className}
     >
-      <path
-        fill="currentColor"
-        fillRule="evenodd"
-        d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"
-      />
-      <path fill="currentColor" d="M41.5 8v14.5H56Z" />
+      <g
+        transform="translate(13.8 10) scale(0.4)"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="12"
+        strokeLinejoin="round"
+      >
+        <path d="M25 22V84" />
+        <path d="M25 28H46a16 16 0 0 1 0 32H25" />
+        <path d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
+      </g>
     </svg>
   );
 }
