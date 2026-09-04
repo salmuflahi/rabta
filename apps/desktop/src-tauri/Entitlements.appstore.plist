@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Entitlements for the Mac App Store build only. The direct-download DMG is
+  signed with the hardened runtime and no entitlements (docs/RELEASE.md §1);
+  this file is applied by tauri.appstore.conf.json and nowhere else.
+
+  App Sandbox is mandatory on the Store. Each grant below maps to one thing
+  Rabta actually does; nothing is requested "just in case".
+-->
+<plist version="1.0">
+<dict>
+  <!-- Required by App Review for every Mac App Store app. -->
+  <key>com.apple.security.app-sandbox</key>
+  <true/>
+
+  <!-- The hub listens on 127.0.0.1 (preferred port 17872) for the editor and
+       browser connectors. Loopback only; the hub never binds another
+       interface. -->
+  <key>com.apple.security.network.server</key>
+  <true/>
+
+  <!-- `git fetch` and `gh` run as child processes and inherit this sandbox;
+       without an outbound grant they cannot reach a remote. -->
+  <key>com.apple.security.network.client</key>
+  <true/>
+
+  <!-- Repositories are the user's own folders. Under the sandbox they are
+       reachable only after the user picks them in an open panel. -->
+  <key>com.apple.security.files.user-selected.read-write</key>
+  <true/>
+
+  <!-- App Store distribution identity. Must match the App ID in the
+       provisioning profile embedded by tauri.appstore.conf.json. -->
+  <key>com.apple.application-identifier</key>
+  <string>86M2X6MUA3.com.omnibus.dev</string>
+  <key>com.apple.developer.team-identifier</key>
+  <string>86M2X6MUA3</string>
+</dict>
+</plist>

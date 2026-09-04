@@ -22,6 +22,7 @@ Neither store has this version yet: both listings below are still serving
 | Chrome Web Store | ✅ Live — [Rabta Connector](https://chromewebstore.google.com/detail/rabta-connector/aaombpafbhjkoinppogieaclijddlebo) 0.1.1; 0.2.0 packaged, awaiting upload |
 | VS Code Marketplace (Microsoft) | ❌ Not published (blocked on Azure DevOps PAT) |
 | Trader / account verification (Google) | ⏳ Pending |
+| Mac App Store | ❌ Not submitted — submission kit in [`APP-STORE.md`](./APP-STORE.md); blocked on sandbox work (§1 there) |
 
 **Public downloads**
 - Website: <https://rabta.build/>
@@ -161,6 +162,10 @@ pnpm --dir apps/desktop tauri build --bundles app dmg
 
 > Note: this produces an **arm64-only** build. Add an `x86_64` /
 > `universal-apple-darwin` target if Intel Macs must be supported.
+
+> The Mac App Store is a separate artifact with its own identities, a sandbox
+> and a `.pkg` — `./scripts/package-appstore.sh`, documented in
+> [`APP-STORE.md`](./APP-STORE.md). Nothing in this section applies to it.
 
 ---
 

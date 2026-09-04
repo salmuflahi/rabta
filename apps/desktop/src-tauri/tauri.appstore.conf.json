@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "targets": ["app"],
+    "macOS": {
+      "entitlements": "./Entitlements.appstore.plist",
+      "infoPlist": "./Info.appstore.plist",
+      "bundleVersion": "1",
+      "files": {
+        "embedded.provisionprofile": "../../../signing/Rabta_Mac_App_Store.provisionprofile"
+      }
+    }
+  }
+}

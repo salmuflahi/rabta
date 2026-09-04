@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Merged into the generated Info.plist for the Mac App Store build only
+  (bundle.macOS.infoPlist in tauri.appstore.conf.json). Keys here override
+  what Tauri generates; everything else is inherited.
+-->
+<plist version="1.0">
+<dict>
+  <!-- Export compliance, answered in the binary so App Store Connect stops
+       asking on every upload. Rabta's only network traffic is plaintext
+       WebSocket on loopback; git/gh reach their remotes over the system's
+       TLS, which is exempt. -->
+  <key>ITSAppUsesNonExemptEncryption</key>
+  <false/>
+
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.developer-tools</string>
+
+  <key>NSHumanReadableCopyright</key>
+  <string>© 2026 Sammy Almuflahi. MIT License.</string>
+</dict>
+</plist>

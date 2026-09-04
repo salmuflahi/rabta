@@ -1,0 +1,18 @@
+/* Mac App Store screenshots — the same frame as the Chrome Web Store set
+   (frame.css), rendered at 2x so the file is 2560x1600, one of the four
+   sizes App Store Connect accepts for Mac.
+
+   The app image is the capture rig's full-resolution PNG (2560x1600, i.e.
+   1280 CSS px wide) rather than the site's 1600px WebP, so nothing is
+   upscaled. Shown 1168 wide, as in the Chrome set. */
+
+.crop img {
+  width: 1168px;
+}
+
+/* The DMG set crops mostly-empty screens; on the Store every image is the
+   product at reading size, so the window keeps its full height when the
+   copy leaves room. */
+.shotwrap {
+  align-items: flex-start;
+}

@@ -3,6 +3,10 @@
 Ready-to-paste copy for each store form. Keep versions/names in sync with the
 manifests (see `docs/RELEASE.md` §0).
 
+The Mac App Store listing (name, subtitle, description, keywords, privacy and
+review answers) is in [`APP-STORE.md`](./APP-STORE.md) §4, beside the build
+steps it depends on.
+
 ---
 
 ## Chrome Web Store — "Rabta Connector"

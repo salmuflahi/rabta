@@ -52,6 +52,10 @@ re-pose the page; reload after editing it.
 The screenshot driver below sets none of these, so the site's own shots
 stay byte-identical whatever you pose here.
 
+The Mac App Store listing images are not posed by hand: `scripts/make-appstore-shots.mjs`
+frames the driver's own `website/assets/shots/src/*.png` at 2560×1600 into
+`docs/app-store/screenshots/` (see `docs/APP-STORE.md` §4).
+
 ## Recording the product loops
 
 The homepage's two return stories use four silent H.264 recordings of this

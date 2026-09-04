@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import WebSocket from "ws";
@@ -12,7 +12,8 @@ export interface ConnectOptions {
   /** The connector's own product/build version, distinct from the protocol
    * version. Reported to the hub in `hello`; omitted entirely if unset. */
   version?: string;
-  /** Override the discovery file path (tests). */
+  /** Override the discovery file path (tests). Left unset, the SDK looks in
+   * every place the desktop app can write it — see `hubDiscoveryCandidates`. */
   hubFile?: string;
   /** Persistent token for browser-class connectors; wins over the secret. */
   token?: string;
@@ -22,6 +23,54 @@ export type CommandHandler = (args: unknown) => unknown | Promise<unknown>;
 
 const INITIAL_BACKOFF_MS = 1_000;
 const MAX_BACKOFF_MS = 30_000;
+
+/** Every path the desktop app can write `hub.json` to, most common first.
+ *
+ * There are two because the app ships two ways. The direct-download build
+ * writes to `~/Library/Application Support/com.omnibus.dev/`. The Mac App
+ * Store build runs under App Sandbox, where the very same `app_data_dir()`
+ * call resolves inside the app's container — the sandbox rewrites `$HOME`
+ * for that process, and nothing in the app knows or cares. Connectors are
+ * not sandboxed, so they can read either; they just have to look in both. */
+export function hubDiscoveryCandidates(home: string = homedir()): string[] {
+  const tail = ["Library", "Application Support", "com.omnibus.dev", "hub.json"];
+  return [
+    join(home, ...tail),
+    join(home, "Library", "Containers", "com.omnibus.dev", "Data", ...tail),
+  ];
+}
+
+/** Modification time of `path` in ms, or `null` if it cannot be stat'ed. */
+function mtimeMs(path: string): number | null {
+  try {
+    return statSync(path, { throwIfNoEntry: false })?.mtimeMs ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Picks the discovery file to read: the candidate written most recently.
+ *
+ * A machine that has run both builds has both files, and the stale one
+ * describes a hub that is no longer listening (or worse, a port something
+ * else now owns). The hub rewrites `hub.json` on every start, so the newest
+ * file is the live hub. With nothing on disk the first candidate is
+ * returned, so the caller's read fails and redials exactly as before. */
+export function pickHubFile(
+  candidates: string[],
+  mtimeOf: (path: string) => number | null = mtimeMs,
+): string {
+  let best: string | null = null;
+  let bestMtime = -Infinity;
+  for (const candidate of candidates) {
+    const mtime = mtimeOf(candidate);
+    if (mtime !== null && mtime > bestMtime) {
+      best = candidate;
+      bestMtime = mtime;
+    }
+  }
+  return best ?? candidates[0];
+}
 
 /** A live connection to the OmniBus hub that survives hub restarts. */
 export class Connector {
@@ -56,10 +105,9 @@ export class Connector {
   }
 
   private hubFile(): string {
-    return (
-      this.opts.hubFile ??
-      join(homedir(), "Library", "Application Support", "com.omnibus.dev", "hub.json")
-    );
+    // Resolved on every dial, like the read itself: the live build can change
+    // between attempts (quit the DMG app, launch the Store one).
+    return this.opts.hubFile ?? pickHubFile(hubDiscoveryCandidates());
   }
 
   private sendFrame(frame: { kind: string; payload: unknown }): void {
