@@ -2,15 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-// The site deliberately has no package boundary or build step. Load the real
-// browser module as source so Node 18 does not reinterpret its .js suffix as
-// CommonJS while exercising it.
-const mediaSource = await readFile(new URL("../../website/js/media.js", import.meta.url), "utf8");
+// The real browser module, loaded as TypeScript: Node strips the types, so
+// the tests exercise exactly what Astro bundles for the page.
 const {
   chooseSource,
   getMediaPolicy,
   initProductMedia,
-} = await import(`data:text/javascript;base64,${Buffer.from(mediaSource).toString("base64")}`);
+} = await import("../../site/src/scripts/media.ts");
 
 class FakeTarget {
   #listeners = new Map();

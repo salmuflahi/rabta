@@ -1,0 +1,48 @@
+{
+  "name": "@rabta/mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Rabta: lets an AI agent read the task capsules saved on this Mac (files, terminals, tabs, branch) and load a briefing before it starts work.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "rabta-mcp": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
+    "test": "vitest run",
+    "inspect": "npx -y @modelcontextprotocol/inspector node dist/cli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/salmuflahi/rabta.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://rabta.build/agents/",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "rabta",
+    "developer-tools",
+    "context"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.0"
+  }
+}

@@ -1,0 +1,73 @@
+---
+// The one shell every route wears. Pages pass their facts in; the layout owns
+// the security meta, the identity of the site, the nav, the footer and the
+// single script. Stylesheets are imported by each page in cascade order so the
+// built CSS keeps tokens before shell before page before the page's own file.
+import { SITE_ORIGIN } from "../config.ts";
+import Nav from "../components/Nav.astro";
+import Foot from "../components/Foot.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  /** Canonical path, with its trailing slash. Omit for pages that must not be indexed. */
+  route?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  mainClass?: string;
+}
+const { title, description, route, ogTitle = title, ogDescription = description, mainClass } = Astro.props;
+const canonical = route ? `${SITE_ORIGIN}${route}` : undefined;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- The security policy is generated into this head by Astro from
+         astro.config.ts. GitHub Pages cannot set response headers, so it is
+         a meta element; frame-ancestors cannot be enforced that way, the rest
+         is. Send the origin, never the path, to another site. -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {canonical && <link rel="canonical" href={canonical} />}
+    {!canonical && <meta name="robots" content="noindex" />}
+    <meta name="theme-color" content="#0a0b0e" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Proves this site to Google Search Console, which is what gets it
+         crawled and reported on. Verification is rechecked periodically. -->
+    <meta name="google-site-verification" content="MhBKSZW7KHjNuoKT-TVXLLr0-kE3m1JEZWne9G6G6-4" />
+
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Rabta" />
+    {canonical && <meta property="og:url" content={canonical} />}
+    <meta property="og:title" content={ogTitle} />
+    <meta property="og:description" content={ogDescription} />
+    <meta property="og:image" content={`${SITE_ORIGIN}/assets/brand/og-cover.png`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Rabta: leave the task, return to all of it" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-var.woff2" crossorigin />
+    <slot name="head" />
+  </head>
+  <body>
+    <Nav />
+    <main id="main" tabindex="-1" class={mainClass}>
+      <slot />
+    </main>
+    <Foot />
+    <script>
+      import "../scripts/main.ts";
+    </script>
+  </body>
+</html>

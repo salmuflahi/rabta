@@ -1,0 +1,252 @@
+---
+import Base from "../layouts/Base.astro";
+import "../styles/tokens.css";
+import "../styles/shell.css";
+import "../styles/doc.css";
+import "../styles/page.css";
+---
+<Base
+  title={"FAQ — Rabta"}
+  description={"What Rabta stores, what the connectors can reach, what happens to a dirty working tree, and what it costs. The questions worth answering before you install it."}
+  route="/faq/"
+  ogDescription={"What Rabta stores, what the connectors reach, and what happens to a dirty working tree."}
+>
+  <div class="wrap page-head">
+    <p class="page-head__label">FAQ</p>
+
+    <h1>The questions the docs answer sideways.</h1>
+    <p class="lede">
+      Short answers, with a link to the long one where there is a long one.
+      Every answer is checked against the source before it ships; where a thing
+      is not built yet, this page says so rather than implying it is.
+    </p>
+    <p class="mono muted">Applies to Rabta 0.1.0</p>
+  </div>
+
+  <section class="band" data-chapter aria-labelledby="installing">
+    <div class="band__inner">
+      <p class="band__label">Installing</p>
+      <div class="band__body">
+        <h2 id="installing">Getting it onto the machine.</h2>
+
+        <div class="qa">
+          <div>
+            <h3>Does Rabta run on an Intel Mac?</h3>
+            <p>
+              No. v0.1.0 is an arm64-only build for Apple silicon, macOS 11 or
+              later. There is no Intel and no universal build yet — it is on the
+              <a href="/roadmap/">roadmap</a> as packaging work rather than a
+              rewrite.
+            </p>
+          </div>
+
+          <div>
+            <h3>Will Gatekeeper block it?</h3>
+            <p>
+              No. The app is signed with an Apple Developer ID and notarized,
+              with the ticket stapled to the DMG, so it opens on a normal
+              double-click. If you <em>do</em> see a warning, the file you have
+              is not the one that was signed — check the SHA-256 on the
+              <a href="/setup/#verify">setup page</a> and download again rather
+              than bypassing it.
+            </p>
+          </div>
+
+          <div>
+            <h3>Which editors can connect?</h3>
+            <p>
+              VS Code, Cursor, VSCodium and Windsurf. The connector is on both
+              registries — the Visual Studio Marketplace and Open VSX — so
+              whichever of the four you use, searching the Extensions panel for
+              <strong>Rabta Connector</strong> finds it. The
+              <a href="/setup/#editor">setup guide</a> has the steps.
+            </p>
+          </div>
+
+          <div>
+            <h3>Do I need the browser extension?</h3>
+            <p>
+              No. Capsules capture and restore editor files, terminals and the
+              Git branch either way. Without it, tabs are reported as
+              unavailable rather than failing the restore; add it later and
+              existing capsules start capturing tabs too.
+            </p>
+          </div>
+
+          <div>
+            <h3>What does it cost?</h3>
+            <p>
+              Nothing. It is free and MIT-licensed, and the whole thing is on
+              <a href="https://github.com/salmuflahi/rabta" rel="noopener noreferrer" target="_blank">GitHub</a>
+              if you would rather read it than trust it.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" data-chapter aria-labelledby="using">
+    <div class="band__inner">
+      <p class="band__label">Using it</p>
+      <div class="band__body">
+        <h2 id="using">What it does with your work.</h2>
+
+        <div class="qa">
+          <div>
+            <h3>What is actually in a capsule?</h3>
+            <p>
+              Open file paths and their workspace folder, terminal working
+              directories, browser tab URLs and titles, and the Git branch name.
+              Pointers, not contents.
+            </p>
+          </div>
+
+          <div>
+            <h3>Does it save my work for me?</h3>
+            <p>
+              No. Rabta records <em>where things were</em>, not what was in
+              them. Your editor still saves your files; Git still holds your
+              history. If Rabta vanished, nothing you wrote would go with it.
+            </p>
+          </div>
+
+          <div>
+            <h3>Does resuming close my other work?</h3>
+            <p>
+              Not by default. Focus mode is opt-in. With it on, resuming also
+              closes what the capsule did not capture — one item at a time, only
+              after the restore itself finishes cleanly, and never an unsaved
+              file, a running terminal, or anything pinned.
+            </p>
+          </div>
+
+          <div>
+            <h3>What happens if my working tree is dirty?</h3>
+            <p>
+              The branch switch is refused with a message saying why. Rabta
+              never force-checkouts, resets, stashes or discards.
+            </p>
+          </div>
+
+          <div>
+            <h3>What if an app is not running when I resume?</h3>
+            <p>
+              That tool is reported as queued for the next reload, not as a
+              failure. The summary is per tool and says what happened to each
+              one, so a partial result reads as partial.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" data-chapter aria-labelledby="privacy">
+    <div class="band__inner">
+      <p class="band__label">Privacy</p>
+      <div class="band__body">
+        <h2 id="privacy">What it can and cannot reach.</h2>
+
+        <div class="qa">
+          <div>
+            <h3>Is there an account?</h3>
+            <p>
+              No, and there is no server to have one on. The hub binds to
+              <code>127.0.0.1</code> and nothing else.
+            </p>
+          </div>
+
+          <div>
+            <h3>Does Rabta read my code?</h3>
+            <p>
+              No. It records which files were open, never what is in them — and
+              never terminal output, keystrokes, clipboard or page contents.
+            </p>
+          </div>
+
+          <div>
+            <h3>Can the browser extension read the pages I'm on?</h3>
+            <p>
+              No, and not by policy — by permission. Its manifest declares only
+              <code>tabs</code>, <code>storage</code> and <code>alarms</code>,
+              requests no host permissions, and runs no content scripts. Chrome
+              itself makes page contents, form data and cookies unreachable to
+              it. Incognito tabs and anything that isn't http(s) are excluded
+              before they reach the wire.
+            </p>
+          </div>
+
+          <div>
+            <h3>Does it phone home?</h3>
+            <p>
+              No. v0.1.0 makes no outbound request on launch or on a timer.
+              There is no analytics SDK and no crash reporter. Two things in the
+              app can reach the network at all, and each only when you click it:
+              the Git menu's Fetch, and the optional GitHub issue features,
+              which run your own <code>gh</code> CLI. Nothing else opens a
+              socket that is not <code>127.0.0.1</code>.
+            </p>
+          </div>
+
+          <div>
+            <h3>Does it store my GitHub token?</h3>
+            <p>
+              No. The GitHub features shell out to your own authenticated
+              <code>gh</code> CLI. Rabta never sees, stores or transmits a
+              token.
+            </p>
+          </div>
+
+          <div>
+            <h3>Where is my data, and how do I delete it?</h3>
+            <p>
+              One folder:
+              <code>~/Library/Application Support/com.omnibus.dev</code>. Delete
+              it and everything is gone — there is no copy anywhere else. Full
+              detail on the <a href="/privacy/">privacy page</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" data-chapter aria-labelledby="ongoing">
+    <div class="band__inner">
+      <p class="band__label">Ongoing</p>
+      <div class="band__body">
+        <h2 id="ongoing">Living with it.</h2>
+
+        <div class="qa">
+          <div>
+            <h3>Is there an auto-updater?</h3>
+            <p>
+              No. v0.1.0 makes no outbound request on launch or on a timer, and
+              that includes checking for a new version. A new release is
+              something you choose to come back and download.
+            </p>
+          </div>
+
+          <div>
+            <h3>Windows or Linux?</h3>
+            <p>
+              macOS is the only tested target today. Nothing is deeply
+              macOS-specific, but the discovery file and the keychain-adjacent
+              parts would need porting.
+            </p>
+          </div>
+
+          <div>
+            <h3>Something not answered here?</h3>
+            <p>
+              <a href="/contact/">Get in touch</a>. Bugs and feature requests
+              are better as issues — they stay visible to everyone else who hits
+              the same thing.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>

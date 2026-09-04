@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { access, readFile, readdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { SITE, localReferences, readRoute } from "./helpers.mjs";
+import { COMPONENTS, SCRIPTS, SITE, STYLES, builtCssFor, localReferences, readRoute, stripFrontmatter } from "./helpers.mjs";
+import { MARK_DRAW as SITE_MARK_DRAW } from "../../site/src/scripts/mark-draw.ts";
+import { MARK_DRAW as APP_MARK_DRAW } from "../../apps/desktop/src/lib/motion.ts";
 
 // Every route the site serves. A page that no test knows about is a page
 // that can ship anything.
@@ -49,7 +51,8 @@ const PALETTE = new Set([
  * A quotation, not a palette addition: used once each, in page.css only. */
 const QUOTED = new Set(["#ff5f57", "#febc2e", "#28c840"]);
 
-const STYLESHEETS = ["css/tokens.css", "css/shell.css", "css/landing.css", "css/page.css", "css/doc.css"];
+/** The site's stylesheets as written. Astro bundles them per page family. */
+const STYLESHEETS = ["tokens.css", "shell.css", "landing.css", "page.css", "doc.css"];
 
 // `&#8220;`-style entities are not colours, hence the lookbehind.
 const hexLiterals = (source) =>
@@ -58,17 +61,19 @@ const hexLiterals = (source) =>
 test("every route wears the same stylesheets and one h1", async () => {
   for (const route of routes) {
     const html = await readRoute(route);
-    assert.match(html, /\/css\/tokens\.css/, route);
-    assert.match(html, /\/css\/shell\.css/, route);
-    assert.match(html, /\/css\/page\.css/, route);
-    assert.match(html, /\/css\/(?:landing|doc)\.css/, route);
+    const css = await builtCssFor(html);
+    assert.ok(css.length > 0, `${route}: links no built stylesheet`);
+    assert.match(css, /@layer tokens/, `${route}: tokens`);
+    assert.match(css, /\.nav__inner/, `${route}: shell`);
+    assert.match(css, /\.window__lights/, `${route}: page components`);
+    assert.match(css, route === "/" ? /\.hero__/ : /\.doc-grid/, `${route}: the page family's own sheet`);
     assert.doesNotMatch(html, /receipt-fold|instrument\.js|reveal\.js/, route);
     assert.equal((html.match(/<h1\b/g) ?? []).length, 1, route);
   }
 });
 
 test("the palette is thirteen literals, all of them in tokens.css", async () => {
-  const tokens = (await readFile(resolve(SITE, "css/tokens.css"), "utf8")).toLowerCase();
+  const tokens = (await readFile(resolve(STYLES, "tokens.css"), "utf8")).toLowerCase();
   for (const value of PALETTE) {
     assert.match(tokens, new RegExp(value), `tokens.css defines ${value}`);
   }
@@ -77,24 +82,24 @@ test("the palette is thirteen literals, all of them in tokens.css", async () => 
   }
   // Petrol is gone on every surface of the brand.
   for (const file of STYLESHEETS) {
-    const css = (await readFile(resolve(SITE, file), "utf8")).toLowerCase();
+    const css = (await readFile(resolve(STYLES, file), "utf8")).toLowerCase();
     assert.doesNotMatch(css, /#102526|#173239|#66858c|#a9bec2|#d9e3e3|#f3f0e8/, `${file}: petrol`);
   }
 });
 
 test("no stylesheet or page introduces a colour the brand does not own", async () => {
   for (const file of STYLESHEETS) {
-    const css = await readFile(resolve(SITE, file), "utf8");
+    const css = await readFile(resolve(STYLES, file), "utf8");
     for (const value of hexLiterals(css)) {
       assert.ok(
-        PALETTE.has(value) || (file === "css/page.css" && QUOTED.has(value)),
+        PALETTE.has(value) || (file === "page.css" && QUOTED.has(value)),
         `${file}: unapproved colour ${value}`,
       );
     }
   }
 
   // The traffic lights: once each, only on the lights, only in page.css.
-  const page = await readFile(resolve(SITE, "css/page.css"), "utf8");
+  const page = await readFile(resolve(STYLES, "page.css"), "utf8");
   for (const value of QUOTED) {
     assert.equal((page.match(new RegExp(value, "gi")) ?? []).length, 1, `${value} is used more than once`);
     assert.match(
@@ -110,8 +115,8 @@ test("no stylesheet or page introduces a colour the brand does not own", async (
     for (const value of hexLiterals(body)) {
       assert.ok(PALETTE.has(value), `${route}: unapproved colour ${value} in markup`);
     }
-    assert.match(html, /<meta name="theme-color" content="#0a0b0e" \/>/, `${route}: theme-color`);
-    assert.match(html, /<meta name="color-scheme" content="dark" \/>/, `${route}: color-scheme`);
+    assert.match(html, /<meta name="theme-color" content="#0a0b0e"\s*\/?>/, `${route}: theme-color`);
+    assert.match(html, /<meta name="color-scheme" content="dark"\s*\/?>/, `${route}: color-scheme`);
   }
 });
 
@@ -146,10 +151,10 @@ test("the mark's geometry is the brand source, wherever it is inlined", async ()
 test("the type is Inter 4 with both axes, self-hosted, preloaded once", async () => {
   const font = await stat(resolve(SITE, "assets/fonts/inter-var.woff2"));
   assert.ok(font.size > 20_000 && font.size < 90_000, `subset is ${font.size} bytes`);
-  const tokens = await readFile(resolve(SITE, "css/tokens.css"), "utf8");
+  const tokens = await readFile(resolve(STYLES, "tokens.css"), "utf8");
   assert.match(tokens, /font-family: "Inter Var";/);
   assert.match(tokens, /font-weight: 400 700;/);
-  const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");
+  const shell = await readFile(resolve(STYLES, "shell.css"), "utf8");
   assert.match(shell, /font-optical-sizing: auto;/, "the display cut is on");
   for (const route of routes) {
     const html = await readRoute(route);
@@ -174,8 +179,8 @@ test("the brand's own copy carries no em-dash", async () => {
       assert.doesNotMatch(block.replace(/<[^>]+>/g, ""), /[—–]/, `${route}: ${block.slice(0, 80)}`);
     }
   }
-  for (const file of ["_chrome/nav.html", "_chrome/foot.html"]) {
-    const chrome = (await readFile(resolve(SITE, file), "utf8")).replace(/<!--[\s\S]*?-->/g, "");
+  for (const file of ["Nav.astro", "Foot.astro"]) {
+    const chrome = stripFrontmatter(await readFile(resolve(COMPONENTS, file), "utf8")).replace(/<!--[\s\S]*?-->/g, "");
     assert.doesNotMatch(chrome.replace(/<[^>]+>/g, ""), /[—–]/, file);
   }
 });
@@ -231,7 +236,7 @@ test("every route wears the same shell", async () => {
     assert.ok(footer.includes("Rabta v0.1.0 · MIT · nothing leaves this Mac"), route);
 
     if (route !== "/") {
-      assert.doesNotMatch(html, /\/css\/landing\.css/, route);
+      assert.doesNotMatch(await builtCssFor(html), /\.hero__/, `${route}: carries the landing styles`);
       assert.doesNotMatch(html, /data-product-media/, route);
     }
   }
@@ -250,7 +255,7 @@ test("the current route is marked exactly once, on the link that points at it", 
 
 test("nothing on the site responds to a mouse but not to a keyboard", async () => {
   for (const file of STYLESHEETS) {
-    const css = (await readFile(resolve(SITE, file), "utf8")).replace(/\/\*[\s\S]*?\*\//g, "");
+    const css = (await readFile(resolve(STYLES, file), "utf8")).replace(/\/\*[\s\S]*?\*\//g, "");
     const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => m[1].replace(/\s+/g, " ").trim());
     const all = rules.join(" | ");
     for (const selector of rules) {
@@ -265,15 +270,15 @@ test("nothing on the site responds to a mouse but not to a keyboard", async () =
 });
 
 test("motion runs on the brand's tokens, and stands down under reduced motion", async () => {
-  const tokens = await readFile(resolve(SITE, "css/tokens.css"), "utf8");
+  const tokens = await readFile(resolve(STYLES, "tokens.css"), "utf8");
   assert.match(tokens, /--ease: cubic-bezier\(0\.16, 1, 0\.3, 1\);/);
   assert.match(tokens, /--dur-hover: 120ms;/);
   assert.match(tokens, /--dur-state: 240ms;/);
   assert.match(tokens, /--dur-reveal: 480ms;/);
 
   // No transition or animation may invent its own duration.
-  for (const file of ["css/shell.css", "css/landing.css", "css/page.css", "css/doc.css"]) {
-    const css = (await readFile(resolve(SITE, file), "utf8")).replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const file of ["shell.css", "landing.css", "page.css", "doc.css"]) {
+    const css = (await readFile(resolve(STYLES, file), "utf8")).replace(/\/\*[\s\S]*?\*\//g, "");
     for (const [, body] of css.matchAll(/\{([^{}]*)\}/g)) {
       if (!/transition/.test(body)) continue;
       const literal = body.match(/transition[^;]*?(?<![\d.])([1-9]\d*)ms/);
@@ -281,19 +286,25 @@ test("motion runs on the brand's tokens, and stands down under reduced motion", 
     }
   }
 
-  const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");
+  const shell = await readFile(resolve(STYLES, "shell.css"), "utf8");
   assert.match(shell, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(shell, /\[data-reveal="pending"\] \{\s*opacity: 1;/);
 
-  for (const file of ["js/motion.js", "js/brand.js", "js/home.js"]) {
-    const js = await readFile(resolve(SITE, file), "utf8");
-    assert.match(js, /reducedMotion\(/, `${file}: honours reduced motion`);
-    assert.doesNotMatch(js, /addEventListener\(["']scroll["']/, `${file}: listens to scroll directly`);
+  // Every module that animates reads the preference, and nothing listens to
+  // the scroll event: scrubbing goes through ScrollTrigger or an observer.
+  const animating = (await readdir(SCRIPTS)).filter((f) => f.endsWith(".ts"));
+  let gsapModules = 0;
+  for (const file of animating) {
+    const ts = await readFile(resolve(SCRIPTS, file), "utf8");
+    assert.doesNotMatch(ts, /addEventListener\(["']scroll["']/, `${file}: listens to scroll directly`);
+    if (!/from "gsap/.test(ts)) continue;
+    gsapModules += 1;
+    assert.match(ts, /reducedMotion\(/, `${file}: animates without honouring reduced motion`);
   }
-  const brand = await readFile(resolve(SITE, "js/brand.js"), "utf8");
-  for (const [stroke, delay, duration] of [["stem", 0, 420], ["bowl", 180, 560], ["leg", 560, 640]]) {
-    assert.match(brand, new RegExp(`${stroke}: \\{ delay: ${delay}, duration: ${duration} \\}`), `the ${stroke}'s timing`);
-  }
+  assert.ok(gsapModules >= 2, "the motion modules import gsap");
+  // The mark draws with the same numbers in the app and on the page.
+  assert.deepEqual(SITE_MARK_DRAW, APP_MARK_DRAW, "the site's mark timing drifted from the app's");
+  assert.deepEqual(SITE_MARK_DRAW, { stem: { delay: 0, duration: 420 }, bowl: { delay: 180, duration: 560 }, leg: { delay: 560, duration: 640 }, total: 1100 });
 });
 
 test("every enhancement resolves to the finished state without JavaScript", async () => {
@@ -309,9 +320,6 @@ test("every enhancement resolves to the finished state without JavaScript", asyn
     assert.ok(Number.parseInt(value, 10) >= 0, `tally ships ${value}`);
   }
   assert.equal((home.match(/data-tally=/g) ?? []).length, 3);
-  // Anime.js is vendored, never fetched from a CDN, and its licence travels with it.
-  await access(resolve(SITE, "js/vendor/anime.esm.min.js"));
-  await access(resolve(SITE, "js/vendor/anime-LICENSE.md"));
 });
 
 // ---------------------------------------------------------------------------
@@ -320,8 +328,8 @@ test("every enhancement resolves to the finished state without JavaScript", asyn
 test("homepage has the approved narrative", async () => {
   const html = await readRoute("/");
   for (const copy of [
-    "Pick up the task.",
-    "Not the pieces.",
+    "Leave the task.",
+    "Return to all of it.",
     "Three moves. Nothing else to learn.",
     "A capsule is the whole surface of a task.",
     "Resuming can also put away what isn't in the task.",
@@ -539,7 +547,7 @@ test("no route links to an anchor that does not exist", async () => {
 
 test("every route carries its canonical title", async () => {
   const expected = new Map([
-    ["/", "Rabta — Pick up the task. Not the pieces."],
+    ["/", "Rabta: leave the task, return to all of it"],
     ["/brand/", "Brand"],
     ["/setup/", "Setup"],
     ["/privacy/", "Privacy"],
@@ -552,7 +560,7 @@ test("every route carries its canonical title", async () => {
     assert.ok(title.includes("Rabta"), route);
   }
   const home = await readRoute("/");
-  assert.match(home, /<meta property="og:title" content="Rabta — Pick up the task\. Not the pieces\." \/>/);
+  assert.match(home, /<meta property="og:title" content="Rabta: leave the task, return to all of it"\s*\/?>/);
 });
 
 test("the social card and the link preview say the same thing", async () => {
@@ -578,8 +586,8 @@ test("the generated social preview is the declared size", async () => {
   for (const route of routes) {
     const html = await readRoute(route);
     if (!html.includes("og:image")) continue;
-    assert.match(html, /<meta property="og:image:width" content="1200" \/>/, route);
-    assert.match(html, /<meta property="og:image:height" content="630" \/>/, route);
+    assert.match(html, /<meta property="og:image:width" content="1200"\s*\/?>/, route);
+    assert.match(html, /<meta property="og:image:height" content="630"\s*\/?>/, route);
   }
 });
 
@@ -631,9 +639,7 @@ test("no third-party subresource is loaded", async () => {
 
 test("no stylesheet or module reaches off this origin", async () => {
   const files = [
-    ...(await readdir(resolve(SITE, "css"))).map((f) => `css/${f}`),
-    ...(await readdir(resolve(SITE, "js"))).filter((f) => f.endsWith(".js")).map((f) => `js/${f}`),
-    "js/vendor/anime.esm.min.js",
+    ...(await readdir(resolve(SITE, "_astro"))).filter((f) => /\.(?:css|js)$/.test(f)).map((f) => `_astro/${f}`),
     "assets/brand/og-card.html",
   ];
   for (const file of files) {

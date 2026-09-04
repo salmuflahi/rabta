@@ -1,0 +1,126 @@
+---
+import Base from "../layouts/Base.astro";
+import "../styles/tokens.css";
+import "../styles/shell.css";
+import "../styles/doc.css";
+import "../styles/page.css";
+---
+<Base
+  title={"Contact — Rabta"}
+  description={"Report a bug, ask for a feature, or raise something security-sensitive. Where each kind of message should go, and what happens to it."}
+  route="/contact/"
+  ogDescription={"Report a bug, ask for a feature, or raise something security-sensitive."}
+>
+  <div class="wrap page-head">
+    <p class="page-head__label">Contact</p>
+
+    <h1>Talk to a human.</h1>
+    <p class="lede">
+      No support desk, no ticket queue. Rabta is built and maintained by one
+      person, so every channel below lands in the same place. What differs is
+      how quickly it gets read and what shape it needs to be in.
+    </p>
+    <p class="mono muted">Sammy Almuflahi · maintainer</p>
+  </div>
+
+  <section class="band" data-chapter aria-labelledby="channels">
+    <div class="band__inner">
+      <p class="band__label">Where to write</p>
+      <div class="band__body">
+        <h2 id="channels">Three places, and the difference between them.</h2>
+
+        <div class="grid3">
+          <!-- The whole card is the link. A card whose title, description and
+               destination are one thought should have one target, not a small
+               anchor inside a large rectangle that does nothing. -->
+          <a class="card channel" href="https://github.com/salmuflahi/rabta/issues/new" rel="noopener noreferrer" target="_blank">
+            <p class="card__eyebrow">Bugs &amp; crashes</p>
+            <h3>Open an issue</h3>
+            <p>
+              Something broke, restored wrong, or refused when it shouldn't
+              have. The three things that make a report actionable are your
+              macOS version, which connectors were running, and what you
+              expected instead.
+            </p>
+            <span class="channel__action">github.com/salmuflahi/rabta/issues <span class="channel__arrow" aria-hidden="true">→</span></span>
+            <span class="channel__where">github.com/salmuflahi/rabta/issues</span>
+          </a>
+
+          <a class="card channel" href="https://github.com/salmuflahi/rabta/discussions" rel="noopener noreferrer" target="_blank">
+            <p class="card__eyebrow">Questions &amp; ideas</p>
+            <h3>Start a discussion</h3>
+            <p>
+              Workflow questions, connector requests, or how something works.
+              Public and searchable, so the next person finds the answer too.
+              The most useful requests describe the situation you were in, not
+              the feature you designed.
+            </p>
+            <span class="channel__action">github.com/salmuflahi/rabta/discussions <span class="channel__arrow" aria-hidden="true">→</span></span>
+            <span class="channel__where">github.com/salmuflahi/rabta/discussions</span>
+          </a>
+
+          <a class="card channel" href="mailto:support@rabta.build">
+            <p class="card__eyebrow">Everything else</p>
+            <h3>Email us</h3>
+            <p>
+              Press, licensing, partnerships, or anything that doesn't belong in
+              a public thread. Bugs and feature requests are still better as
+              issues — they stay visible to everyone else who hits the same
+              thing, and they don't get lost in a thread.
+            </p>
+            <span class="channel__action">support@rabta.build <span class="channel__arrow" aria-hidden="true">→</span></span>
+            <span class="channel__where">support@rabta.build</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" data-chapter aria-labelledby="security">
+    <div class="band__inner">
+      <p class="band__label">Security</p>
+      <div class="band__body">
+        <h2 id="security">Something security-sensitive.</h2>
+        <p>
+          Please don't open a public issue for it. Use GitHub's
+          <a href="https://github.com/salmuflahi/rabta/security/advisories/new" rel="noopener noreferrer" target="_blank">private vulnerability reporting</a>,
+          which reaches the maintainer without disclosing anything publicly, or
+          email <a href="mailto:support@rabta.build">support@rabta.build</a>
+          directly. A fix ships before the details go public.
+        </p>
+        <p>
+          Rabta's whole claim is that nothing leaves your machine. If you find a
+          case where that is not true, that is the most valuable message this
+          project can receive, and it will be treated that way.
+        </p>
+
+        <p class="mono muted foot-note">
+          Response times are a person's, not a company's. Security reports come
+          first; everything else gets read in order. No autoresponders — replies
+          usually land within a couple of days.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band band--close" data-chapter aria-labelledby="elsewhere">
+    <div class="band__inner">
+      <p class="band__label">Elsewhere</p>
+      <div class="band__body">
+        <h2 id="elsewhere">One canonical home.</h2>
+        <p>
+          The source, the releases and the issue tracker all live on
+          <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>.
+          That is the canonical home; anything else is a mirror of what is
+          there.
+        </p>
+        <p>
+          If a restore did something surprising, the Activity view records what
+          each connector was asked to do and how it answered. That log is local
+          to your machine — nothing is sent anywhere — so pasting the relevant
+          part into an issue is usually the fastest route to a fix.
+        </p>
+      </div>
+    </div>
+  </section>
+</Base>

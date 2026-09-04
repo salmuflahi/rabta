@@ -1,0 +1,62 @@
+---
+// Four columns, grouped by what a visitor came for rather than by which page
+// happens to exist. Every column mixes on-site and off-site destinations on
+// purpose. `rel="me"` on GitHub, Instagram and TikTok is the link-back half
+// of identity verification; `noopener noreferrer` is on every external
+// target without exception.
+import { RELEASE } from "../config.ts";
+import { currentScope } from "../nav-links.ts";
+const here = Astro.url.pathname;
+const marks = currentScope(here) === "foot";
+const cur = (href: string) => (marks && href === here ? "page" : undefined);
+---
+<footer class="foot">
+  <div class="rail foot__grid">
+    <div class="foot__brand">
+      <a class="brand" href="/" aria-label="Rabta, home">
+        <img class="brand__ink" src="/assets/brand/lockup.svg" width="2945" height="1213" alt="" />
+        <img class="brand__paper" src="/assets/brand/lockup-paper.svg" width="2945" height="1213" alt="" />
+      </a>
+      <p>Workspace memory for macOS. Local-first, no account, no server.</p>
+    </div>
+
+    <nav class="foot__col" aria-label="Product">
+      <p class="foot__head">Product</p>
+      <a href="/why/" aria-current={cur("/why/")}>Why Rabta</a>
+      <a href="/#product">How it works</a>
+      <a href="/#focus">Focus mode</a>
+      <a href="/roadmap/" aria-current={cur("/roadmap/")}>Roadmap</a>
+      <a href="/brand/" aria-current={cur("/brand/")}>Brand</a>
+    </nav>
+
+    <nav class="foot__col" aria-label="Get started">
+      <p class="foot__head">Get started</p>
+      <a href={RELEASE.dmgUrl}>Download</a>
+      <a href="/setup/" aria-current={cur("/setup/")}>Setup guide</a>
+      <a href="/faq/" aria-current={cur("/faq/")}>FAQ</a>
+      <a href="https://open-vsx.org/extension/rabta-connect/rabta-vscode" rel="noopener noreferrer" target="_blank">Open VSX</a>
+    </nav>
+
+    <nav class="foot__col" aria-label="Project">
+      <p class="foot__head">Project</p>
+      <a href="/changelog/" aria-current={cur("/changelog/")}>Changelog</a>
+      <a href="https://github.com/salmuflahi/rabta" rel="me noopener noreferrer" target="_blank">GitHub</a>
+      <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" rel="noopener noreferrer" target="_blank">Releases</a>
+      <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
+    </nav>
+
+    <nav class="foot__col" aria-label="Contact and legal">
+      <p class="foot__head">Contact &amp; legal</p>
+      <a href="/contact/" aria-current={cur("/contact/")}>Contact</a>
+      <a href="/privacy/" aria-current={cur("/privacy/")}>Privacy</a>
+      <a href="mailto:support@rabta.build">support@rabta.build</a>
+      <a href="https://www.instagram.com/rabtaconnector/" rel="me noopener noreferrer" target="_blank">Instagram</a>
+      <a href="https://www.tiktok.com/@rabtaconnector" rel="me noopener noreferrer" target="_blank">TikTok</a>
+    </nav>
+  </div>
+
+  <div class="rail foot__base">
+    <p class="foot__meta">Rabta v{RELEASE.version} · {RELEASE.licence} · nothing leaves this Mac</p>
+    <p class="foot__meta">Built by Sammy Almuflahi</p>
+  </div>
+</footer>

@@ -10,8 +10,8 @@ public form is rabta.build/brand/.
 ```
 
 Each card is a fragment in `parts/`. `build.mjs` wraps it in a standalone page
-with the site's **own** stylesheets inlined verbatim — `website/css/tokens.css`
-and `website/css/shell.css` — plus `card.css` for the frame around the specimen.
+with the site's **own** stylesheets inlined verbatim — `site/src/styles/tokens.css`
+and `site/src/styles/shell.css` — plus `card.css` for the frame around the specimen.
 
 So the cards render with the real values and the real component rules. Change a
 token and every card that shows it changes. Nothing here re-states a value from

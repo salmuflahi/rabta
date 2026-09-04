@@ -11,7 +11,7 @@ import {
 } from "../../scripts/verify-media.mjs";
 
 const manifest = JSON.parse(
-  await readFile(resolve(ROOT, "website/assets/demos/manifest.json"), "utf8"),
+  await readFile(resolve(ROOT, "site/public/assets/demos/manifest.json"), "utf8"),
 );
 
 /** ffprobe output for an asset that is exactly what the manifest claims. */
@@ -157,7 +157,7 @@ test("an unprobeable file is a failure, not a pass", () => {
 });
 
 test("the homepage plays exactly the sources the manifest describes", async () => {
-  const html = await readFile(resolve(ROOT, "website/index.html"), "utf8");
+  const html = await readFile(resolve(ROOT, "site/dist/index.html"), "utf8");
   const referenced = [
     ...html.matchAll(/data-src-(?:desktop|mobile)="\/assets\/demos\/([^"]+)"/g),
   ]

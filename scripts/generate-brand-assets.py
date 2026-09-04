@@ -6,9 +6,9 @@ Generate every Rabta brand raster from the vector sources.
 
 Sources of truth
 ----------------
-`website/assets/brand/mark.svg`        the glyph: an R whose leg is a ر,
+`site/public/assets/brand/mark.svg`        the glyph: an R whose leg is a ر,
                                        three strokes in currentColor.
-`website/assets/brand/rabta-mark.svg`  the tile: the glyph, ink, on an
+`site/public/assets/brand/rabta-mark.svg`  the tile: the glyph, ink, on an
                                        ember squircle. Dock icon, favicon,
                                        social avatar.
 
@@ -43,11 +43,11 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-GLYPH_SOURCE = ROOT / "website/assets/brand/mark.svg"
-TILE_SOURCE = ROOT / "website/assets/brand/rabta-mark.svg"
+GLYPH_SOURCE = ROOT / "site/public/assets/brand/mark.svg"
+TILE_SOURCE = ROOT / "site/public/assets/brand/rabta-mark.svg"
 
-BRAND = ROOT / "website/assets/brand"
-WEB = ROOT / "website"
+BRAND = ROOT / "site/public/assets/brand"
+WEB = ROOT / "site/public"
 TAURI = ROOT / "apps/desktop/src-tauri/icons"
 APP_BRAND = ROOT / "apps/desktop/src/assets/brand"
 CHROME = ROOT / "connectors/chrome/icons"

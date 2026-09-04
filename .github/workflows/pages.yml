@@ -1,30 +1,31 @@
 name: Deploy website
 
-# Publishes website/ to GitHub Pages.
+# Builds site/ with Astro and publishes site/dist to GitHub Pages.
 #
 # ONE-TIME SETUP (repo settings, not automatable from here):
 #   1. Settings → Pages → Build and deployment → Source: "GitHub Actions".
-#   2. Settings → Pages → Custom domain: rabta.build  (website/CNAME already
-#      carries it, and this workflow ships CNAME to the published root).
+#   2. Settings → Pages → Custom domain: rabta.build  (site/public/CNAME
+#      already carries it, and the build copies it to the published root).
 #   3. Wait for the certificate to be issued, then tick "Enforce HTTPS".
 #      Until that is done, https://rabta.build fails certificate validation
-#      because Pages still serves CN=*.github.io — which also breaks the
+#      because Pages still serves CN=*.github.io, which also breaks the
 #      privacy-policy URL the Chrome Web Store and Open VSX listings point at.
 #
-# There is no build step: the site is hand-authored static HTML/CSS/JS with
-# zero dependencies and zero third-party runtime requests. This workflow
-# uploads website/ verbatim.
+# The build is static: Astro writes plain HTML, one hashed stylesheet bundle
+# per page family and one module script, all served from this origin. The
+# only request that leaves the origin at runtime is the counter ping, and the
+# policy names it.
 
 on:
   push:
     branches: [main]
     paths:
-      - "website/**"
+      - "site/**"
       # The contract suite and the media verifier gate this deploy, so a change
       # to either has to re-run it.
       - "tests/site/**"
       - "scripts/verify-media.mjs"
-      - "scripts/sync-site-chrome.mjs"
+      - "pnpm-lock.yaml"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -45,9 +46,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+
+      # Node 24: the tests import the site's TypeScript modules directly
+      # (type stripping), and the MCP package needs node:sqlite.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
 
       # ffprobe is the only thing here that is not already in the image. The
       # verifier refuses to run without it rather than skipping silently, so a
@@ -55,27 +63,31 @@ jobs:
       - name: Install media probe
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
+      - name: Type-check the site
+        run: pnpm --filter @rabta/site check
+
+      - name: Build the site
+        run: pnpm build:site
+
       # The one guard that cannot live in the Node suite: losing the custom
       # domain breaks the privacy-policy URL that the Chrome Web Store and
       # Open VSX listings point at.
-      - name: CNAME present
-        run: test -f website/CNAME && grep -qx "rabta.build" website/CNAME
+      - name: CNAME present in the build
+        run: test -f site/dist/CNAME && grep -qx "rabta.build" site/dist/CNAME
 
-      # Everything else — copy, semantics, palette, routes, asset existence,
-      # third-party subresources, link safety — is the same suite that runs
+      # Everything else (copy, semantics, palette, routes, asset existence,
+      # third-party subresources, link safety) is the same suite that runs
       # locally, so CI and a developer's machine cannot disagree about what
       # "passing" means.
-      # The eight pages share generated chrome. If a page were edited by hand
-      # instead of regenerating, its nav or footer would drift from the rest —
-      # this fails the deploy rather than shipping the inconsistency.
-      - name: Site chrome is in sync
-        run: node scripts/sync-site-chrome.mjs --check
-
       - name: Verify site contract
         run: node --test tests/site/*.test.mjs
 
       - name: Verify product media
         run: node scripts/verify-media.mjs
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
 
   deploy:
     needs: verify
@@ -84,13 +96,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-
       - uses: actions/configure-pages@v5
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: website
 
       - id: deployment
         uses: actions/deploy-pages@v4

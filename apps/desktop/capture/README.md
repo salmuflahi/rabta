@@ -4,7 +4,7 @@ Generates the product screenshots used on <https://rabta.build>.
 
 ```sh
 cd apps/desktop
-node capture/capture.mjs                 # -> website/assets/shots/src/*.png
+node capture/capture.mjs                 # -> site/public/assets/shots/src/*.png
 node capture/capture.mjs --out /tmp/shots
 ```
 
@@ -88,7 +88,7 @@ Then, from `marketing-videos/site-demos/`, `node build-projects.mjs` rebuilds
 the eight HyperFrames projects around the footage, each project is gated with
 `npx hyperframes@0.8.27 check` and rendered with `render --quality high`, and
 `node scripts/build-site-media.mjs` (repo root) encodes the renders into
-`website/assets/demos/` with posters and a probed `manifest.json`. Never
+`site/public/assets/demos/` with posters and a probed `manifest.json`. Never
 hand-edit the manifest: it is a record of the generated files, and
 `node scripts/verify-media.mjs` checks it against them.
 

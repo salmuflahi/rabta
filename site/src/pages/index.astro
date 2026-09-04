@@ -1,0 +1,346 @@
+---
+import Base from "../layouts/Base.astro";
+import "../styles/tokens.css";
+import "../styles/shell.css";
+import "../styles/page.css";
+import "../styles/landing.css";
+---
+<Base
+  title={"Rabta: leave the task, return to all of it"}
+  description={"Rabta remembers the files, terminals, browser tabs and Git branch around each task, then puts that working context back when you return."}
+  route="/"
+  ogDescription={"Workspace memory for macOS. Keep the files, terminals, tabs and Git branch around a task, then get them back when you return."}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" is:inline>
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Rabta",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS 11.0 or later, Apple Silicon",
+  "softwareVersion": "0.1.0",
+  "datePublished": "2026-07-29",
+  "fileSize": "5495778",
+  "downloadUrl": "https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg",
+  "url": "https://rabta.build/",
+  "license": "https://opensource.org/licenses/MIT",
+  "description": "A local-first macOS tool that saves the working context around a task — editor files, terminals, browser tabs and Git branch — and restores it on demand.",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "Sammy Almuflahi" }
+}
+</script>
+  </Fragment>
+
+  <!-- ==== hero =============================================================
+       The mark draws itself, the word arrives beside it, and the claim rises
+       under both. Then the real app, in a window, doing the thing. -->
+  <section class="hero" id="top" aria-labelledby="hero-title" data-hero>
+    <div class="rail hero__inner">
+      <div class="hero__lockup" aria-hidden="true">
+        <svg class="mark" data-hero-mark viewBox="0 0 100 100" focusable="false">
+          <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
+            <path class="stem" d="M25 22V84" />
+            <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
+            <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
+          </g>
+        </svg>
+        <span class="hero__word" data-hero-word>abta</span>
+      </div>
+
+      <h1 class="display hero__title" id="hero-title">
+        <span class="rise"><span>Leave the task.</span></span>
+        <span class="rise"><span>Return to all of it.</span></span>
+      </h1>
+
+      <p class="lede hero__lede">
+        Every file, terminal, tab and branch around a task, captured on your Mac and restored when you return. With a receipt.
+      </p>
+
+      <div class="hero__actions">
+        <a class="button button--primary button--large" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">
+          Download for macOS
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.6v9.2M3.2 7.4 7 11.2l3.8-3.8M1.8 12.6h10.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </a>
+        <a class="button button--large" href="#product">See it work</a>
+      </div>
+    </div>
+
+    <!-- The real app, in a window, playing the real return. The traffic
+         lights are decorative and inert; real ones would imply a control
+         that does nothing. -->
+    <div class="shell hero__stage" data-hero-window>
+      <figure class="window">
+        <div class="window__bar">
+          <span class="window__lights" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="window__title">Rabta — connector-reconnect.capsule</span>
+        </div>
+        <div class="window__stage" data-product-media="hero">
+          <video
+            class="window__video"
+            width="1280" height="800"
+            muted playsinline loop preload="none"
+            poster="/assets/demos/hero-return.png"
+            data-src-desktop="/assets/demos/hero-return-desktop.mp4"
+            data-src-mobile="/assets/demos/hero-return-mobile.mp4"
+            aria-label="Rabta capturing a task, switching away, and resuming it: the restore sheet draws the mark and reports each tool as restored, waiting or skipped."
+          ></video>
+          <button class="media-play" type="button" hidden data-media-play data-label-play="Play demo" data-label-pause="Pause demo">Play demo</button>
+          <div class="media-track" hidden data-media-track aria-hidden="true"><span></span></div>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ==== works with ======================================================
+       A logo wall is a claim. Everything here is an editor the connector
+       installs into, a terminal those editors host, or a browser the Chrome
+       connector runs in. Nothing aspirational. -->
+  <section class="works" aria-label="Works with">
+    <div class="rail works__inner">
+      <p class="caption works__label">Works with</p>
+      <p class="visually-hidden">Connectors currently speak to VS Code, Cursor, Zed, Ghostty, iTerm2, Terminal, Warp, Chrome, Arc and Firefox.</p>
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee__track">
+          <span class="marquee__logo">VS Code</span>
+          <span class="marquee__logo">Cursor</span>
+          <span class="marquee__logo">Zed</span>
+          <span class="marquee__logo">Ghostty</span>
+          <span class="marquee__logo">iTerm2</span>
+          <span class="marquee__logo">Terminal</span>
+          <span class="marquee__logo">Warp</span>
+          <span class="marquee__logo">Chrome</span>
+          <span class="marquee__logo">Arc</span>
+          <span class="marquee__logo">Firefox</span>
+          <span class="marquee__logo">VS Code</span>
+          <span class="marquee__logo">Cursor</span>
+          <span class="marquee__logo">Zed</span>
+          <span class="marquee__logo">Ghostty</span>
+          <span class="marquee__logo">iTerm2</span>
+          <span class="marquee__logo">Terminal</span>
+          <span class="marquee__logo">Warp</span>
+          <span class="marquee__logo">Chrome</span>
+          <span class="marquee__logo">Arc</span>
+          <span class="marquee__logo">Firefox</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== three moves =====================================================
+       Capture, leave, return. The stage pins while the reader scrolls three
+       beats, and the window's content changes per beat. Scrubbed and
+       reversible by js/home.js; a list with one window on phones. -->
+  <section class="moves" id="product" aria-labelledby="moves-title">
+    <div class="rail moves__head">
+      <h2 class="h2" id="moves-title">Three moves. Nothing else to learn.</h2>
+      <p class="lede">Capture the task. Leave it. Everything is where you left it when you come back.</p>
+    </div>
+
+    <div class="moves__scroller" data-moves>
+      <div class="moves__stage">
+        <div class="shell moves__layout">
+          <ol class="moves__list">
+            <li class="move" data-move="0" aria-current="step">
+              <span class="move__n" aria-hidden="true">1</span>
+              <h3>Capture</h3>
+              <p>Files, terminals, tabs and the branch, sealed into one capsule.</p>
+            </li>
+            <li class="move" data-move="1">
+              <span class="move__n" aria-hidden="true">2</span>
+              <h3>Leave</h3>
+              <p>Switch tasks. The one you leave saves itself.</p>
+            </li>
+            <li class="move" data-move="2">
+              <span class="move__n" aria-hidden="true">3</span>
+              <h3>Return</h3>
+              <p>Everything comes back, branch first, with a receipt.</p>
+            </li>
+          </ol>
+
+          <figure class="window moves__window">
+            <div class="window__bar">
+              <span class="window__lights" aria-hidden="true"><span></span><span></span><span></span></span>
+              <span class="window__title" data-moves-title>Rabta — Capsules</span>
+            </div>
+            <div class="window__stage">
+              <video data-move-shot="0" data-active class="move-shot" width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/move-capture.png" data-src-desktop="/assets/demos/move-capture-desktop.mp4" data-src-mobile="/assets/demos/move-capture-mobile.mp4" aria-label="Capturing a task: the capsule saves the open files, terminals, tabs and branch."></video>
+              <video data-move-shot="1" class="move-shot" width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/move-leave.png" data-src-desktop="/assets/demos/move-leave-desktop.mp4" data-src-mobile="/assets/demos/move-leave-mobile.mp4" aria-label="Leaving a task: another capsule becomes active and the one you left is saved."></video>
+              <video data-move-shot="2" class="move-shot" width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/move-return.png" data-src-desktop="/assets/demos/move-return-desktop.mp4" data-src-mobile="/assets/demos/move-return-mobile.mp4" aria-label="Returning to a task: the restore sheet reports each tool as restored, waiting or skipped."></video>
+            </div>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== what a capsule holds ============================================
+       Four things, four cells, each showing the part of the real app that
+       holds it. -->
+  <section class="holds" id="pieces" aria-labelledby="holds-title">
+    <div class="rail">
+      <div class="holds__head" data-reveal>
+        <h2 class="h2" id="holds-title">A capsule is the whole surface of a task.</h2>
+        <p class="lede">Not the code. The arrangement around it: which files, which terminals, which tabs, which branch.</p>
+      </div>
+
+      <div class="holds__grid">
+        <article class="cell cell--wide" data-reveal>
+          <div class="cell__text">
+            <h3>The files</h3>
+            <p>Every open file and its order, plus the workspace folder they belong to.</p>
+          </div>
+          <div class="cell__art" data-product-media="cell-files">
+            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-files.png" data-src-desktop="/assets/demos/cell-files-desktop.mp4" data-src-mobile="/assets/demos/cell-files-mobile.mp4" aria-label="The capsule's files card in the real app, in focus."></video>
+            <button class="cell__play media-play media-play--small" type="button" hidden data-media-play data-label-play="Play" data-label-pause="Pause">Play</button>
+          </div>
+        </article>
+
+        <article class="cell cell--ember" data-reveal data-reveal-delay="80">
+          <div class="cell__text">
+            <h3>The terminals</h3>
+            <p>Each one's working directory. Never its output.</p>
+          </div>
+          <div class="cell__art" data-product-media="cell-terminals">
+            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-terminals.png" data-src-desktop="/assets/demos/cell-terminals-desktop.mp4" data-src-mobile="/assets/demos/cell-terminals-mobile.mp4" aria-label="The capsule's terminals, counted in the real app, in focus."></video>
+            <button class="cell__play media-play media-play--small" type="button" hidden data-media-play data-label-play="Play" data-label-pause="Pause">Play</button>
+          </div>
+        </article>
+
+        <article class="cell cell--paper paper" data-reveal>
+          <div class="cell__text">
+            <h3>The tabs</h3>
+            <p>URLs and titles from the browser you approved. Nothing on the page.</p>
+          </div>
+          <div class="cell__art" data-product-media="cell-tabs">
+            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-tabs.png" data-src-desktop="/assets/demos/cell-tabs-desktop.mp4" data-src-mobile="/assets/demos/cell-tabs-mobile.mp4" aria-label="The capsule's tabs list in the real app, in focus."></video>
+            <button class="cell__play media-play media-play--small" type="button" hidden data-media-play data-label-play="Play" data-label-pause="Pause">Play</button>
+          </div>
+        </article>
+
+        <article class="cell cell--wide" data-reveal data-reveal-delay="80">
+          <div class="cell__text">
+            <h3>The branch</h3>
+            <p>Restored first, and never forced. A dirty tree stops the switch and says so.</p>
+          </div>
+          <div class="cell__art" data-product-media="cell-branch">
+            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-branch.png" data-src-desktop="/assets/demos/cell-branch-desktop.mp4" data-src-mobile="/assets/demos/cell-branch-mobile.mp4" aria-label="The project's branch row in the real app, in focus."></video>
+            <button class="cell__play media-play media-play--small" type="button" hidden data-media-play data-label-play="Play" data-label-pause="Pause">Play</button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== focus mode ======================================================
+       The one stateful control on the page. It ships on, with a receipt that
+       has something in it, so a scriptless visitor sees the interesting half. -->
+  <section class="focus" id="focus" aria-labelledby="focus-title">
+    <div class="rail focus__grid">
+      <div class="focus__copy" data-reveal>
+        <h2 class="h2" id="focus-title">Resuming can also put away what isn't in the task.</h2>
+        <p class="lede">
+          Focus mode closes what the capsule didn't capture, one item at a time,
+          only after a clean restore. Unsaved files, running terminals and
+          anything pinned are kept, and the receipt says why.
+        </p>
+        <div class="switchrow">
+          <button class="switch" type="button" role="switch" aria-checked="true" data-focus-toggle aria-labelledby="focus-switch-label">
+            <span class="switch__knob" aria-hidden="true"></span>
+          </button>
+          <span class="switch__label" id="focus-switch-label" data-focus-label>focus mode on</span>
+        </div>
+      </div>
+
+      <div class="receipt" data-reveal data-reveal-delay="100" aria-live="polite">
+        <div class="receipt__tally">
+          <div class="tally"><b data-tally="back">12</b><span>brought back</span></div>
+          <div class="tally"><b data-tally="away">6</b><span>put away</span></div>
+          <div class="tally"><b data-tally="kept">4</b><span>kept</span></div>
+        </div>
+        <p class="receipt__head" data-away-head>6 tabs closed · 4 kept</p>
+        <ul class="receipt__list" data-away-list>
+          <li><b>2</b> tabs kept <i>pinned in the browser</i></li>
+          <li><b>1</b> file kept <i>unsaved changes</i></li>
+          <li><b>1</b> terminal left running <i>npm run dev</i></li>
+        </ul>
+        <p class="receipt__foot" data-away-foot>Closed items are held in the task you left. Resume it to get them back.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== the night chapter ===============================================
+       Local-first, stated flat. The mark's ember is the only light. -->
+  <section class="local" id="local" aria-labelledby="local-title">
+    <div class="local__glow" aria-hidden="true"></div>
+    <div class="rail local__grid">
+      <div class="local__head">
+        <h2 class="h2" id="local-title">There is no account, because there is no server.</h2>
+        <p class="lede">
+          Capsules are files on your disk. Rabta has no backend to send them
+          to, no telemetry, and nothing to sign in to. Delete the app and the
+          data goes with it.
+        </p>
+        <p class="local__more"><a class="link link--arrow" href="/privacy/">Read the full privacy policy</a></p>
+      </div>
+      <div class="local__mark" aria-hidden="true">
+        <svg class="mark" data-mark="draw" viewBox="0 0 100 100" focusable="false">
+          <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
+            <path class="stem" d="M25 22V84" />
+            <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
+            <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="rail local__ledger">
+      <div data-reveal>
+        <h3>On your disk</h3>
+        <p>Plain files under Application Support. Readable, movable, deletable.</p>
+      </div>
+      <div data-reveal data-reveal-delay="60">
+        <h3>Pointers, not contents</h3>
+        <p>Paths and URLs. Rabta never reads what is inside your files.</p>
+      </div>
+      <div data-reveal data-reveal-delay="120">
+        <h3>No network calls</h3>
+        <p>Nothing on launch and nothing on a timer. No analytics, no update ping.</p>
+      </div>
+      <div data-reveal data-reveal-delay="180">
+        <h3>Permissions you grant</h3>
+        <p>The editor and browser extensions, each installed and revoked by you.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== the close =======================================================
+       Every number here is the artifact's own: 5.5 MB, macOS 11+, Apple
+       silicon only, no Intel build, MIT, signed and notarized. -->
+  <section class="close" id="download" aria-labelledby="download-title">
+    <div class="rail" data-reveal>
+      <h2 class="h1" id="download-title">Stop rebuilding the same workspace.</h2>
+      <p class="lede">Free and MIT-licensed. Runs entirely on your Mac.</p>
+
+      <div class="close__actions">
+        <a class="button button--primary button--large" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">
+          Download Rabta 0.1.0
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.6v9.2M3.2 7.4 7 11.2l3.8-3.8M1.8 12.6h10.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </a>
+        <a class="button button--large" href="/setup/">Setup guide</a>
+      </div>
+
+      <ul class="close__facts">
+        <li>5.5 MB</li>
+        <li>macOS 11+</li>
+        <li>Apple Silicon only, no Intel build</li>
+        <li>Signed and notarized</li>
+      </ul>
+
+      <p class="close__links">
+        <a class="link" href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">GitHub release</a>
+        <a class="link" href="/setup/#verify">Verify the download</a>
+        <a class="link" href="/changelog/">What's in it</a>
+      </p>
+    </div>
+  </section>
+</Base>
