@@ -1,29 +1,224 @@
-/* Rabta — the inner pages.
+/* Rabta — the inner pages, and the components every route shares with the
+ * homepage: the window, the page head, the band, the card, the question
+ * group, the pill, the channel.
  *
- * doc.css gives a page a *document*: a measure, a scale, a table, a note. That
- * is the right shape for /privacy/ and /setup/, which are read like reference
- * material. It is the wrong shape for /why/, /faq/, /roadmap/, /changelog/ and
- * /contact/, which are read like the homepage — scanned, not studied.
- *
- * Those five shipped as documents because the content was written first and
- * the layout was whatever `.prose` did with it. This file is the layout the
- * redesign specifies: a band that names itself before it speaks, cards that
- * carry an index, and a list whose items are claims rather than paragraphs.
- *
- * Everything here composes with doc.css rather than replacing it — a page can
- * open with a `.band` and still drop into `.prose` where genuinely long-form
- * text belongs. /setup/ and /privacy/ do exactly that.
+ * doc.css gives a page a document (a measure, a heading rhythm, code you can
+ * copy). This file gives a page a layout: a head that says the thing, bands
+ * that name themselves, cards that carry the content. A page can open with
+ * a band and drop into `.prose` where long-form text belongs; /setup/ and
+ * /privacy/ do exactly that.
  */
 
 @layer section {
-  /* ---- the band -----------------------------------------------------------
-     One section. An eyebrow naming it, a heading saying the thing, and
-     optionally a line of consequence underneath. Same two-column axis as
-     `.railed` in doc.css, so a band and a prose block sit on the same
-     vertical line and the page reads as one column of content with a label
-     track beside it. */
+  /* ---- the window ----------------------------------------------------------
+     The real app in a Mac window. Flat, never in perspective. The frame is
+     what says "this is a window on your own machine" rather than a picture
+     of software. */
+  .window {
+    position: relative;
+    border-radius: 14px;
+    background: var(--ink-1);
+    box-shadow:
+      0 0 0 1px var(--hairline-strong),
+      0 40px 80px -30px var(--shadow-deep),
+      0 12px 30px -16px var(--shadow-tint);
+    overflow: hidden;
+  }
+
+  .window__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    height: 40px;
+    padding: 0 14px;
+    background: var(--ink-0);
+    border-bottom: 1px solid rgba(245, 245, 247, 0.08);
+  }
+
+  .window__lights {
+    display: inline-flex;
+    gap: 8px;
+  }
+
+  .window__lights span {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  /* macOS's own window controls, at their system values: a quotation, not a
+     palette addition. Used exactly once, here. */
+  .window__lights span:nth-child(1) {
+    background: #ff5f57;
+  }
+
+  .window__lights span:nth-child(2) {
+    background: #febc2e;
+  }
+
+  .window__lights span:nth-child(3) {
+    background: #28c840;
+  }
+
+  .window__title {
+    flex: 1;
+    text-align: center;
+    padding-right: 52px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #7c808b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .window__stage {
+    position: relative;
+    display: grid;
+    grid-template-areas: "stage";
+    aspect-ratio: 16 / 10;
+    background: var(--ink-1);
+  }
+
+  .window__stage--video {
+    aspect-ratio: 16 / 9;
+  }
+
+  .window__stage > * {
+    grid-area: stage;
+  }
+
+  .window__stage img,
+  .window__video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .window--shot {
+    margin-top: var(--s7);
+  }
+
+  .window--shot figcaption {
+    padding: var(--s3) 0 0;
+  }
+
+  figure.window > figcaption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: translateY(100%);
+    padding-top: var(--s3);
+    font-size: var(--fs-caption);
+    color: var(--text-faint);
+    text-align: center;
+  }
+
+  /* The demo's controls. Both ship `hidden` and js/media.js reveals them, so
+     a scriptless visitor gets the poster and no dead controls. */
+  /* Bottom-left of the stage, out of the footage's way: the lens in every
+     loop sits at or above centre, and a control over it would fight it. */
+  .media-play {
+    z-index: 2;
+    align-self: end;
+    justify-self: start;
+    margin: 0 0 16px 16px;
+    min-height: 44px;
+    padding: 12px 20px;
+    border-radius: var(--pill);
+    background: rgba(10, 11, 14, 0.72);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    color: #f5f5f7;
+    font-size: 14px;
+    font-weight: 560;
+    box-shadow: inset 0 0 0 1px rgba(245, 245, 247, 0.18);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-hover) var(--ease),
+      transform var(--dur-hover) var(--ease);
+  }
+
+  .media-play:hover,
+  .media-play:focus-visible {
+    background: rgba(10, 11, 14, 0.9);
+    transform: translateY(-1px);
+  }
+
+  .media-play:disabled,
+  .media-play[hidden] {
+    display: none;
+  }
+
+  .media-play--small {
+    min-height: 32px;
+    padding: 8px 12px;
+    font-size: 12px;
+    z-index: 3;
+  }
+
+  .media-track {
+    z-index: 2;
+    align-self: end;
+    height: 2px;
+    background: rgba(245, 245, 247, 0.14);
+  }
+
+  .media-track[hidden] {
+    display: none;
+  }
+
+  .media-track span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--ember);
+  }
+
+  /* ---- the page head ---------------------------------------------------------
+     Every inner page opens the same way: a small label, the claim, a lede,
+     and one line of metadata. Left-aligned, on the rail. */
+  .page-head {
+    padding-top: clamp(40px, 6vw, 80px);
+    padding-bottom: var(--s8);
+  }
+
+  .page-head__label {
+    margin-bottom: var(--s4);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--accent-text);
+  }
+
+  .page-head h1 {
+    max-width: 18ch;
+    font-size: var(--fs-h1);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: var(--track-h1);
+    color: var(--text);
+    text-wrap: balance;
+  }
+
+  .page-head .lede {
+    max-width: 58ch;
+    margin-top: var(--s5);
+  }
+
+  .page-head .mono,
+  .page-head__meta {
+    margin-top: var(--s5);
+    font-family: var(--sans);
+    font-size: var(--fs-caption);
+    color: var(--text-faint);
+  }
+
+  /* ---- the band ---------------------------------------------------------------
+     One section: a label naming it, a heading saying the thing, optionally a
+     line of consequence, then cards or question groups. */
   .band {
-    padding-block: var(--section-standard);
+    padding-block: var(--section-tight);
     border-top: 1px solid var(--hairline);
   }
 
@@ -32,41 +227,43 @@
   }
 
   .band--close {
-    padding-block: var(--section-close);
+    padding-block: var(--s9);
   }
 
-  /* One column, left-aligned at the rail edge.
-     This was a two-column grid with the eyebrow parked in a 96px axis track —
-     borrowed from /privacy/, which is a reference document, and wrong for
-     these five. The design puts the eyebrow directly above the heading it
-     names, so the two read as one unit and every section starts on the same
-     left edge as the page title. An axis track put a label in one column and
-     its own heading in another, which is a table of contents, not a section
-     header. */
   .band__inner {
     width: min(100% - var(--gutter) * 2, var(--rail));
     margin-inline: auto;
   }
 
-  /* A label, not a heading — screen readers get the h2 below it. */
   .band__label {
-    margin-bottom: 14px;
-    color: var(--orange);
-    font-family: var(--mono);
-    font-size: 11.5px;
-    font-weight: 500;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    line-height: 1.4;
+    margin-bottom: var(--s3);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--text-faint);
   }
 
-  /* Where a section's heading and its prose are peers rather than a title and
-     its body — /why/'s opening argument — they take a column each. The heading
-     stops being a lid on the text and starts being the claim the text answers. */
+  .band__body > h2 {
+    max-width: 22ch;
+    font-size: var(--fs-h2);
+    font-weight: 600;
+    line-height: 1.06;
+    letter-spacing: var(--track-h2);
+    color: var(--text);
+    text-wrap: balance;
+  }
+
+  .band__body > h2 + p {
+    max-width: 62ch;
+    margin-top: var(--s4);
+    font-size: var(--fs-body);
+    line-height: 1.6;
+    color: var(--text-mute);
+  }
+
   .band--split .band__body {
     display: grid;
-    grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
-    gap: var(--gutter);
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: var(--s8);
     align-items: start;
   }
 
@@ -79,833 +276,576 @@
   }
 
   .band--split .band__prose > p {
-    max-width: 58ch;
-    color: var(--cool-soft);
-    font-size: 16.5px;
-    line-height: 1.62;
+    max-width: 56ch;
+    color: var(--text-mute);
+    line-height: 1.6;
   }
 
-  /* Media inside a split band spans both columns — it is evidence for the
-     whole section, not for the right-hand paragraph. */
   .band--split .band__body > figure {
     grid-column: 1 / -1;
   }
 
-  .band__body > h2 {
-    max-width: 20ch;
-    color: var(--ivory);
-    font-size: clamp(32px, 3.4vw, 44px);
-    font-weight: 560;
-    line-height: 1.06;
-    letter-spacing: -0.04em;
-    text-wrap: balance;
-  }
-
-  .band__body > h2 + p {
-    max-width: 62ch;
-    margin-top: var(--s5);
-    color: var(--cool-soft);
-    font-size: 17px;
-    line-height: 1.62;
-    letter-spacing: var(--track-17);
-  }
-
-  /* ---- the card ------------------------------------------------------------
-     Shared by the numbered commitments, the roadmap stages, the contact
-     channels and the changelog's feature groups. One surface, one hairline,
-     one hover that lifts by a single pixel — the amount that reads as
-     responsive without reading as a button. */
+  /* ---- the card -----------------------------------------------------------------
+     Shared by the commitments, the roadmap stages, the contact channels and
+     the changelog's groups. One surface, no border, a rise on hover only
+     when the whole card is a link. */
   .card {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
     padding: var(--s6);
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--r4);
-    background: linear-gradient(180deg, rgba(23, 50, 57, 0.5), rgba(23, 50, 57, 0.22));
-    transition:
-      border-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
-      transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .card:hover {
-    border-color: rgba(243, 240, 232, 0.24);
-    transform: translateY(-2px);
-  }
-
-  /* The category, above the action. The design leads each channel card with
-     what kind of message it takes and titles it with what you do — so the
-     heading is a verb and the eyebrow is the sorting. */
-  .card__eyebrow {
-    margin-bottom: 10px;
-    color: var(--cool-mid);
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
+    border-radius: var(--r-xl);
+    background: var(--bg-alt);
+    color: var(--text);
+    text-decoration: none;
   }
 
   .card h3 {
-    color: var(--ivory);
-    font-size: 19px;
-    font-weight: 540;
-    line-height: 1.3;
-    letter-spacing: var(--track-21);
+    font-size: var(--fs-h3);
+    font-weight: 560;
+    line-height: 1.2;
+    letter-spacing: var(--track-h3);
+    text-wrap: balance;
   }
 
-  .card p {
-    margin-top: var(--s3);
-    color: var(--cool-soft);
-    font-size: 15px;
-    line-height: 1.62;
-    letter-spacing: var(--track-15);
+  .card p,
+  .card li {
+    color: var(--text-mute);
+    font-size: var(--fs-small);
+    line-height: 1.55;
   }
 
-  .card p + p {
-    margin-top: var(--s4);
-  }
-
-  .card code {
-    font-family: var(--mono);
-    font-size: 0.92em;
-    color: var(--cool-field);
-  }
-
-  .card a {
-    color: var(--ivory);
-    text-decoration: underline;
-    text-decoration-color: rgba(243, 240, 232, 0.32);
-    text-underline-offset: 3px;
-  }
-
-  .card a:hover,
-  .card a:focus-visible {
-    text-decoration-color: var(--orange);
-  }
-
-  /* ---- a product shot on a document page -----------------------------------
-     The homepage has its own bento treatment for these. On an inner page a
-     shot is evidence for the paragraph above it, so it takes the same frame as
-     a media slot — same hairline, same radius — and a caption that says what
-     the reader is looking at rather than repeating the alt text. */
-  .shot {
-    margin-top: var(--s8);
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--r4);
-    overflow: hidden;
-    background: var(--cool-panel);
-  }
-
-  .shot {
-    position: relative;
-  }
-
-  .shot img {
-    display: block;
-    width: 100%;
-    height: auto;
-  }
-
-  /* Same fade the homepage's hero window uses, for the same reason: the shot
-     should settle into its frame rather than end at a line. Kept on a
-     pseudo-element so the image itself stays untouched — a mask here would
-     also eat the caption rule below it. */
-  .shot picture {
-    position: relative;
-    display: block;
-  }
-
-  .shot picture::after {
-    content: "";
-    position: absolute;
-    inset: auto 0 0 0;
-    height: 28%;
-    pointer-events: none;
-    background: linear-gradient(to bottom, transparent, rgba(4, 12, 13, 0.55));
-  }
-
-  .shot figcaption {
-    padding: 14px var(--s5);
-    border-top: 1px solid var(--hairline);
-    color: var(--cool-mid);
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: var(--track-mono);
-  }
-
-  /* A closing aside under a band's content — the source-check note on /why/,
-     the "items move between these groups" line on /roadmap/. */
-  .foot-note {
-    margin-top: var(--s7);
-    padding-top: var(--s5);
-    border-top: 1px solid var(--hairline);
-  }
-
-  /* ---- numbered commitments ------------------------------------------------
-     The index is decorative — it says "three of these", which the layout
-     already says. `aria-hidden` keeps it out of the accessible name so the
-     heading reads as itself. */
-  .grid3 {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: var(--gap);
-    margin-top: var(--s8);
-  }
-
-  /* Explicitly two, not `auto-fit`. With auto-fit and a 320px floor the rail
-     is wide enough for three tracks, so four cards became 3 + 1 — a widowed
-     card on its own row, which reads as a mistake rather than a group. These
-     sets are written in pairs; the layout should say so. */
-  .grid2 {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--gap);
-    margin-top: var(--s8);
-  }
-
-  @media (max-width: 780px) {
-    .grid2 {
-      grid-template-columns: minmax(0, 1fr);
-    }
+  .card ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding-left: 1.1em;
+    list-style: disc;
   }
 
   .card__index {
-    display: block;
-    margin-bottom: var(--s5);
-    color: var(--orange);
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: var(--track-mono);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--accent-text);
+    font-variant-numeric: tabular-nums;
   }
 
-  /* ---- the denial list -----------------------------------------------------
-     Five things the product will not do. Each is a claim and a reason, so it
-     is a definition list rather than a stack of cards: the weight belongs on
-     the claim, and a card each would give five equal boxes where the page
-     wants one continuous read. */
+  .card__eyebrow {
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--text-faint);
+  }
+
+  .grid2,
+  .grid3 {
+    display: grid;
+    gap: var(--s4);
+    margin-top: var(--s7);
+  }
+
+  .grid2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* A card that is a link rises to meet the cursor and shows where it goes. */
+  a.card {
+    transition:
+      transform var(--dur-state) var(--ease),
+      box-shadow var(--dur-state) var(--ease),
+      background-color var(--dur-state) var(--ease);
+  }
+
+  a.card:hover,
+  a.card:focus-visible {
+    transform: translateY(-2px);
+    background: var(--field);
+    box-shadow: 0 0 0 1px var(--hairline-strong), 0 30px 60px -30px var(--shadow-deep);
+  }
+
+  .channel {
+    justify-content: flex-start;
+  }
+
+  .channel__action {
+    margin-top: auto;
+    padding-top: var(--s3);
+    font-size: var(--fs-small);
+    font-weight: 560;
+    color: var(--text);
+  }
+
+  .channel__arrow {
+    display: inline-block;
+    transition: transform var(--dur-state) var(--ease);
+  }
+
+  a.card:hover .channel__arrow,
+  a.card:focus-visible .channel__arrow {
+    transform: translateX(4px);
+  }
+
+  .channel__where {
+    display: none;
+  }
+
+  /* ---- the question group ---------------------------------------------------- */
+  .qa {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s7) var(--s8);
+    margin-top: var(--s7);
+  }
+
+  .qa h3 {
+    font-size: 19px;
+    font-weight: 560;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+    color: var(--text);
+  }
+
+  .qa p {
+    margin-top: var(--s2);
+    color: var(--text-mute);
+    line-height: 1.6;
+    font-size: var(--fs-small);
+  }
+
+  /* ---- the pill ------------------------------------------------------------------ */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: var(--pill);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text-mute);
+    background: var(--field);
+  }
+
+  .pill--now {
+    color: var(--on-accent);
+    background: var(--ember);
+  }
+
+  .release__head {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+  }
+
+  .release__head h2 {
+    font-size: var(--fs-h2);
+    font-weight: 600;
+    line-height: 1.06;
+    letter-spacing: var(--track-h2);
+    color: var(--text);
+  }
+
+  .release__meta {
+    max-width: 60ch;
+    margin-top: var(--s4);
+    color: var(--text-mute);
+  }
+
   .denials {
-    margin-top: var(--s8);
-    border-top: 1px solid var(--hairline);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 var(--s8);
+    margin-top: var(--s7);
+    border-top: 1px solid var(--hairline-strong);
   }
 
   .denials > div {
-    display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    gap: var(--gutter);
-    padding-block: var(--s6);
+    padding: var(--s5) 0;
     border-bottom: 1px solid var(--hairline);
   }
 
   .denials dt {
-    color: var(--ivory);
-    font-size: 19px;
-    font-weight: 540;
-    line-height: 1.32;
-    letter-spacing: var(--track-21);
+    font-size: var(--fs-h3);
+    font-weight: 560;
+    line-height: 1.2;
+    letter-spacing: var(--track-h3);
+    color: var(--text);
   }
 
   .denials dd {
-    margin: 0;
-    color: var(--cool-soft);
-    font-size: 15px;
-    line-height: 1.66;
-    letter-spacing: var(--track-15);
+    margin-top: var(--s2);
+    color: var(--text-mute);
+    line-height: 1.55;
+    max-width: 44ch;
   }
 
-  .denials dd code {
-    font-family: var(--mono);
-    font-size: 0.92em;
-    color: var(--cool-field);
-  }
-
-  /* ---- question groups -----------------------------------------------------
-     The FAQ's answers are short. A `<details>` would hide four-line answers
-     behind a click and make the page unsearchable by eye; these stay open and
-     grouped, which is what makes the whole page scannable in one pass. */
-  .qa {
-    margin-top: var(--s7);
-    border-top: 1px solid var(--hairline);
-  }
-
-  .qa > div {
-    display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    gap: var(--gutter);
-    padding-block: var(--s6);
-    border-bottom: 1px solid var(--hairline);
-  }
-
-  .qa h3 {
-    color: var(--ivory);
-    font-size: 17px;
-    font-weight: 540;
-    line-height: 1.4;
-    letter-spacing: var(--track-17);
-  }
-
-  .qa p {
-    color: var(--cool-soft);
-    font-size: 15px;
-    line-height: 1.68;
-    letter-spacing: var(--track-15);
-  }
-
-  .qa p + p {
-    margin-top: var(--s4);
-  }
-
-  .qa code {
-    font-family: var(--mono);
-    font-size: 0.92em;
-    color: var(--cool-field);
-  }
-
-  .qa a {
-    color: var(--ivory);
-    text-decoration: underline;
-    text-decoration-color: rgba(243, 240, 232, 0.32);
-    text-underline-offset: 3px;
-  }
-
-  .qa a:hover,
-  .qa a:focus-visible {
-    text-decoration-color: var(--orange);
-  }
-
-  /* ---- status pill ---------------------------------------------------------
-     Used by the roadmap's three stages and the changelog's current release.
-     The orange variant is reserved for "this is the one you have" — if every
-     pill were orange the colour would stop meaning anything. */
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--s2);
-    padding: 3px 10px;
-    border: 1px solid var(--hairline-strong);
-    border-radius: 999px;
-    color: var(--cool-mid);
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: var(--track-mono);
-    text-transform: uppercase;
-  }
-
-  .pill--now {
-    border-color: rgba(255, 107, 44, 0.42);
-    color: var(--orange);
-  }
-
-  /* ---- release ------------------------------------------------------------
-     The changelog's version block. The heading row carries the number and the
-     pill; the groups below are what that number contained. */
-  .release__head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: var(--s4);
-  }
-
-  .release__head h2 {
-    color: var(--ivory);
-    font-size: clamp(30px, 3vw, 38px);
-    font-weight: 560;
-    line-height: 1.06;
-    letter-spacing: -0.04em;
-  }
-
-  .release__meta {
+  .foot-note {
     max-width: 62ch;
-    margin-top: var(--s4);
-    color: var(--cool-soft);
-    font-size: 16px;
-    line-height: 1.62;
+    margin-top: var(--s7);
+    font-size: var(--fs-caption);
+    line-height: 1.6;
+    color: var(--text-faint);
   }
 
-  .card ul {
-    margin-top: var(--s3);
-    padding-left: 0;
-    list-style: none;
-  }
-
-  .card li {
-    position: relative;
-    padding-left: var(--s5);
-    color: var(--cool-soft);
-    font-size: 15px;
-    line-height: 1.62;
-    letter-spacing: var(--track-15);
-  }
-
-  .card li + li {
-    margin-top: var(--s3);
-  }
-
-  /* A dash rather than a bullet: these are clauses of one statement, not an
-     inventory. */
-  .card li::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0.72em;
-    width: 10px;
-    height: 1px;
-    background: rgba(169, 190, 194, 0.5);
-  }
-
-  /* ---- contact channels ----------------------------------------------------
-     Each is a whole-card link. The card is the target rather than the label
-     inside it, so the click area matches what the eye reads as one thing. */
-  .channel {
-    display: block;
-  }
-
-  .channel__action {
-    display: flex;
-    align-items: center;
-    gap: var(--s2);
-    margin-top: var(--s5);
-    color: var(--orange);
-    font-family: var(--mono);
-    font-size: 13px;
-    letter-spacing: var(--track-mono);
-  }
-
-  .channel__arrow {
-    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .channel:hover .channel__arrow {
-    transform: translateX(3px);
-  }
-
-  .channel__where {
-    margin-top: var(--s3);
-    color: var(--cool-mid);
-    font-family: var(--mono);
+  .foot-note code {
     font-size: 12px;
-    letter-spacing: var(--track-mono);
-    overflow-wrap: anywhere;
   }
 
-  /* An anchor styled as a card must not also inherit the underline the
-     `.card a` rule gives links *inside* one. */
-  a.card,
-  a.card:hover,
-  a.card:focus-visible {
-    text-decoration: none;
-  }
-
-  /* ---- the closing call to action ------------------------------------------
-     `.cta` and `.hero__actions` were being used on /why/ and /404.html with no
-     rule anywhere that matched them: `.hero__actions` is defined in
-     landing.css, which document routes deliberately never load, and `.cta` was
-     never defined at all. Both rendered as bare block elements — a heading, two
-     links and a line of text stacked with default margins at the end of an
-     otherwise composed page.
-
-     Centred rather than railed, because this is the page ending rather than
-     another section of it. */
+  /* ---- the closing statement on an inner page --------------------------------- */
   .cta {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-block: var(--section-standard);
-    border-top: 1px solid var(--hairline);
+    padding-top: var(--section-tight);
     text-align: center;
   }
 
   .cta h2 {
     max-width: 18ch;
-    color: var(--ivory);
-    font-size: clamp(34px, 3.6vw, 46px);
-    font-weight: 560;
-    line-height: 1.06;
-    letter-spacing: -0.042em;
+    margin-inline: auto;
+    font-size: var(--fs-h1);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: var(--track-h1);
+    color: var(--text);
     text-wrap: balance;
   }
 
-  /* `.hero__actions` is landing.css's class and the markup here uses it. Rather
-     than rename it on two pages, it gets a rule scoped inside `.cta` — where
-     landing.css is guaranteed not to be loaded, so there is nothing to
-     conflict with. `.cta__actions` deliberately stays doc.css's, which 404.html
-     already uses left-aligned. */
-  .cta .hero__actions {
+  .cta__actions {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
     justify-content: center;
-    gap: var(--s5);
-    margin-top: var(--s7);
-  }
-
-  .cta > .mono {
-    margin-top: var(--s5);
-    color: var(--cool-mid);
-  }
-
-  @media (max-width: 599px) {
-    .cta .hero__actions {
-      flex-direction: column;
-      align-items: stretch;
-      width: 100%;
-      gap: var(--s3);
-    }
-
-    .cta .hero__actions .button {
-      justify-content: center;
-    }
-  }
-
-  /* ---- narrow --------------------------------------------------------------
-     The axis track collapses first: a 96px label column beside a 40ch measure
-     is a label column with a paragraph trapped next to it. */
-  @media (max-width: 900px) {
-    .band {
-      padding-block: var(--section-close);
-    }
-
-    .band--split .band__body {
-      grid-template-columns: minmax(0, 1fr);
-      gap: var(--s5);
-    }
-
-    .denials > div,
-    .qa > div {
-      grid-template-columns: minmax(0, 1fr);
-      gap: var(--s3);
-    }
-  }
-}
-
-@layer section {
-  /* ---- the document grid --------------------------------------------------
-     /setup/ and /privacy/ are the two pages people read *while doing
-     something*: installing, or checking what is stored before they trust the
-     app. They are the only pages long enough to get lost in — eleven and twelve
-     sections — and the only ones where "where am I, and what is left" is a
-     real question.
-
-     So they get what the comp gives them: a sidebar that stays put, numbered
-     sections, and a marker beside each heading. The other five pages are read
-     top to bottom in one pass and would only be cluttered by it.
-
-     This replaces a boxed table of contents that sat at the top and scrolled
-     away — useful once, then gone exactly when it starts mattering. */
-  .doc-grid {
-    display: grid;
-    grid-template-columns: 210px minmax(0, 1fr);
-    gap: 64px;
-    width: min(100% - var(--gutter) * 2, var(--rail));
-    margin-inline: auto;
-    align-items: start;
-  }
-
-  .doc-nav {
-    position: sticky;
-    top: calc(var(--nav-h) + 32px);
-    /* Its own scroller: twelve entries plus the nav can exceed a short
-       viewport, and a sidebar you cannot reach the bottom of is worse than no
-       sidebar. */
-    max-height: calc(100vh - var(--nav-h) - 64px);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-
-  .doc-nav > p {
-    margin-bottom: 16px;
-    color: var(--cool-mid);
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-  }
-
-  .doc-nav ol {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    counter-reset: doc-nav;
-  }
-
-  .doc-nav a {
-    display: flex;
-    gap: 10px;
-    padding: 5px 8px 5px 0;
-    color: var(--cool-soft);
-    font-size: 13.5px;
-    line-height: 1.45;
-    text-decoration: none;
-    border-radius: var(--r1);
-  }
-
-  /* The number is generated rather than typed, so re-ordering a section cannot
-     leave the sidebar counting wrong. */
-  .doc-nav li {
-    counter-increment: doc-nav;
-  }
-
-  .doc-nav a::before {
-    content: counter(doc-nav);
-    flex: none;
-    min-width: 1.4em;
-    color: var(--cool-mid);
-    font-family: var(--mono);
-    font-size: 11.5px;
-    text-align: right;
-  }
-
-  .doc-nav a:hover,
-  .doc-nav a:focus-visible {
-    color: var(--ivory);
-  }
-
-  .doc-nav a:hover::before,
-  .doc-nav a:focus-visible::before {
-    color: var(--orange);
-  }
-
-  /* ---- numbered sections ---------------------------------------------------
-     The marker is generated from the same counter, so the heading text no
-     longer carries "1." / "2." by hand — which is how /setup/'s prose and its
-     table of contents had drifted out of step before. */
-  .doc-body {
-    counter-reset: doc-section;
-  }
-
-  .doc-body > h2 {
-    counter-increment: doc-section;
-    margin-top: var(--s11);
-    color: var(--ivory);
-    font-size: clamp(26px, 2.6vw, 32px);
-    font-weight: 560;
-    line-height: 1.12;
-    letter-spacing: -0.03em;
-    scroll-margin-top: calc(var(--nav-h) + 32px);
-  }
-
-  .doc-body > h2:first-child {
-    margin-top: 0;
-  }
-
-  .doc-body > h2::before {
-    content: "0" counter(doc-section);
-    display: block;
-    margin-bottom: 12px;
-    color: var(--orange);
-    font-family: var(--mono);
-    font-size: 11.5px;
-    font-weight: 500;
-    letter-spacing: 0.09em;
-  }
-
-  /* Past nine the leading zero is wrong. */
-  .doc-body > h2:nth-of-type(n + 10)::before {
-    content: counter(doc-section);
-  }
-
-  /* ---- the page-head meta line --------------------------------------------
-     What the page contains, before you commit to reading it. */
-  .page-head__meta {
-    margin-top: var(--s5);
-    color: var(--cool-mid);
-    font-family: var(--mono);
-    font-size: 11.5px;
-    letter-spacing: var(--track-mono);
-  }
-
-  @media (max-width: 900px) {
-    .doc-grid {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 40px;
-    }
-
-    /* Sticky is meaningless once it is a block at the top of the page, and a
-       210px column of links above the content is a wall. It collapses to a
-       plain index. */
-    .doc-nav {
-      position: static;
-      max-height: none;
-      padding-bottom: 28px;
-      border-bottom: 1px solid var(--hairline);
-    }
-
-    .doc-nav ol {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 2px 20px;
-    }
-
-    .doc-body > h2 {
-      margin-top: var(--s10);
-    }
-  }
-}
-
-@layer section {
-  /* ---- key / value ---------------------------------------------------------
-     The signing identifiers on /setup/. They were a table, which is the right
-     semantics and the wrong affordance: every one of these is a value you
-     compare against what `codesign` just printed, and a table cell is
-     something you drag a selection across and usually get wrong.
-
-     Each value is its own selectable token on its own row. Still a <dl>, so a
-     screen reader hears the pairing. */
-  .kv {
+    gap: var(--s3);
     margin-top: var(--s6);
+  }
+
+  .cta .mono {
+    margin-top: var(--s5);
+    font-size: var(--fs-caption);
+    color: var(--text-faint);
+    font-family: var(--sans);
+  }
+
+  /* ---- /why/ and /brand/ ---------------------------------------------------------
+     The manifesto: statements big enough to be read from across the room. */
+  .statement {
+    padding-block: var(--section-tight);
     border-top: 1px solid var(--hairline);
   }
 
-  .kv > div {
+  .statement:first-of-type {
+    border-top: 0;
+  }
+
+  .statement__inner {
+    width: min(100% - var(--gutter) * 2, var(--rail));
+    margin-inline: auto;
+  }
+
+  .statement h2 {
+    max-width: 20ch;
+    font-size: var(--fs-h1);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: var(--track-h1);
+    color: var(--text);
+    text-wrap: balance;
+  }
+
+  .statement .lede {
+    max-width: 52ch;
+    margin-top: var(--s5);
+  }
+
+  /* The name, set as the two words it is. */
+  .name {
     display: grid;
-    grid-template-columns: 140px minmax(0, 1fr);
-    gap: var(--s5);
-    align-items: baseline;
-    padding-block: 14px;
-    border-bottom: 1px solid var(--hairline);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s8);
+    align-items: end;
+    margin-top: var(--s8);
   }
 
-  .kv dt {
-    color: var(--cool-mid);
+  .name__word {
+    font-size: clamp(64px, 9vw, 140px);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.045em;
+    color: var(--text);
+  }
+
+  .name__word--arabic {
+    font-family: "Geeza Pro", "Noto Naskh Arabic", "Arial", sans-serif;
+    font-weight: 700;
+    letter-spacing: 0;
+    direction: rtl;
+    text-align: right;
+  }
+
+  .name p {
+    margin-top: var(--s4);
+    color: var(--text-mute);
+    max-width: 30ch;
+  }
+
+  /* The three strokes, one per column, each drawn on its own mark. */
+  .strokes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s4);
+    margin-top: var(--s8);
+  }
+
+  .stroke {
+    padding: var(--s6);
+    border-radius: var(--r-xl);
+    background: var(--bg-alt);
+  }
+
+  .stroke .mark {
+    width: 96px;
+    height: 96px;
+    color: var(--text);
+    overflow: visible;
+  }
+
+  .stroke .mark path {
+    opacity: 0.16;
+  }
+
+  .stroke .mark .lit {
+    opacity: 1;
+  }
+
+  .stroke .mark .leg.lit {
+    stroke: var(--ember);
+  }
+
+  .stroke h3 {
+    margin-top: var(--s5);
+    font-size: var(--fs-h3);
+    font-weight: 560;
+    letter-spacing: var(--track-h3);
+    line-height: 1.2;
+    color: var(--text);
+  }
+
+  .stroke p {
+    margin-top: var(--s2);
+    color: var(--text-mute);
+    font-size: var(--fs-small);
+    line-height: 1.55;
+  }
+
+  /* The specimen: the living mark, large, with a replay control. */
+  .specimen {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s4);
+    margin-top: var(--s8);
+  }
+
+  .specimen__plate {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    border-radius: var(--r-xl);
+    background: var(--bg-alt);
+    color: var(--text);
+  }
+
+  .specimen__plate--paper {
+    background: var(--paper-0);
+  }
+
+  .specimen__plate .mark {
+    width: 52%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .specimen__plate .mark .leg {
+    stroke: var(--ember);
+  }
+
+  .specimen__replay {
+    position: absolute;
+    right: var(--s4);
+    bottom: var(--s4);
+  }
+
+  .specimen__plate--paper .button {
+    background: var(--paper-1);
+    color: #0e0f12;
+    box-shadow: inset 0 0 0 1px rgba(14, 15, 18, 0.14);
+  }
+
+  .specimen__plate--paper .button:hover,
+  .specimen__plate--paper .button:focus-visible {
+    background: var(--paper-2);
+  }
+
+  /* Colourways and downloads. */
+  .ways {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--s4);
+    margin-top: var(--s7);
+  }
+
+  .way {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s4);
+    padding: var(--s5);
+    border-radius: var(--r-l);
+    background: var(--bg-alt);
+  }
+
+  .way__plate {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--r-m);
+  }
+
+  .way__plate--paper {
+    background: var(--paper-0);
+  }
+
+  .way__plate--ink {
+    background: var(--ink-0);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+
+  .way__plate--ember {
+    background: var(--ember);
+  }
+
+  .way__plate img {
+    width: 44%;
+    height: auto;
+  }
+
+  .way__plate img.way__lockup {
+    width: 78%;
+  }
+
+  .way h3 {
+    font-size: var(--fs-small);
+    font-weight: 560;
+    color: var(--text);
+  }
+
+  .way .link {
+    font-size: var(--fs-caption);
+    width: fit-content;
+  }
+
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--s4);
+    margin-top: var(--s7);
+  }
+
+  .swatch {
+    border-radius: var(--r-l);
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+
+  .swatch__color {
+    aspect-ratio: 16 / 9;
+  }
+
+  .swatch__meta {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s3);
+    padding: var(--s3) var(--s4);
+    font-size: var(--fs-caption);
+    background: var(--bg-alt);
+  }
+
+  .swatch__meta b {
+    font-weight: 560;
+    color: var(--text);
+  }
+
+  .swatch__meta span {
     font-family: var(--mono);
-    font-size: 11.5px;
-    letter-spacing: var(--track-mono);
-    text-transform: uppercase;
+    color: var(--text-faint);
   }
 
-  .kv dd {
-    margin: 0;
-    min-width: 0;
+  /* The lockup construction diagram on /brand/. */
+  .construction {
+    margin-top: var(--s8);
+    padding: var(--s7);
+    border-radius: var(--r-xl);
+    background: var(--bg-alt);
   }
 
-  .kv code {
-    display: inline-block;
-    max-width: 100%;
-    padding: 4px 9px;
-    border: 1px solid var(--hairline);
-    border-radius: var(--r1);
-    background: rgba(4, 12, 13, 0.4);
-    color: var(--cool-field);
-    font-family: var(--mono);
-    font-size: 12.5px;
-    /* One click selects the whole identifier — the thing you actually want to
-       compare — rather than a word of it. */
-    user-select: all;
-    overflow-wrap: anywhere;
+  .construction img {
+    width: min(100%, 720px);
+    height: auto;
+    margin-inline: auto;
   }
 
-  @media (max-width: 640px) {
-    .kv > div {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 8px;
+  .construction p {
+    margin-top: var(--s5);
+    max-width: 60ch;
+    margin-inline: auto;
+    text-align: center;
+    font-size: var(--fs-small);
+    color: var(--text-mute);
+  }
+
+  /* ---- responsive ------------------------------------------------------------------ */
+  @media (max-width: 899px) {
+    .grid3,
+    .qa,
+    .denials,
+    .name,
+    .specimen {
+      grid-template-columns: 1fr;
+    }
+
+    .grid2 {
+      grid-template-columns: 1fr;
+    }
+
+    .band--split .band__body {
+      grid-template-columns: 1fr;
+      gap: var(--s5);
+    }
+
+    .strokes {
+      grid-template-columns: 1fr;
+    }
+
+    .ways,
+    .swatches {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .name__word--arabic {
+      text-align: left;
     }
   }
 }
 
+/* The brand page's swatches: every colour through its token, never a literal
+   outside tokens.css. */
 @layer section {
-  /* ---- the window ---------------------------------------------------------
-     Moved here from landing.css, which only the homepage loads. The comp puts
-     /why/'s Overview shot in the same macOS frame as the hero demo, and two
-     copies of a window chrome is how two windows stop looking like the same
-     product. The traffic-light colours are the one documented palette
-     exception; the guard that scopes them moved with the rule. */
-  /* ---- the window ---------------------------------------------------------
-     A frame around the demo, because a bare 16:9 rectangle in the middle of a
-     page could be anything. The traffic lights are decorative: real-looking
-     controls that do nothing are worse than none, so they are `aria-hidden`
-     and unclickable. */
-  .window {
-    position: relative;
-    max-width: 980px;
-    margin: 58px auto 0;
-  }
-  .window__frame {
-    position: relative;
-    z-index: 1;
-    border: 1px solid rgba(243, 240, 232, 0.13);
-    border-radius: 13px;
-    background: rgba(4, 12, 13, 0.55);
-    box-shadow:
-      inset 0 1px 0 rgba(243, 240, 232, 0.06),
-      0 30px 80px rgba(4, 12, 13, 0.65),
-      0 70px 150px rgba(4, 12, 13, 0.5);
-    overflow: hidden;
-    text-align: left;
-  }
-  .window__bar {
-    position: relative;
-    display: flex;
-    align-items: center;
-    height: 42px;
-    padding-inline: 16px;
-    border-bottom: 1px solid var(--hairline);
-    background: rgba(243, 240, 232, 0.025);
-  }
-  .window__lights {
-    display: flex;
-    gap: 8px;
-  }
-  /* The only three colours on this site that are not Rabta's.
-
-     They are macOS's own window controls, reproduced at their system values,
-     and they are here as a quotation rather than as design: the frame says
-     "this is a Mac app", and a Mac app's close button is that red. Substituting
-     palette colours would make the frame a stylised drawing of a window rather
-     than a window.
-
-     The palette contract in tests/site/site-contract.test.mjs is widened for
-     exactly these three literals and asserts they appear nowhere but this rule,
-     so the exception cannot spread into the rest of the page. */
-  .window__lights span {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-  }
-  .window__lights span:nth-child(1) {
-    background: #ff5f57;
-  }
-  .window__lights span:nth-child(2) {
-    background: #febc2e;
-  }
-  .window__lights span:nth-child(3) {
-    background: #28c840;
-  }
-  .window__title {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    color: var(--cool-mid);
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.2px;
-    white-space: nowrap;
-  }
-
-  /* On a document page the frame wraps a still rather than a video, so the
-     stage is whatever the image is. */
-  .window--shot .window__stage {
-    aspect-ratio: auto;
-  }
-}
-
-@layer section {
-  /* A framed shot inside a band: the frame is the window component, the
-     caption belongs to the figure around it. */
-  .window--shot {
-    margin-top: var(--s8);
-  }
-
-  .window--shot .window__stage img {
-    display: block;
-    width: 100%;
-    height: auto;
-  }
-
-  .window--shot figcaption {
-    margin-top: 14px;
-    color: var(--cool-mid);
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: var(--track-mono);
-  }
+  .swatch__color--paper-0 { background: var(--paper-0); }
+  .swatch__color--paper-1 { background: var(--paper-1); }
+  .swatch__color--ink-0 { background: var(--ink-0); }
+  .swatch__color--ink-1 { background: var(--ink-1); }
+  .swatch__color--ember { background: var(--ember); }
+  .swatch__color--ember-deep { background: var(--ember-deep); }
+  .swatch__color--text { background: var(--text); }
+  .swatch__color--text-mute { background: var(--text-mute); }
 }

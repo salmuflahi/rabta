@@ -1,23 +1,35 @@
-<header class="nav">
+<header class="nav" data-nav>
   <div class="rail nav__inner">
-    <a class="brand" href="/" aria-label="Rabta — home">
-      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <rect width="64" height="64" rx="14" fill="#102526" />
-        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
-        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
-      </svg>
-      <span>Rabta</span>
+    <a class="brand" href="/" aria-label="Rabta, home">
+      <img class="brand__ink" src="/assets/brand/lockup.svg" width="2945" height="1213" alt="" />
+        <img class="brand__paper" src="/assets/brand/lockup-paper.svg" width="2945" height="1213" alt="" />
     </a>
 
     <nav class="nav__links" aria-label="Primary">
-      <a href="/why/">Why Rabta</a>
-      <a href="/#how-it-works">Product</a>
+      <a href="/why/">Why</a>
+      <a href="/#product">Product</a>
       <a href="/setup/">Setup</a>
       <a href="/faq/">FAQ</a>
       <a href="/changelog/">Changelog</a>
       <a href="/contact/">Contact</a>
     </nav>
 
-    <a class="button button--small button--primary sweep nav__download" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+    <a class="button button--primary button--small nav__download" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+
+    <details class="nav__menu">
+      <summary aria-label="Menu">
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+      </summary>
+      <nav aria-label="Primary, compact">
+        <a href="/why/">Why</a>
+        <a href="/#product">Product</a>
+        <a href="/setup/">Setup</a>
+        <a href="/faq/">FAQ</a>
+        <a href="/changelog/">Changelog</a>
+        <a href="/contact/">Contact</a>
+        <a href="/brand/">Brand</a>
+        <a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+      </nav>
+    </details>
   </div>
 </header>

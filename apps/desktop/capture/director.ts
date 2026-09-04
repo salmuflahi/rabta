@@ -6,7 +6,7 @@ export type ScreenName =
   | "activity"
   | "settings"
   | "restore";
-export type DemoName = "hero-return" | "honest-return";
+export type DemoName = "hero-return" | "honest-return" | "capture" | "leave" | "return";
 
 export type CaptureMode =
   | { kind: "screen"; name: ScreenName }
@@ -31,6 +31,31 @@ export const DEMO_TIMELINES = {
       { atMs: 700, action: "resume-task" },
     ],
   },
+  // The three moves, one clean beat each, for the site's product loops.
+  capture: {
+    durationMs: 4000,
+    finalLabel: "Capsule saved",
+    cues: [
+      { atMs: 0, action: "show-capsule" },
+      { atMs: 900, action: "save-state" },
+    ],
+  },
+  leave: {
+    durationMs: 4000,
+    finalLabel: "Another task is active",
+    cues: [
+      { atMs: 0, action: "show-capsule" },
+      { atMs: 900, action: "leave-task" },
+    ],
+  },
+  return: {
+    durationMs: 5500,
+    finalLabel: "Workspace partially restored",
+    cues: [
+      { atMs: 0, action: "show-capsule" },
+      { atMs: 900, action: "resume-task" },
+    ],
+  },
 } as const;
 
 const SCREENS: ScreenName[] = [
@@ -44,7 +69,7 @@ const SCREENS: ScreenName[] = [
 ];
 
 export function parseCaptureMode(hash: string): CaptureMode {
-  const demo = /(?:^|[#&])demo=(hero-return|honest-return)/.exec(hash)?.[1] as
+  const demo = /(?:^|[#&])demo=(hero-return|honest-return|capture|leave|return)/.exec(hash)?.[1] as
     | DemoName
     | undefined;
 

@@ -75,15 +75,15 @@ class FakeButton extends FakeTarget {
   dataset = { labelPlay: "Play demo", labelPause: "Pause demo" };
 }
 
-function mediaBlock(name, play) {
+function mediaBlock(name, play, group) {
   const video = new FakeVideo({
-    desktop: `/${name}-desktop.m4v`,
-    mobile: `/${name}-mobile.m4v`,
+    desktop: `/${name}-desktop.mp4`,
+    mobile: `/${name}-mobile.mp4`,
     play,
   });
   const button = new FakeButton();
   const block = {
-    dataset: { productMedia: name },
+    dataset: group ? { productMedia: name, mediaGroup: group } : { productMedia: name },
     querySelector(selector) {
       if (selector === "video") return video;
       if (selector === "[data-media-play]") return button;
@@ -158,9 +158,9 @@ test("autoplay is disabled for reduced motion and data saver", () => {
 });
 
 test("mobile receives the dedicated small source", () => {
-  const dataset = { srcDesktop: "/desktop.m4v", srcMobile: "/mobile.m4v" };
-  assert.equal(chooseSource(dataset, false), "/desktop.m4v");
-  assert.equal(chooseSource(dataset, true), "/mobile.m4v");
+  const dataset = { srcDesktop: "/desktop.mp4", srcMobile: "/mobile.mp4" };
+  assert.equal(chooseSource(dataset, false), "/desktop.mp4");
+  assert.equal(chooseSource(dataset, true), "/mobile.mp4");
 });
 
 for (const constrained of [
@@ -178,7 +178,7 @@ for (const constrained of [
     page.media[0].button.dispatch("click");
     await settle();
 
-    assert.equal(page.media[0].video.src, "/hero-mobile.m4v");
+    assert.equal(page.media[0].video.src, "/hero-mobile.mp4");
     assert.equal(page.media[0].video.loadCount, 1);
     assert.equal(page.media[0].video.playCount, 1);
     assert.equal(page.media[0].block.dataset.mediaState, "playing");
@@ -188,18 +188,27 @@ for (const constrained of [
   });
 }
 
-test("starting a product loop pauses every other product video", async () => {
-  const page = harness({ reducedMotion: true });
+test("starting a loop pauses the other loops in its group, and only those", async () => {
+  // The three moves share a group and take turns; the hero has no group and
+  // keeps playing beside whichever move is up, as do the bento cells.
+  const page = harness({
+    reducedMotion: true,
+    items: [mediaBlock("hero"), mediaBlock("capture", undefined, "moves"), mediaBlock("return", undefined, "moves")],
+  });
   const cleanup = initProductMedia(page.root, page.env);
 
   page.media[0].button.dispatch("click");
-  await settle();
-  const heroPausesBeforeReturn = page.media[0].video.pauseCount;
   page.media[1].button.dispatch("click");
   await settle();
+  const heroPauses = page.media[0].video.pauseCount;
+  const capturePauses = page.media[1].video.pauseCount;
 
-  assert.equal(page.media[0].video.pauseCount, heroPausesBeforeReturn + 1);
-  assert.equal(page.media[1].block.dataset.mediaState, "playing");
+  page.media[2].button.dispatch("click");
+  await settle();
+
+  assert.equal(page.media[1].video.pauseCount, capturePauses + 1, "the other move steps aside");
+  assert.equal(page.media[0].video.pauseCount, heroPauses, "the hero is not in the group");
+  assert.equal(page.media[2].block.dataset.mediaState, "playing");
   cleanup();
 });
 
@@ -302,7 +311,7 @@ test("autoplay attaches lower media near the viewport and waits for the play thr
   });
   assert.equal(lower.video.src, "");
   page.observer.enter(1, 0.2);
-  assert.equal(lower.video.src, "/return-desktop.m4v");
+  assert.equal(lower.video.src, "/return-desktop.mp4");
   assert.equal(lower.video.playCount, 0);
   page.observer.enter(1, 0.55);
   await settle();
@@ -320,7 +329,7 @@ test("the hero source waits for two animation frames", () => {
   page.runAnimationFrame();
   assert.equal(page.media[0].video.src, "");
   page.runAnimationFrame();
-  assert.equal(page.media[0].video.src, "/hero-desktop.m4v");
+  assert.equal(page.media[0].video.src, "/hero-desktop.mp4");
   cleanup();
 });
 
@@ -333,7 +342,7 @@ test("an already-ready offscreen hero attaches but does not autoplay", async () 
   page.runAnimationFrame();
   await settle();
 
-  assert.equal(hero.video.src, "/hero-desktop.m4v");
+  assert.equal(hero.video.src, "/hero-desktop.mp4");
   assert.equal(hero.block.dataset.inView, undefined);
   assert.equal(hero.video.playCount, 0);
   cleanup();

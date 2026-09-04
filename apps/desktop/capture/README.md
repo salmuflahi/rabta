@@ -34,13 +34,13 @@ optional and combinable with `&`:
 |---|---|---|
 | `capture=` | `overview` `capsules` `projects` `connectors` `activity` `settings` `restore` | `overview` |
 | `theme=` | `light` `dark` | `dark` |
-| `accent=` | `tangerine` `petrol` `sky` `sand` | `tangerine` |
+| `accent=` | `tangerine` `iris` `graphite` `sky` | `tangerine` |
 | `sidebar=` | `collapsed` | expanded |
 | `palette` | — | closed |
 
 ```
 http://localhost:5199/#capture=capsules
-http://localhost:5199/#capture=projects&theme=light&accent=petrol
+http://localhost:5199/#capture=projects&theme=light&accent=iris
 http://localhost:5199/#capture=overview&palette&sidebar=collapsed
 http://localhost:5199/#capture=restore            # mid-restore sheet
 ```
@@ -54,46 +54,47 @@ stay byte-identical whatever you pose here.
 
 ## Recording the product loops
 
-The homepage's two return stories use four silent H.264 recordings of this
-same real app and frozen fixture:
+The homepage's eight loops (the hero, the three moves, the four bento cells)
+are footage of this same real app and frozen fixture, put under a camera and
+a focus lens. The footage comes from here; the camera work lives in
+`marketing-videos/site-demos/`.
 
-| Demo | Desktop output | Mobile output |
-|---|---|---|
-| Hero return (8 seconds) | `website/assets/demos/hero-return-desktop.m4v` | `website/assets/demos/hero-return-mobile.m4v` |
-| Honest return (5 seconds) | `website/assets/demos/honest-return-desktop.m4v` | `website/assets/demos/honest-return-mobile.m4v` |
+| Demo | What the director does | Length | Used by |
+|---|---|---|---|
+| `hero-return` | Save State, switch to Overview, resume `task_reconnect` | 8.5s | the hero loop |
+| `capture` | Save State on the active capsule | 4s | `move-capture` |
+| `leave` | switch to Overview with another task active | 4s | `move-leave` |
+| `return` | resume `task_reconnect`, the restore sheet lands | 5.5s | `move-return` |
 
-The final real partial-restore states are also captured as
-`hero-return.png` and `honest-return.png`. The mobile jobs use a dedicated
-390×700 capture crop around the task row and restore sheet; they do not scale
-the desktop interface into a phone-sized frame.
-
-Recording requires macOS, Google Chrome, Xcode command-line tools (`xcrun
-swiftc`), and **Screen Recording** permission for the terminal or Codex app
-that launches the command. Grant access in System Settings → Privacy &
-Security → Screen Recording, then restart the invoking app before retrying.
+Recording needs macOS, Google Chrome and ffmpeg, and nothing else: no screen
+recording permission, no window placement. The recorder drives the rig in
+headless Chrome with virtual time paused, advances it exactly 1/30s per frame,
+and screenshots every frame at 2x, so the mark's draw, the sheet's spring and
+the rows' stagger land on real frames instead of whatever a real-time capture
+managed to encode.
 
 ```sh
 cd apps/desktop
-node capture/record-demos.mjs --replace
+pnpm exec vite --config capture/vite.config.ts --port 5199   # or launch.json's capture-rig
+node capture/record-frames.mjs hero-return
+node capture/record-frames.mjs capture
+node capture/record-frames.mjs leave
+node capture/record-frames.mjs return
 ```
 
-The driver boots the capture Vite config on port 5199, opens a throwaway
-Chrome app window at a fixed location, records each content rectangle with
-macOS `screencapture`, and normalizes it with `avconvert`. Retina mobile
-captures then pass through a video-only native AVFoundation composition so
-their encoded output is exactly 390×700, remains silent H.264, and never uses
-a shrunken desktop interface. Jobs are deliberately serial so no two windows
-share the rectangle. Without `--replace`, the command refuses to overwrite an
-existing video or poster.
+Each run writes `marketing-videos/site-demos/_recordings/<demo>-1280x800.mp4`
+(2560x1600, 30fps, silent H.264) plus a first and last frame for inspection.
+Then, from `marketing-videos/site-demos/`, `node build-projects.mjs` rebuilds
+the eight HyperFrames projects around the footage, each project is gated with
+`npx hyperframes@0.8.27 check` and rendered with `render --quality high`, and
+`node scripts/build-site-media.mjs` (repo root) encodes the renders into
+`website/assets/demos/` with posters and a probed `manifest.json`. Never
+hand-edit the manifest: it is a record of the generated files, and
+`node scripts/verify-media.mjs` checks it against them.
 
-After regeneration, inspect both posters and representative frames from all
-four videos. Then use `avmediainfo --brief`, `mdls`, `sips`, and `stat` to
-replace the observed durations, encoded dimensions, byte counts, codec/audio
-facts, and poster dimensions in `website/assets/demos/manifest.json`. Never
-copy expected values from the storyboard into the manifest: the manifest is a
-record of the generated files, not a prediction. Fixture strings must continue
-to match `seed.ts`, including `Workspace partially restored`, `VS Code —
-Restored`, `Chrome — On next reload`, and `Git — Restored`.
+Fixture strings must continue to match `seed.ts`, including `Workspace
+partially restored`, `VS Code — Restored`, `Chrome — On next reload`, and
+`Git — Restored`.
 
 ## What these screenshots are
 
@@ -118,7 +119,7 @@ captions must describe it as demo data and never as live usage.
 | `director.ts` | Pure hash-mode parser and approved demo timeline contract |
 | `vite.config.ts` | Aliases the Tauri modules to the mock; HMR disabled |
 | `capture.mjs` | Driver: boots Vite, runs headless Chrome once per screen |
-| `record-demos.mjs` | Driver: records and converts the four real-product demo jobs serially |
+| `record-frames.mjs` | Driver: records a directed demo frame by frame under virtual time, for the site's loops |
 
 None of this is reachable from the shipped app — `apps/desktop/vite.config.ts`
 has no alias to the mock, so a production build cannot pick it up.

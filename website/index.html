@@ -33,7 +33,7 @@
 <title>Rabta — Pick up the task. Not the pieces.</title>
 <meta name="description" content="Rabta remembers the files, terminals, browser tabs and Git branch around each task, then puts that working context back when you return." />
 <link rel="canonical" href="https://rabta.build/" />
-<meta name="theme-color" content="#102526" />
+<meta name="theme-color" content="#0a0b0e" />
 <meta name="color-scheme" content="dark" />
 
 <!-- Proves this site to Google Search Console, which is what gets it crawled
@@ -56,12 +56,11 @@
 <meta property="og:image:alt" content="Rabta — Pick up the task. Not the pieces." />
 <meta name="twitter:card" content="summary_large_image" />
 
-<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-latin-variable.woff2" crossorigin />
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/inter-var.woff2" crossorigin />
 <link rel="stylesheet" href="/css/tokens.css" />
 <link rel="stylesheet" href="/css/shell.css" />
 <link rel="stylesheet" href="/css/page.css" />
 <link rel="stylesheet" href="/css/landing.css" />
-<link rel="stylesheet" href="/css/receipt-fold.css" />
 <script type="module" src="/js/main.js"></script>
 
 <script type="application/ld+json">
@@ -88,595 +87,381 @@
 <a class="skip" href="#main">Skip to content</a>
 
 <!-- chrome:nav -->
-<header class="nav">
+<header class="nav" data-nav>
   <div class="rail nav__inner">
-    <a class="brand" href="/" aria-label="Rabta — home">
-      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <rect width="64" height="64" rx="14" fill="#102526" />
-        <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
-        <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
-      </svg>
-      <span>Rabta</span>
+    <a class="brand" href="/" aria-label="Rabta, home">
+      <img class="brand__ink" src="/assets/brand/lockup.svg" width="2945" height="1213" alt="" />
+        <img class="brand__paper" src="/assets/brand/lockup-paper.svg" width="2945" height="1213" alt="" />
     </a>
 
     <nav class="nav__links" aria-label="Primary">
-      <a href="/why/">Why Rabta</a>
-      <a href="/#how-it-works">Product</a>
+      <a href="/why/">Why</a>
+      <a href="/#product">Product</a>
       <a href="/setup/">Setup</a>
       <a href="/faq/">FAQ</a>
       <a href="/changelog/">Changelog</a>
       <a href="/contact/">Contact</a>
     </nav>
 
-    <a class="button button--small button--primary sweep nav__download" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+    <a class="button button--primary button--small nav__download" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+
+    <details class="nav__menu">
+      <summary aria-label="Menu">
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
+      </summary>
+      <nav aria-label="Primary, compact">
+        <a href="/why/">Why</a>
+        <a href="/#product">Product</a>
+        <a href="/setup/">Setup</a>
+        <a href="/faq/">FAQ</a>
+        <a href="/changelog/">Changelog</a>
+        <a href="/contact/">Contact</a>
+        <a href="/brand/">Brand</a>
+        <a href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+      </nav>
+    </details>
   </div>
 </header>
 <!-- /chrome:nav -->
 
 <main id="main" tabindex="-1">
   <!-- ==== hero =============================================================
-       Centred, unlike every other page on this site. The inner pages lead with
-       a label in a left axis track because they are documents with a section
-       structure; this one is an argument with a single claim, and the claim
-       goes in the middle. -->
-  <section class="hero" id="top" data-chapter>
-    <div class="hero__glow hero__glow--cool" aria-hidden="true"></div>
-    <div class="hero__glow hero__glow--warm" aria-hidden="true"></div>
+       The mark draws itself, the word arrives beside it, and the claim rises
+       under both. Then the real app, in a window, doing the thing. -->
+  <section class="hero" id="top" aria-labelledby="hero-title" data-hero>
+    <div class="rail hero__inner">
+      <div class="hero__lockup" aria-hidden="true">
+        <svg class="mark" data-hero-mark viewBox="0 0 100 100" focusable="false">
+          <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
+            <path class="stem" d="M25 22V84" />
+            <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
+            <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
+          </g>
+        </svg>
+        <span class="hero__word" data-hero-word>abta</span>
+      </div>
 
-    <div class="hero__inner">
-      <a class="badge" href="#focus">
-        <span class="badge__dot" aria-hidden="true"></span>
-        New — focus mode puts away what isn't in the task
-        <span class="badge__arrow" aria-hidden="true">→</span>
-      </a>
-
-      <h1>
+      <h1 class="display hero__title" id="hero-title">
         <span class="rise"><span>Pick up the task.</span></span>
         <span class="rise"><span>Not the pieces.</span></span>
       </h1>
 
-      <p class="hero__lede">
-        Rabta captures a capsule — the editor files, terminals, browser tabs and
-        Git branch around one task. Resume it later and all of it comes back.
+      <p class="lede hero__lede">
+        Rabta keeps the files, terminals, tabs and Git branch around a task,
+        then puts them back when you return.
       </p>
 
       <div class="hero__actions">
-        <a class="button button--primary glow" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">
+        <a class="button button--primary button--large" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">
           Download for macOS
-          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.6v9.2M3.2 7.4 7 11.2l3.8-3.8M1.8 12.6h10.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.6v9.2M3.2 7.4 7 11.2l3.8-3.8M1.8 12.6h10.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </a>
-        <a class="button" href="#how-it-works">See how it works</a>
+        <a class="button button--large" href="#product">See it work</a>
       </div>
+    </div>
 
-      <!-- The design's line reads "Apple silicon & Intel". There is no Intel
-           build — the roadmap lists one as packaging work not yet done — so
-           this says what ships. Naming the gap is the point of the page. -->
-      <p class="requirement">Free · Apple silicon · no Intel build · no account, no server</p>
-
-      <!-- A window frame rather than a bare video: the thing being shown is an
-           application, and a 16:9 rectangle floating in a page could be
-           anything. The traffic lights are decorative and inert — real ones
-           would imply a control that does nothing. -->
-      <div class="window">
-        <div class="window__glow" aria-hidden="true"></div>
-        <div class="window__frame">
-          <div class="window__bar">
-            <span class="window__lights" aria-hidden="true">
-              <span></span><span></span><span></span>
-            </span>
-            <span class="window__title">Rabta — connector-reconnect.capsule</span>
-          </div>
-          <div class="window__stage" data-product-media="hero">
-            <video
-              class="window__video"
-              width="1280" height="720"
-              muted playsinline loop preload="none"
-              poster="/assets/demos/hero-return.png"
-              data-src-desktop="/assets/demos/hero-return-desktop.m4v"
-              data-src-mobile="/assets/demos/hero-return-mobile.m4v"
-              aria-label="Rabta captures a task, leaves it, then restores the workspace with an honest partial result."></video>
-            <button class="media-play sweep" type="button" data-media-play hidden data-label-play="Play demo" data-label-pause="Pause demo">Play demo</button>
-            <div class="media-track" data-media-track hidden aria-hidden="true"><span></span></div>
-          </div>
+    <!-- The real app, in a window, playing the real return. The traffic
+         lights are decorative and inert; real ones would imply a control
+         that does nothing. -->
+    <div class="shell hero__stage" data-hero-window>
+      <figure class="window">
+        <div class="window__bar">
+          <span class="window__lights" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="window__title">Rabta — connector-reconnect.capsule</span>
         </div>
-      </div>
-    </div>
-
-    <!-- Every app a connector currently speaks to. The marks come from
-         simple-icons (CC0); VS Code is absent there under its trademark
-         policy, so it and Terminal keep neutral glyphs. -->
-    <div class="marquee" aria-hidden="true">
-      <div class="marquee__track">
-        <span class="marquee__logo"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="M7.4 6.6 4 10l3.4 3.4M12.6 6.6 16 10l-3.4 3.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg><span>VS Code</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23" fill="currentColor" /></svg><span>Cursor</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M2.25 1.5a.75.75 0 0 0-.75.75v16.5H0V2.25A2.25 2.25 0 0 1 2.25 0h20.095c1.002 0 1.504 1.212.795 1.92L10.764 14.298h3.486V12.75h1.5v1.922a1.125 1.125 0 0 1-1.125 1.125H9.264l-2.578 2.578h11.689V9h1.5v9.375a1.5 1.5 0 0 1-1.5 1.5H5.185L2.562 22.5H21.75a.75.75 0 0 0 .75-.75V5.25H24v16.5A2.25 2.25 0 0 1 21.75 24H1.655C.653 24 .151 22.788.86 22.08L13.19 9.75H9.75v1.5h-1.5V9.375A1.125 1.125 0 0 1 9.375 8.25h5.314l2.625-2.625H5.625V15h-1.5V5.625a1.5 1.5 0 0 1 1.5-1.5h13.19L21.438 1.5z" fill="currentColor" /></svg><span>Zed</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M12 0C6.7 0 2.4 4.3 2.4 9.6v11.146c0 1.772 1.45 3.267 3.222 3.254a3.18 3.18 0 0 0 1.955-.686 1.96 1.96 0 0 1 2.444 0 3.18 3.18 0 0 0 1.976.686c.75 0 1.436-.257 1.98-.686.715-.563 1.71-.587 2.419-.018.59.476 1.355.743 2.182.699 1.705-.094 3.022-1.537 3.022-3.244V9.601C21.6 4.3 17.302 0 12 0M6.069 6.562a1 1 0 0 1 .46.131l3.578 2.065v.002a.974.974 0 0 1 0 1.687L6.53 12.512a.975.975 0 0 1-.976-1.687L7.67 9.602 5.553 8.38a.975.975 0 0 1 .515-1.818m7.438 2.063h4.7a.975.975 0 1 1 0 1.95h-4.7a.975.975 0 0 1 0-1.95" fill="currentColor" /></svg><span>Ghostty</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M24 5.359v13.282A5.36 5.36 0 0 1 18.641 24H5.359A5.36 5.36 0 0 1 0 18.641V5.359A5.36 5.36 0 0 1 5.359 0h13.282A5.36 5.36 0 0 1 24 5.359m-.932-.233A4.196 4.196 0 0 0 18.874.932H5.126A4.196 4.196 0 0 0 .932 5.126v13.748a4.196 4.196 0 0 0 4.194 4.194h13.748a4.196 4.196 0 0 0 4.194-4.194zm-.816.233v13.282a3.613 3.613 0 0 1-3.611 3.611H5.359a3.613 3.613 0 0 1-3.611-3.611V5.359a3.613 3.613 0 0 1 3.611-3.611h13.282a3.613 3.613 0 0 1 3.611 3.611M8.854 4.194v6.495h.962V4.194zM5.483 9.493v1.085h.597V9.48q.283-.037.508-.133.373-.165.575-.448.208-.284.208-.649a.9.9 0 0 0-.171-.568 1.4 1.4 0 0 0-.426-.388 3 3 0 0 0-.544-.261 32 32 0 0 0-.545-.209 1.8 1.8 0 0 1-.426-.216q-.164-.12-.164-.284 0-.223.179-.351.18-.126.485-.127.344 0 .575.105.239.105.5.298l.433-.5a2.3 2.3 0 0 0-.605-.433 1.6 1.6 0 0 0-.582-.159v-.968h-.597v.978a2 2 0 0 0-.477.127 1.2 1.2 0 0 0-.545.411q-.194.268-.194.634 0 .335.164.56.164.224.418.38a4 4 0 0 0 .552.262q.291.104.545.209.261.104.425.238a.39.39 0 0 1 .165.321q0 .225-.187.359-.18.134-.537.134-.381 0-.717-.134a4.4 4.4 0 0 1-.649-.351l-.388.589q.209.173.477.306.276.135.575.217.191.046.373.064" fill="currentColor" /></svg><span>iTerm2</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4.4 6.4 7.8 10l-3.4 3.6M10.4 13.6h5.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg><span>Terminal</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M12.035 2.723h9.253A2.712 2.712 0 0 1 24 5.435v10.529a2.712 2.712 0 0 1-2.712 2.713H8.047Zm-1.681 2.6L6.766 19.677h5.598l-.399 1.6H2.712A2.712 2.712 0 0 1 0 18.565V8.036a2.712 2.712 0 0 1 2.712-2.712Z" fill="currentColor" /></svg><span>Warp</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M12 0C8.21 0 4.831 1.757 2.632 4.501l3.953 6.848A5.454 5.454 0 0 1 12 6.545h10.691A12 12 0 0 0 12 0zM1.931 5.47A11.943 11.943 0 0 0 0 12c0 6.012 4.42 10.991 10.189 11.864l3.953-6.847a5.45 5.45 0 0 1-6.865-2.29zm13.342 2.166a5.446 5.446 0 0 1 1.45 7.09l.002.001h-.002l-5.344 9.257c.206.01.413.016.621.016 6.627 0 12-5.373 12-12 0-1.54-.29-3.011-.818-4.364zM12 16.364a4.364 4.364 0 1 1 0-8.728 4.364 4.364 0 0 1 0 8.728Z" fill="currentColor" /></svg><span>Chrome</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M23.9371 8.5089c.1471-.7147.0367-1.4661-.3364-2.0967-.4203-.7094-1.1035-1.1876-1.9075-1.3506a2.9178 2.9178 0 0 0-.5623-.0578h-.0105c-1.3768 0-2.5329.988-2.8061 2.3385-.1629.7935-.4782 1.5607-.9196 2.2701a.263.263 0 0 1-.2363.1205.2627.2627 0 0 1-.2209-.1468l-2.8587-5.9906c-.3626-.762-1.0142-1.361-1.8235-1.5975-1.3873-.4099-2.8166.2838-3.4052 1.524L5.897 9.7333c-.0788.1629-.31.1576-.3784-.0053v-.0052a2.8597 2.8597 0 0 0-2.6642-1.7972c-.3784 0-.7515.0736-1.1088.2207-1.4714.6148-2.1283 2.349-1.5187 3.8203.557 1.3295 1.4714 2.5855 2.659 3.668.084.0788.1103.1997.063.3048l-.9563 2.0074c-.6727 1.4188-.1314 3.1477 1.2664 3.8571.4099.2049.846.31 1.298.31 1.1035 0 2.123-.6411 2.5959-1.6395l.825-1.7289a.254.254 0 0 1 .3048-.1366c1.0037.2732 2.0127.4204 3.0058.4204 1.1193 0 2.2229-.1682 3.2896-.4782a.2626.2626 0 0 1 .3101.1366l.8145 1.7131c.4834 1.0195 1.4924 1.7131 2.6169 1.7184.4572 0 .8986-.0999 1.3138-.3101 1.403-.7094 1.939-2.4435 1.2664-3.8676L19.875 15.787c-.0473-.1051-.0263-.226.0578-.3048 1.9864-1.8497 3.4525-4.2723 4.0043-6.9733ZM6.2121 20.0172a1.835 1.835 0 0 1-.6764.7622 1.8352 1.8352 0 0 1-.9788.2835c-.2733 0-.5518-.063-.8093-.1891-.9038-.4467-1.2454-1.5713-.8093-2.4804l.7935-1.6658c.0684-.1471.2575-.1997.3837-.1051.1681.1209.3415.2365.5202.3521.6989.4467 1.4293.825 2.1808 1.1351.1419.0578.205.2154.1419.352l-.7462 1.5555Zm5.0763-2.0442c-4.2092 0-8.6548-2.8534-10.1262-6.4951a1.8286 1.8286 0 0 1 1.009-2.3805c.2259-.0893.4571-.1366.683-.1366.7252 0 1.4084.431 1.6974 1.1456.9196 2.2806 4.0043 4.2092 6.7368 4.2092.4204 0 .8408-.042 1.256-.1156a.2643.2643 0 0 1 .2837.1419l1.3768 2.9007c.0683.1471-.0105.3205-.1629.3626-.8986.2365-1.8182.3678-2.7536.3678Zm-.599-4.9291.6358-1.3348c.0526-.1051.205-.1051.2575 0l.6201 1.3033c.042.0841-.0158.1891-.1051.2049-.268.0368-.536.0578-.7988.0578a5.0634 5.0634 0 0 1-.4887-.0263c-.1103-.0157-.1629-.1208-.1208-.2049Zm8.4604 7.8246a1.831 1.831 0 0 1-2.0329-.2788 1.8292 1.8292 0 0 1-.4316-.5778l-4.987-10.4836c-.0998-.2102-.3994-.2102-.4939 0l-1.545 3.2529a.2623.2623 0 0 1-.3205.1366c-1.051-.3626-2.0495-.9774-2.7904-1.7184a.2552.2552 0 0 1-.0473-.2943l3.3421-7.031c.1156-.247.2943-.4677.5203-.6201 1.051-.6884 2.2806-.2575 2.7378.7041l6.8577 14.4248c.4309.9144.0946 2.0389-.8093 2.4856Zm-1.4451-9.6481a.258.258 0 0 1 .0315-.2732c.783-1.0037 1.3558-2.1756 1.6028-3.421.1734-.867.9354-1.4714 1.7919-1.4714.1472 0 .2943.0158.4467.0526.9722.2417 1.5344 1.2507 1.3295 2.2333-.4835 2.3017-1.6816 4.3879-3.3159 6.0222-.1313.1314-.3468.0946-.4256-.0683l-1.4609-3.0742Z" fill="currentColor" /></svg><span>Arc</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M20.452 3.445a11.002 11.002 0 00-2.482-1.908C16.944.997 15.098.093 12.477.032c-.734-.017-1.457.03-2.174.144-.72.114-1.398.292-2.118.56-1.017.377-1.996.975-2.574 1.554.583-.349 1.476-.733 2.55-.992a10.083 10.083 0 013.729-.167c2.341.34 4.178 1.381 5.48 2.625a8.066 8.066 0 011.298 1.587c1.468 2.382 1.33 5.376.184 7.142-.85 1.312-2.67 2.544-4.37 2.53-.583-.023-1.438-.152-2.25-.566-2.629-1.343-3.021-4.688-1.118-6.306-.632-.136-1.82.13-2.646 1.363-.742 1.107-.7 2.816-.242 4.028a6.473 6.473 0 01-.59-1.895 7.695 7.695 0 01.416-3.845A8.212 8.212 0 019.45 5.399c.896-1.069 1.908-1.72 2.75-2.005-.54-.471-1.411-.738-2.421-.767C8.31 2.583 6.327 3.061 4.7 4.41a8.148 8.148 0 00-1.976 2.414c-.455.836-.691 1.659-.697 1.678.122-1.445.704-2.994 1.248-4.055-.79.413-1.827 1.668-2.41 3.042C.095 9.37-.2 11.608.14 13.989c.966 5.668 5.9 9.982 11.843 9.982C18.62 23.971 24 18.591 24 11.956a11.93 11.93 0 00-3.548-8.511z" fill="currentColor" /></svg><span>Firefox</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="M7.4 6.6 4 10l3.4 3.4M12.6 6.6 16 10l-3.4 3.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg><span>VS Code</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23" fill="currentColor" /></svg><span>Cursor</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M2.25 1.5a.75.75 0 0 0-.75.75v16.5H0V2.25A2.25 2.25 0 0 1 2.25 0h20.095c1.002 0 1.504 1.212.795 1.92L10.764 14.298h3.486V12.75h1.5v1.922a1.125 1.125 0 0 1-1.125 1.125H9.264l-2.578 2.578h11.689V9h1.5v9.375a1.5 1.5 0 0 1-1.5 1.5H5.185L2.562 22.5H21.75a.75.75 0 0 0 .75-.75V5.25H24v16.5A2.25 2.25 0 0 1 21.75 24H1.655C.653 24 .151 22.788.86 22.08L13.19 9.75H9.75v1.5h-1.5V9.375A1.125 1.125 0 0 1 9.375 8.25h5.314l2.625-2.625H5.625V15h-1.5V5.625a1.5 1.5 0 0 1 1.5-1.5h13.19L21.438 1.5z" fill="currentColor" /></svg><span>Zed</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M12 0C6.7 0 2.4 4.3 2.4 9.6v11.146c0 1.772 1.45 3.267 3.222 3.254a3.18 3.18 0 0 0 1.955-.686 1.96 1.96 0 0 1 2.444 0 3.18 3.18 0 0 0 1.976.686c.75 0 1.436-.257 1.98-.686.715-.563 1.71-.587 2.419-.018.59.476 1.355.743 2.182.699 1.705-.094 3.022-1.537 3.022-3.244V9.601C21.6 4.3 17.302 0 12 0M6.069 6.562a1 1 0 0 1 .46.131l3.578 2.065v.002a.974.974 0 0 1 0 1.687L6.53 12.512a.975.975 0 0 1-.976-1.687L7.67 9.602 5.553 8.38a.975.975 0 0 1 .515-1.818m7.438 2.063h4.7a.975.975 0 1 1 0 1.95h-4.7a.975.975 0 0 1 0-1.95" fill="currentColor" /></svg><span>Ghostty</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M24 5.359v13.282A5.36 5.36 0 0 1 18.641 24H5.359A5.36 5.36 0 0 1 0 18.641V5.359A5.36 5.36 0 0 1 5.359 0h13.282A5.36 5.36 0 0 1 24 5.359m-.932-.233A4.196 4.196 0 0 0 18.874.932H5.126A4.196 4.196 0 0 0 .932 5.126v13.748a4.196 4.196 0 0 0 4.194 4.194h13.748a4.196 4.196 0 0 0 4.194-4.194zm-.816.233v13.282a3.613 3.613 0 0 1-3.611 3.611H5.359a3.613 3.613 0 0 1-3.611-3.611V5.359a3.613 3.613 0 0 1 3.611-3.611h13.282a3.613 3.613 0 0 1 3.611 3.611M8.854 4.194v6.495h.962V4.194zM5.483 9.493v1.085h.597V9.48q.283-.037.508-.133.373-.165.575-.448.208-.284.208-.649a.9.9 0 0 0-.171-.568 1.4 1.4 0 0 0-.426-.388 3 3 0 0 0-.544-.261 32 32 0 0 0-.545-.209 1.8 1.8 0 0 1-.426-.216q-.164-.12-.164-.284 0-.223.179-.351.18-.126.485-.127.344 0 .575.105.239.105.5.298l.433-.5a2.3 2.3 0 0 0-.605-.433 1.6 1.6 0 0 0-.582-.159v-.968h-.597v.978a2 2 0 0 0-.477.127 1.2 1.2 0 0 0-.545.411q-.194.268-.194.634 0 .335.164.56.164.224.418.38a4 4 0 0 0 .552.262q.291.104.545.209.261.104.425.238a.39.39 0 0 1 .165.321q0 .225-.187.359-.18.134-.537.134-.381 0-.717-.134a4.4 4.4 0 0 1-.649-.351l-.388.589q.209.173.477.306.276.135.575.217.191.046.373.064" fill="currentColor" /></svg><span>iTerm2</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4.4 6.4 7.8 10l-3.4 3.6M10.4 13.6h5.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg><span>Terminal</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M12.035 2.723h9.253A2.712 2.712 0 0 1 24 5.435v10.529a2.712 2.712 0 0 1-2.712 2.713H8.047Zm-1.681 2.6L6.766 19.677h5.598l-.399 1.6H2.712A2.712 2.712 0 0 1 0 18.565V8.036a2.712 2.712 0 0 1 2.712-2.712Z" fill="currentColor" /></svg><span>Warp</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M12 0C8.21 0 4.831 1.757 2.632 4.501l3.953 6.848A5.454 5.454 0 0 1 12 6.545h10.691A12 12 0 0 0 12 0zM1.931 5.47A11.943 11.943 0 0 0 0 12c0 6.012 4.42 10.991 10.189 11.864l3.953-6.847a5.45 5.45 0 0 1-6.865-2.29zm13.342 2.166a5.446 5.446 0 0 1 1.45 7.09l.002.001h-.002l-5.344 9.257c.206.01.413.016.621.016 6.627 0 12-5.373 12-12 0-1.54-.29-3.011-.818-4.364zM12 16.364a4.364 4.364 0 1 1 0-8.728 4.364 4.364 0 0 1 0 8.728Z" fill="currentColor" /></svg><span>Chrome</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M23.9371 8.5089c.1471-.7147.0367-1.4661-.3364-2.0967-.4203-.7094-1.1035-1.1876-1.9075-1.3506a2.9178 2.9178 0 0 0-.5623-.0578h-.0105c-1.3768 0-2.5329.988-2.8061 2.3385-.1629.7935-.4782 1.5607-.9196 2.2701a.263.263 0 0 1-.2363.1205.2627.2627 0 0 1-.2209-.1468l-2.8587-5.9906c-.3626-.762-1.0142-1.361-1.8235-1.5975-1.3873-.4099-2.8166.2838-3.4052 1.524L5.897 9.7333c-.0788.1629-.31.1576-.3784-.0053v-.0052a2.8597 2.8597 0 0 0-2.6642-1.7972c-.3784 0-.7515.0736-1.1088.2207-1.4714.6148-2.1283 2.349-1.5187 3.8203.557 1.3295 1.4714 2.5855 2.659 3.668.084.0788.1103.1997.063.3048l-.9563 2.0074c-.6727 1.4188-.1314 3.1477 1.2664 3.8571.4099.2049.846.31 1.298.31 1.1035 0 2.123-.6411 2.5959-1.6395l.825-1.7289a.254.254 0 0 1 .3048-.1366c1.0037.2732 2.0127.4204 3.0058.4204 1.1193 0 2.2229-.1682 3.2896-.4782a.2626.2626 0 0 1 .3101.1366l.8145 1.7131c.4834 1.0195 1.4924 1.7131 2.6169 1.7184.4572 0 .8986-.0999 1.3138-.3101 1.403-.7094 1.939-2.4435 1.2664-3.8676L19.875 15.787c-.0473-.1051-.0263-.226.0578-.3048 1.9864-1.8497 3.4525-4.2723 4.0043-6.9733ZM6.2121 20.0172a1.835 1.835 0 0 1-.6764.7622 1.8352 1.8352 0 0 1-.9788.2835c-.2733 0-.5518-.063-.8093-.1891-.9038-.4467-1.2454-1.5713-.8093-2.4804l.7935-1.6658c.0684-.1471.2575-.1997.3837-.1051.1681.1209.3415.2365.5202.3521.6989.4467 1.4293.825 2.1808 1.1351.1419.0578.205.2154.1419.352l-.7462 1.5555Zm5.0763-2.0442c-4.2092 0-8.6548-2.8534-10.1262-6.4951a1.8286 1.8286 0 0 1 1.009-2.3805c.2259-.0893.4571-.1366.683-.1366.7252 0 1.4084.431 1.6974 1.1456.9196 2.2806 4.0043 4.2092 6.7368 4.2092.4204 0 .8408-.042 1.256-.1156a.2643.2643 0 0 1 .2837.1419l1.3768 2.9007c.0683.1471-.0105.3205-.1629.3626-.8986.2365-1.8182.3678-2.7536.3678Zm-.599-4.9291.6358-1.3348c.0526-.1051.205-.1051.2575 0l.6201 1.3033c.042.0841-.0158.1891-.1051.2049-.268.0368-.536.0578-.7988.0578a5.0634 5.0634 0 0 1-.4887-.0263c-.1103-.0157-.1629-.1208-.1208-.2049Zm8.4604 7.8246a1.831 1.831 0 0 1-2.0329-.2788 1.8292 1.8292 0 0 1-.4316-.5778l-4.987-10.4836c-.0998-.2102-.3994-.2102-.4939 0l-1.545 3.2529a.2623.2623 0 0 1-.3205.1366c-1.051-.3626-2.0495-.9774-2.7904-1.7184a.2552.2552 0 0 1-.0473-.2943l3.3421-7.031c.1156-.247.2943-.4677.5203-.6201 1.051-.6884 2.2806-.2575 2.7378.7041l6.8577 14.4248c.4309.9144.0946 2.0389-.8093 2.4856Zm-1.4451-9.6481a.258.258 0 0 1 .0315-.2732c.783-1.0037 1.3558-2.1756 1.6028-3.421.1734-.867.9354-1.4714 1.7919-1.4714.1472 0 .2943.0158.4467.0526.9722.2417 1.5344 1.2507 1.3295 2.2333-.4835 2.3017-1.6816 4.3879-3.3159 6.0222-.1313.1314-.3468.0946-.4256-.0683l-1.4609-3.0742Z" fill="currentColor" /></svg><span>Arc</span></span>
-        <span class="marquee__logo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M20.452 3.445a11.002 11.002 0 00-2.482-1.908C16.944.997 15.098.093 12.477.032c-.734-.017-1.457.03-2.174.144-.72.114-1.398.292-2.118.56-1.017.377-1.996.975-2.574 1.554.583-.349 1.476-.733 2.55-.992a10.083 10.083 0 013.729-.167c2.341.34 4.178 1.381 5.48 2.625a8.066 8.066 0 011.298 1.587c1.468 2.382 1.33 5.376.184 7.142-.85 1.312-2.67 2.544-4.37 2.53-.583-.023-1.438-.152-2.25-.566-2.629-1.343-3.021-4.688-1.118-6.306-.632-.136-1.82.13-2.646 1.363-.742 1.107-.7 2.816-.242 4.028a6.473 6.473 0 01-.59-1.895 7.695 7.695 0 01.416-3.845A8.212 8.212 0 019.45 5.399c.896-1.069 1.908-1.72 2.75-2.005-.54-.471-1.411-.738-2.421-.767C8.31 2.583 6.327 3.061 4.7 4.41a8.148 8.148 0 00-1.976 2.414c-.455.836-.691 1.659-.697 1.678.122-1.445.704-2.994 1.248-4.055-.79.413-1.827 1.668-2.41 3.042C.095 9.37-.2 11.608.14 13.989c.966 5.668 5.9 9.982 11.843 9.982C18.62 23.971 24 18.591 24 11.956a11.93 11.93 0 00-3.548-8.511z" fill="currentColor" /></svg><span>Firefox</span></span>
-      </div>
-    </div>
-    <p class="visually-hidden">
-      Connectors currently speak to VS Code, Cursor, Zed, Ghostty, iTerm2,
-      Terminal, Warp, Chrome, Arc, Safari and Firefox.
-    </p>
-  </section>
-
-  <!-- ==== three moves =======================================================
-       Hover to expand. This is CSS, not script: `:hover` on a row grows it and
-       dims its siblings, so the whole interaction survives a JS failure and
-       needs no state. Touch devices get all three rows expanded instead — see
-       the hover-capability query in landing.css. -->
-  <section class="moves" id="how-it-works" data-chapter aria-labelledby="moves-title">
-    <div class="rail">
-      <p class="eyebrow">The whole product</p>
-      <h2 id="moves-title">Three moves. Nothing else to learn.</h2>
-      <p class="moves__hint">Hover a row to see it.</p>
-    </div>
-
-    <ol class="moves__list">
-      <li class="move" tabindex="0">
-        <img src="/assets/shots/capsules-1024.png" alt="" loading="lazy" decoding="async" />
-        <span class="move__scrim" aria-hidden="true"></span>
-        <span class="move__row">
-          <span class="move__n">01</span>
-          <span class="move__label">Capture</span>
-          <span class="move__sub">automatic</span>
-          <span class="move__desc">Files, terminals, tabs and the branch, sealed into one capsule</span>
-        </span>
-      </li>
-      <li class="move" tabindex="0">
-        <img src="/assets/shots/connectors-1024.png" alt="" loading="lazy" decoding="async" />
-        <span class="move__scrim" aria-hidden="true"></span>
-        <span class="move__row">
-          <span class="move__n">02</span>
-          <span class="move__label">Put away</span>
-          <span class="move__sub">focus mode</span>
-          <span class="move__desc">Resuming closes what is not in the task, and says what it kept</span>
-        </span>
-      </li>
-      <li class="move" tabindex="0">
-        <img src="/assets/shots/activity-1024.png" alt="" loading="lazy" decoding="async" />
-        <span class="move__scrim" aria-hidden="true"></span>
-        <span class="move__row">
-          <span class="move__n">03</span>
-          <span class="move__label">Restore</span>
-          <span class="move__sub">in order</span>
-          <span class="move__desc">Everything comes back, branch first, with a receipt</span>
-        </span>
-      </li>
-    </ol>
-  </section>
-
-  <!-- ==== what a capsule holds ============================================== -->
-  <section class="holds" id="pieces" data-chapter aria-labelledby="holds-title">
-    <div class="rail">
-      <p class="eyebrow">What it holds</p>
-      <h2 id="holds-title">A capsule is the whole surface of a task.</h2>
-
-      <div class="holds__grid">
-        <article class="figcard">
-          <p class="figcard__fig">FIG 0.1</p>
-          <div class="figcard__art"><svg class="fig" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 200" aria-hidden="true"><path pathLength="1" d="M23.4 141L110 191L110 198L23.4 148Z" fill="rgba(4,12,13,0.3)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M110 191L196.6 141L196.6 148L110 198Z" fill="rgba(4,12,13,0.14)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M110 91L196.6 141L110 191L23.4 141Z" fill="rgba(243,240,232,0.04)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M23.4 132L110 182L110 189L23.4 139Z" fill="rgba(4,12,13,0.3)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M110 182L196.6 132L196.6 139L110 189Z" fill="rgba(4,12,13,0.14)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M110 82L196.6 132L110 182L23.4 132Z" fill="rgba(243,240,232,0.04)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M23.4 123L110 173L110 180L23.4 130Z" fill="rgba(4,12,13,0.3)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M110 173L196.6 123L196.6 130L110 180Z" fill="rgba(4,12,13,0.14)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M110 73L196.6 123L110 173L23.4 123Z" fill="rgba(243,240,232,0.04)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M23.4 114L110 164L110 171L23.4 121Z" fill="rgba(4,12,13,0.45)" stroke="rgba(243,240,232,0.2)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M110 164L196.6 114L196.6 121L110 171Z" fill="rgba(4,12,13,0.22)" stroke="rgba(243,240,232,0.2)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M110 64L196.6 114L110 164L23.4 114Z" fill="rgba(243,240,232,0.085)" stroke="rgba(243,240,232,0.2)" stroke-width="1" stroke-linejoin="round"></path><g><path d="M196.6 70L196.6 114" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-dasharray="2 5" fill="none"></path><path d="M110 120L110 164" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-dasharray="2 5" fill="none"></path><path d="M23.4 70L23.4 114" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-dasharray="2 5" fill="none"></path></g><g><path pathLength="1" d="M23.4 62L110 112L110 120L23.4 70Z" fill="rgba(4,12,13,0.45)" stroke="rgba(243,240,232,0.42)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M110 112L196.6 62L196.6 70L110 120Z" fill="rgba(4,12,13,0.22)" stroke="rgba(243,240,232,0.42)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M110 12L196.6 62L110 112L23.4 62Z" fill="rgba(243,240,232,0.13)" stroke="rgba(243,240,232,0.42)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M99.6 42L136.8 63.5" fill="none" stroke="rgba(255,107,44,0.75)" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"></path><path pathLength="1" d="M87.5 49L132.5 75" fill="none" stroke="rgba(243,240,232,0.2)" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"></path><path pathLength="1" d="M75.4 56L112.6 77.5" fill="none" stroke="rgba(243,240,232,0.2)" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"></path></g></svg></div>
-          <h3>Editor files</h3>
-          <p>Which files were open, in which order, at which line.</p>
-        </article>
-
-        <article class="figcard">
-          <p class="figcard__fig">FIG 0.2</p>
-          <div class="figcard__art"><svg class="fig" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 200" aria-hidden="true"><g><path pathLength="1" d="M25.1 105L59.8 125L59.8 151L25.1 131Z" fill="rgba(4,12,13,0.3)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M59.8 125L94.4 105L94.4 131L59.8 151Z" fill="rgba(4,12,13,0.14)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M59.8 85L94.4 105L59.8 125L25.1 105Z" fill="rgba(243,240,232,0.04)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path></g><g><path pathLength="1" d="M129.1 93L163.7 113L163.7 159L129.1 139Z" fill="rgba(4,12,13,0.3)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M163.7 113L198.3 93L198.3 139L163.7 159Z" fill="rgba(4,12,13,0.14)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M163.7 73L198.3 93L163.7 113L129.1 93Z" fill="rgba(243,240,232,0.04)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path></g><g><path pathLength="1" d="M61.5 128L103.1 152L103.1 190L61.5 166Z" fill="rgba(4,12,13,0.45)" stroke="rgba(243,240,232,0.42)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M103.1 152L144.6 128L144.6 166L103.1 190Z" fill="rgba(4,12,13,0.22)" stroke="rgba(243,240,232,0.42)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M103.1 104L144.6 128L103.1 152L61.5 128Z" fill="rgba(243,240,232,0.085)" stroke="rgba(243,240,232,0.42)" stroke-width="1" stroke-linejoin="round"></path><path d="M97 121.5L97 128.5L84.9 128.5" stroke="rgba(255,107,44,0.75)" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round"></path><path pathLength="1" d="M97.9 133L108.3 139" fill="none" stroke="rgba(243,240,232,0.2)" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"></path></g></svg></div>
-          <h3>Terminals</h3>
-          <p>Each session and the directory it was working in.</p>
-        </article>
-
-        <article class="figcard">
-          <p class="figcard__fig">FIG 0.3</p>
-          <div class="figcard__art"><svg class="fig" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 200" aria-hidden="true"><path pathLength="1" d="M74.6 75L155.4 75L155.4 67.9L74.6 67.9Z" fill="rgba(243,240,232,0.04)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M74.6 123L155.4 123L155.4 75L74.6 75Z" fill="rgba(243,240,232,0.019)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M60.7 89L141.5 89L141.5 81.9L60.7 81.9Z" fill="rgba(243,240,232,0.04)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M60.7 137L141.5 137L141.5 89L60.7 89Z" fill="rgba(243,240,232,0.027)" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M46.8 103L127.7 103L127.7 95.9L46.8 95.9Z" fill="rgba(243,240,232,0.085)" stroke="rgba(243,240,232,0.42)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M46.8 151L127.7 151L127.7 103L46.8 103Z" fill="rgba(243,240,232,0.09)" stroke="rgba(243,240,232,0.42)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M51.7 112L71.3 112" fill="none" stroke="rgba(255,107,44,0.75)" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"></path><path pathLength="1" d="M76.2 112L122.8 112" fill="none" stroke="rgba(243,240,232,0.2)" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"></path><path pathLength="1" d="M51.7 121L103.2 121" fill="none" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"></path><path pathLength="1" d="M51.7 129L88.5 129" fill="none" stroke="rgba(243,240,232,0.11)" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"></path></svg></div>
-          <h3>Browser tabs</h3>
-          <p>The issue, the docs, the three answers you had open.</p>
-        </article>
-
-        <article class="figcard">
-          <p class="figcard__fig">FIG 0.4</p>
-          <div class="figcard__art"><svg class="fig" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 200" aria-hidden="true"><path pathLength="1" d="M78.9 100.5L96.2 110.5" fill="none" stroke="rgba(243,240,232,0.2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path><path pathLength="1" d="M111.8 119.5L129.1 129.5" fill="none" stroke="rgba(243,240,232,0.2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path><path pathLength="1" d="M114.4 106L150.8 96" fill="none" stroke="rgba(243,240,232,0.2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path><path d="M71.1 87L104 106L162.9 86" stroke="rgba(255,107,44,0.75)" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path><g><path pathLength="1" d="M55.5 87L71.1 96L71.1 114L55.5 105Z" fill="rgba(4,12,13,0.3)" stroke="rgba(243,240,232,0.2)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M71.1 96L86.7 87L86.7 105L71.1 114Z" fill="rgba(4,12,13,0.14)" stroke="rgba(243,240,232,0.2)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M71.1 78L86.7 87L71.1 96L55.5 87Z" fill="rgba(243,240,232,0.04)" stroke="rgba(243,240,232,0.2)" stroke-width="1" stroke-linejoin="round"></path></g><g><path pathLength="1" d="M147.3 86L162.9 95L162.9 113L147.3 104Z" fill="rgba(255,107,44,0.14)" stroke="rgba(255,107,44,0.8)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M162.9 95L178.5 86L178.5 104L162.9 113Z" fill="rgba(255,107,44,0.26)" stroke="rgba(255,107,44,0.8)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M162.9 77L178.5 86L162.9 95L147.3 86Z" fill="rgba(255,107,44,0.5)" stroke="rgba(255,107,44,0.8)" stroke-width="1" stroke-linejoin="round"></path></g><g><path pathLength="1" d="M88.4 106L104 115L104 133L88.4 124Z" fill="rgba(4,12,13,0.45)" stroke="rgba(243,240,232,0.42)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M104 115L119.6 106L119.6 124L104 133Z" fill="rgba(4,12,13,0.22)" stroke="rgba(243,240,232,0.42)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M104 97L119.6 106L104 115L88.4 106Z" fill="rgba(243,240,232,0.085)" stroke="rgba(243,240,232,0.42)" stroke-width="1" stroke-linejoin="round"></path></g><g><path pathLength="1" d="M121.3 125L136.9 134L136.9 152L121.3 143Z" fill="rgba(4,12,13,0.3)" stroke="rgba(243,240,232,0.2)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M136.9 134L152.5 125L152.5 143L136.9 152Z" fill="rgba(4,12,13,0.14)" stroke="rgba(243,240,232,0.2)" stroke-width="1" stroke-linejoin="round"></path><path pathLength="1" d="M136.9 116L152.5 125L136.9 134L121.3 125Z" fill="rgba(243,240,232,0.04)" stroke="rgba(243,240,232,0.2)" stroke-width="1" stroke-linejoin="round"></path></g></svg></div>
-          <h3>Git branch</h3>
-          <p>Recorded so you know where the task lived. Never checked out for you.</p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==== focus mode ========================================================
-       The toggle is a real `role="switch"` button and the page ships with it
-       on, so the receipt below shows the interesting state before any script
-       runs. js/home.js only makes it switchable. -->
-  <section class="focus" id="focus" data-chapter aria-labelledby="focus-title">
-    <div class="rail">
-      <p class="eyebrow">Focus mode · off by default</p>
-      <h2 id="focus-title">Resuming can also put away what isn't in the task.</h2>
-      <p class="focus__lede">
-        Restoring has always been additive: it opens things and closes nothing,
-        so three resumed tasks leave three projects in the browser at once. Turn
-        it on and see what changes in the receipt.
-      </p>
-
-      <div class="focus__grid">
-        <div class="focus__controls">
-          <div class="panel">
-            <div class="switchrow">
-              <div>
-                <h3>Put away what isn't in the task</h3>
-                <p>Never closes unsaved files, pinned tabs, or terminals that are running something.</p>
-              </div>
-              <button class="switch" type="button" role="switch" aria-checked="true" data-focus-toggle>
-                <span class="visually-hidden">Focus mode</span>
-                <span class="switch__knob" aria-hidden="true"></span>
-              </button>
-            </div>
-            <p class="panel__foot mono">Settings · Resume behaviour · <span data-focus-label>focus mode on</span></p>
-          </div>
-
-          <div class="panel panel--quiet">
-            <p class="eyebrow">The guarantee</p>
-            <h3>Nothing is lost.</h3>
-            <p>
-              Rabta saves the outgoing task's state before it switches, so
-              anything put away comes back by resuming that task. There is no
-              separate undo, because going back to what you were doing is the
-              undo.
-            </p>
-          </div>
+        <div class="window__stage" data-product-media="hero">
+          <video
+            class="window__video"
+            width="1280" height="800"
+            muted playsinline loop preload="none"
+            poster="/assets/demos/hero-return.png"
+            data-src-desktop="/assets/demos/hero-return-desktop.mp4"
+            data-src-mobile="/assets/demos/hero-return-mobile.mp4"
+            aria-label="Rabta capturing a task, switching away, and resuming it: the restore sheet draws the mark and reports each tool as restored, waiting or skipped."
+          ></video>
+          <button class="media-play" type="button" hidden data-media-play data-label-play="Play demo" data-label-pause="Pause demo">Play demo</button>
+          <div class="media-track" hidden data-media-track aria-hidden="true"><span></span></div>
         </div>
-
-        <!-- The receipt. Its three numbers and its kept-items list are what the
-             toggle changes, which is the only reason the toggle is worth
-             having on a marketing page: it shows a consequence, not a state. -->
-        <div class="receiptpanel">
-          <div class="receiptpanel__head">
-            <p>Workspace restored</p>
-            <span class="mono" data-focus-label>focus mode on</span>
-          </div>
-
-          <dl class="tally">
-            <div>
-              <dd data-tally="back">12</dd>
-              <dt>restored</dt>
-            </div>
-            <div>
-              <dd data-tally="away">6</dd>
-              <dt>put away</dt>
-            </div>
-            <div>
-              <dd data-tally="kept">4</dd>
-              <dt>kept back</dt>
-            </div>
-          </dl>
-
-          <ul class="restored">
-            <li><span>4 files</span><span class="ok">restored</span></li>
-            <li><span>3 terminals</span><span class="ok">restored</span></li>
-            <li><span>Chrome · 5 tabs</span><span class="wait">on next reload</span></li>
-          </ul>
-
-          <div class="away">
-            <p class="away__head" data-away-head>6 tabs closed · 4 kept</p>
-            <ul data-away-list>
-              <li><span class="away__n">2</span> tabs kept — <span class="away__why">pinned in the browser</span></li>
-              <li><span class="away__n">1</span> file kept — <span class="away__why">unsaved changes</span></li>
-              <li><span class="away__n">1</span> terminal left running — <span class="away__why">npm run dev</span></li>
-            </ul>
-            <p class="away__foot mono" data-away-foot>Closed items are held in the task you left. Resume it to get them back.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==== history ===========================================================
-       The graph is 140 static cells written into the markup rather than
-       generated at runtime: it is illustrative, it never changes, and a
-       scriptless visitor should still see it. -->
-  <section class="history" id="history" data-chapter aria-labelledby="history-title">
-    <div class="rail history__inner">
-      <div>
-        <p class="eyebrow">History</p>
-        <h2 id="history-title">Every task you came back to.</h2>
-        <p>
-          Capsules are not a log you have to keep. They accumulate on their own,
-          and the ones you stop resuming quietly stop mattering.
-        </p>
-      </div>
-
-      <figure class="heat">
-        <div class="heat__grid" role="img" aria-label="Twenty weeks of resumed tasks, densest in the most recent month.">
-          <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="1" title="3 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="3" title="10 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="14 tasks resumed"></span>
-        <span class="heat__cell" data-level="1" title="4 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="14 tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="19 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="15 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="17 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="16 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="2" title="6 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="14 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="13 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="1" title="4 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="2" title="8 tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="15 tasks resumed"></span>
-        <span class="heat__cell" data-level="3" title="10 tasks resumed"></span>
-        <span class="heat__cell" data-level="2" title="7 tasks resumed"></span>
-        <span class="heat__cell" data-level="2" title="6 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="3" title="9 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="18 tasks resumed"></span>
-        <span class="heat__cell" data-level="2" title="8 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="3" title="11 tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="19 tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="19 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="2" title="5 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="2" title="8 tasks resumed"></span>
-        <span class="heat__cell" data-level="2" title="8 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="3" title="11 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="1" title="4 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="1" title="4 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="2" title="8 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="2" title="6 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="2" title="6 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="1" title="4 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="13 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="3" title="12 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="2" title="8 tasks resumed"></span>
-        <span class="heat__cell" data-level="1" title="3 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="4" title="15 tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="0" title="No tasks resumed"></span>
-        <span class="heat__cell" data-level="3" title="11 tasks resumed"></span>
-        </div>
-        <figcaption>
-          <span class="mono">20 weeks</span>
-          <span class="heat__key mono">
-            less
-            <span class="heat__cell" data-level="0"></span>
-            <span class="heat__cell" data-level="1"></span>
-            <span class="heat__cell" data-level="2"></span>
-            <span class="heat__cell" data-level="3"></span>
-            <span class="heat__cell" data-level="4"></span>
-            more
-          </span>
-        </figcaption>
       </figure>
     </div>
   </section>
 
-  <!-- ==== local-first ======================================================= -->
-  <section class="local" id="local" data-chapter aria-labelledby="local-title">
+  <!-- ==== works with ======================================================
+       A logo wall is a claim. Everything here is an editor the connector
+       installs into, a terminal those editors host, or a browser the Chrome
+       connector runs in. Nothing aspirational. -->
+  <section class="works" aria-label="Works with">
+    <div class="rail works__inner">
+      <p class="caption works__label">Works with</p>
+      <p class="visually-hidden">Connectors currently speak to VS Code, Cursor, Zed, Ghostty, iTerm2, Terminal, Warp, Chrome, Arc and Firefox.</p>
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee__track">
+          <span class="marquee__logo">VS Code</span>
+          <span class="marquee__logo">Cursor</span>
+          <span class="marquee__logo">Zed</span>
+          <span class="marquee__logo">Ghostty</span>
+          <span class="marquee__logo">iTerm2</span>
+          <span class="marquee__logo">Terminal</span>
+          <span class="marquee__logo">Warp</span>
+          <span class="marquee__logo">Chrome</span>
+          <span class="marquee__logo">Arc</span>
+          <span class="marquee__logo">Firefox</span>
+          <span class="marquee__logo">VS Code</span>
+          <span class="marquee__logo">Cursor</span>
+          <span class="marquee__logo">Zed</span>
+          <span class="marquee__logo">Ghostty</span>
+          <span class="marquee__logo">iTerm2</span>
+          <span class="marquee__logo">Terminal</span>
+          <span class="marquee__logo">Warp</span>
+          <span class="marquee__logo">Chrome</span>
+          <span class="marquee__logo">Arc</span>
+          <span class="marquee__logo">Firefox</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== three moves =====================================================
+       Capture, leave, return. The stage pins while the reader scrolls three
+       beats, and the window's content changes per beat. Scrubbed and
+       reversible by js/home.js; a list with one window on phones. -->
+  <section class="moves" id="product" aria-labelledby="moves-title">
+    <div class="rail moves__head">
+      <h2 class="h2" id="moves-title">Three moves. Nothing else to learn.</h2>
+      <p class="lede">Capture the task. Leave it. Come back to all of it.</p>
+    </div>
+
+    <div class="moves__scroller" data-moves>
+      <div class="moves__stage">
+        <div class="shell moves__layout">
+          <ol class="moves__list">
+            <li class="move" data-move="0" aria-current="step">
+              <span class="move__n" aria-hidden="true">1</span>
+              <h3>Capture</h3>
+              <p>Files, terminals, tabs and the branch, sealed into one capsule.</p>
+            </li>
+            <li class="move" data-move="1">
+              <span class="move__n" aria-hidden="true">2</span>
+              <h3>Leave</h3>
+              <p>Switch tasks. The one you leave saves itself.</p>
+            </li>
+            <li class="move" data-move="2">
+              <span class="move__n" aria-hidden="true">3</span>
+              <h3>Return</h3>
+              <p>Everything comes back, branch first, with a receipt.</p>
+            </li>
+          </ol>
+
+          <figure class="window moves__window">
+            <div class="window__bar">
+              <span class="window__lights" aria-hidden="true"><span></span><span></span><span></span></span>
+              <span class="window__title" data-moves-title>Rabta — Capsules</span>
+            </div>
+            <div class="window__stage">
+              <video data-move-shot="0" data-active class="move-shot" width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/move-capture.png" data-src-desktop="/assets/demos/move-capture-desktop.mp4" data-src-mobile="/assets/demos/move-capture-mobile.mp4" aria-label="Capturing a task: the capsule saves the open files, terminals, tabs and branch."></video>
+              <video data-move-shot="1" class="move-shot" width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/move-leave.png" data-src-desktop="/assets/demos/move-leave-desktop.mp4" data-src-mobile="/assets/demos/move-leave-mobile.mp4" aria-label="Leaving a task: another capsule becomes active and the one you left is saved."></video>
+              <video data-move-shot="2" class="move-shot" width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/move-return.png" data-src-desktop="/assets/demos/move-return-desktop.mp4" data-src-mobile="/assets/demos/move-return-mobile.mp4" aria-label="Returning to a task: the restore sheet reports each tool as restored, waiting or skipped."></video>
+            </div>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== what a capsule holds ============================================
+       Four things, four cells, each showing the part of the real app that
+       holds it. -->
+  <section class="holds" id="pieces" aria-labelledby="holds-title">
+    <div class="rail">
+      <div class="holds__head" data-reveal>
+        <h2 class="h2" id="holds-title">A capsule is the whole surface of a task.</h2>
+        <p class="lede">Not the code. The arrangement around it: which files, which terminals, which tabs, which branch.</p>
+      </div>
+
+      <div class="holds__grid">
+        <article class="cell cell--wide" data-reveal>
+          <div class="cell__text">
+            <h3>The files</h3>
+            <p>Every open file and its order, plus the workspace folder they belong to.</p>
+          </div>
+          <div class="cell__art" data-product-media="cell-files">
+            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-files.png" data-src-desktop="/assets/demos/cell-files-desktop.mp4" data-src-mobile="/assets/demos/cell-files-mobile.mp4" aria-label="The capsule's files card in the real app, in focus."></video>
+            <button class="cell__play media-play media-play--small" type="button" hidden data-media-play data-label-play="Play" data-label-pause="Pause">Play</button>
+          </div>
+        </article>
+
+        <article class="cell cell--ember" data-reveal data-reveal-delay="80">
+          <div class="cell__text">
+            <h3>The terminals</h3>
+            <p>Each one's working directory. Never its output.</p>
+          </div>
+          <div class="cell__art" data-product-media="cell-terminals">
+            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-terminals.png" data-src-desktop="/assets/demos/cell-terminals-desktop.mp4" data-src-mobile="/assets/demos/cell-terminals-mobile.mp4" aria-label="The capsule's terminals, counted in the real app, in focus."></video>
+            <button class="cell__play media-play media-play--small" type="button" hidden data-media-play data-label-play="Play" data-label-pause="Pause">Play</button>
+          </div>
+        </article>
+
+        <article class="cell cell--paper paper" data-reveal>
+          <div class="cell__text">
+            <h3>The tabs</h3>
+            <p>URLs and titles from the browser you approved. Nothing on the page.</p>
+          </div>
+          <div class="cell__art" data-product-media="cell-tabs">
+            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-tabs.png" data-src-desktop="/assets/demos/cell-tabs-desktop.mp4" data-src-mobile="/assets/demos/cell-tabs-mobile.mp4" aria-label="The capsule's tabs list in the real app, in focus."></video>
+            <button class="cell__play media-play media-play--small" type="button" hidden data-media-play data-label-play="Play" data-label-pause="Pause">Play</button>
+          </div>
+        </article>
+
+        <article class="cell cell--wide" data-reveal data-reveal-delay="80">
+          <div class="cell__text">
+            <h3>The branch</h3>
+            <p>Restored first, and never forced. A dirty tree stops the switch and says so.</p>
+          </div>
+          <div class="cell__art" data-product-media="cell-branch">
+            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-branch.png" data-src-desktop="/assets/demos/cell-branch-desktop.mp4" data-src-mobile="/assets/demos/cell-branch-mobile.mp4" aria-label="The project's branch row in the real app, in focus."></video>
+            <button class="cell__play media-play media-play--small" type="button" hidden data-media-play data-label-play="Play" data-label-pause="Pause">Play</button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== focus mode ======================================================
+       The one stateful control on the page. It ships on, with a receipt that
+       has something in it, so a scriptless visitor sees the interesting half. -->
+  <section class="focus" id="focus" aria-labelledby="focus-title">
+    <div class="rail focus__grid">
+      <div class="focus__copy" data-reveal>
+        <h2 class="h2" id="focus-title">Resuming can also put away what isn't in the task.</h2>
+        <p class="lede">
+          Focus mode closes what the capsule didn't capture, one item at a time,
+          only after a clean restore. Unsaved files, running terminals and
+          anything pinned are kept, and the receipt says why.
+        </p>
+        <div class="switchrow">
+          <button class="switch" type="button" role="switch" aria-checked="true" data-focus-toggle aria-labelledby="focus-switch-label">
+            <span class="switch__knob" aria-hidden="true"></span>
+          </button>
+          <span class="switch__label" id="focus-switch-label" data-focus-label>focus mode on</span>
+        </div>
+      </div>
+
+      <div class="receipt" data-reveal data-reveal-delay="100" aria-live="polite">
+        <div class="receipt__tally">
+          <div class="tally"><b data-tally="back">12</b><span>brought back</span></div>
+          <div class="tally"><b data-tally="away">6</b><span>put away</span></div>
+          <div class="tally"><b data-tally="kept">4</b><span>kept</span></div>
+        </div>
+        <p class="receipt__head" data-away-head>6 tabs closed · 4 kept</p>
+        <ul class="receipt__list" data-away-list>
+          <li><b>2</b> tabs kept <i>pinned in the browser</i></li>
+          <li><b>1</b> file kept <i>unsaved changes</i></li>
+          <li><b>1</b> terminal left running <i>npm run dev</i></li>
+        </ul>
+        <p class="receipt__foot" data-away-foot>Closed items are held in the task you left. Resume it to get them back.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== the night chapter ===============================================
+       Local-first, stated flat. The mark's ember is the only light. -->
+  <section class="local" id="local" aria-labelledby="local-title">
     <div class="local__glow" aria-hidden="true"></div>
-    <div class="rail local__inner">
-      <p class="eyebrow">Local-first</p>
-      <h2 id="local-title">There is no account, because there is no server.</h2>
-      <p class="local__lede">
-        Capsules are files on your disk. Rabta has no backend to send them to,
-        no telemetry, and nothing to sign in to. Delete the app and the data
-        goes with it.
-      </p>
-
-      <div class="local__grid">
-        <article class="card">
-          <h3>On your disk</h3>
-          <p>Plain files under Application Support. Readable, movable, deletable.</p>
-        </article>
-        <article class="card">
-          <h3>Pointers, not contents</h3>
-          <p>Paths and URLs. Rabta never reads what is inside your files.</p>
-        </article>
-        <article class="card">
-          <h3>No network calls</h3>
-          <p>Nothing on launch and nothing on a timer. No analytics, no update ping.</p>
-        </article>
-        <article class="card">
-          <h3>Permissions you grant</h3>
-          <p>The editor and browser extensions, each installed and revoked by you.</p>
-        </article>
+    <div class="rail local__grid">
+      <div class="local__head">
+        <h2 class="h2" id="local-title">There is no account, because there is no server.</h2>
+        <p class="lede">
+          Capsules are files on your disk. Rabta has no backend to send them
+          to, no telemetry, and nothing to sign in to. Delete the app and the
+          data goes with it.
+        </p>
+        <p class="local__more"><a class="link link--arrow" href="/privacy/">Read the full privacy policy</a></p>
       </div>
-
-      <p class="local__more"><a href="/privacy/">Read the full privacy policy</a></p>
+      <div class="local__mark" aria-hidden="true">
+        <svg class="mark" data-mark="draw" viewBox="0 0 100 100" focusable="false">
+          <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
+            <path class="stem" d="M25 22V84" />
+            <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
+            <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="rail local__ledger">
+      <div data-reveal>
+        <h3>On your disk</h3>
+        <p>Plain files under Application Support. Readable, movable, deletable.</p>
+      </div>
+      <div data-reveal data-reveal-delay="60">
+        <h3>Pointers, not contents</h3>
+        <p>Paths and URLs. Rabta never reads what is inside your files.</p>
+      </div>
+      <div data-reveal data-reveal-delay="120">
+        <h3>No network calls</h3>
+        <p>Nothing on launch and nothing on a timer. No analytics, no update ping.</p>
+      </div>
+      <div data-reveal data-reveal-delay="180">
+        <h3>Permissions you grant</h3>
+        <p>The editor and browser extensions, each installed and revoked by you.</p>
+      </div>
     </div>
   </section>
 
-  <!-- ==== download ==========================================================
-       The design's line reads "Free while in beta · macOS 13 or later · Apple
-       silicon & Intel · 14 MB". Every one of those four is wrong for what
-       ships: it is MIT and permanently free, macOS 11+, Apple silicon only,
-       and 5.5 MB. "Free while in beta" also implies a price later, which there
-       isn't. -->
-  <section class="download" id="download" data-chapter aria-labelledby="download-title">
-    <div class="download__glow" aria-hidden="true"></div>
-    <div class="rail download__inner">
-      <h2 id="download-title">Stop rebuilding the same workspace.</h2>
-      <p class="download__lede">Free and MIT-licensed. Runs entirely on your Mac.</p>
+  <!-- ==== the close =======================================================
+       Every number here is the artifact's own: 5.5 MB, macOS 11+, Apple
+       silicon only, no Intel build, MIT, signed and notarized. -->
+  <section class="close" id="download" aria-labelledby="download-title">
+    <div class="rail" data-reveal>
+      <h2 class="h1" id="download-title">Stop rebuilding the same workspace.</h2>
+      <p class="lede">Free and MIT-licensed. Runs entirely on your Mac.</p>
 
-      <div class="hero__actions">
-        <a class="button button--primary glow" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">
+      <div class="close__actions">
+        <a class="button button--primary button--large" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">
           Download Rabta 0.1.0
-          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.6v9.2M3.2 7.4 7 11.2l3.8-3.8M1.8 12.6h10.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.6v9.2M3.2 7.4 7 11.2l3.8-3.8M1.8 12.6h10.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </a>
-        <a class="button" href="/setup/">Setup guide</a>
+        <a class="button button--large" href="/setup/">Setup guide</a>
       </div>
 
-      <p class="download__meta mono">5.5 MB · macOS 11+ · Apple Silicon only · no Intel build · signed and notarized</p>
-      <p class="download__links">
-        <a href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">GitHub release</a>
-        <a href="/setup/#verify">Verify the download</a>
-        <a href="/changelog/">What's in it</a>
+      <ul class="close__facts">
+        <li>5.5 MB</li>
+        <li>macOS 11+</li>
+        <li>Apple Silicon only, no Intel build</li>
+        <li>Signed and notarized</li>
+      </ul>
+
+      <p class="close__links">
+        <a class="link" href="https://github.com/salmuflahi/rabta/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">GitHub release</a>
+        <a class="link" href="/setup/#verify">Verify the download</a>
+        <a class="link" href="/changelog/">What's in it</a>
       </p>
     </div>
   </section>
-
 </main>
 
 <footer class="foot">
 <!-- chrome:foot -->
-  <!-- The receipt fold. It is part of the shell, not a homepage flourish —
-       `tests/site/site-contract.test.mjs`'s "every route wears the same shell"
-       requires exactly one on every route, and the five new pages shipped
-       without it until that guard was widened to cover them. -->
-  <div class="rail foot__receipt">
-    <button class="receipt" type="button" data-receipt-fold data-folded="false" aria-pressed="false" aria-label="Fold the saved workspace receipt" aria-describedby="receipt-summary">
-      <span class="visually-hidden" id="receipt-summary">Saved workspace receipt: 4 files, 3 terminals, 5 browser tabs, branch feat/connector-reconnect, restore result partial.</span>
-      <span class="receipt__kept" aria-hidden="true">YOUR PLACE IS KEPT</span>
-      <span class="receipt__manifest" aria-hidden="true">
-        <span><b>FILES</b><i data-count>4</i></span>
-        <span><b>TERMINALS</b><i data-count>3</i></span>
-        <span><b>BROWSER TABS</b><i data-count>5</i></span>
-        <span><b>BRANCH</b><i>FEAT/CONNECTOR-RECONNECT</i></span>
-        <span><b>RESTORE RESULT</b><i>PARTIAL</i></span>
-      </span>
-      <span class="receipt__target" aria-hidden="true"></span>
-      <span class="receipt__flap" aria-hidden="true"></span>
-    </button>
-  </div>
-
   <!-- Four columns, grouped by what a visitor came for rather than by which
-       page happens to exist. The single row this replaces put /privacy/ and
-       /why/ next to each other as peers, which they are not: one is a
-       decision, the other is a document you read after making it.
-
-       Every column mixes on-site and off-site destinations on purpose — a
-       reader looking for the download does not care which host serves it. The
-       `rel` attributes carry the distinction the layout deliberately drops:
-       `rel="me"` on GitHub lets that profile verify this site back, and
-       `noopener noreferrer` is on every external target without exception. -->
+       page happens to exist. Every column mixes on-site and off-site
+       destinations on purpose. `rel="me"` on GitHub, Instagram and TikTok is
+       the link-back half of identity verification; `noopener noreferrer` is
+       on every external target without exception. -->
   <div class="rail foot__grid">
     <div class="foot__brand">
-      <a class="brand" href="/" aria-label="Rabta — home">
-        <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-          <rect width="64" height="64" rx="14" fill="#102526" />
-          <path fill="#f3f0e8" fill-rule="evenodd" d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z" />
-          <path fill="#ff6b2c" d="M41.5 8v14.5H56Z" />
-        </svg>
-        <span>Rabta</span>
+      <a class="brand" href="/" aria-label="Rabta, home">
+        <img class="brand__ink" src="/assets/brand/lockup.svg" width="2945" height="1213" alt="" />
+        <img class="brand__paper" src="/assets/brand/lockup-paper.svg" width="2945" height="1213" alt="" />
       </a>
-      <p>Workspace memory for macOS.</p>
-      <p class="foot__badge"><span aria-hidden="true">●</span> Local-first</p>
+      <p>Workspace memory for macOS. Local-first, no account, no server.</p>
     </div>
 
     <nav class="foot__col" aria-label="Product">
       <p class="foot__head">Product</p>
       <a href="/why/">Why Rabta</a>
-      <a href="/#how-it-works">How it works</a>
+      <a href="/#product">How it works</a>
       <a href="/#focus">Focus mode</a>
       <a href="/roadmap/">Roadmap</a>
+      <a href="/brand/">Brand</a>
     </nav>
 
     <nav class="foot__col" aria-label="Get started">
@@ -695,10 +480,6 @@
       <a href="https://github.com/salmuflahi/rabta/issues" rel="noopener noreferrer" target="_blank">Report an issue</a>
     </nav>
 
-    <!-- `rel="me"` on all three: it is the link-back half of identity
-         verification, and it is what lets a profile prove it belongs to this
-         site rather than merely pointing at it. GitHub already carried it;
-         the two social profiles are the same claim. -->
     <nav class="foot__col" aria-label="Contact and legal">
       <p class="foot__head">Contact &amp; legal</p>
       <a href="/contact/">Contact</a>

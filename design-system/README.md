@@ -1,7 +1,9 @@
 # Living Instrument — design system
 
-The visual system behind the desktop app, rabta.build, and the browser
-connector, as a set of cards on claude.ai/design.
+The brand system behind the desktop app, rabta.build, and the browser
+connector, as a set of cards on claude.ai/design. The system itself is
+`docs/superpowers/specs/2026-09-03-rabta-brand-redesign-design.md`; its
+public form is rabta.build/brand/.
 
 ```bash
 ./design-system/build.mjs    # parts/ -> dist/
@@ -30,7 +32,7 @@ Drop a fragment in `parts/`. Its first line must be the card marker:
 ```
 
 `group` is the section in the Design System pane. Use the site's real classes in
-the body — `.button`, `.sweep`, `.cut-link` — rather than restyling them here.
+the body: `.button`, `.link`, `.window` rather than restyling them here.
 
 ## Publishing
 

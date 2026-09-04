@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=2560, height=1600" />
+    <title>Rabta · hero-return</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js" integrity="sha384-sG0Hv1tP1lZCk9KQmrIbY/XNwi+OY84GQqhMscbnsoBFqAz8KNCil1kvfL3Hbbk2" crossorigin="anonymous"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 2560px; height: 1600px; overflow: hidden; background: #0a0b0e; }
+      #root { position: relative; width: 2560px; height: 1600px; overflow: hidden; background: #0a0b0e; }
+      /* The app's own pixels: authored at 1280x800, shown at 2x. */
+      .frame { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; transform: scale(2); transform-origin: 0 0; overflow: hidden; background: #0a0b0e; }
+      .drift { position: absolute; inset: 0; will-change: transform; }
+      .zoom-outer { position: absolute; inset: 0; transform-origin: 50% 50%; will-change: transform; }
+      .zoom-inner { position: absolute; inset: 0; will-change: transform; }
+      .plate { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; object-fit: cover; display: block; }
+      /* The off-focus plate: blurred and dimmed by the lens tweens. */
+      .plate.base { --dof: 0px; filter: blur(var(--dof)); will-change: filter, opacity; }
+      /* The focal plate: the same frame, clipped to the region that matters. */
+      .plate.sharp { z-index: 2; clip-path: inset(0px 0px 0px 0px round 0px); will-change: clip-path; }
+      .veil { position: absolute; inset: 0; z-index: 5; background: #0a0b0e; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="8.5" data-width="2560" data-height="1600">
+      <div class="frame">
+        <div class="drift" id="drift">
+          <div class="zoom-outer" id="zo">
+            <div class="zoom-inner" id="zi" data-layout-allow-overflow>
+              <video id="base" class="plate base" src="assets/hero-return-1280x800.mp4?plate=base" data-start="0" data-duration="8.5" data-media-start="0" data-track-index="0" muted playsinline></video>
+              <video id="sharp" class="plate sharp" src="assets/hero-return-1280x800.mp4?plate=sharp" data-start="0" data-duration="8.5" data-media-start="0" data-track-index="1" muted playsinline></video>
+            </div>
+          </div>
+        </div>
+        <div class="veil" id="veil" data-layout-ignore></div>
+      </div>
+    </div>
+    <script>
+      const zo = document.getElementById("zo");
+      const zi = document.getElementById("zi");
+      const base = document.getElementById("base");
+      const sharp = document.getElementById("sharp");
+      const veil = document.getElementById("veil");
+      const drift = document.getElementById("drift");
+      const tl = gsap.timeline({ paused: true });
+
+      // The resting pose, seeded so frame 0 is right under seek.
+      gsap.set(zo, { scale: 1 });
+      gsap.set(zi, { x: 0, y: 0 });
+      gsap.set(base, { "--dof": "0px", opacity: 1 });
+
+      // Camera and lens: coordinate-target-zoom (outer scales, inner
+      // counter-translates, same duration and ease) + depth-of-field-blur
+      // (the off-focus plate takes --dof and a dim; the focal plate clips).
+  tl.to(zo, { scale: 1.14, duration: 0.9, ease: "power3.inOut" }, 0.5);
+  tl.to(zi, { x: -89.59999999999991, y: 55.99999999999994, duration: 0.9, ease: "power3.inOut" }, 0.5);
+  tl.to(sharp, { clipPath: "inset(148px 20px 332px 548px round 16px)", duration: 0.9, ease: "power3.inOut" }, 0.5);
+  tl.to(base, { "--dof": "7px", opacity: 0.5, duration: 0.9, ease: "power3.inOut" }, 0.5);
+  tl.to(zo, { scale: 1, duration: 0.5, ease: "power2.inOut" }, 1.85);
+  tl.to(zi, { x: 0, y: 0, duration: 0.5, ease: "power2.inOut" }, 1.85);
+  tl.to(sharp, { clipPath: "inset(0px 0px 0px 0px round 0px)", duration: 0.5, ease: "power2.inOut" }, 1.85);
+  tl.to(base, { "--dof": "0px", opacity: 1, duration: 0.5, ease: "power2.inOut" }, 1.85);
+  tl.to(zo, { scale: 1.16, duration: 0.9, ease: "power3.inOut" }, 2.5);
+  tl.to(zi, { x: -102.39999999999998, y: 64, duration: 0.9, ease: "power3.inOut" }, 2.5);
+  tl.to(sharp, { clipPath: "inset(156px 206px 490px 438px round 16px)", duration: 0.9, ease: "power3.inOut" }, 2.5);
+  tl.to(base, { "--dof": "7px", opacity: 0.5, duration: 0.9, ease: "power3.inOut" }, 2.5);
+  tl.to(zo, { scale: 1, duration: 0.5, ease: "power2.inOut" }, 3.6);
+  tl.to(zi, { x: 0, y: 0, duration: 0.5, ease: "power2.inOut" }, 3.6);
+  tl.to(sharp, { clipPath: "inset(0px 0px 0px 0px round 0px)", duration: 0.5, ease: "power2.inOut" }, 3.6);
+  tl.to(base, { "--dof": "0px", opacity: 1, duration: 0.5, ease: "power2.inOut" }, 3.6);
+  tl.to(zo, { scale: 1.3, duration: 0.9, ease: "power3.inOut" }, 4.55);
+  tl.to(zi, { x: -109, y: -13, duration: 0.9, ease: "power3.inOut" }, 4.55);
+  tl.to(sharp, { clipPath: "inset(254px 296px 228px 516px round 20px)", duration: 0.9, ease: "power3.inOut" }, 4.55);
+  tl.to(base, { "--dof": "7px", opacity: 0.5, duration: 0.9, ease: "power3.inOut" }, 4.55);
+  tl.to(zo, { scale: 1.06, duration: 0.8, ease: "power2.inOut" }, 7.6);
+  tl.to(zi, { x: 0, y: 0, duration: 0.8, ease: "power2.inOut" }, 7.6);
+  tl.to(sharp, { clipPath: "inset(0px 0px 0px 0px round 0px)", duration: 0.8, ease: "power2.inOut" }, 7.6);
+  tl.to(base, { "--dof": "0px", opacity: 1, duration: 0.8, ease: "power2.inOut" }, 7.6);
+
+      // multi-phase-camera's micro-drift: the one writer of drift's transform,
+      // spanning the whole loop so no sampled window is ever static.
+      const phase = { p: 0 };
+      tl.to(phase, {
+        p: Math.PI * 2 * 3,
+        duration: 8.5,
+        ease: "none",
+        onUpdate: () => {
+          const dx = Math.sin(phase.p) * 3;
+          const dy = Math.sin(phase.p * 0.7) * 2;
+          drift.style.transform = `translate(${dx}px, ${dy}px)`;
+        },
+      }, 0);
+
+      // The loop's seam: a dip to ink at both ends.
+  tl.fromTo(veil, { opacity: 1 }, { opacity: 0, duration: 0.35, ease: "power2.out" }, 0);
+  tl.to(veil, { opacity: 1, duration: 0.35, ease: "power2.in" }, 8.15);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

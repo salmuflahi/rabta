@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=2560, height=1600" />
+    <title>Rabta · move-capture</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js" integrity="sha384-sG0Hv1tP1lZCk9KQmrIbY/XNwi+OY84GQqhMscbnsoBFqAz8KNCil1kvfL3Hbbk2" crossorigin="anonymous"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 2560px; height: 1600px; overflow: hidden; background: #0a0b0e; }
+      #root { position: relative; width: 2560px; height: 1600px; overflow: hidden; background: #0a0b0e; }
+      /* The app's own pixels: authored at 1280x800, shown at 2x. */
+      .frame { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; transform: scale(2); transform-origin: 0 0; overflow: hidden; background: #0a0b0e; }
+      .drift { position: absolute; inset: 0; will-change: transform; }
+      .zoom-outer { position: absolute; inset: 0; transform-origin: 50% 50%; will-change: transform; }
+      .zoom-inner { position: absolute; inset: 0; will-change: transform; }
+      .plate { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; object-fit: cover; display: block; }
+      /* The off-focus plate: blurred and dimmed by the lens tweens. */
+      .plate.base { --dof: 0px; filter: blur(var(--dof)); will-change: filter, opacity; }
+      /* The focal plate: the same frame, clipped to the region that matters. */
+      .plate.sharp { z-index: 2; clip-path: inset(0px 0px 0px 0px round 0px); will-change: clip-path; }
+      .veil { position: absolute; inset: 0; z-index: 5; background: #0a0b0e; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4" data-width="2560" data-height="1600">
+      <div class="frame">
+        <div class="drift" id="drift">
+          <div class="zoom-outer" id="zo">
+            <div class="zoom-inner" id="zi" data-layout-allow-overflow>
+              <video id="base" class="plate base" src="assets/capture-1280x800.mp4?plate=base" data-start="0" data-duration="4" data-media-start="0" data-track-index="0" muted playsinline></video>
+              <video id="sharp" class="plate sharp" src="assets/capture-1280x800.mp4?plate=sharp" data-start="0" data-duration="4" data-media-start="0" data-track-index="1" muted playsinline></video>
+            </div>
+          </div>
+        </div>
+        <div class="veil" id="veil" data-layout-ignore></div>
+      </div>
+    </div>
+    <script>
+      const zo = document.getElementById("zo");
+      const zi = document.getElementById("zi");
+      const base = document.getElementById("base");
+      const sharp = document.getElementById("sharp");
+      const veil = document.getElementById("veil");
+      const drift = document.getElementById("drift");
+      const tl = gsap.timeline({ paused: true });
+
+      // The resting pose, seeded so frame 0 is right under seek.
+      gsap.set(zo, { scale: 1.04 });
+      gsap.set(zi, { x: -25.600000000000023, y: 16 });
+      gsap.set(base, { "--dof": "0px", opacity: 1 });
+
+      // Camera and lens: coordinate-target-zoom (outer scales, inner
+      // counter-translates, same duration and ease) + depth-of-field-blur
+      // (the off-focus plate takes --dof and a dim; the focal plate clips).
+  tl.to(zo, { scale: 1.22, duration: 0.9, ease: "power3.inOut" }, 0.5);
+  tl.to(zi, { x: -140.79999999999995, y: 88, duration: 0.9, ease: "power3.inOut" }, 0.5);
+  tl.to(sharp, { clipPath: "inset(148px 20px 332px 548px round 16px)", duration: 0.9, ease: "power3.inOut" }, 0.5);
+  tl.to(base, { "--dof": "7px", opacity: 0.5, duration: 0.9, ease: "power3.inOut" }, 0.5);
+  tl.to(zo, { scale: 1.04, duration: 0.6, ease: "power2.inOut" }, 3.2);
+  tl.to(zi, { x: -25.600000000000023, y: 16, duration: 0.6, ease: "power2.inOut" }, 3.2);
+  tl.to(sharp, { clipPath: "inset(0px 0px 0px 0px round 0px)", duration: 0.6, ease: "power2.inOut" }, 3.2);
+  tl.to(base, { "--dof": "0px", opacity: 1, duration: 0.6, ease: "power2.inOut" }, 3.2);
+
+      // multi-phase-camera's micro-drift: the one writer of drift's transform,
+      // spanning the whole loop so no sampled window is ever static.
+      const phase = { p: 0 };
+      tl.to(phase, {
+        p: Math.PI * 2 * 1,
+        duration: 4,
+        ease: "none",
+        onUpdate: () => {
+          const dx = Math.sin(phase.p) * 3;
+          const dy = Math.sin(phase.p * 0.7) * 2;
+          drift.style.transform = `translate(${dx}px, ${dy}px)`;
+        },
+      }, 0);
+
+      // The loop's seam: a dip to ink at both ends.
+  tl.fromTo(veil, { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out" }, 0);
+  tl.to(veil, { opacity: 1, duration: 0.3, ease: "power2.in" }, 3.70);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

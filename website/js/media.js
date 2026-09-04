@@ -77,9 +77,15 @@ export function initProductMedia(root = document, env = window) {
     video.load();
   }
 
+  /* Loops that share a `data-media-group` take turns: the three moves are
+     one beat at a time. Loops with no group, or different groups, play
+     together — four bento cells or a hero above a bento are meant to. */
+  const groupOf = new Map(blocks.map((block) => [block.querySelector("video"), block.dataset.mediaGroup]));
   function pauseOthers(current) {
+    const group = groupOf.get(current);
+    if (!group) return;
     videos.forEach((video) => {
-      if (video !== current) video.pause();
+      if (video !== current && groupOf.get(video) === group) video.pause();
     });
   }
 

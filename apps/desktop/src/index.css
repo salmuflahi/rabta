@@ -12,13 +12,7 @@
 
    Registration must sit at the top level — `@property` inside `@layer` is
    invalid and is silently dropped. Browsers without `@property` support
-   simply fall back to the old instant behaviour rather than breaking.
-
-   DELIBERATE DIVERGENCE: the Console v2 handoff says "Sidebar collapse is
-   instant, not animated. Animating it was tried and cut." Phase 2 animates
-   it on the product owner's explicit call. See SIDEBAR_MOTION_MS in
-   src/shell/titlebar.ts — that constant, this duration and Tailwind's
-   `duration-sidebar` token are the same 280ms and must stay that way. */
+   simply fall back to the old instant behaviour rather than breaking. */
 @property --sidebar-width {
   syntax: "<length>";
   inherits: false;
@@ -26,179 +20,155 @@
 }
 
 .sidebar-track {
-  /* `ease-mac` / cubic-bezier(.32,.72,0,1) is the handoff's macOS motion
-     curve, shared with the Switch knob and the Migrate sheet. The global
-     prefers-reduced-motion rule at the bottom of this file clamps the
-     duration to ~0, so no separate reduced-motion branch is needed. */
+  /* `ease-mac` / cubic-bezier(.32,.72,0,1) is the macOS motion curve,
+     shared with the Switch knob. The duration is DUR.sidebar in
+     src/lib/motion.ts and Tailwind's `duration-sidebar` — the same 280ms,
+     and motion.test.ts pins this rule to it. */
   transition: --sidebar-width 280ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* ==========================================================================
+   Tokens — paper, ink, one ember.
+   docs/superpowers/specs/2026-09-03-rabta-brand-redesign-design.md §2.
+
+   Solid colours are bare HSL triplets (bound via hsl(var(--x)) in
+   tailwind.config.js). Alpha-carrying overlays are literal rgba() and are
+   bound directly, never through hsl(). tokens.test.ts enforces both.
+
+   Both themes are neutral with a cool cast (hue ~225°): paper in light,
+   ink in dark. There is no petrol anywhere in this file, and no colour
+   here is teal — the one warm value is the ember, the brand accent.
+   ========================================================================== */
+
 @layer base {
   :root {
-    --background: 0 0% 98%;   /* #FAFAFA */
-    --foreground: 240 3% 12%;   /* #1D1D1F */
-    --card: 0 0% 100%;   /* #FFFFFF */
-    --card-foreground: 240 3% 12%;   /* #1D1D1F */
-    --popover: 0 0% 100%;   /* #FFFFFF */
-    --popover-foreground: 240 3% 12%;   /* #1D1D1F */
-    --primary: 18 100% 59%;   /* #FF6B2C */
-    /* Console v2 Phase 4, Task 14 — moved from white (this file's original
-       default). White reads at only 2.81:1 against --primary's tangerine
-       orange, short of WCAG AA's 4.5:1 for text (contrast.test.ts, "accent
-       button label"); --foreground's near-black clears it at 5.94:1 and is
-       reused rather than inventing a new colour. Petrol/sky/sand's accent
-       buttons still want a light label on top of their own (darker)
-       --primary — that per-accent choice is resolved at runtime by
-       applyAccent() (src/theme/accent.ts, resolvePrimaryForeground), whose
-       tangerine-light fallback lands on this exact value, so the static
-       paint before that effect runs already matches it. */
-    --primary-foreground: 240 3% 12%;   /* #1D1D1F — same value as --foreground above */
-    /* Console v2 Phase 1, Task 2 — accent tokens (src/theme/accent.ts).
-       These static values are the tangerine default, kept identical to
-       --primary (and, since Task 14, --primary-foreground) above so a
-       fresh install paints correctly before ThemeProvider's layout effect
-       runs; applyAccent() then owns all five properties for real,
-       rewriting them on every accent/theme change. --accent-text is for
-       accent-coloured text on an --accent-soft background — never use
-       --primary for small text on light, it's too dark/saturated there. */
-    --primary-hover: 17 88% 52%;   /* #F0561A */
-    --accent-text: 19 76% 43%;   /* #C2501B */
+    /* ---- paper ---------------------------------------------------------- */
+    --background: 240 14% 97%;   /* #F7F7F9  the canvas */
+    --foreground: 225 13% 6%;    /* #0E0F12  ink text */
+    --card: 0 0% 100%;           /* #FFFFFF  raised surface */
+    --card-foreground: 225 13% 6%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 225 13% 6%;
+
+    /* ---- the ember ------------------------------------------------------ */
+    /* The static default is Tangerine; applyAccent() (src/theme/accent.ts)
+       owns these five properties at runtime and repaints them on every
+       accent or theme change. A dark label on the ember clears 5.9:1;
+       white on it does not (2.8:1), which is why --primary-foreground is
+       the ink here and is resolved per accent in code. */
+    --primary: 18 100% 59%;      /* #FF6B2C */
+    --primary-foreground: 225 13% 6%;
+    --primary-hover: 17 88% 52%; /* #F0561A */
+    --accent-text: 19 76% 43%;   /* #C2501B  ember as small text on paper */
     --accent-soft: rgba(255,107,44,.14);
-    --secondary: 0 0% 92%;   /* #EBEBEB */
-    --secondary-foreground: 240 3% 12%;   /* #1D1D1F */
-    --muted: 0 0% 96%;   /* #F5F5F5 */
-    /* Console v2 Phase 4, Task 14 — darkened 2 points (48% -> 46% L) to
-       clear WCAG AA's 4.5:1 for body text; it read 4.21:1 against
-       --background before (contrast.test.ts, "subtitles"). */
-    --muted-foreground: 240 2% 46%;   /* #737378 */
-    /* Console v2 Phase 4, Task 14 — darkened 3 points (61% -> 58% L) to
-       clear WCAG AA's 3:1 for UI text; it read 2.73:1 against --background
-       before (contrast.test.ts, "metadata and counts"). */
-    --tertiary-foreground: 240 3% 58%;   /* #919197 */
-    --accent: 0 0% 93%;   /* #EDEDED */
-    --accent-foreground: 240 3% 12%;   /* #1D1D1F */
-    --destructive: 6 63% 46%;   /* #C0392B */
-    --destructive-foreground: 0 0% 100%;   /* #FFFFFF */
-    --border: 0 0% 88%;   /* #E0E0E0 — hairlines use border-border/60 */
-    --input: 0 0% 84%;   /* #D6D6D6 */
-    --ring: 18 100% 59%;   /* #FF6B2C */
-    /* Console v2 Phase 1, Task 4 — hairline shadow ring. Supersedes the
-       lit-edge model (see the removed dark-mode inset highlight below):
-       "Cards do not use `border`; the hairline is the first shadow ring.
-       This keeps borders from doubling where cards sit next to hairline
-       dividers." (design handoff, Metrics section). `--shadow-raised` adds
-       a soft blur on top of the ring for the one hero surface per screen;
-       `--shadow-grouped` (inspector panes, sheet footers, chips) is the
-       ring alone, since those surfaces sit flush rather than lifting off
-       the canvas; `--shadow-modal` swaps in the much larger, darker
-       `--shadow-lg` for sheets and the command palette. `--border` is an
-       HSL triplet everywhere else in this file, so it's wrapped in hsl()
-       here exactly like any other solid-colour token; `--shadow` /
-       `--shadow-lg` are alpha-carrying and bound directly, never through
-       hsl(). Modal is not wired to any component yet — Phase 2 (restore
-       sheet, command palette). The prototype uses 24px spread for the
-       palette and 30px for the Migrate sheet; 30px is used here as the
-       token default. */
+
+    /* ---- neutrals ------------------------------------------------------- */
+    --secondary: 240 10% 93%;    /* #ECECF0  selected row, quiet button */
+    --secondary-foreground: 225 13% 6%;
+    --muted: 240 12% 95%;        /* #F1F1F4  grouped-list ground */
+    --muted-foreground: 226 8% 32%;   /* #4A4D57  7.6:1 on the canvas */
+    --tertiary-foreground: 226 7% 47%; /* #6F7380  4.4:1, metadata and counts */
+    --accent: 240 11% 92%;       /* #E9E9EE  hover surface (neutral, NOT the brand accent) */
+    --accent-foreground: 225 13% 6%;
+    --destructive: 6 63% 46%;    /* #C0392B */
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 8% 88%;        /* #DFDFE4  hairlines use border-border/60 */
+    --input: 240 8% 84%;         /* #D3D3DA */
+    --ring: 18 100% 59%;
+
+    /* ---- elevation ------------------------------------------------------ */
+    /* Cards do not use `border`; the hairline is the first shadow ring, so
+       borders never double where a card sits next to a divider. */
     --shadow-raised: 0 0 0 0.5px hsl(var(--border)), 0 1px 2px var(--shadow);
     --shadow-grouped: 0 0 0 0.5px hsl(var(--border));
     --shadow-modal: 0 0 0 0.5px hsl(var(--border)), 0 30px 70px var(--shadow-lg);
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
-    --sidebar: 0 0% 94%;   /* #EFEFEF */
-    --sidebar-foreground: 240 3% 12%;   /* #1D1D1F */
-    --sidebar-primary: 18 100% 59%;   /* #FF6B2C */
-    --sidebar-primary-foreground: 0 0% 100%;   /* #FFFFFF */
-    --sidebar-accent: 0 0% 89%;   /* #E3E3E3 */
-    --sidebar-accent-foreground: 240 3% 12%;   /* #1D1D1F */
-    --sidebar-border: 0 0% 85%;   /* #D9D9D9 */
-    --sidebar-ring: 18 100% 59%;   /* #FF6B2C */
+    /* ---- sidebar -------------------------------------------------------- */
+    --sidebar: 240 14% 94%;      /* #EEEEF2 */
+    --sidebar-foreground: 225 13% 6%;
+    --sidebar-primary: 18 100% 59%;
+    --sidebar-primary-foreground: 225 13% 6%;
+    --sidebar-accent: 240 10% 89%;   /* #E1E1E7 */
+    --sidebar-accent-foreground: 225 13% 6%;
+    --sidebar-border: 240 8% 86%;    /* #D9D9DF */
+    --sidebar-ring: 18 100% 59%;
 
-    /* Console v2 Phase 1, Task 1 — semantic + surface tokens from the
-       design handoff. Solid colours are bare HSL triplets (bound via
-       hsl(var(--x)); see tailwind.config.js and the * { @apply
-       border-border } rule in this file). Alpha-carrying overlays are
-       literal rgba() and are bound directly, never through hsl().
-
-       Phase 2 retired the older --success/--warning/--info vocabulary
-       these replaced. Note there is no --info successor: the handoff has
-       no informational colour, and inventing one would be a token nothing
-       in the design uses. */
-    --ok: 169 72% 33%;   /* #178F79 */
-    --warn: 38 71% 40%;   /* #B07B1E */
-    --bad: 8 59% 44%;   /* #B3402E */
+    /* ---- semantic + surface --------------------------------------------- */
+    --ok: 169 72% 33%;           /* #178F79 */
+    --warn: 38 71% 40%;          /* #B07B1E */
+    --bad: 8 59% 44%;            /* #B3402E */
     --ok-soft: rgba(23,143,121,.12);
     --warn-soft: rgba(176,123,30,.14);
-    --hover: rgba(0,0,0,.05);
-    --shadow: rgba(0,0,0,.05);
-    --shadow-lg: rgba(0,0,0,.28);
-    --scrim: rgba(0,0,0,.18);
-    --field: 0 0% 100%;   /* #FFFFFF */
+    --hover: rgba(14,15,18,.05);
+    --shadow: rgba(14,15,18,.06);
+    --shadow-lg: rgba(14,15,18,.28);
+    --scrim: rgba(14,15,18,.2);
+    --field: 0 0% 100%;
   }
+
   .dark {
-    --background: 192 8% 12%;   /* #1D2122 */
-    --foreground: 180 14% 95%;   /* #EFF3F3 */
-    --card: 190 7% 16%;   /* #272C2D */
-    --card-foreground: 180 14% 95%;   /* #EFF3F3 */
-    --popover: 190 7% 16%;   /* #272C2D */
-    --popover-foreground: 180 14% 95%;   /* #EFF3F3 */
-    --primary: 18 100% 59%;   /* #FF6B2C */
+    /* ---- ink ------------------------------------------------------------ */
+    --background: 223 15% 9%;    /* #14161B  the canvas */
+    --foreground: 240 14% 97%;   /* #F5F5F7  paper text */
+    --card: 222 14% 14%;         /* #1E2128  raised surface */
+    --card-foreground: 240 14% 97%;
+    --popover: 222 14% 14%;
+    --popover-foreground: 240 14% 97%;
+
+    /* ---- the ember ------------------------------------------------------ */
+    --primary: 18 100% 59%;      /* #FF6B2C */
     --primary-foreground: 19 38% 8%;   /* #1D120D */
-    /* Console v2 Phase 1, Task 2 — accent tokens, tangerine default. See the
-       light-theme block above for the rationale. */
-    --primary-hover: 19 100% 64%;   /* #FF7F45 */
-    --accent-text: 17 100% 68%;   /* #FF8A5C */
+    --primary-hover: 19 100% 64%;      /* #FF7F45 */
+    --accent-text: 17 100% 68%;        /* #FF8A5C */
     --accent-soft: rgba(255,107,44,.2);
-    --secondary: 190 8% 21%;   /* #2F3637 */
-    --secondary-foreground: 180 14% 95%;   /* #EFF3F3 */
-    --muted: 190 8% 15%;   /* #232829 */
-    --muted-foreground: 185 5% 56%;   /* #8A9596 */
-    --tertiary-foreground: 185 5% 45%;   /* #6C7778 */
-    --accent: 190 7% 19%;   /* #2E3435 */
-    --accent-foreground: 180 14% 95%;   /* #EFF3F3 */
-    --destructive: 6 74% 64%;   /* #E76B5D */
-    --destructive-foreground: 19 38% 8%;   /* #1D120D */
-    --border: 188 7% 24%;   /* #383F40 — hairlines use border-border/60 */
-    --input: 188 7% 28%;   /* #414849 */
-    --ring: 18 100% 59%;   /* #FF6B2C */
-    /* Hairline ring model — see the light theme's comment above for the
-       full rationale. Removed: the lit top edge (`inset 0 1px 0
-       rgba(210,240,240,...)`) that used to stand in for light falling from
-       above on a dark surface. The formula below is textually identical to
-       light's; `--border`, `--shadow` and `--shadow-lg` resolve to this
-       theme's own (darker) values. */
+
+    /* ---- neutrals ------------------------------------------------------- */
+    --secondary: 222 12% 19%;    /* #2B2F38 */
+    --secondary-foreground: 240 14% 97%;
+    --muted: 223 13% 12%;        /* #1A1C22 */
+    --muted-foreground: 223 10% 70%;   /* #A9AEB9  7.9:1 on the canvas */
+    --tertiary-foreground: 224 6% 52%; /* #7C808B  4.6:1 */
+    --accent: 222 12% 17%;       /* #262A32 */
+    --accent-foreground: 240 14% 97%;
+    --destructive: 6 74% 64%;    /* #E76B5D */
+    --destructive-foreground: 19 38% 8%;
+    --border: 222 11% 22%;       /* #32363F */
+    --input: 222 11% 26%;        /* #3B404A */
+    --ring: 18 100% 59%;
+
     --shadow-raised: 0 0 0 0.5px hsl(var(--border)), 0 1px 2px var(--shadow);
     --shadow-grouped: 0 0 0 0.5px hsl(var(--border));
     --shadow-modal: 0 0 0 0.5px hsl(var(--border)), 0 30px 70px var(--shadow-lg);
 
-    --sidebar: 189 15% 9%;   /* #141A1B */
-    --sidebar-foreground: 180 14% 95%;   /* #EFF3F3 */
-    --sidebar-primary: 18 100% 59%;   /* #FF6B2C */
-    --sidebar-primary-foreground: 19 38% 8%;   /* #1D120D */
-    --sidebar-accent: 190 9% 19%;   /* #2C3335 */
-    --sidebar-accent-foreground: 180 14% 95%;   /* #EFF3F3 */
-    --sidebar-border: 189 12% 16%;   /* #242B2C */
-    --sidebar-ring: 18 100% 59%;   /* #FF6B2C */
+    /* ---- sidebar: ink-0, the darkest surface in the brand ---------------- */
+    --sidebar: 225 17% 5%;       /* #0A0B0E */
+    --sidebar-foreground: 240 14% 97%;
+    --sidebar-primary: 18 100% 59%;
+    --sidebar-primary-foreground: 19 38% 8%;
+    --sidebar-accent: 223 12% 16%;   /* #24272E */
+    --sidebar-accent-foreground: 240 14% 97%;
+    --sidebar-border: 223 12% 14%;   /* #1F2229 */
+    --sidebar-ring: 18 100% 59%;
 
-    /* Console v2 Phase 1, Task 1 — see the light-theme block above for the
-       rationale on the HSL-triplet vs. literal-rgba split. */
-    --ok: 167 45% 50%;   /* #46B79E */
-    --warn: 39 64% 55%;   /* #D6A342 */
-    --bad: 10 68% 64%;   /* #E27A66 */
+    /* ---- semantic + surface --------------------------------------------- */
+    --ok: 167 45% 50%;           /* #46B79E */
+    --warn: 39 64% 55%;          /* #D6A342 */
+    --bad: 10 68% 64%;           /* #E27A66 */
     --ok-soft: rgba(70,183,158,.16);
     --warn-soft: rgba(214,163,66,.16);
-    --hover: rgba(255,255,255,.07);
+    --hover: rgba(245,245,247,.06);
     --shadow: rgba(0,0,0,.4);
     --shadow-lg: rgba(0,0,0,.6);
-    --scrim: rgba(0,0,0,.5);
-    --field: 190 8% 15%;   /* #232829 */
+    --scrim: rgba(0,0,0,.55);
+    --field: 223 13% 12%;        /* #1A1C22 */
   }
 }
 
 @layer base {
   * { @apply border-border; }
   /* Lock the frame to the viewport: the document itself never scrolls or
-     rubber-bands (that caused the whole shell to slide sideways and reveal a
-     strip on the left). Only the workspace region scrolls, vertically. */
+     rubber-bands. Only the workspace region scrolls, vertically. */
   html, body, #root {
     height: 100%;
     overflow: hidden;
@@ -210,14 +180,26 @@
 }
 
 @layer components {
-  /* Interactive card surfaces: a restrained 2px lift + deeper shadow on
-     hover. No scaling, no flash — the card should feel like it rises to
-     meet the cursor. Opt-in so static container cards stay put. */
+  /* Interactive card surfaces: a restrained 1px rise + deeper shadow on
+     hover. No scaling, no flash — the card rises to meet the cursor. */
   .card-lift {
-    @apply transition-[transform,box-shadow,border-color] duration-150 ease-brand;
+    @apply transition-[transform,box-shadow,border-color] duration-standard ease-brand;
   }
   .card-lift:hover {
-    @apply -translate-y-0.5 shadow-raised;
+    @apply -translate-y-px shadow-raised;
+  }
+
+  /* The ember bloom: a soft radial wash that fades in under a thing that
+     just landed (the restore sheet's header on success, the live capsule).
+     Transform/opacity only; neutralised by the reduced-motion rules below. */
+  .ember-bloom {
+    background: radial-gradient(60% 60% at 50% 50%, var(--accent-soft), transparent 70%);
+    animation: ember-bloom 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes ember-bloom {
+    from { opacity: 0; transform: scale(0.6); }
+    40%  { opacity: 1; }
+    to   { opacity: 0; transform: scale(1.35); }
   }
 }
 
@@ -239,27 +221,8 @@
 }
 
 /* Reduced transparency: the blurred chrome becomes opaque rather than
-   merely less blurred. A user who asked for no transparency wants none.
-
-   Scoped to the classes that actually carry a `backdrop-filter` —
-   Toolbar's `.backdrop-blur-[24px]` and CommandPalette's
-   `.backdrop-blur-[40px]`. Repo-wide grep confirms those are the app's
-   only two blurred surfaces; nothing else needs to be listed here.
-
-   `[data-tauri-drag-region]` used to be part of this rule, matched by
-   attribute rather than by blur class. That was wrong: the attribute also
-   lands on two Sidebar.tsx regions (the titlebar spacer, the brand row)
-   that were never blurred — plain `bg-sidebar`, no `backdrop-filter` at
-   baseline. Under this rule they were getting painted an opaque
-   `--background`-toned rectangle over the (different) `--sidebar` tone —
-   a visible regression for exactly the user this rule exists to help.
-   Toolbar's drag region already carries `.backdrop-blur-[24px]` on the
-   same element, so scoping by class instead loses no real coverage.
-
-   `[data-sheet]` (sheet.tsx's Content) isn't listed either: it ships
-   `bg-background` with no blur at baseline today, so matching it here
-   would be a no-op. Add it back if a sheet ever gains a
-   `backdrop-blur-*` of its own. */
+   merely less blurred. Scoped to the two surfaces that carry a
+   `backdrop-filter` (the Toolbar and the command palette). */
 @media (prefers-reduced-transparency: reduce) {
   .backdrop-blur-\[24px\],
   .backdrop-blur-\[40px\] {

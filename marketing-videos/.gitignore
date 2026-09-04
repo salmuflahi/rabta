@@ -1,0 +1,10 @@
+# working output — regenerate with `npx hyperframes render` / `snapshot`
+**/renders/
+**/snapshots/
+**/.hyperframes/
+**/node_modules/
+**/*.log
+**/.hf-check.json
+**/.audio-block.html
+# composed beds are regenerable from _audio/score-*.json via compose.mjs
+rabta/_audio/bed-*

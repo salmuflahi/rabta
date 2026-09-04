@@ -1,389 +1,153 @@
-/* Rabta — the landing page.
+/* Rabta — the homepage.
  *
- * Built to the redesign's home comp. It is the one page on this site that is
- * centre-weighted: the inner pages lead with a label in a left axis track
- * because they are documents with a section structure, and this one is a
- * single argument, so the claim sits in the middle and the evidence sits under
- * it.
- *
- * Two constraints shape every rule below, and both are load-bearing:
- *
- *   - The CSP forbids inline styles. The design export carries 260 `style`
- *     attributes; none of them survives here. Anything the design expressed as
- *     a per-element style is a class or a data attribute instead.
- *   - Interaction is CSS wherever CSS can carry it. The three-move rows expand
- *     on `:hover` with no script at all, the marquee is one keyframe, and the
- *     contribution graph is 140 static spans. The only JavaScript on this page
- *     is the focus-mode switch, which is genuinely stateful — and the page
- *     ships in the "on" state so a scriptless visitor still sees the receipt
- *     that makes the section worth reading.
+ * Seven sections, seven layout families: a centred hero over a Mac window,
+ * one marquee, a pinned three-beat sequence, a bento, a split with the one
+ * stateful control, the night chapter, and a closing statement. The CSP
+ * forbids inline styles, so every state is a class or a data attribute, and
+ * every animated thing has a finished state that ships without script.
  */
 
 @layer section {
-  /* ---- shared -------------------------------------------------------------- */
-  .eyebrow {
-    color: var(--orange);
-    font-family: var(--mono);
-    font-size: 11.5px;
-    font-weight: 500;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-  }
-
-  /* Radial washes. The design layers two behind the hero — a wide cool one for
-     depth and a tighter warm one to put weight under the headline — and one
-     behind each of the two closing sections. They are all decorative and all
-     `pointer-events: none`, so nothing here can ever eat a click. */
-  .hero__glow,
-  .window__glow,
-  .local__glow,
-  .download__glow {
-    position: absolute;
-    pointer-events: none;
-    z-index: 0;
-  }
-
+  /* ---- hero ---------------------------------------------------------------- */
   .hero {
     position: relative;
-    padding-top: 92px;
-    overflow: hidden;
-  }
-
-  .hero__glow--cool {
-    left: 50%;
-    top: -160px;
-    width: 1500px;
-    height: 900px;
-    margin-left: -750px;
-    background: radial-gradient(ellipse 50% 50% at 50% 40%, rgba(31, 71, 80, 0.85), transparent 70%);
-  }
-
-  .hero__glow--warm {
-    left: 50%;
-    top: 140px;
-    width: 820px;
-    height: 520px;
-    margin-left: -410px;
-    background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255, 107, 44, 0.11), transparent 68%);
+    padding-top: clamp(40px, 6vw, 88px);
   }
 
   .hero__inner {
-    position: relative;
-    z-index: 1;
-    max-width: 1240px;
-    margin-inline: auto;
-    padding-inline: 28px;
     text-align: center;
   }
 
-  /* ---- the announcement badge ---------------------------------------------
-     A link, not an ornament: it goes to the section it names. The blurred
-     halo behind it is a sibling span rather than a box-shadow so it can be
-     wider than the pill without inflating its hit area. */
-  .badge {
-    position: relative;
+  /* The lockup at brand scale: the mark, then "abta" arriving beside it.
+     Sized from one number so the mark and the word keep their ratio. */
+  .hero__lockup {
+    --lockup: clamp(44px, 5.2vw, 76px);
     display: inline-flex;
     align-items: center;
-    gap: 9px;
-    height: 30px;
-    padding: 0 6px 0 12px;
-    border: 1px solid var(--hairline-strong);
-    border-radius: 9999px;
-    background: var(--cool-panel);
-    color: var(--cool-field);
-    font-size: 12.5px;
-    font-weight: 500;
-    letter-spacing: -0.08px;
+    gap: calc(var(--lockup) * 0.12);
+    height: calc(var(--lockup) * 1.3);
+    color: var(--text);
   }
 
-  .badge::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: rgba(255, 107, 44, 0.55);
-    filter: blur(12px);
-    opacity: 0.6;
-    z-index: -1;
+  .hero__lockup .mark {
+    width: calc(var(--lockup) * 1.3);
+    height: calc(var(--lockup) * 1.3);
+    overflow: visible;
   }
 
-  .badge:hover,
-  .badge:focus-visible {
-    color: var(--ivory);
-    border-color: rgba(243, 240, 232, 0.28);
-  }
-
-  .badge__dot {
-    position: relative;
-    flex: none;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--orange);
-  }
-
-  .badge__dot::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: var(--orange);
-    animation: badge-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-  }
-
-  @keyframes badge-ping {
-    75%,
-    100% {
-      transform: scale(2.4);
-      opacity: 0;
-    }
-  }
-
-  .badge__arrow {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: rgba(243, 240, 232, 0.09);
-    color: var(--ivory);
-    font-size: 11px;
-  }
-
-  /* ---- the headline --------------------------------------------------------
-     Each line is a masked row with the text translated up inside it, so the
-     lines rise into view from behind their own edge rather than fading in
-     place. The second is delayed, which is what makes it read as two beats.
-     `data-reveal` comes from js/reveal.js via `data-chapter`; with no script
-     the rules below never apply and the text is simply there. */
-  .hero h1 {
-    max-width: 15ch;
-    margin: 26px auto 0;
-    color: var(--ivory);
-    font-size: clamp(42px, 6.6vw, 82px);
+  .hero__word {
+    font-size: var(--lockup);
     font-weight: 560;
-    line-height: 0.98;
-    letter-spacing: -0.045em;
-    text-wrap: balance;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    padding-bottom: calc(var(--lockup) * 0.05);
   }
 
+  .mark .leg {
+    stroke: var(--ember);
+  }
+
+  .hero__title {
+    max-width: 14ch;
+    margin: var(--s7) auto 0;
+  }
+
+  /* Each line is a masked row with the text translated up inside it, so the
+     lines rise into view from behind their own baseline. `data-hero` is set
+     by js/home.js; with no script the rules never apply and the text is
+     simply there. */
   .rise {
     display: block;
     overflow: hidden;
-    padding-block: 0.16em;
-    margin-block: -0.16em;
+    padding-block: 0.12em;
+    margin-block: -0.12em;
   }
 
-  [data-reveal="pending"] .rise > span {
+  .rise > span {
     display: block;
-    transform: translateY(30px);
+  }
+
+  [data-hero="pending"] .rise > span,
+  [data-hero="pending"] .hero__lede,
+  [data-hero="pending"] .hero__actions,
+  [data-hero="pending"] .hero__stage {
     opacity: 0;
-    filter: blur(6px);
   }
 
-  [data-reveal="shown"] .rise > span {
-    display: block;
-    transform: translateY(0);
-    opacity: 1;
-    filter: blur(0);
-    transition:
-      transform var(--entrance-dur) var(--ease-out),
-      opacity var(--entrance-dur) var(--ease-out),
-      filter var(--entrance-dur) var(--ease-out);
-  }
-
-  [data-reveal="shown"] .rise:nth-child(2) > span {
-    transition-delay: var(--dur);
+  [data-hero="pending"] .hero__word {
+    opacity: 0;
   }
 
   .hero__lede {
-    max-width: 600px;
-    margin: 24px auto 0;
-    color: var(--cool-soft);
-    font-size: 18px;
-    line-height: 1.55;
-    letter-spacing: -0.2px;
-    text-wrap: pretty;
+    max-width: 44ch;
+    margin: var(--s5) auto 0;
   }
 
   .hero__actions {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
     justify-content: center;
-    gap: 12px;
-    margin-top: 34px;
+    gap: var(--s3);
+    margin-top: var(--s6);
   }
 
-  .requirement,
-  .download__meta {
-    margin-top: 16px;
-    color: var(--cool-mid);
-    font-family: var(--mono);
-    font-size: 11.5px;
-    letter-spacing: 0.2px;
-  }
-
-  /* The orange bloom behind a primary button. Sits at -1 so it never covers
-     the label, and grows on hover rather than moving — a button that shifts
-     under the cursor is a button you miss. */
-  .glow {
+  .hero__stage {
     position: relative;
-    isolation: isolate;
+    margin-top: clamp(48px, 6vw, 80px);
   }
 
-  .glow::after {
+  /* A soft ember pool under the window: the one place the accent is allowed
+     to be atmosphere rather than a mark. */
+  .hero__stage::before {
     content: "";
     position: absolute;
-    inset: -12px;
-    border-radius: inherit;
-    background: radial-gradient(ellipse at center, rgba(255, 107, 44, 0.55), transparent 66%);
-    filter: blur(13px);
-    opacity: 0.5;
-    z-index: -1;
-    transition: opacity var(--hover-dur) var(--ease-out);
-  }
-
-  .glow:hover::after,
-  .glow:focus-visible::after {
-    opacity: 1;
-  }
-
-
-  .window__glow {
-    left: 50%;
-    top: 30px;
-    width: 120%;
-    height: 105%;
-    margin-left: -60%;
-    background: radial-gradient(ellipse 50% 46% at 50% 40%, rgba(255, 107, 44, 0.13), transparent 68%);
-    filter: blur(22px);
-  }
-
-
-
-
-
-
-
-
-
-  .window__stage {
-    position: relative;
-    aspect-ratio: 16 / 9;
-    background: rgba(4, 12, 13, 0.8);
-  }
-
-  .window__video {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  /* ---- the demo's controls -------------------------------------------------
-     Recovered wholesale from the previous landing page. Both ship `hidden` and
-     js/media.js reveals them, so a scriptless visitor gets the poster frame and
-     no dead controls — and the play button is a real 44px target rather than an
-     overlay that only works with a pointer.
-
-     The stage is a one-cell grid so the button can centre itself and the track
-     can pin to the bottom edge without either being absolutely positioned
-     against a stage whose height is set by an aspect ratio. */
-  .window__stage {
-    display: grid;
-    grid-template-areas: "stage";
-  }
-
-  /* The demo fades into the frame's own floor rather than stopping at a hard
-     line. The window already carries a border and two shadows; without this the
-     video's bottom edge is a third, harder edge inside them, and the whole
-     thing reads as a rectangle pasted onto the page. */
-  .window__stage::after {
-    content: "";
-    grid-area: stage;
-    z-index: 1;
+    left: 10%;
+    right: 10%;
+    top: 12%;
+    bottom: -6%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--accent-soft), transparent);
+    filter: blur(40px);
     pointer-events: none;
-    align-self: end;
-    height: 34%;
-    background: linear-gradient(to bottom, transparent, rgba(4, 12, 13, 0.72));
+    z-index: 0;
   }
 
-  .window__stage > * {
-    grid-area: stage;
-  }
-
-  .media-play {
-    z-index: 2;
-    align-self: center;
-    justify-self: center;
-    min-height: 44px;
-    padding: 11px 18px;
-    border: 1px solid rgba(243, 240, 232, 0.34);
-    border-radius: 999px;
-    background: var(--petrol);
-    color: var(--ivory);
-    font: 600 12px/1 var(--mono);
-    letter-spacing: 0.025em;
-    cursor: pointer;
-    --sweep: var(--orange);
-  }
-
-  .media-play:hover,
-  .media-play:focus-visible {
-    color: var(--petrol);
-  }
-
-  .media-play:focus-visible {
-    outline: 3px solid var(--orange);
-    outline-offset: 4px;
-  }
-
-  .media-play:disabled,
-  .media-play[hidden] {
-    display: none;
-  }
-
-  .media-track {
-    z-index: 2;
-    align-self: end;
-    height: 2px;
-    background: rgba(217, 227, 227, 0.18);
-  }
-
-  .media-track[hidden] {
-    display: none;
-  }
-
-  .media-track span {
-    display: block;
-    width: 0;
-    height: 100%;
-    background: var(--cool-field);
-  }
-
-  /* ---- the marquee --------------------------------------------------------
-     The list is duplicated in the markup and the track translates exactly half
-     its width, so the loop is seamless without measuring anything. Masked at
-     both ends so logos arrive and leave rather than popping. */
-  .marquee {
+  .hero__stage .window {
     position: relative;
-    margin-top: 64px;
-    padding-block: 26px;
+    z-index: 1;
+  }
+
+  /* ---- works with: the one marquee -------------------------------------- */
+  .works {
+    margin-top: clamp(56px, 7vw, 96px);
+    padding-block: var(--s5);
     border-top: 1px solid var(--hairline);
     border-bottom: 1px solid var(--hairline);
-    background: rgba(8, 19, 20, 0.3);
+  }
+
+  .works__inner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--s6);
+  }
+
+  .works__label {
+    white-space: nowrap;
+  }
+
+  .marquee {
+    position: relative;
     overflow: hidden;
-    -webkit-mask-image: linear-gradient(90deg, transparent, rgb(4 12 13) 10%, rgb(4 12 13) 90%, transparent);
-    mask-image: linear-gradient(90deg, transparent, rgb(4 12 13) 10%, rgb(4 12 13) 90%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, var(--ink-0) 8%, var(--ink-0) 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, var(--ink-0) 8%, var(--ink-0) 92%, transparent);
   }
 
   .marquee__track {
     display: flex;
     width: max-content;
-    gap: 46px;
-    animation: marquee 46s linear infinite;
+    gap: var(--s8);
+    animation: marquee 48s linear infinite;
   }
 
   @keyframes marquee {
@@ -393,827 +157,577 @@
   }
 
   .marquee__logo {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--cool-mid);
-    font-size: 14px;
-    letter-spacing: -0.15px;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    color: var(--text-faint);
     white-space: nowrap;
   }
 
-  .marquee__logo svg {
-    flex: none;
-    opacity: 0.8;
-  }
-
-  /* ---- three moves --------------------------------------------------------
-     Hover expands a row from 68px to 320px and dims the others. This is the
-     one place the design used component state and it does not need to: the
-     `:hover` selector already means "the row the pointer is on", and
-     `.moves__list:hover .move:not(:hover)` already means "the others". No
-     script, no state, and it cannot desynchronise from what the pointer is
-     actually doing. */
+  /* ---- three moves: the pinned sequence --------------------------------- */
   .moves {
-    padding-top: 104px;
+    padding-top: var(--section);
   }
 
-  .moves h2,
-  .holds h2,
-  .focus h2 {
-    max-width: 20ch;
-    margin-top: 14px;
-    color: var(--ivory);
-    font-size: clamp(30px, 3.9vw, 46px);
-    font-weight: 560;
-    line-height: 1.04;
-    letter-spacing: -0.035em;
-    text-wrap: balance;
+  .moves__head {
+    text-align: center;
   }
 
-  .moves__hint {
-    margin-top: 16px;
-    color: var(--cool-soft);
-    font-size: 16.5px;
-    line-height: 1.6;
+  .moves__head .lede {
+    margin: var(--s4) auto 0;
+    max-width: 46ch;
+  }
+
+  /* The scroller is three viewports tall; the stage sticks for all of it, and
+     js/home.js maps scroll progress to the three beats. */
+  .moves__scroller {
+    position: relative;
+    height: 300vh;
+    margin-top: var(--s7);
+  }
+
+  .moves__stage {
+    position: sticky;
+    top: var(--nav-h);
+    height: calc(100vh - var(--nav-h));
+    display: flex;
+    align-items: center;
+  }
+
+  .moves__layout {
+    display: grid;
+    grid-template-columns: minmax(240px, 0.8fr) minmax(0, 2.2fr);
+    gap: var(--s8);
+    align-items: center;
   }
 
   .moves__list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    width: min(1240px, calc(100vw - 40px));
-    margin: 32px auto 0;
-    padding: 0;
-    list-style: none;
+    gap: var(--s5);
   }
 
   .move {
     position: relative;
-    height: 68px;
-    border: 1px solid rgba(243, 240, 232, 0.1);
-    border-radius: 12px;
-    overflow: hidden;
-    background: var(--cool-panel);
+    padding-left: 44px;
     transition:
-      height var(--open-dur) var(--ease-out),
-      opacity var(--open-dur) var(--ease-out),
-      border-color var(--open-dur) var(--ease-out);
-  }
-
-  /* The crop, which is most of what makes these read as a set.
-     `object-position: left top` put a 1024x640 screenshot in a 68px band and
-     showed the top-left tenth of it — three different slivers of three
-     different screens, at a zoom where nothing was legible. Anchoring to the
-     top centre and dropping the scale to 1.02 shows each app's header and
-     sidebar, which is the region all three shots have in common: that is what
-     makes them match. The 1.02 exists only so the expand has somewhere to
-     travel from. */
-  .move img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: 50% 0;
-    transform: scale(1.02);
-    transition: transform var(--entrance-dur) var(--ease-out);
-    /* The screenshot dissolves at its own bottom edge instead of being cut off
-       by it, so the row reads as a surface the image sits on rather than a
-       window punched through it. */
-    -webkit-mask-image:
-      linear-gradient(to bottom, rgb(4 12 13) 45%, transparent 100%),
-      linear-gradient(to left, transparent, rgb(4 12 13) 14%);
-    mask-image:
-      linear-gradient(to bottom, rgb(4 12 13) 45%, transparent 100%),
-      linear-gradient(to left, transparent, rgb(4 12 13) 14%);
-    -webkit-mask-composite: source-in;
-    mask-composite: intersect;
-  }
-
-  /* Two gradients, not one. The horizontal keeps the label legible over
-     whatever the screenshot happens to be doing on the left; the vertical
-     seats the image into the row's own colour at the bottom, which is where
-     the text baseline sits. */
-  .move__scrim {
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(to right, rgba(4, 12, 13, 0.86), rgba(4, 12, 13, 0.42) 46%, rgba(4, 12, 13, 0.12)),
-      linear-gradient(to bottom, transparent 30%, rgba(23, 50, 57, 0.86) 92%);
-  }
-
-  .move__row {
-    position: relative;
-    display: flex;
-    align-items: flex-end;
-    gap: 18px;
-    height: 100%;
-    padding: 0 26px 20px;
+      opacity var(--dur-state) var(--ease),
+      transform var(--dur-state) var(--ease);
   }
 
   .move__n {
-    flex: none;
-    color: rgba(243, 240, 232, 0.5);
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.2px;
-  }
-
-  .move__label {
-    flex: none;
-    color: var(--ivory);
-    font-size: clamp(20px, 2.4vw, 30px);
-    font-weight: 560;
-    letter-spacing: -0.03em;
-  }
-
-  .move__sub {
-    flex: none;
-    color: rgba(243, 240, 232, 0.55);
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-  }
-
-  .move__desc {
-    min-width: 0;
-    margin-left: auto;
-    color: rgba(243, 240, 232, 0.85);
-    font-size: 15px;
-    line-height: 1.5;
-    text-align: right;
-    opacity: 0;
-    transform: translateX(-8px);
+    position: absolute;
+    left: 0;
+    top: 0.1em;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-mute);
+    box-shadow: inset 0 0 0 1px var(--hairline-strong);
     transition:
-      opacity var(--open-dur) var(--ease-out) var(--dur),
-      transform var(--open-dur) var(--ease-out) var(--dur);
+      background-color var(--dur-state) var(--ease),
+      color var(--dur-state) var(--ease),
+      box-shadow var(--dur-state) var(--ease);
   }
 
-  /* Hover only where hovering is a real gesture. On a touch screen `:hover`
-     latches on tap and leaves a row stuck open, so those get every row
-     expanded — which is the honest fallback: the content was never hidden,
-     only folded. */
-  /* Each row carries `tabindex="0"`: it is a disclosure, and focus opens it
-     exactly as hover does. Every `:hover` rule below has a `:focus-visible`
-     twin for that reason — a row that only ever opened under a pointer would
-     hide its description from anyone driving the page by keyboard, and the
-     site's own contract test fails on precisely that asymmetry. */
-  @media (hover: hover) and (pointer: fine) {
-    .moves__list:has(.move:hover) .move:not(:hover),
-    .moves__list:has(.move:focus-visible) .move:not(:focus-visible) {
-      opacity: 0.38;
-    }
-
-    .move:hover,
-    .move:focus-visible {
-      height: 320px;
-      border-color: rgba(243, 240, 232, 0.22);
-    }
-
-    .move:hover img,
-    .move:focus-visible img {
-      transform: scale(1);
-      -webkit-mask-image:
-        linear-gradient(to bottom, rgb(4 12 13) 68%, transparent 100%),
-        linear-gradient(to left, transparent, rgb(4 12 13) 10%);
-      mask-image:
-        linear-gradient(to bottom, rgb(4 12 13) 68%, transparent 100%),
-        linear-gradient(to left, transparent, rgb(4 12 13) 10%);
-    }
-
-    /* Expanded, the screenshot is the point, so the scrim steps back to what
-       the text actually needs and the image keeps more of its own bottom. */
-    .move:hover .move__scrim,
-    .move:focus-visible .move__scrim {
-      background:
-        linear-gradient(to right, rgba(4, 12, 13, 0.72), rgba(4, 12, 13, 0.22) 52%, transparent),
-        linear-gradient(to bottom, transparent 52%, rgba(23, 50, 57, 0.9) 98%);
-    }
-
-    .move:hover .move__desc,
-    .move:focus-visible .move__desc {
-      opacity: 1;
-      transform: translateX(0);
-    }
+  .move h3 {
+    font-size: var(--fs-h3);
+    font-weight: 560;
+    letter-spacing: var(--track-h3);
+    line-height: 1.2;
   }
 
-  /* No fine pointer means no hover gesture to give: every row is open. The
-     content was never hidden from assistive technology — `opacity: 0` keeps it
-     in the accessibility tree — only folded away visually, and here it
-     unfolds. */
-  @media not all and (hover: hover) {
-    .move {
-      height: 240px;
-    }
-
-    .move img {
-      transform: scale(1);
-    }
-
-    .move__desc {
-      opacity: 1;
-      transform: none;
-    }
+  .move p {
+    margin-top: 6px;
+    max-width: 30ch;
+    color: var(--text-mute);
+    text-wrap: pretty;
   }
 
-  /* ---- what it holds ------------------------------------------------------- */
+  /* With script, one move is current at a time. Without it, all three read
+     at full strength. */
+  [data-moves="live"] .move {
+    opacity: 0.38;
+  }
+
+  [data-moves="live"] .move[aria-current="step"] {
+    opacity: 1;
+  }
+
+  [data-moves="live"] .move[aria-current="step"] .move__n {
+    background: var(--ember);
+    color: var(--on-accent);
+    box-shadow: none;
+  }
+
+  .moves__window .window__stage {
+    aspect-ratio: 16 / 10;
+    display: grid;
+    grid-template-areas: "shot";
+  }
+
+  /* One loop per beat, stacked; the current beat is the one showing. */
+  .move-shot {
+    grid-area: shot;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity var(--dur-reveal) var(--ease);
+  }
+
+  .move-shot[data-active] {
+    opacity: 1;
+  }
+
+  /* ---- what a capsule holds: the bento ---------------------------------- */
   .holds {
-    padding-top: 104px;
+    padding-top: var(--section);
+  }
+
+  .holds__head {
+    max-width: 30ch;
+  }
+
+  .holds__head .lede {
+    margin-top: var(--s4);
+    max-width: 48ch;
   }
 
   .holds__grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--gap);
-    margin-top: 44px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: minmax(300px, auto);
+    gap: var(--s4);
+    margin-top: var(--s7);
   }
 
-  .figcard {
-    padding: 26px 22px 28px;
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--r4);
-    background: linear-gradient(180deg, rgba(23, 50, 57, 0.5), rgba(23, 50, 57, 0.2));
-  }
-
-  .figcard__fig {
-    color: var(--cool-mid);
-    font-family: var(--mono);
-    font-size: 10.5px;
-    letter-spacing: 0.09em;
-  }
-
-  .figcard__art {
+  .cell {
+    position: relative;
     display: flex;
-    justify-content: center;
-    margin-block: 10px 22px;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--s5);
+    padding: var(--s6);
+    border-radius: var(--r-xl);
+    background: var(--bg-alt);
+    overflow: hidden;
+    isolation: isolate;
   }
 
-  .figcard__art .fig {
-    display: block;
+  .cell--wide {
+    grid-column: span 2;
+  }
+
+  /* One cell is lit by the ember; one is paper. The other two are ink. */
+  .cell--ember {
+    background:
+      radial-gradient(120% 90% at 100% 0%, var(--accent-soft), transparent 60%),
+      var(--bg-alt);
+  }
+
+  .cell--paper {
+    color: var(--text);
+  }
+
+  .cell__text {
+    position: relative;
+    z-index: 1;
+    max-width: 26ch;
+  }
+
+  .cell__text h3 {
+    font-size: var(--fs-h3);
+    font-weight: 560;
+    letter-spacing: var(--track-h3);
+    line-height: 1.2;
+  }
+
+  .cell__text p {
+    margin-top: 6px;
+    color: var(--text-mute);
+    text-wrap: pretty;
+  }
+
+  /* The real app, as a loop: the camera and the focus lens are in the
+     footage itself, so the cell only frames it. Sits off the bottom edge like
+     a sheet on a desk. */
+  .cell__art {
+    position: relative;
+    display: grid;
+    grid-template-areas: "art";
+    margin: 0 calc(var(--s6) * -1) calc(var(--s6) * -1) 0;
+    border-radius: var(--r-m) 0 0 0;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px var(--hairline-strong), 0 30px 60px -30px var(--shadow-deep);
+    background: var(--ink-1);
+    aspect-ratio: 16 / 10;
+  }
+
+  .cell__art > * {
+    grid-area: art;
+  }
+
+  .cell__art video {
     width: 100%;
-    max-width: 238px;
-    height: auto;
+    height: 100%;
+    object-fit: cover;
   }
 
-  .figcard h3 {
-    color: var(--ivory);
-    font-size: 17px;
-    font-weight: 540;
-    letter-spacing: var(--track-17);
+  .cell__play {
+    align-self: end;
+    justify-self: start;
+    margin: 0 0 12px 12px;
   }
 
-  .figcard p {
-    margin-top: 8px;
-    color: var(--cool-soft);
-    font-size: 14.5px;
-    line-height: 1.55;
-  }
-
-  /* ---- focus mode ---------------------------------------------------------- */
+  /* ---- focus mode: the split ---------------------------------------------- */
   .focus {
-    padding-top: 104px;
-  }
-
-  .focus__lede {
-    max-width: 68ch;
-    margin-top: 16px;
-    color: var(--cool-soft);
-    font-size: 16.5px;
-    line-height: 1.6;
+    padding-top: var(--section);
   }
 
   .focus__grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: var(--gap);
-    margin-top: 40px;
-    align-items: start;
+    gap: var(--s9);
+    align-items: center;
   }
 
-  .focus__controls {
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap);
-  }
-
-  .panel {
-    padding: 24px;
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--r4);
-    background: linear-gradient(180deg, rgba(23, 50, 57, 0.5), rgba(23, 50, 57, 0.2));
-  }
-
-  .panel--quiet {
-    background: rgba(23, 50, 57, 0.22);
-  }
-
-  .panel h3 {
-    color: var(--ivory);
-    font-size: 17px;
-    font-weight: 540;
-    letter-spacing: var(--track-17);
-  }
-
-  .panel--quiet h3 {
-    margin-top: 12px;
-    font-size: 22px;
-  }
-
-  .panel p {
-    margin-top: 10px;
-    color: var(--cool-soft);
-    font-size: 14.5px;
-    line-height: 1.6;
-  }
-
-  .panel__foot {
-    margin-top: 18px;
-    padding-top: 14px;
-    border-top: 1px solid var(--hairline);
-    color: var(--cool-mid);
-    font-size: 11.5px;
-    letter-spacing: var(--track-mono);
+  .focus__copy .lede {
+    margin-top: var(--s4);
+    max-width: 40ch;
   }
 
   .switchrow {
     display: flex;
-    align-items: flex-start;
-    gap: 20px;
+    align-items: center;
+    gap: var(--s3);
+    margin-top: var(--s6);
   }
 
-  .switchrow > div {
-    min-width: 0;
-  }
-
-  /* A real button with `role="switch"`, so it is reachable by keyboard and
-     announces its state. The visual is a track and a knob; `aria-checked`
-     drives both, which means the rendering can never disagree with what a
-     screen reader is told. */
   .switch {
-    flex: none;
     position: relative;
-    width: 42px;
-    height: 24px;
-    margin-top: 2px;
-    border: 0;
-    border-radius: 9999px;
-    background: rgba(243, 240, 232, 0.16);
+    flex: none;
+    width: 52px;
+    height: 32px;
+    border-radius: var(--pill);
+    background: var(--field);
     cursor: pointer;
-    transition: background var(--hover-dur) var(--ease-out);
+    transition: background-color var(--dur-state) var(--ease);
   }
 
   .switch[aria-checked="true"] {
-    background: var(--orange);
+    background: var(--ember);
   }
 
   .switch__knob {
     position: absolute;
     top: 3px;
     left: 3px;
-    width: 18px;
-    height: 18px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
-    background: var(--ivory);
-    transition: left var(--hover-dur) var(--ease-out);
+    background: var(--paper-0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    transition: transform var(--dur-state) var(--ease);
   }
 
   .switch[aria-checked="true"] .switch__knob {
-    left: 21px;
+    transform: translateX(20px);
   }
 
-  /* ---- the receipt panel --------------------------------------------------- */
-  .receiptpanel {
-    padding: 24px;
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--r4);
-    background: linear-gradient(180deg, rgba(23, 50, 57, 0.62), rgba(23, 50, 57, 0.28));
+  .switch__label {
+    font-size: var(--fs-small);
+    font-weight: 500;
+    color: var(--text);
   }
 
-  .receiptpanel__head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 10px;
+  /* The receipt: what a resume with focus mode on actually did. Real numbers
+     from the demo fixture, counted rather than cut when the switch flips. */
+  .receipt {
+    border-radius: var(--r-xl);
+    background: var(--bg-alt);
+    padding: var(--s6);
   }
 
-  .receiptpanel__head p {
-    color: var(--ivory);
-    font-size: 17px;
-    font-weight: 540;
-  }
-
-  .receiptpanel__head span {
-    color: var(--cool-mid);
-    font-size: 11.5px;
-    letter-spacing: var(--track-mono);
+  .receipt__tally {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--s4);
   }
 
   .tally {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 20px;
-  }
-
-  .tally dd {
-    margin: 0;
-    color: var(--ivory);
-    font-size: 34px;
-    font-weight: 560;
-    line-height: 1;
-    letter-spacing: -0.04em;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .tally dt {
-    margin-top: 6px;
-    color: var(--cool-mid);
-    font-family: var(--mono);
-    font-size: 10.5px;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-  }
-
-  .restored {
-    margin-top: 22px;
-    padding: 0;
-    list-style: none;
-    border-top: 1px solid var(--hairline);
-  }
-
-  .restored li {
     display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    padding-block: 10px;
-    border-bottom: 1px solid var(--hairline);
-    color: var(--cool-soft);
-    font-size: 14px;
-  }
-
-  .restored .ok {
-    color: var(--cool-field);
-  }
-
-  .restored .wait {
-    color: var(--cool-mid);
-  }
-
-  .away {
-    margin-top: 20px;
-  }
-
-  .away__head {
-    color: var(--ivory);
-    font-size: 14px;
-    font-weight: 540;
-  }
-
-  .away ul {
-    margin-top: 10px;
-    padding: 0;
-    list-style: none;
-  }
-
-  .away li {
-    padding-block: 4px;
-    color: var(--cool-soft);
-    font-size: 13.5px;
-    line-height: 1.5;
-  }
-
-  .away__n {
-    display: inline-block;
-    min-width: 1.4em;
-    color: var(--ivory);
-    font-family: var(--mono);
-  }
-
-  .away__why {
-    color: var(--cool-mid);
-  }
-
-  .away__foot {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--hairline);
-    color: var(--cool-mid);
-    font-size: 11px;
-    line-height: 1.5;
-    letter-spacing: var(--track-mono);
-  }
-
-  /* ---- history ------------------------------------------------------------- */
-  .history {
-    padding-top: 104px;
-  }
-
-  .history__inner {
-    display: grid;
-    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-    gap: 56px;
-    align-items: center;
-  }
-
-  .history h2 {
-    max-width: 16ch;
-    color: var(--ivory);
-    font-size: clamp(30px, 3.9vw, 46px);
-    font-weight: 560;
-    line-height: 1.04;
-    letter-spacing: -0.035em;
-    text-wrap: balance;
-  }
-
-  .history p {
-    max-width: 52ch;
-    margin-top: 16px;
-    color: var(--cool-soft);
-    font-size: 16.5px;
-    line-height: 1.6;
-  }
-
-  .heat {
-    padding: 22px;
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--r4);
-    background: rgba(23, 50, 57, 0.34);
-  }
-
-  /* Column-major: the markup is written week by week, seven days each, so the
-     grid flows down a column then across — the same reading order as the
-     contribution graphs this borrows from. */
-  .heat__grid {
-    display: grid;
-    grid-template-rows: repeat(7, 1fr);
-    grid-auto-flow: column;
-    gap: 3px;
-  }
-
-  .heat__cell {
-    aspect-ratio: 1;
-    border-radius: 2px;
-    background: rgba(243, 240, 232, 0.06);
-  }
-
-  .heat__cell[data-level="1"] {
-    background: rgba(255, 107, 44, 0.22);
-  }
-
-  .heat__cell[data-level="2"] {
-    background: rgba(255, 107, 44, 0.45);
-  }
-
-  .heat__cell[data-level="3"] {
-    background: rgba(255, 107, 44, 0.7);
-  }
-
-  .heat__cell[data-level="4"] {
-    background: var(--orange);
-  }
-
-  .heat figcaption {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-top: 14px;
-    color: var(--cool-mid);
-    font-size: 11px;
-    letter-spacing: var(--track-mono);
-  }
-
-  .heat__key {
-    display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 4px;
   }
 
-  .heat__key .heat__cell {
-    width: 10px;
-    height: 10px;
+  .tally b {
+    font-size: clamp(34px, 3vw, 44px);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
   }
 
-  /* ---- local-first --------------------------------------------------------- */
+  .tally span {
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    color: var(--text-faint);
+  }
+
+  .receipt__head {
+    margin-top: var(--s6);
+    padding-top: var(--s5);
+    border-top: 1px solid var(--hairline-strong);
+    font-weight: 560;
+    color: var(--text);
+  }
+
+  .receipt__list {
+    margin-top: var(--s3);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .receipt__list li {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    color: var(--text-mute);
+    font-size: var(--fs-small);
+  }
+
+  .receipt__list b {
+    flex: none;
+    min-width: 1.5ch;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .receipt__list i {
+    font-style: normal;
+    color: var(--text-faint);
+  }
+
+  .receipt__foot {
+    margin-top: var(--s5);
+    font-size: var(--fs-caption);
+    color: var(--text-faint);
+    text-wrap: pretty;
+  }
+
+  /* ---- the night chapter ---------------------------------------------------- */
   .local {
     position: relative;
-    padding-top: 104px;
+    margin-top: var(--section);
+    padding-block: var(--section);
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
     overflow: hidden;
-  }
-
-  .local__glow {
-    left: 50%;
-    top: 40px;
-    width: 1100px;
-    height: 620px;
-    margin-left: -550px;
-    background: radial-gradient(ellipse 50% 50% at 50% 40%, rgba(31, 71, 80, 0.6), transparent 70%);
-  }
-
-  .local__inner,
-  .download__inner {
-    position: relative;
-    z-index: 1;
-    text-align: center;
-  }
-
-  .local h2,
-  .download h2 {
-    max-width: 20ch;
-    margin: 14px auto 0;
-    color: var(--ivory);
-    font-size: clamp(30px, 4.1vw, 48px);
-    font-weight: 560;
-    line-height: 1.04;
-    letter-spacing: -0.038em;
-    text-wrap: balance;
-  }
-
-  .local__lede,
-  .download__lede {
-    max-width: 62ch;
-    margin: 18px auto 0;
-    color: var(--cool-soft);
-    font-size: 16.5px;
-    line-height: 1.6;
   }
 
   .local__grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--gap);
-    margin-top: 44px;
-    text-align: left;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: var(--s9);
+    align-items: center;
   }
 
-  .local__grid .card {
-    padding: 22px;
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--r4);
-    background: rgba(23, 50, 57, 0.36);
+  .local__head .h2 {
+    max-width: 16ch;
   }
 
-  .local__grid h3 {
-    color: var(--ivory);
-    font-size: 15.5px;
-    font-weight: 540;
+  .local__head .lede {
+    margin-top: var(--s5);
+    max-width: 44ch;
   }
 
-  .local__grid p {
-    margin-top: 8px;
-    color: var(--cool-soft);
-    font-size: 14px;
-    line-height: 1.55;
+  .local__mark {
+    justify-self: end;
+    width: min(320px, 60%);
+    color: var(--text);
+  }
+
+  .local__mark .mark {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* The ember is the only light in the chapter. */
+  .local__glow {
+    position: absolute;
+    right: -10%;
+    top: 10%;
+    width: 60vw;
+    height: 60vw;
+    max-width: 800px;
+    max-height: 800px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255, 107, 44, 0.14), transparent);
+    filter: blur(20px);
+    pointer-events: none;
+  }
+
+  .local__grid,
+  .local__ledger {
+    position: relative;
+    z-index: 1;
+  }
+
+  .local__ledger {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 var(--s9);
+    margin-top: var(--s9);
+    border-top: 1px solid var(--hairline-strong);
+  }
+
+  .local__ledger > div {
+    padding: var(--s5) 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .local__ledger h3 {
+    font-size: var(--fs-h3);
+    font-weight: 560;
+    letter-spacing: var(--track-h3);
+    line-height: 1.2;
+  }
+
+  .local__ledger p {
+    margin-top: 6px;
+    color: var(--text-mute);
+    max-width: 40ch;
   }
 
   .local__more {
-    margin-top: 30px;
+    margin-top: var(--s6);
   }
 
-  .local__more a,
-  .download__links a {
-    color: var(--cool-soft);
-    font-size: 14px;
-    text-decoration: underline;
-    text-decoration-color: rgba(243, 240, 232, 0.3);
-    text-underline-offset: 3px;
+  /* ---- the close ------------------------------------------------------------ */
+  .close {
+    padding-top: var(--section);
+    text-align: center;
   }
 
-  .local__more a:hover,
-  .download__links a:hover,
-  .local__more a:focus-visible,
-  .download__links a:focus-visible {
-    color: var(--ivory);
-    text-decoration-color: var(--orange);
+  .close .h1 {
+    margin-inline: auto;
+    max-width: 18ch;
   }
 
-  /* ---- download ------------------------------------------------------------ */
-  .download {
-    position: relative;
-    margin-top: 104px;
-    padding-block: 120px 110px;
-    border-top: 1px solid var(--hairline);
-    overflow: hidden;
+  .close .lede {
+    margin: var(--s4) auto 0;
   }
 
-  .download__glow {
-    left: 50%;
-    bottom: -260px;
-    width: 1200px;
-    height: 640px;
-    margin-left: -600px;
-    background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255, 107, 44, 0.14), transparent 68%);
-  }
-
-  .download__links {
+  .close__actions {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 10px 26px;
-    margin-top: 26px;
+    gap: var(--s3);
+    margin-top: var(--s6);
   }
 
-  /* ---- narrow --------------------------------------------------------------
-     Two breakpoints, not four. At 980 the four-across grids halve and the
-     focus split stacks; at 640 everything is one column and the display sizes
-     step down. Anything between those two reads fine at an intermediate
-     clamp() value, which is what the clamps are for. */
-  @media (max-width: 980px) {
-    .holds__grid,
-    .local__grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+  .close__facts {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--s2) var(--s4);
+    margin-top: var(--s5);
+    font-size: var(--fs-caption);
+    color: var(--text-faint);
+  }
+
+  .close__facts li + li::before {
+    content: "";
+    display: inline-block;
+    width: 1px;
+    height: 10px;
+    margin-right: var(--s4);
+    background: var(--hairline-strong);
+    vertical-align: -1px;
+  }
+
+  .close__links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--s5);
+    margin-top: var(--s5);
+    font-size: var(--fs-small);
+  }
+
+  /* ---- responsive ------------------------------------------------------------ */
+  @media (max-width: 899px) {
+    .works__inner {
+      grid-template-columns: 1fr;
+      gap: var(--s3);
+    }
+
+    .moves__scroller {
+      height: auto;
+    }
+
+    .moves__stage {
+      position: static;
+      height: auto;
+      display: block;
+    }
+
+    .moves__layout {
+      grid-template-columns: 1fr;
+      gap: var(--s6);
+    }
+
+    /* Phones and tablets read the three moves as a list with one window
+       under it; the sequence is scrubbed only where there is room to pin. */
+    [data-moves="live"] .move {
+      opacity: 1;
+    }
+
+    .holds__grid {
+      grid-template-columns: 1fr;
+      grid-auto-rows: auto;
+    }
+
+    .cell--wide {
+      grid-column: auto;
     }
 
     .focus__grid,
-    .history__inner {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 32px;
+    .local__grid {
+      grid-template-columns: 1fr;
+      gap: var(--s6);
     }
 
-    .hero {
-      padding-top: 64px;
+    .local__mark {
+      justify-self: start;
+      width: 160px;
     }
 
-    .moves,
-    .holds,
-    .focus,
-    .history,
-    .local {
-      padding-top: 80px;
-    }
-
-    .download {
-      margin-top: 80px;
-      padding-block: 88px 80px;
+    .local__ledger {
+      grid-template-columns: 1fr;
     }
   }
 
-  @media (max-width: 640px) {
-    .holds__grid,
-    .local__grid {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .hero__inner {
-      padding-inline: 20px;
-    }
-
-    .hero__actions {
-      flex-direction: column;
-      align-items: stretch;
+  @media (max-width: 599px) {
+    .hero__title {
+      max-width: 11ch;
     }
 
     .hero__actions .button {
-      justify-content: center;
-    }
-
-    .window {
-      margin-top: 40px;
-    }
-
-    /* The row keeps its label and index; the description would have nowhere to
-       sit beside them at this width, so it drops below rather than colliding. */
-    .move__row {
-      flex-wrap: wrap;
-      align-content: flex-end;
-      gap: 8px 12px;
-      padding: 0 18px 16px;
-    }
-
-    .move__desc {
       width: 100%;
-      margin-left: 0;
-      text-align: left;
-      font-size: 13.5px;
     }
 
-    .tally dd {
-      font-size: 28px;
-    }
-  }
-
-  /* Reduced motion: the marquee stops rather than slows, the headline arrives
-     without rising, and the badge stops pinging. The rows still expand on
-     hover — that is a direct response to a gesture, not an ambient animation,
-     and removing it would remove the content. */
-  @media (prefers-reduced-motion: reduce) {
-    .marquee__track {
-      animation: none;
-    }
-
-    .badge__dot::after {
-      animation: none;
-    }
-
-    [data-reveal="pending"] .rise > span,
-    [data-reveal="shown"] .rise > span {
-      transform: none;
-      opacity: 1;
-      filter: none;
-      transition: none;
+    .receipt__tally {
+      grid-template-columns: repeat(3, auto);
+      justify-content: space-between;
     }
   }
 }

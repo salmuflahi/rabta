@@ -1,23 +1,23 @@
-/* Rabta — independent boot paths for enhancement-only homepage controls. */
+/* Rabta — independent boot paths for every enhancement on the site.
+ *
+ * Each module is opt-in by markup and fails on its own: a thrown error in one
+ * leaves the others running and the page complete, because CSS already ships
+ * the finished state of everything here.
+ */
 
+import { initMarks, initMarkReplays } from "./brand.js";
+import { initHome } from "./home.js";
 import { initProductMedia } from "./media.js";
-import { initReceiptFolds } from "./receipt-fold.js";
-import { initChapterMarks } from "./reveal.js";
-import { initFocusSwitch } from "./home.js";
-import { initCounters, initDirectionalCut, initRestoreSequence } from "./instrument.js";
+import { initNav, initReveal } from "./motion.js";
 
 /**
- * The checksum copy control. It is `hidden` in the markup and revealed here,
- * so a scriptless page never shows a dead button. The hex itself is
- * `user-select: all`, so selecting it by hand is one click either way.
+ * The checksum copy control on /setup/. It is `hidden` in the markup and
+ * revealed here, so a scriptless page never shows a dead button.
  */
 function initCopy() {
   document.querySelectorAll("[data-copy]").forEach((btn) => {
     const label = btn.querySelector("[data-copy-label]");
     const original = label ? label.textContent : "";
-    /* The button's accessible name is a fixed aria-label, which wins over its
-       contents — so the outcome is announced through a sibling status region
-       rather than by mutating a name nobody would hear change. */
     const status = btn.parentElement
       ? btn.parentElement.querySelector("[data-copy-status]")
       : null;
@@ -39,8 +39,6 @@ function initCopy() {
         await navigator.clipboard.writeText(btn.dataset.copy || "");
         say("Copied", "Checksum copied to the clipboard");
       } catch {
-        /* Denied, insecure context, or no API. Say so rather than lying with
-           a success state. */
         say("Select it", "Could not copy. Select the checksum and copy it yourself.");
       }
     });
@@ -56,14 +54,13 @@ function safely(label, init) {
 }
 
 function boot() {
+  safely("nav", initNav);
+  safely("reveal", initReveal);
+  safely("marks", initMarks);
+  safely("mark replays", initMarkReplays);
   safely("copy", initCopy);
   safely("media", initProductMedia);
-  safely("receipt", initReceiptFolds);
-  safely("chapter marks", initChapterMarks);
-  safely("focus switch", initFocusSwitch);
-  safely("directional cut", initDirectionalCut);
-  safely("counters", initCounters);
-  safely("restore sequence", initRestoreSequence);
+  safely("home", initHome);
 }
 
 if (document.readyState === "loading") {

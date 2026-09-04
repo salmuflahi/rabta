@@ -1,7 +1,7 @@
 import { Check, Circle, GitBranch, Globe, Minus, TriangleAlert, Code2, Terminal as TerminalIcon, Box } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import markUrl from "@/assets/brand/rabta-mark.svg";
+import { Mark } from "@/components/brand/Mark";
 import { Button } from "@/components/ui/button";
 import { Row } from "@/components/ui/row";
 import { Section } from "@/components/ui/section";
@@ -28,8 +28,6 @@ import type { RestoreResult, RestoreStage, RestoreTool, ToolRestoreStatus } from
 // ---- timing (ms) — see spec's FRAME 3/4 and row/fold sections ----
 const SHEET_DELAY_MS = 50; // sheet begins ~40-60ms after the backdrop
 const SHEET_MS = 200;
-const FOLD_DELAY_MS = 100; // fold starts ~100ms after the sheet enters
-const FOLD_MS = 180;
 const ROW_MS = 155;
 const ROW_STAGGER_MS = 30;
 const EMIT_REVEAL_STAGGER_MS = 40; // PATH-B: 35-50ms stagger revealing finals
@@ -37,7 +35,6 @@ const HOLD_MS = 220; // hold ~180-250ms in the completed state before closing
 const CLOSE_MS = 170;
 const MIN_VISIBLE_MS = 450; // dismissal-only minimum; never delays the real restore
 const REDUCED_MS = 110; // reduced-motion: simple ~100-120ms opacity
-const FOLD_SIZE = 28;
 
 function sleepViaTimer(ms: number, timersRef: React.MutableRefObject<ReturnType<typeof setTimeout>[]>): Promise<void> {
   return new Promise((resolve) => {
@@ -239,10 +236,20 @@ function RestoreProgress({ stage, reducedMotion }: { stage: RestoreStage; reduce
 
 function RestoreHeader({ title, subtitle, stage, titleId }: { title: string; subtitle?: string; stage: RestoreStage; titleId: string }) {
   const showCheck = stage === "success";
+  // The mark draws itself while the restore runs — stem, bowl, then the
+  // leg, the return — and lands with the ember on success. Partial keeps
+  // the drawn two-tone mark; failure drops the ember entirely.
+  const mode = stage === "opening" || stage === "restoring" ? "draw" : stage === "success" ? "complete" : "static";
+  const tone = stage === "failure" ? "mono" : "two-tone";
   return (
     <div className="flex items-center gap-3">
       <span className="relative inline-flex shrink-0">
-        <img src={markUrl} width={32} height={32} alt="" className="rounded-[7px]" />
+        {showCheck && (
+          <span aria-hidden="true" className="ember-bloom pointer-events-none absolute -inset-4 rounded-full" />
+        )}
+        <span className="relative grid size-9 place-items-center rounded-[10px] bg-[hsl(225_17%_5%)] text-[hsl(240_14%_97%)]">
+          <Mark mode={mode} tone={tone} playKey={mode} className="size-6" />
+        </span>
         {showCheck && (
           <span className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full bg-ok text-card">
             <Check className="size-2.5" />
@@ -363,22 +370,11 @@ function RestoreOverlay({
   titleId: string;
 }) {
   const [entered, setEntered] = useState(false);
-  const [foldIn, setFoldIn] = useState(reducedMotion);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(id);
   }, []);
-
-  useEffect(() => {
-    if (reducedMotion) {
-      setFoldIn(true);
-      return;
-    }
-    const id = setTimeout(() => setFoldIn(true), SHEET_DELAY_MS + FOLD_DELAY_MS);
-    return () => clearTimeout(id);
-  }, [reducedMotion]);
-
   useEffect(() => {
     if (stage === "opening") {
       sheetRef.current?.focus();
@@ -396,9 +392,7 @@ function RestoreOverlay({
       ? "translateY(0) scale(1)"
       : reducedMotion
         ? "none"
-        : "translateY(8px) scale(0.985)";
-
-  const clipPath = `polygon(0 0, calc(100% - ${FOLD_SIZE}px) 0, 100% ${FOLD_SIZE}px, 100% 100%, 0 100%)`;
+        : "translateY(12px) scale(0.98)";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -420,13 +414,15 @@ function RestoreOverlay({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="relative w-full max-w-[440px] outline-none focus-visible:ring-0"
-        style={{ maxWidth: "calc(100vw - 32px)" }}
+        className="relative w-full outline-none focus-visible:ring-0"
+        // A bare `calc(100vw - 32px)` here used to override the class's
+        // 440px cap outright, so the sheet stretched to the window's width on
+        // every screen wider than a phone. `min()` keeps both limits.
+        style={{ maxWidth: "min(440px, calc(100vw - 32px))" }}
       >
         <div
-          className="relative rounded-2xl border border-foreground/10 bg-card p-6 shadow-raised"
+          className="relative rounded-2xl bg-card p-6 shadow-modal"
           style={{
-            clipPath,
             opacity: sheetOpacity,
             transform: sheetTransform,
             transition: reducedMotion
@@ -497,27 +493,6 @@ function RestoreOverlay({
           />
         </div>
 
-        {/* Folded-corner brand detail: the clip-path above is STATIC (a
-            fixed cut of the sheet's top-right corner); only this separate
-            tangerine fold element's opacity+scale animate in, per spec
-            ("keep the clip STATIC ... reliability > complexity"). */}
-        <div
-          data-accent-mark
-          className="pointer-events-none absolute right-0 top-0 bg-primary"
-          style={{
-            width: FOLD_SIZE,
-            height: FOLD_SIZE,
-            clipPath: "polygon(100% 0, 0 0, 100% 100%)",
-            opacity: closing ? 0 : foldIn ? 1 : 0,
-            transform: closing ? undefined : foldIn ? "scale(1)" : reducedMotion ? "scale(1)" : "scale(0.65)",
-            transformOrigin: "100% 0%",
-            transition: reducedMotion
-              ? `opacity ${REDUCED_MS}ms ${RESTORE_SHEET_EASE}`
-              : `opacity ${FOLD_MS}ms ${RESTORE_SHEET_EASE}, transform ${FOLD_MS}ms ${RESTORE_SHEET_EASE}`,
-            boxShadow: "inset 1px 1px 0 hsl(var(--foreground) / 0.15)",
-          }}
-          aria-hidden="true"
-        />
       </div>
     </div>
   );

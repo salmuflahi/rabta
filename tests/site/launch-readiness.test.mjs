@@ -15,10 +15,11 @@ import { test } from "node:test";
 
 const SITE = resolve(dirname(fileURLToPath(import.meta.url)), "../../website");
 
-/** The eight routes a visitor can reach, and the file each is served from. */
+/** The nine routes a visitor can reach, and the file each is served from. */
 const PAGES = {
   "/": "index.html",
   "/why/": "why/index.html",
+  "/brand/": "brand/index.html",
   "/setup/": "setup/index.html",
   "/faq/": "faq/index.html",
   "/roadmap/": "roadmap/index.html",

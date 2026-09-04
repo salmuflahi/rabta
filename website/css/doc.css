@@ -1,203 +1,156 @@
 /* ==========================================================================
    Rabta — document pages
-   docs/site-design-plan.md §10. /setup/, /privacy/ and 404.
+   /setup/, /privacy/ and 404.
 
-   These share the nav, footer, tokens and rail with the homepage and change
-   only what a long-form document needs: a narrower measure, a heading rhythm,
-   and code that can be read and copied.
-
-   NO bone field, NO product images, NO chapter numbering, NO capsule rack.
-   Those belong to the homepage, which is an argument. These are references.
-
-   The class names here are the ones the existing documents already use
-   (.wrap, .railed, .rail, .marker, .prose, .toc, .note, .code, .cmt, .lede).
-   Restyling them under the new tokens ports ~1,000 lines of correct, verified
-   prose without touching a single word of it — which is the only safe way to
-   move a privacy policy between design systems.
+   A document needs a measure, a heading rhythm, a sticky index, and code
+   that can be read and copied. It shares the head and the rail with the
+   layout pages (page.css) and changes only what long-form text needs.
    ========================================================================== */
 
-@layer layout {
-  /* The documents' container. Same rail as the homepage. */
-  .wrap {
-    width: 100%;
-    max-width: var(--rail);
-    margin-inline: auto;
-    padding-inline: var(--gutter);
-  }
-
-  /* The axis: a sticky section marker beside the prose, on the same x as the
-     homepage's chapter marks so the two page types line up. The marker cell is
-     a bare div -- it was .rail, which re-applies max-width and 40px of
-     padding-inline inside an already-padded container and pushed the marker a
-     full gutter right of every chapter mark on the homepage. */
-  .railed {
-    display: grid;
-    grid-template-columns: var(--axis) minmax(0, 1fr);
-  }
-
-  @media (max-width: 899px) {
-    .railed {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-}
-
 @layer section {
-  /* --text-3 is cool-mid #66858c: 4.03:1 on petrol and 3.41:1 on cool-panel.
-     That clears AA for the 60px+ display spans it was designed for, but not
-     the 4.5:1 that text under 24px needs — so every small register below uses
-     --text-2 (cool-soft, 8.24:1 and 6.98:1). Colour is not what separates
-     these from body text; size and weight are.
-     ========================================================================== */
+  /* ---- the document grid: a sticky index beside the body ------------------- */
+  .doc-grid {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: var(--s9);
+    align-items: start;
+  }
 
-  .marker {
+  .doc-nav {
     position: sticky;
-    /* Derived from the nav, not a literal: at 80px it tucked under the taller
-       Living Instrument header. */
     top: calc(var(--nav-h) + 24px);
-    display: block;
-    font-size: 13px;
-    line-height: 18px;
-    letter-spacing: var(--track-13);
-    font-weight: 500;
-    color: var(--cool-soft);
-    text-transform: lowercase;
   }
 
-  @media (max-width: 899px) {
-    .marker {
-      position: static;
-      margin-bottom: var(--s4);
-    }
-  }
-
-  /* ---- page head ------------------------------------------------------- */
-
-  /* The page head, left-aligned at the rail edge with its label directly above
-     the title.
-
-     It used to be a two-column grid with the label sticky in a 96px axis track
-     — a reference-document device that made sense on /privacy/ and was applied
-     to every page after it. The design has no axis track: the eyebrow names the
-     page immediately above the page's name, and every section below repeats
-     that shape, so the whole page reads down one left edge. */
-  .page-head {
-    padding-top: var(--s10);
-    padding-bottom: var(--s8);
-  }
-
-  .page-head__label {
-    margin-bottom: 20px;
-    color: var(--orange);
-    font-family: var(--mono);
-    font-size: 11.5px;
-    font-weight: 500;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-  }
-
-  .page-head h1 {
-    max-width: 18ch;
-    color: var(--ivory);
-    font-size: clamp(38px, 4.6vw, 58px);
-    font-weight: 560;
-    line-height: 1.04;
-    letter-spacing: -0.04em;
-    text-wrap: balance;
-  }
-
-  /* The effective-date line under a page-head lede. It used to borrow a
-     .mt-5 utility from the legacy type scale; that scale is gone and this is
-     the only rule that needed it. */
-  .page-head .mono {
-    margin-top: var(--s5);
-  }
-
-  .lede {
-    margin-top: var(--s5);
-    font-size: 21px;
-    line-height: 32px;
-    letter-spacing: var(--track-21);
-    color: var(--cool-soft);
-    max-width: 560px;
-  }
-
-  @media (max-width: 899px) {
-    .page-head h1 {
-      font-size: 26px;
-      line-height: 28px;
-      letter-spacing: -0.31px;
-      max-width: none;
-    }
-    .lede {
-      font-size: 19px;
-      line-height: 29px;
-      letter-spacing: -0.21px;
-    }
-    .page-head {
-      padding-top: var(--s9);
-      padding-bottom: var(--s7);
-    }
-  }
-
-  /* ---- the prose column ------------------------------------------------ */
-
-  /* 68 characters is the hard cap from §4.2 and it applies to documents too. A
-     privacy policy nobody can track a line of is a privacy policy nobody
-     reads. Stated in px, because `ch` is the advance of the digit zero --
-     0.631em in Inter -- so 68ch would have set 729px and quietly allowed ~92
-     characters a line. 680px is 68 at 17px. */
-  .prose {
-    max-width: 680px;
-    padding-bottom: var(--s11);
-    font-size: 17px;
-    line-height: 26px;
-    letter-spacing: -0.19px;
-    color: var(--cool-soft);
-  }
-
-  .prose > h2 {
-    margin-top: var(--s9);
-    margin-bottom: var(--s4);
-    padding-top: var(--s9);
-    border-top: 1px solid var(--hairline);
-    font-size: 28px;
-    line-height: 34px;
-    letter-spacing: -0.5px;
-    font-weight: 600;
-    color: var(--ivory);
-  }
-
-  /* The first heading has the table of contents above it and does not need a
-     second rule 40px below the first. */
-  .prose > .toc + h2 {
-    margin-top: var(--s8);
-    padding-top: 0;
-    border-top: 0;
-  }
-
-  .prose > h3 {
-    margin-top: var(--s7);
+  .doc-nav p {
     margin-bottom: var(--s3);
-    font-size: 17px;
-    line-height: 26px;
-    letter-spacing: -0.19px;
+    font-size: var(--fs-caption);
     font-weight: 600;
-    color: var(--ivory);
+    color: var(--text);
   }
 
-  .prose p,
-  .prose ul,
-  .prose ol,
-  .prose table,
-  .prose .note,
-  .prose pre {
+  .doc-nav ol {
+    display: flex;
+    flex-direction: column;
+    counter-reset: index;
+  }
+
+  .doc-nav li {
+    counter-increment: index;
+  }
+
+  .doc-nav a {
+    display: flex;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--text-mute);
+    text-decoration: none;
+    transition: color var(--dur-hover) var(--ease);
+  }
+
+  .doc-nav a::before {
+    content: counter(index);
+    flex: none;
+    min-width: 1.6ch;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-faint);
+  }
+
+  .doc-nav a:hover,
+  .doc-nav a:focus-visible {
+    color: var(--text);
+  }
+
+  @media (max-width: 899px) {
+    .doc-grid {
+      grid-template-columns: 1fr;
+      gap: var(--s6);
+    }
+
+    .doc-nav {
+      position: static;
+      padding: var(--s5);
+      border-radius: var(--r-l);
+      background: var(--bg-alt);
+    }
+  }
+
+  /* ---- prose --------------------------------------------------------------- */
+  .prose {
+    max-width: var(--measure);
+    color: var(--text-mute);
+    line-height: 1.65;
+  }
+
+  .doc-body {
+    counter-reset: section;
+  }
+
+  .doc-body > h2 {
+    counter-increment: section;
+  }
+
+  .doc-body > h2::before {
+    content: counter(section);
+    display: block;
+    margin-bottom: 6px;
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--accent-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .prose h2 {
+    margin-top: var(--s9);
+    font-size: var(--fs-h2);
+    font-weight: 600;
+    line-height: 1.06;
+    letter-spacing: var(--track-h2);
+    color: var(--text);
+    text-wrap: balance;
+    scroll-margin-top: calc(var(--nav-h) + 24px);
+  }
+
+  .prose > h2:first-child {
+    margin-top: 0;
+  }
+
+  .prose h3 {
+    margin-top: var(--s7);
+    font-size: var(--fs-h3);
+    font-weight: 560;
+    line-height: 1.25;
+    letter-spacing: var(--track-h3);
+    color: var(--text);
+    scroll-margin-top: calc(var(--nav-h) + 24px);
+  }
+
+  .prose p {
     margin-top: var(--s4);
+  }
+
+  .prose h2 + p,
+  .prose h3 + p {
+    margin-top: var(--s4);
+  }
+
+  .prose strong {
+    font-weight: 560;
+    color: var(--text);
+  }
+
+  .prose em {
+    font-style: italic;
   }
 
   .prose ul,
   .prose ol {
-    padding-left: var(--s5);
+    margin-top: var(--s4);
+    padding-left: 1.4em;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
   }
 
   .prose ul {
@@ -208,314 +161,193 @@
     list-style: decimal;
   }
 
-  .prose li {
-    margin-top: var(--s2);
-    padding-left: 2px;
-  }
-
   .prose li::marker {
-    color: var(--cool-mid);
+    color: var(--text-faint);
   }
 
-  .prose strong {
-    font-weight: 500;
-    color: var(--ivory);
+  .prose li > .code {
+    margin-top: var(--s2);
   }
 
-  /* No italics anywhere on the site (§4.2). Inline emphasis in a document is
-     real, so it is carried by colour instead of by a slanted face. */
-  .prose em {
-    font-style: normal;
-    font-weight: 500;
-    color: var(--ivory);
+  .prose table {
+    width: 100%;
+    margin-top: var(--s5);
+    border-collapse: collapse;
+    font-size: var(--fs-small);
   }
 
-  .prose a {
-    /* A link the same colour as the sentence around it, underlined at 1.5:1,
-       is not distinguishable by anything (SC 1.4.1). The underline is the only
-       differentiator these documents use, so it carries a real 3:1 weight. */
-    color: var(--cool-soft);
-    text-decoration: none;
-    border-bottom: 1px solid rgba(243, 240, 232, 0.42);
-    transition: color var(--dur) var(--ease),
-      border-color var(--dur) var(--ease);
+  .prose th,
+  .prose td {
+    padding: 12px 0;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--hairline);
   }
 
-  /* The one link family that cannot take the fill: an inline link wraps, and a
-     block behind it would break at every line end. It gets the accent in the
-     one mark it already has, thickened so the change is felt and not just
-     seen — never a second underline stacked beneath the first. */
-  .prose a:hover,
-  .prose a:focus-visible {
-    color: var(--ivory);
-    border-bottom-width: 2px;
-    border-bottom-color: var(--orange);
-    padding-bottom: 1px;
+  .prose th {
+    font-weight: 600;
+    color: var(--text);
+    font-size: var(--fs-caption);
   }
 
-  /* ---- machine data ---------------------------------------------------- */
+  .prose td:first-child {
+    width: 28%;
+    padding-right: var(--s5);
+    font-weight: 560;
+    color: var(--text);
+  }
 
-  /* Every path, command, identifier and flag. `.mono` itself lives in
-     shell.css — the homepage uses it too and does not load this file — and
-     this rule only extends the same register to inline code. */
-  .prose code {
+  /* ---- the note ------------------------------------------------------------- */
+  .note {
+    margin-top: var(--s5);
+    padding: var(--s4) var(--s5);
+    border-radius: var(--r-m);
+    background: var(--bg-alt);
+    border-left: 3px solid var(--ember);
+  }
+
+  .note p {
+    margin: 0;
+    font-size: var(--fs-small);
+    color: var(--text-mute);
+  }
+
+  /* ---- code you can copy ---------------------------------------------------- */
+  .code {
+    margin: var(--s4) 0 0;
+    padding: var(--s4) var(--s5);
+    border-radius: var(--r-m);
+    background: var(--bg-alt);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    color: var(--text);
     font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: var(--track-mono);
-    font-variant-numeric: tabular-nums;
-    color: var(--ivory);
-    overflow-wrap: anywhere;
-  }
-
-  .prose :not(pre) > code {
-    padding: 2px 5px;
-    border-radius: var(--r1);
-    background: var(--cool-panel);
-  }
-
-  .prose a code {
-    color: inherit;
-  }
-
-  pre.code {
-    padding: var(--s4);
-    border-radius: var(--r3);
-    background: var(--cool-panel);
-    border: 1px solid var(--hairline);
-    font-family: var(--mono);
-    font-size: 12px;
-    line-height: 20px;
-    letter-spacing: var(--track-mono);
-    color: var(--ivory);
+    font-size: 13px;
+    line-height: 1.6;
     overflow-x: auto;
     white-space: pre;
-    tab-size: 2;
+  }
+
+  .code:focus-visible {
+    outline-offset: 2px;
   }
 
   .cmt {
-    color: var(--cool-soft);
+    color: #7c808b;
   }
 
-  /* The expected value inside a verification block — today, the SHA-256 the
-     command above it should print. It has to look different from the command:
-     one is a thing you type, the other is a thing you compare against, and on
-     the page whose entire job is "check these match", rendering them
-     identically is the one mistake that matters.
-     `user-select: all` makes the whole hash one click to select. js/main.js's
-     copy-button comment has claimed that behaviour since the control shipped;
-     this rule is what makes the claim true. */
   .out {
-    color: var(--ivory);
+    color: var(--ember);
     user-select: all;
   }
 
-  /* The checksum copy affordance. The button ships `hidden` and js/main.js
-     reveals it, so a scriptless page never offers a control that cannot work —
-     the hex itself stays selectable either way. */
   .copy-row {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: var(--s3) var(--s4);
+    gap: var(--s3);
+    margin-top: var(--s3);
   }
 
   .copy {
-    min-height: 34px;
-    padding: 7px 13px;
-    /* --hairline-strong is 1.5:1 on petrol, which is a hairline, not a
-       button boundary. A control has to reach 3:1 to read as pressable. */
-    border: 1px solid rgba(243, 240, 232, 0.42);
-    border-radius: var(--r2);
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: var(--track-mono);
-    color: var(--ivory);
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: var(--pill);
+    font-size: 14px;
+    font-weight: 560;
+    color: var(--text);
+    background: var(--bg-alt);
+    box-shadow: inset 0 0 0 1px var(--hairline-strong);
     cursor: pointer;
-    transition: border-color var(--dur) var(--ease);
-  }
-
-  .copy {
-    --sweep: var(--cool-panel);
-    font-variant-numeric: tabular-nums;
+    transition:
+      background-color var(--dur-hover) var(--ease),
+      transform var(--dur-hover) var(--ease);
   }
 
   .copy:hover,
   .copy:focus-visible {
-    border-color: var(--cool-soft);
+    background: var(--field);
+    transform: translateY(-1px);
   }
 
   .copy-status {
-    font-size: 13px;
-    line-height: 18px;
-    letter-spacing: var(--track-13);
-    color: var(--cool-soft);
+    font-size: var(--fs-caption);
+    color: var(--text-faint);
   }
 
-  .muted {
-    color: var(--cool-soft);
+  .kv {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+    margin-top: var(--s4);
   }
 
-  /* ---- table of contents ----------------------------------------------- */
-
-  .toc {
-    margin-top: var(--s6);
-    padding: var(--s5);
-    border-radius: var(--r3);
-    background: var(--cool-panel);
-    border: 1px solid var(--hairline);
-  }
-
-  /* --text-3 is never a heading (§4.1), and a contents label is not a
-     document heading anyway — the same call the homepage's rack makes. */
-  .toc > p:first-child {
-    margin: 0 0 var(--s3);
-    padding: 0;
-    border: 0;
-    font-size: 13px;
-    line-height: 18px;
-    letter-spacing: var(--track-13);
-    font-weight: 500;
-    color: var(--cool-soft);
-  }
-
-  .toc ol {
-    margin: 0;
-    padding: 0;
-    list-style: none;
+  .kv > div {
     display: grid;
-    gap: 2px;
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: var(--s4);
+    align-items: baseline;
   }
 
-  .toc li {
-    margin: 0;
-    padding: 0;
+  .kv dt {
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--text);
   }
 
-  .toc a {
-    /* .prose a switches text-decoration off for inline links; a contents entry
-       is not one, so it opts back into the cut system's resting underline. */
-    padding: 5px 0;
-    border: 0;
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-decoration-color: rgba(169, 190, 194, 0.55);
-    text-underline-offset: 4px;
-    font-size: 15px;
-    line-height: 24px;
-    letter-spacing: var(--track-15);
-    color: var(--cool-soft);
+  .kv dd {
+    overflow-wrap: anywhere;
   }
 
-  .toc a:hover,
-  .toc a:focus-visible {
-    color: var(--ivory);
-    border: 0;
+  .kv code {
+    user-select: all;
   }
 
-  /* ---- note ------------------------------------------------------------ */
-
-  /* A rule and an indent, not a tinted box. There is no third surface. */
-  .note {
-    padding-left: var(--s5);
-    border-left: 1px solid var(--hairline-strong);
-  }
-
-  .note p {
-    margin-top: var(--s3);
-    font-size: 15px;
-    line-height: 24px;
-    letter-spacing: var(--track-15);
-    color: var(--cool-soft);
-  }
-
-  .note p:first-child {
-    margin-top: 0;
-  }
-
-  .note strong,
-  .note em {
-    color: var(--cool-soft);
-  }
-
-  /* ---- tables ---------------------------------------------------------- */
-
-  .prose table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 15px;
-    line-height: 24px;
-    letter-spacing: var(--track-15);
-  }
-
-  .prose th {
-    padding: var(--s3) var(--s4) var(--s3) 0;
-    border-bottom: 1px solid var(--hairline);
-    font-size: 13px;
-    line-height: 18px;
-    letter-spacing: var(--track-13);
-    font-weight: 500;
-    color: var(--cool-soft);
-    text-align: left;
-    vertical-align: top;
-  }
-
-  .prose td {
-    padding: var(--s3) var(--s4) var(--s3) 0;
-    border-bottom: 1px solid var(--hairline);
-    color: var(--cool-soft);
-    vertical-align: top;
-  }
-
-  .prose tbody th {
-    color: var(--cool-soft);
-    white-space: nowrap;
-  }
-
-  /* ---- 404 ------------------------------------------------------------- */
-
+  /* ---- 404 ------------------------------------------------------------------- */
   .notfound {
-    padding-block: var(--s11);
-    max-width: 720px;
+    min-height: calc(100vh - var(--nav-h));
+    display: grid;
+    align-content: center;
+    padding-block: var(--s10);
   }
 
   .notfound__code {
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: var(--track-mono);
-    color: var(--cool-soft);
-    margin-bottom: var(--s5);
+    margin-bottom: var(--s4);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--accent-text);
   }
 
   .notfound h1 {
-    font-size: 40px;
-    line-height: 42px;
-    letter-spacing: -0.88px;
+    max-width: 16ch;
+    font-size: var(--fs-h1);
     font-weight: 600;
-    color: var(--ivory);
-    padding-block: 6px;
+    line-height: 1;
+    letter-spacing: var(--track-h1);
+    color: var(--text);
   }
 
-  .notfound p {
+  .notfound > div > p {
+    max-width: 48ch;
     margin-top: var(--s5);
-    font-size: 17px;
-    line-height: 26px;
-    letter-spacing: var(--track-17);
-    color: var(--cool-soft);
-    max-width: 560px;
+    color: var(--text-mute);
+    font-size: var(--fs-lede);
+    line-height: 1.45;
   }
 
-  .cta__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s3);
-    margin-top: var(--s7);
+  .notfound .cta__actions {
+    justify-content: flex-start;
   }
 
-  @media (max-width: 899px) {
-    .notfound h1 {
-      font-size: 26px;
-      line-height: 28px;
-      letter-spacing: -0.31px;
-    }
+  .notfound .mark {
+    width: 72px;
+    height: 72px;
+    margin-bottom: var(--s6);
+    color: var(--text);
+    overflow: visible;
+  }
+
+  .notfound .mark .leg {
+    stroke: var(--ember);
   }
 }

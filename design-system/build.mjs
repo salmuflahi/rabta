@@ -31,11 +31,11 @@ const read = (p) => readFileSync(p, "utf8");
 
 /* The font, inlined. Everything else the stylesheets reference by URL is
    decoration these cards do not use. */
-const font = readFileSync(join(ROOT, "website/assets/fonts/inter-latin-variable.woff2")).toString(
+const font = readFileSync(join(ROOT, "website/assets/fonts/inter-var.woff2")).toString(
   "base64",
 );
 const tokens = read(join(CSS, "tokens.css")).replace(
-  /url\("\/assets\/fonts\/inter-latin-variable\.woff2"\)/,
+  /url\("\/assets\/fonts\/inter-var\.woff2"\)/,
   `url("data:font/woff2;base64,${font}")`,
 );
 if (!tokens.includes("data:font/woff2")) {

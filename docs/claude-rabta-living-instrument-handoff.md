@@ -1,3 +1,5 @@
+> **Superseded on 2026-09-03.** This document describes the Living Instrument handoff, which the brand redesign retired along with petrol, the fold and the receipt. The current system is [`docs/superpowers/specs/2026-09-03-rabta-brand-redesign-design.md`](superpowers/specs/2026-09-03-rabta-brand-redesign-design.md) and its public form is [rabta.build/brand/](https://rabta.build/brand/). Kept for history; nothing in `website/` or `apps/desktop/` follows it any more.
+
 # Rabta download site — continuation handoff for Claude
 
 You are continuing an in-progress redesign of the Rabta download site. Do not restart the design process, replace it with a generic SaaS page, or redesign the desktop app. The product direction is approved; the work below is the source of truth for continuing safely.

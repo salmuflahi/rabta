@@ -1,14 +1,24 @@
-// Console v2 Phase 1, Task 2 — the four accent choices (Settings ›
-// Appearance) and the mechanism that paints them onto the document root.
+// The accent choices (Settings › Appearance) and the mechanism that paints
+// them onto the document root.
 //
-// Values are verbatim from the design handoff's Accent table. Each accent
-// has a light and a dark variant because the same hue needs different
-// weight to stay legible on each surface — see `applyAccent` below, which
-// is why `ACCENTS[id]` is keyed by theme rather than being one flat colour.
+// Each accent has a light and a dark variant because the same hue needs
+// different weight to stay legible on each surface — see `applyAccent`
+// below, which is why `ACCENTS[id]` is keyed by theme rather than being one
+// flat colour.
+//
+// Brand redesign (2026-09-03): Tangerine is the ember, the brand's one
+// accent, and stays the default. Iris, Graphite and Sky are the quiet
+// alternatives. Petrol and Sand are retired — a preference that still names
+// either is migrated to Tangerine by `readPrefs` (src/store.ts), which
+// treats any id not in this table as the default.
 
 import { contrastRatio } from "./contrast";
 
-export type AccentId = "tangerine" | "petrol" | "sky" | "sand";
+export type AccentId = "tangerine" | "iris" | "graphite" | "sky";
+
+/** Accent ids that used to exist. Listed so a test can prove they migrate,
+ * and so nobody reintroduces one by accident. */
+export const RETIRED_ACCENTS = ["petrol", "sand"] as const;
 
 export interface AccentVariant {
   /** The accent's primary fill — buttons, selected rows, the live dot. */
@@ -29,20 +39,20 @@ export const ACCENTS: Record<AccentId, { light: AccentVariant; dark: AccentVaria
     light: { base: "#FF6B2C", hover: "#F0561A", text: "#C2501B" },
     dark: { base: "#FF6B2C", hover: "#FF7F45", text: "#FF8A5C" },
   },
-  petrol: {
-    label: "Petrol",
-    light: { base: "#14494C", hover: "#0E3739", text: "#14494C" },
-    dark: { base: "#2E8286", hover: "#379A9E", text: "#67BFC2" },
+  iris: {
+    label: "Iris",
+    light: { base: "#5558D9", hover: "#4448C8", text: "#4A4DC4" },
+    dark: { base: "#7B7FF2", hover: "#8B8FF5", text: "#A3A6F7" },
+  },
+  graphite: {
+    label: "Graphite",
+    light: { base: "#2C2F3A", hover: "#1E2028", text: "#2C2F3A" },
+    dark: { base: "#D9DBE3", hover: "#E8E9EF", text: "#D9DBE3" },
   },
   sky: {
     label: "Sky",
     light: { base: "#2E6F88", hover: "#245A70", text: "#2E6F88" },
     dark: { base: "#3E8DAB", hover: "#4A9DBC", text: "#7FC2DB" },
-  },
-  sand: {
-    label: "Sand",
-    light: { base: "#9A6A12", hover: "#7E560D", text: "#8A5F10" },
-    dark: { base: "#C08A2A", hover: "#D19A36", text: "#DFB259" },
   },
 };
 
@@ -95,55 +105,21 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
-// Console v2 Phase 4, Task 14 — label candidates for text painted on a
-// solid --primary button (`bg-primary text-primary-foreground`; Button,
-// Toolbar's active state, the toast action button, OverviewPage's connect
-// action), in preference order, per theme.
-//
-// --primary-foreground cannot be one static value per theme the way
-// --foreground or --muted-foreground can. In *light* theme that's a hard
-// mathematical fact, not just a gap in today's candidate list: a dark label
-// needs relative luminance <= .033 to clear 4.5:1 against tangerine's base,
-// while a light label needs relative luminance >= .42 to clear 4.5:1
-// against petrol's — two disjoint ranges, so no single colour (achromatic
-// or not) can serve both. *Dark* theme isn't forced the same way — pure
-// black (0 0% 0%) actually clears 4.5:1 against all four dark bases
-// (margins 4.57-7.46:1, contrast.test.ts's accent sweep) — but defaulting
-// to it everywhere would repaint tangerine/sky/sand's labels away from
-// their current near-black for no legibility gain. So both themes use the
-// same ordered-candidate mechanism, and pure black is reserved as dark
-// theme's fallback rather than promoted to its default.
-//
-// The first entry is this app's normal choice for the theme (white on
-// light, near-black on dark) and is all that's needed for 6 of the 8
-// accent/theme combinations — order matters, because an accent that
-// already reads fine must keep today's exact colour rather than jump to a
-// more extreme one for no reason. The remaining entries exist only as a
-// fallback for the two that don't:
-//   - tangerine/light needs --foreground's near-black (white is 2.81:1).
-//     A minimal achromatic nudge off white (~"0 0% 19%", 4.66:1) would also
-//     have cleared the bar with a smaller move than --foreground's L12%
-//     (5.94:1) — unlike --muted-foreground/--tertiary-foreground below,
-//     which each moved by the smallest step that clears their bar, this one
-//     reuses an existing, already-visible-elsewhere token on purpose:
-//     judged a better trade than a one-off grey invented solely to shave a
-//     few more points of lightness.
-//   - petrol/dark needs pure black — neither of this app's own two text
-//     tones is dark/light enough (near-black 4.01:1, near-white 4.15:1);
-//     pure black clears it at 4.57:1. Pure white is deliberately not a
-//     dark-theme candidate: it isn't needed today, and reaching for it
-//     would be a bigger visual jump than pure black for the one accent
-//     that needs a fallback at all. Pure black itself has no other
-//     precedent as a token value in this file or index.css — flagged here
-//     for whoever next audits the palette for one-offs.
+// Label candidates for text painted on a solid --primary button, in
+// preference order, per theme. --primary-foreground cannot be one static
+// value per theme: a dark label clears tangerine and graphite-dark, a light
+// label clears iris-light and graphite-light, and no single colour serves
+// both — so the label is resolved per accent from an ordered list, and the
+// first candidate that clears WCAG AA wins. Order matters: an accent that
+// already reads fine keeps the app's normal label colour rather than jumping
+// to a more extreme one for no reason.
 export const LABEL_CANDIDATES: Record<"light" | "dark", string[]> = {
-  // "0 0% 100%" is --primary-foreground's own :root default (index.css);
-  // "240 3% 12%" is --foreground's :root value, reused rather than
-  // inventing a new colour.
-  light: ["0 0% 100%", "240 3% 12%"],
-  // "19 38% 8%" is --primary-foreground's .dark default; "180 14% 95%" is
-  // --foreground's .dark value; "0 0% 0%" is the last-resort fallback.
-  dark: ["19 38% 8%", "180 14% 95%", "0 0% 0%"],
+  // "225 13% 6%" is --foreground's :root value (the ink); white is the
+  // fallback for the two dark light-theme bases (iris, graphite).
+  light: ["225 13% 6%", "0 0% 100%"],
+  // "19 38% 8%" is --primary-foreground's .dark default; "240 14% 97%" is
+  // --foreground's .dark value; pure black is the last resort.
+  dark: ["19 38% 8%", "240 14% 97%", "0 0% 0%"],
 };
 
 // WCAG AA body-text minimum — matches BODY in contrast.test.ts.
@@ -158,12 +134,7 @@ const WCAG_AA_BODY = 4.5;
  * all of them, not simply the first — if none clear the bar. That should
  * not happen for any accent in `ACCENTS` today (contrast.test.ts's accent
  * sweep asserts every accent/theme combination clears it), and this branch
- * carries its own direct test (contrast.test.ts, "the fallback of last
- * resort") precisely because nothing else exercises it: an untested branch
- * in a function whose entire job is guaranteeing contrast is the one place
- * a silent regression could hide. An illegible button beats a thrown
- * exception during paint, and the *most* legible option of a bad set beats
- * an arbitrary one.
+ * carries its own direct test precisely because nothing else exercises it.
  */
 function resolvePrimaryForeground(base: string, theme: "light" | "dark"): string {
   const candidates = LABEL_CANDIDATES[theme];
@@ -183,28 +154,21 @@ export { resolvePrimaryForeground };
  * Writes the resolved accent's five custom properties onto `root` (defaults
  * to the document root): `--primary`/`--primary-foreground`/`--primary-hover`/
  * `--accent-text` as bare HSL triplets, `--accent-soft` as a literal rgba().
- * `--primary-foreground` is computed per accent+theme (see
- * `resolvePrimaryForeground`) rather than carried in `ACCENTS`, since it
- * isn't part of the design handoff's Accent table — it's this module's own
- * answer to "is the handoff's label colour still legible on this base".
  * Each call to `setProperty` replaces the prior value outright, so switching
  * accents (or theme) never leaves a stale property behind.
  *
  * Must be re-run on every theme change, including an OS-level flip while the
- * user's theme pref is "system" — the variants differ per theme, so a theme
- * flip with no re-application would leave the accent showing the wrong
- * theme's colours.
+ * user's theme pref is "system" — the variants differ per theme.
  *
- * If the provided `id` is not a valid AccentId, falls back to the default
- * accent (tangerine) rather than throwing. This ensures the app is resilient
- * to corrupted or stale persisted preferences.
+ * If the provided `id` is not a valid AccentId (a retired accent, a corrupt
+ * preference), falls back to the default accent (tangerine) rather than
+ * throwing.
  */
 export function applyAccent(
   id: AccentId,
   theme: "light" | "dark",
   root: HTMLElement = document.documentElement
 ): void {
-  // Validate id is a key in ACCENTS; fall back to default if not
   const accentId: AccentId = id in ACCENTS ? id : "tangerine";
   const variant = ACCENTS[accentId][theme];
   const primary = hexToHslTriplet(variant.base);

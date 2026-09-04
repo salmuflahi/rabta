@@ -24,8 +24,8 @@ not have to open all of them to find one.
 
 | File | What it is |
 |---|---|
-| [site-design-plan.md](site-design-plan.md) | The website's design system — palette, type scale, grid, motion. Cited by rule comments in `website/css/`. |
-| [claude-rabta-living-instrument-handoff.md](claude-rabta-living-instrument-handoff.md) | The Living Instrument handoff the site's visual language comes from. |
+| [site-design-plan.md](site-design-plan.md) | Superseded. The previous (Living Instrument) site system, kept for history. The current brand system is `superpowers/specs/2026-09-03-rabta-brand-redesign-design.md`. |
+| [claude-rabta-living-instrument-handoff.md](claude-rabta-living-instrument-handoff.md) | Superseded. The Living Instrument handoff the previous site came from. |
 | [design-brief-pins-and-focus-mode.md](design-brief-pins-and-focus-mode.md) | Brief for pins and focus mode in the app. |
 
 ## Marketing

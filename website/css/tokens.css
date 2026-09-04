@@ -1,58 +1,83 @@
-/* Rabta — Living Instrument tokens. */
+/* Rabta — tokens.
+   docs/superpowers/specs/2026-09-03-rabta-brand-redesign-design.md §2, §3, §5.
+
+   Ink, paper, one ember. Thirteen colour literals live in this file and
+   nowhere else on the site; tests/site/site-contract.test.mjs pins the set. */
 
 @layer tokens, reset, type, layout, component, section, state;
 
 @layer tokens {
   @font-face {
-    font-family: "Inter Variable";
-    /* Absolute, byte-identical to the <link rel=preload> so the font is
-       fetched exactly once. */
-    src: url("/assets/fonts/inter-latin-variable.woff2") format("woff2");
-    /* 400–600 only. 300 and 700 are forbidden by the plan and declaring a
-       wider range invites them back in. */
-    font-weight: 400 600;
+    font-family: "Inter Var";
+    /* Absolute and byte-identical to the <link rel=preload>, so the font is
+       fetched exactly once. Inter 4 with both axes: weight 400–700 and
+       optical size 14–32, which is what makes large Inter read as a display
+       face rather than a stretched UI font. */
+    src: url("/assets/fonts/inter-var.woff2") format("woff2");
+    font-weight: 400 700;
     font-style: normal;
     font-display: swap;
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
-      U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
-      U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    unicode-range: U+0020-007E, U+00A0-00FF, U+0131, U+0152-0153, U+02BB-02BC,
+      U+02C6, U+02DA, U+02DC, U+2010-2027, U+2030-203A, U+2044, U+20AC,
+      U+2122, U+2190-2199, U+2212, U+2215, U+2264-2265, U+FFFD;
   }
 
   :root {
-    --petrol: #102526;
-    --orange: #ff6b2c;
-    --ivory: #f3f0e8;
-    --cool-panel: #173239;
-    --cool-mid: #66858c;
-    --cool-soft: #a9bec2;
-    --cool-field: #d9e3e3;
-    --ink-on-orange: #102526;
+    color-scheme: dark;
 
-    /* Both derived from ivory. There is no black on this site: a
-       rgba(0, 0, 0, …) hairline was the one token whose base was not an
-       approved hue, and nothing referenced it. */
-    --hairline: rgba(243, 240, 232, 0.08);
-    --hairline-strong: rgba(243, 240, 232, 0.14);
+    /* ---- the palette ---------------------------------------------------- */
+    --paper-0: #ffffff;
+    --paper-1: #f5f5f7;
+    --paper-2: #eaeaee;
+    --ink-0: #0a0b0e;
+    --ink-1: #14161b;
+    --ink-2: #1e2128;
+    --ember: #ff6b2c;
+    --ember-deep: #c2501b;
+
+    /* ---- semantic, ink by default ---------------------------------------
+       The site lives in the night: the same world the app is used in, and
+       the one its screenshots were taken in. Paper is the alternate, for
+       the cell or plate that needs to read as a different material. */
+    --bg: var(--ink-0);
+    --bg-alt: var(--ink-1);
+    --field: var(--ink-2);
+    --text: #f5f5f7;
+    --text-mute: #b4b8c2;
+    --text-faint: #7c808b;
+    --hairline: rgba(245, 245, 247, 0.08);
+    --hairline-strong: rgba(245, 245, 247, 0.16);
+    --accent: var(--ember);
+    --accent-text: var(--ember);
+    --accent-soft: rgba(255, 107, 44, 0.16);
+    --on-accent: #0e0f12;
+    --shadow-tint: rgba(0, 0, 0, 0.35);
+    --shadow-deep: rgba(0, 0, 0, 0.6);
 
     /* ---- type ----------------------------------------------------------- */
-    --sans: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI",
-      Roboto, Helvetica, Arial, sans-serif;
-    /* System stack only. A downloaded mono face would fail CI's
-       no-third-party-subresource guard, and this is what the app renders. */
-    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --sans: "Inter Var", -apple-system, BlinkMacSystemFont, "SF Pro Display",
+      "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas,
+      monospace;
 
-    /* Tracking is a pure function of size (§4.2). Named so a component that
-       sets a font-size can set the matching tracking instead of inheriting
-       whatever the cascade left behind. */
-    --track-68: -1.5px;
-    --track-56: -1.23px;
-    --track-40: -0.88px;
-    --track-28: -0.5px;
-    --track-21: -0.25px;
-    --track-17: -0.19px;
-    --track-15: -0.17px;
-    --track-13: 0;
-    --track-mono: 0.24px;
+    /* Sizes are fluid between a phone and a 1440 desk. Tracking is a
+       function of size: tighter as the type gets bigger. */
+    --fs-display: clamp(52px, 4vw + 32px, 108px);
+    --fs-h1: clamp(40px, 2.4vw + 26px, 64px);
+    --fs-h2: clamp(32px, 1.2vw + 24px, 44px);
+    --fs-h3: clamp(21px, 0.5vw + 18px, 26px);
+    --fs-lede: clamp(18px, 0.4vw + 16px, 22px);
+    --fs-body: 17px;
+    --fs-small: 15px;
+    --fs-caption: 13px;
+    --fs-mono: 13px;
+
+    --track-display: -0.045em;
+    --track-h1: -0.04em;
+    --track-h2: -0.03em;
+    --track-h3: -0.02em;
+    --track-lede: -0.012em;
+    --track-body: -0.011em;
 
     /* ---- space: 4px base ------------------------------------------------ */
     --s1: 4px;
@@ -66,107 +91,63 @@
     --s9: 72px;
     --s10: 96px;
     --s11: 128px;
+    --s12: 160px;
 
-    /* Section padding. One value, every top-level section, no exceptions —
-       with no colour and one typeface, the beat is most of what holds the
-       page together. */
-    --section-y: 128px;
+    /* One beat for every section on the site. */
+    --section: clamp(88px, 10vw, 160px);
+    --section-tight: clamp(64px, 7vw, 112px);
 
     /* ---- layout --------------------------------------------------------- */
     --shell: 1320px;
     --rail: 1180px;
-    /* 96, not 64: the longest chapter mark ("connectors") measures ~71px at
-       13px and overflowed a 64px track straight into the heading. 96 is the
-       next step on the spacing scale and clears every mark. */
-    --axis: 96px;
-    /* The sticky nav's own height. scroll-padding and every sticky offset
-       derive from it, so an anchor can never land underneath it. */
-    --nav-h: 72px;
+    --measure: 62ch;
+    --nav-h: 64px;
     --gutter: 40px;
-    --gap: 24px;
-    --locked: 960px; /* the Return Pair. Both frames. Identically. */
-
-    --section-wide: 160px;
-    --section-standard: 128px;
-    --section-close: 96px;
 
     /* ---- shape ---------------------------------------------------------- */
-    --r1: 4px;
-    --r2: 8px;
-    --r3: 12px;
-    --r4: 16px;
-    --r5: 20px;
+    --r-s: 8px;
+    --r-m: 12px;
+    --r-l: 16px;
+    --r-xl: 24px;
+    --pill: 999px;
 
-    /* The mark's own cut. §4.4: a chamfered top-right corner means
-       "this holds context", and nothing else may carry it. */
-    --fold-sm: 12px;
-    --fold: 18px;
-    --fold-lg: 56px;
-    --fold-size: 56px;
-    --fold-half: 28px;
-
-    /* ---- motion --------------------------------------------------------- */
-    --dur: 120ms;
-    --ease: cubic-bezier(0.22, 1, 0.36, 1);
-    /* One duration and one curve for every hover on the site, so the feedback
-       cannot drift the way per-rule values already had. */
-    --hover-dur: 180ms;
-    /* The sweep's leading edge. Shallower than the fold's 45° because a
-       button is wider than it is tall — this is what reads as 45° across a
-       50px control. */
-    --cut-skew: -18deg;
-    /* A chapter mark is drawn once on entry, not toggled — slower than a
-       hover so it reads as an opening rather than a response. */
-    --mark-dur: 420ms;
-    /* One beat of the restore sequence. The rows are offsets of it, so the
-       rhythm is a single number rather than four hand-picked delays. */
-    --resolve-step: 140ms;
-    --fold-duration: 520ms;
-    --fold-delay: 100ms;
-    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-
-    /* The landing page's two larger beats. Everything on this site that
-       responds to a pointer uses --hover-dur; these are for the two gestures
-       that are not responses:
-
-       --open-dur is a row unfolding to four times its height. At --hover-dur
-       that is a jump-cut — the eye needs to see the row grow for the layout
-       shift to read as intentional rather than as reflow.
-
-       --entrance-dur is the headline rising into place, once, on first view.
-       It is the slowest thing on the site because it is the only one that
-       happens while the visitor is still deciding whether to read. */
-    --open-dur: 420ms;
-    --entrance-dur: 760ms;
+    /* ---- motion: the return --------------------------------------------- */
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-hover: 120ms;
+    --dur-state: 240ms;
+    --dur-reveal: 480ms;
+    --dur-ceremony: 900ms;
   }
 
-  /* Matches the nav's own 699px step in shell.css. */
-  @media (max-width: 699px) {
-    :root {
-      --nav-h: 64px;
-    }
+  /* Paper: the same semantic tokens on white. A surface that carries the
+     class reads as a different material inside the night: one bento cell,
+     the brand page's paper plate. */
+  .paper {
+    color-scheme: light;
+    --bg: var(--paper-0);
+    --bg-alt: var(--paper-1);
+    --field: var(--paper-2);
+    --text: #0e0f12;
+    --text-mute: #4a4d57;
+    --text-faint: #6f7380;
+    --hairline: rgba(14, 15, 18, 0.08);
+    --hairline-strong: rgba(14, 15, 18, 0.14);
+    --accent-text: var(--ember-deep);
+    --accent-soft: rgba(255, 107, 44, 0.12);
+    --shadow-tint: rgba(14, 15, 18, 0.1);
+    --shadow-deep: rgba(14, 15, 18, 0.22);
   }
 
   @media (max-width: 899px) {
     :root {
-      --section-y: 96px;
       --gutter: 24px;
-      --fold-lg: 36px;
-      --section-wide: 112px;
-      --section-standard: 92px;
-      --section-close: 72px;
     }
   }
 
   @media (max-width: 599px) {
     :root {
-      --section-y: 72px;
       --gutter: 18px;
-      --section-wide: 88px;
-      --section-standard: 72px;
-      --section-close: 56px;
-      --fold-size: 40px;
-      --fold-half: 20px;
+      --nav-h: 56px;
     }
   }
 }

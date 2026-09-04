@@ -28,13 +28,18 @@ export const DEMOS = resolve(ROOT, "website/assets/demos");
 /* The design's own numbers, not the manifest's — the manifest is the thing
    being audited, so it cannot also be the standard it is audited against. */
 export const TARGETS = {
-  "hero-return": { seconds: 8.0, tolerance: 0.5, desktopBytes: 2_500_000 },
-  "honest-return": { seconds: 5.0, tolerance: 0.4, desktopBytes: 1_500_000 },
-  // The capture half of the loop. Budget is deliberately tighter than the
-  // hero's: this one sits mid-page, below the fold, so it is never on the
-  // critical path for first paint.
-  capture: { seconds: 7.8, tolerance: 0.5, desktopBytes: 1_200_000 },
-};
+  // The hero: capture, leave, return, in one take.
+  "hero-return": { seconds: 8.5, tolerance: 0.3, desktopBytes: 2_800_000 },
+  // The three moves, one beat each.
+  "move-capture": { seconds: 4.0, tolerance: 0.3, desktopBytes: 1_600_000 },
+  "move-leave": { seconds: 4.0, tolerance: 0.3, desktopBytes: 1_600_000 },
+  "move-return": { seconds: 5.5, tolerance: 0.3, desktopBytes: 1_900_000 },
+  // The bento's four loops, from stills under a camera.
+  "cell-files": { seconds: 4.0, tolerance: 0.3, desktopBytes: 1_400_000 },
+  "cell-terminals": { seconds: 4.0, tolerance: 0.3, desktopBytes: 1_400_000 },
+  "cell-tabs": { seconds: 4.0, tolerance: 0.3, desktopBytes: 1_400_000 },
+  "cell-branch": { seconds: 4.0, tolerance: 0.3, desktopBytes: 1_400_000 },
+}
 
 /** A mobile variant may not exceed this share of its desktop pair. */
 export const MOBILE_SHARE = 0.75;

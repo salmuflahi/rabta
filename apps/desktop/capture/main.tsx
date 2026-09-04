@@ -91,6 +91,18 @@ function Director() {
           setView("capsules");
           requestResume("task_reconnect");
         });
+      } else if (mode.name === "capture") {
+        setView("capsules");
+        later(900, clickRealSaveState);
+      } else if (mode.name === "leave") {
+        setView("capsules");
+        later(900, () => {
+          setView("overview");
+          later(50, () => setActiveTaskId("task_focus"));
+        });
+      } else if (mode.name === "return") {
+        setView("capsules");
+        later(900, () => requestResume("task_reconnect"));
       } else {
         setView("capsules");
         later(700, () => requestResume("task_reconnect"));
