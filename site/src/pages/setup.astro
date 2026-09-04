@@ -6,8 +6,8 @@ import "../styles/doc.css";
 import "../styles/page.css";
 ---
 <Base
-  title={"Setup — Rabta"}
-  description={"Install Rabta 0.1.0 on macOS, verify the download, connect your editor, and save and resume your first capsule — with troubleshooting, diagnostics and uninstall steps."}
+  title={"Setup · Rabta"}
+  description={"Install Rabta 0.1.0 on macOS, verify the download, connect your editor, and save and resume your first capsule: with troubleshooting, diagnostics and uninstall steps."}
   route="/setup/"
   ogDescription={"Install Rabta on macOS, connect your editor, and save your first capsule. With verification, troubleshooting and uninstall steps."}
 >
@@ -48,14 +48,14 @@ import "../styles/page.css";
     <ul role="list">
       <li><strong>macOS 11.0 (Big Sur) or later.</strong></li>
       <li><strong>An Apple Silicon Mac</strong> (M1 or newer). Rabta 0.1.0 is an
-        arm64-only build — there is no Intel build and no universal build, so it
+        arm64-only build: there is no Intel build and no universal build, so it
         will not run on an Intel Mac.</li>
       <li><strong>An editor Rabta can connect to:</strong> Cursor, VSCodium,
         Windsurf or VS Code.</li>
       <li><strong>A git repository</strong> you want to work in. Rabta reads its
         path and branch, and never writes to your files itself. The one thing
         that changes your working tree is the branch switch Resume performs,
-        and it stops rather than force one — see
+        and it stops rather than force one: see
         <a href="#first-capsule">section 7</a>.</li>
     </ul>
 
@@ -103,7 +103,7 @@ import "../styles/page.css";
 
     <div class="note">
       <p>
-        If you <em>do</em> get a Gatekeeper warning, don't work around it — it
+        If you <em>do</em> get a Gatekeeper warning, don't work around it: it
         means the file you have is not the one that was signed. Check the
         SHA-256 below, and download again if it doesn't match.
       </p>
@@ -121,7 +121,7 @@ shasum -a 256 ~/Downloads/Rabta_0.1.0_aarch64.dmg
 <span class="out">3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655</span></pre>
 
     <p class="copy-row">
-      <button class="copy" type="button" hidden data-copy="3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655" aria-label="Copy checksum — the expected SHA-256"><span data-copy-label>Copy checksum</span></button>
+      <button class="copy" type="button" hidden data-copy="3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655" aria-label="Copy checksum: the expected SHA-256"><span data-copy-label>Copy checksum</span></button>
       <span class="copy-status" role="status" data-copy-status></span>
     </p>
 
@@ -225,7 +225,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
 
     <div class="note">
       <p>
-        The <code>.vsix</code> itself carries no code signature — VS Code
+        The <code>.vsix</code> itself carries no code signature: VS Code
         extensions are not signed artefacts the way the macOS app is. Download
         it from Open VSX rather than from a third party.
       </p>
@@ -251,7 +251,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
       Install <strong>Rabta Connector</strong> from the
       <a href="https://chromewebstore.google.com/detail/rabta-connector/aaombpafbhjkoinppogieaclijddlebo" target="_blank" rel="noopener noreferrer">Chrome Web
       Store</a>. It pairs with the local hub on first run, the same way the
-      editor connector does — there is nothing to configure.
+      editor connector does: there is nothing to configure.
     </p>
 
     <p>
@@ -274,16 +274,16 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
       different places.
     </p>
 
-    <h3>Editor connector — automatic, local</h3>
+    <h3>Editor connector: automatic, local</h3>
     <p>
       Your editor runs on the same machine under your user account, so it can
       read the hub's discovery file
       (<code>~/Library/Application Support/com.omnibus.dev/hub.json</code>),
       which holds the port and a secret regenerated every time the app starts.
-      That is the whole handshake — no prompt, no account.
+      That is the whole handshake: no prompt, no account.
     </p>
 
-    <h3>Browser connector — you approve it</h3>
+    <h3>Browser connector: you approve it</h3>
     <p>
       A browser extension cannot read that file, so it asks instead. On first
       connection Rabta shows an approve/deny prompt in the
@@ -294,7 +294,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
 
     <h3>macOS permissions</h3>
     <ul role="list">
-      <li><strong>Incoming network connections</strong> — macOS may ask on first
+      <li><strong>Incoming network connections</strong>: macOS may ask on first
         launch. This is the loopback hub. Allow it, or connectors cannot reach
         the app.</li>
       <li>Rabta 0.1.0 does not request Full Disk Access, Accessibility, Screen
@@ -326,7 +326,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
     <p>
       With your files and terminals open in the connected editor, press
       <strong>Save State</strong> on the task. Rabta records which files,
-      terminals, tabs and branch are in play — the pointers, not the contents —
+      terminals, tabs and branch are in play: the pointers, not the contents,
       and tells you what it captured and what it skipped.
     </p>
 
@@ -346,8 +346,8 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
     </p>
 
     <ul role="list">
-      <li><strong>Restored</strong> — the tool confirmed it applied.</li>
-      <li><strong>On next reload</strong> — the tool isn't connected right now,
+      <li><strong>Restored</strong>: the tool confirmed it applied.</li>
+      <li><strong>On next reload</strong>: the tool isn't connected right now,
         so it's queued rather than failed.</li>
       <li><strong>Skipped</strong> or <strong>Failed</strong>, with the reason. A
         restore never claims a success it didn't get.</li>
@@ -366,7 +366,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
     <h3>The app won't launch</h3>
     <ul role="list">
       <li><strong>"You can't open this application because it is not supported
-        on this Mac."</strong> — you're on an Intel Mac. Rabta 0.1.0 is Apple
+        on this Mac."</strong>: you're on an Intel Mac. Rabta 0.1.0 is Apple
         Silicon only.</li>
       <li><strong>A Gatekeeper warning appears.</strong> The file has been
         altered or truncated. Verify the SHA-256 in
@@ -387,7 +387,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
       <li><strong>Does the discovery file exist?</strong>
         <pre class="code" tabindex="0">cat ~/Library/Application\ Support/com.omnibus.dev/hub.json</pre>
         It should print a port and a secret. If it's missing, the hub didn't
-        start — check that you allowed incoming connections when macOS asked.</li>
+        start: check that you allowed incoming connections when macOS asked.</li>
       <li><strong>Is something else on the port?</strong> The hub prefers
         <code>17872</code> and falls back to another local port when it's taken.
         The port it actually bound is shown in the app header and in
@@ -402,7 +402,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
     <h3>The connector connects, then drops</h3>
     <p>
       The secret in <code>hub.json</code> is regenerated <em>every time the app
-      starts</em> — that's deliberate, it's the local trust boundary. If you quit
+      starts</em>: that's deliberate, it's the local trust boundary. If you quit
       and reopen Rabta, reload your editor window so the extension re-reads it.
       Connectors seen before stay listed as offline rather than disappearing, so
       you can tell "not installed" from "not running".
@@ -426,7 +426,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
 
     <h3>A restore didn't bring everything back</h3>
     <p>
-      Read the summary sheet — it is per tool and specific. The two usual causes
+      Read the summary sheet: it is per tool and specific. The two usual causes
       are a tool that wasn't connected at restore time (queued, applies on next
       reload) and a branch switch Rabta declined because the working tree was
       dirty. <a href="#diagnostics">Activity</a> shows exactly which commands
@@ -446,8 +446,8 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
     <p>Everything Rabta stores lives in one folder:</p>
     <pre class="code" tabindex="0">~/Library/Application Support/com.omnibus.dev/</pre>
     <ul role="list">
-      <li><code>omnibus.db</code> — projects, tasks, capsules and event history.</li>
-      <li><code>hub.json</code> — the current port and per-run secret.</li>
+      <li><code>omnibus.db</code>: projects, tasks, capsules and event history.</li>
+      <li><code>hub.json</code>: the current port and per-run secret.</li>
     </ul>
     <p>
       Open that folder from <strong>Settings › Privacy &amp; data › Reveal in
@@ -465,7 +465,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
 
     <ol>
       <li><strong>Quit Rabta.</strong></li>
-      <li><strong>Remove the app</strong> — drag
+      <li><strong>Remove the app</strong>: drag
         <code>/Applications/Rabta.app</code> to the Trash.</li>
       <li><strong>Remove its data</strong>, if you want it gone:
         <pre class="code" tabindex="0">rm -rf ~/Library/Application\ Support/com.omnibus.dev</pre>
@@ -476,7 +476,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
     </ol>
 
     <p>
-      Removing individual pieces works too — delete a capsule from Capsules, or
+      Removing individual pieces works too: delete a capsule from Capsules, or
       archive a project from Projects. Your repositories, files and branches are
       never touched by any of this: Rabta only ever stored pointers to them.
     </p>
@@ -494,7 +494,7 @@ cursor --install-extension rabta-connect.rabta-vscode</pre>
       <li>Your macOS version and Mac model.</li>
       <li>Rabta's version (0.1.0) and the connector version from Connectors.</li>
       <li>Which editor, and how you installed the extension.</li>
-      <li>What you expected to come back and what actually did — the Restore
+      <li>What you expected to come back and what actually did: the Restore
         summary wording is useful here.</li>
       <li>The relevant rows from <strong>Activity</strong> around the failure.</li>
     </ul>

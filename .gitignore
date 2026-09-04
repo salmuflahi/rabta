@@ -38,3 +38,8 @@ apps/desktop/capture/cards/*.svg.png
 # frames it regenerates; `audio/` is source material it does not.
 apps/desktop/capture/social/.work/
 apps/desktop/capture/social/audio/
+
+# Web-font pipeline scratch. scripts/fonts/subset.sh recreates the venv and
+# re-downloads the pinned sources on demand; only its outputs are committed.
+scripts/fonts/.venv/
+scripts/fonts/.cache/

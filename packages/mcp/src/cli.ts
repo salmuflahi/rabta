@@ -2,6 +2,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { DatabaseMissingError, openDatabase, warnIfNewerSchema } from "./db.js";
+import { agentPathsFor } from "./ipc.js";
 import { resolveDbPath } from "./paths.js";
 import { buildServer } from "./server.js";
 
@@ -25,6 +26,6 @@ try {
 
 warnIfNewerSchema(db, log);
 
-const server = buildServer(db);
+const server = buildServer(db, { agent: agentPathsFor(dbPath) });
 await server.connect(new StdioServerTransport());
-log(`rabta-mcp: serving ${dbPath} read-only over stdio`);
+log(`rabta-mcp: serving ${dbPath} over stdio; capture and restore go through the app's agent socket when it is on`);

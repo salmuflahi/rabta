@@ -74,3 +74,24 @@ RABTA_DB=/tmp/rabta-fixture.db npx -y @modelcontextprotocol/inspector --cli node
 # regenerate the briefing golden file after an intentional change
 UPDATE_GOLDEN=1 pnpm --filter @rabta/mcp test
 ```
+
+## Capture and restore: Agent access
+
+Reading needs nothing but the database file. Capturing and restoring drive
+live connectors, so they go through the running app: in Rabta open Settings,
+Agents, and turn on **Agent access**. The app then writes `agent.secret` and
+listens on `agent.sock` beside `omnibus.db`, both owner-only; turning the
+switch off removes both.
+
+Two more tools appear for hosts that can call them:
+
+| Tool | Does | Annotations |
+|---|---|---|
+| `capture_capsule` | Asks the app to capture the task now; returns what was captured and what was skipped. | write, not destructive, idempotent |
+| `restore_capsule` | Asks the app to restore the task (focus mode optional); returns the app's receipt: applied, pending, skipped with reasons, errors, closed, kept. | write, destructive |
+
+With Agent access off, both tools answer with the sentence that explains
+where the switch is, and never fail silently. The protocol is newline-delimited
+JSON over the socket: an `auth` line with the secret, then one request per
+line. `src/ipc.ts` is the client; `apps/desktop/src-tauri/src/agent_ipc.rs`
+is the server.

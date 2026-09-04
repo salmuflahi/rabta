@@ -4,7 +4,7 @@
  * The committed loops are the only thing on the site that a code review
  * cannot read. A wrong codec, a stray audio track, a re-encode at the wrong
  * size or a file that quietly doubled in weight all look identical in a diff,
- * so they are checked against website/assets/demos/manifest.json before the
+ * so they are checked against site/public/assets/demos/manifest.json before the
  * site can deploy.
  *
  *   node scripts/verify-media.mjs
@@ -23,7 +23,7 @@ import { promisify } from "node:util";
 const run = promisify(execFile);
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ROOT = resolve(HERE, "..");
-export const DEMOS = resolve(ROOT, "website/assets/demos");
+export const DEMOS = resolve(ROOT, "site/public/assets/demos");
 
 /* The design's own numbers, not the manifest's — the manifest is the thing
    being audited, so it cannot also be the standard it is audited against. */
@@ -39,6 +39,9 @@ export const TARGETS = {
   "cell-terminals": { seconds: 4.0, tolerance: 0.3, desktopBytes: 1_400_000 },
   "cell-tabs": { seconds: 4.0, tolerance: 0.3, desktopBytes: 1_400_000 },
   "cell-branch": { seconds: 4.0, tolerance: 0.3, desktopBytes: 1_400_000 },
+  // The two inner-page loops: an authored terminal and the capsule in planes.
+  "agents-connect": { seconds: 5.0, tolerance: 0.3, desktopBytes: 1_400_000 },
+  "capsule-anatomy": { seconds: 6.0, tolerance: 0.3, desktopBytes: 1_800_000 },
 }
 
 /** A mobile variant may not exceed this share of its desktop pair. */

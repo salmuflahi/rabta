@@ -114,6 +114,7 @@ export function initNav(root: Document = document, env: MotionEnv = window as Mo
   const observer = new env.IntersectionObserver(
     ([entry]) => {
       nav.classList.toggle("nav--solid", !entry.isIntersecting);
+      nav.classList.toggle("nav--pill", !entry.isIntersecting);
     },
     { threshold: 0 },
   );

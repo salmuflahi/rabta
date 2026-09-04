@@ -6,7 +6,7 @@ import "../styles/doc.css";
 import "../styles/page.css";
 ---
 <Base
-  title={"Roadmap — Rabta"}
+  title={"Roadmap · Rabta"}
   description={"What is not built yet, what is next, and what has been deliberately deferred. Scoped honestly, with no dates attached to work that has not started."}
   route="/roadmap/"
   ogDescription={"What is not built yet, what is next, and what has been deliberately deferred."}
@@ -14,14 +14,14 @@ import "../styles/page.css";
   <div class="wrap page-head">
     <p class="page-head__label">Roadmap</p>
 
-    <h1>What's next, without dates.</h1>
+    <h1>Where this goes.</h1>
     <p class="lede">
       Everything here is real work in the repository, at the stage it is named
       under. Nothing carries a date, because nothing here ships until it is
       right. What already shipped is on the
       <a href="/changelog/">changelog</a>.
     </p>
-    <p class="mono muted">Reflects Rabta 0.1.0 · updated 11 August 2026</p>
+    <p class="mono muted">Reflects Rabta 0.1.0 · updated 4 September 2026</p>
   </div>
 
   <section class="band" data-chapter aria-labelledby="packaged">
@@ -33,15 +33,29 @@ import "../styles/page.css";
 
         <div class="grid2">
           <article class="card">
-            <h3>Connectors 0.2.0 — focus mode's reconcile step</h3>
+            <h3>Connectors 0.2.0: focus mode's reconcile step</h3>
             <p>
               The close half of focus mode lives in the connectors:
               <code>tabs.close</code>, <code>editor.closeFile</code>,
               <code>terminal.dispose</code>. Live on Open VSX and the Visual
               Studio Marketplace; the browser connector is in Chrome Web Store
-              review. The desktop app stays at 0.1.0 — this is a
+              review. The desktop app stays at 0.1.0: this is a
               connector-only bump, and the app does not drive the closing half
               yet.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Agents can read capsules</h3>
+            <p>
+              An MCP server, <code>@rabta/mcp</code>, lets Claude Code, Cursor
+              and Codex list the capsules on this Mac and load one as a
+              briefing: the files, the terminals, the tabs, the branch.
+              Reads come straight from the same database the app writes.
+              Capture and restore from an agent go through Agent access, a
+              switch in Settings that opens a local socket file and closes it
+              again; the receipt is the one the app shows. <a href="/agents/">How it
+              works.</a>
             </p>
           </article>
 
@@ -50,7 +64,7 @@ import "../styles/page.css";
             <p>
               0.2.0 raises <code>engines.vscode</code> from ^1.85 to ^1.93.
               Busy-terminal detection needs shell-execution events that are only
-              stable from 1.93, and there is no fallback for older editors —
+              stable from 1.93, and there is no fallback for older editors,
               anyone on 1.85 to 1.92 stops seeing updates until they upgrade.
             </p>
           </article>
@@ -89,7 +103,7 @@ import "../styles/page.css";
             <h3>Auto-update</h3>
             <p>
               Not wired. It needs an update endpoint and a signing keypair
-              separate from the Apple certificate — and it would be the first
+              separate from the Apple certificate: and it would be the first
               thing in Rabta that makes an outbound request on its own, so it
               gets designed carefully or not at all.
             </p>
@@ -118,7 +132,7 @@ import "../styles/page.css";
           <article class="card">
             <h3>More connectors</h3>
             <p>
-              Docker, Postman, Figma, Linear, Jira — each one is a protocol
+              Docker, Postman, Figma, Linear, Jira: each one is a protocol
               conversation, not a plugin drop. Doing four badly would be worse
               than doing none.
             </p>
@@ -129,13 +143,6 @@ import "../styles/page.css";
             <p>
               Worth doing once the protocol has stopped moving. Publishing an
               SDK against a moving target is a promise you then have to break.
-            </p>
-          </article>
-
-          <article class="card">
-            <h3>Optional AI suggestions</h3>
-            <p>
-              Only where they would beat a plain list, and never as a default.
             </p>
           </article>
 

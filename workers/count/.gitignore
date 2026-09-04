@@ -1,0 +1,3 @@
+# wrangler's local state (dev D1, cache) and the local secrets file
+.wrangler/
+.dev.vars

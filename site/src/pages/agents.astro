@@ -1,0 +1,263 @@
+---
+import Base from "../layouts/Base.astro";
+import { MCP_PUBLISHED, RELEASE } from "../config.ts";
+import "../styles/tokens.css";
+import "../styles/shell.css";
+import "../styles/doc.css";
+import "../styles/page.css";
+
+const pkg = "@rabta/mcp";
+const claudeCode = `claude mcp add rabta -- npx -y ${pkg}`;
+const codex = `codex mcp add rabta -- npx -y ${pkg}`;
+const mcpJson = `{
+  "mcpServers": {
+    "rabta": { "command": "npx", "args": ["-y", "${pkg}"] }
+  }
+}`;
+const fromSource = "node packages/mcp/dist/cli.js";
+
+// The briefing the server produces for the demo capsule this site's
+// screenshots come from. packages/mcp/test/fixtures/briefing.golden.md is the
+// same text, and its test fails if the server drifts from it.
+const briefing = `# Wire the connector SDK reconnect
+
+Project atlas-api on branch feat/connector-reconnect, saved 2026-07-29T14:12:00.000000+00:00.
+
+## Files
+Folder: ~/code/atlas-api
+
+- src/hub.rs
+- src/connector/session.rs (active)
+- src/connector/handshake.rs
+- tests/reconnect.rs (unsaved changes)
+
+## Terminals
+- zsh in ~/code/atlas-api
+- cargo watch in ~/code/atlas-api (busy)
+- zsh in ~/code/atlas-api/crates
+
+## Browser tabs
+- WebSocket close codes - MDN <https://developer.mozilla.org/>
+- tokio-tungstenite docs <https://docs.rs/tokio-tungstenite/>
+- Exponential backoff and jitter <https://aws.amazon.com/builders-library/>
+- atlas-api: Pull requests <https://github.com/>
+- Reconnect design notes <https://www.notion.so/>
+
+## Pins
+- chrome: https://docs.rs/tokio-tungstenite/
+
+Restore it from the Rabta app or, with Agent access on in its Settings, through restore_capsule.`;
+
+const status = MCP_PUBLISHED
+  ? `${pkg} on npm · reads on its own, captures and restores through the app · nothing leaves this Mac`
+  : `${pkg} ships with the next release · reads on its own, captures and restores through the app · nothing leaves this Mac`;
+---
+<Base
+  title={"Rabta for agents: your agent starts where you left off"}
+  description={"The Rabta MCP server hands an AI agent the task's capsule as a briefing: the files, terminals, tabs and branch you had, read from the capsules already on your Mac. Read-only, no network."}
+  route="/agents/"
+  ogTitle={"Rabta for agents"}
+  ogDescription={"An MCP server that briefs Claude Code, Cursor or Codex on the task you were in: files, terminals, tabs, branch. Read-only, from your own Mac."}
+>
+  <div class="wrap page-head">
+    <p class="page-head__label">For agents</p>
+    <h1>Your agent starts where you left off.</h1>
+    <p class="lede">
+      A capsule is what an agent wishes it knew before its first tool call: the
+      files you had open, the terminals and where they were, the tabs you were
+      reading, the branch. The Rabta MCP server hands that over as a briefing,
+      read from the capsules already on your Mac.
+    </p>
+    <p class="mono muted" data-agents-status={MCP_PUBLISHED ? "published" : "pending"}>{status}</p>
+  </div>
+
+  <section class="band band--split" aria-labelledby="briefing-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="briefing-title">One call, and the agent knows the task.</h2>
+        <div class="band__prose">
+          <p>
+            An agent that starts cold guesses. It opens the wrong file, greps
+            for the branch name, asks you what you were doing. One call to
+            <code>capsule_briefing</code> answers that with a page of Markdown
+            small enough to keep in context: the project and branch, the files
+            in the order you had them, which one was active and which had
+            unsaved changes, the terminals and their directories, the tabs, the
+            pins.
+          </p>
+          <p>
+            It is the same capsule the app restores, read from the same file.
+            Nothing is uploaded, indexed or summarised by anyone else; the
+            server runs on your Mac and speaks to the agent over standard
+            input and output.
+          </p>
+        </div>
+        <figure class="window window--shot" data-reveal>
+          <div class="window__bar">
+            <span class="window__lights" aria-hidden="true"><span></span><span></span><span></span></span>
+            <span class="window__title">Terminal — capsule_briefing</span>
+          </div>
+          <div class="window__stage" data-product-media="agents">
+            <video
+              class="window__video"
+              width="1280" height="800"
+              muted playsinline loop preload="none"
+              poster="/assets/demos/agents-connect.png"
+              data-src-desktop="/assets/demos/agents-connect-desktop.mp4"
+              data-src-mobile="/assets/demos/agents-connect-mobile.mp4"
+              aria-label="A terminal adds the Rabta MCP server with one command and asks for a capsule briefing; the briefing lists the task's files, terminals and tabs."
+            ></video>
+            <button class="media-play" type="button" hidden data-media-play data-label-play="Play demo" data-label-pause="Pause demo">Play demo</button>
+          </div>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="connect-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="connect-title">Connect it in one line.</h2>
+        <p>
+          The server needs Node 24 or later and a Rabta install on the same
+          Mac. It reads the capsules the app has saved; if you have not saved
+          one yet, it says so instead of inventing one.
+        </p>
+        <div class="grid2">
+          <article class="card" data-reveal>
+            <h3>Claude Code</h3>
+            <pre class="code" tabindex="0"><code>{claudeCode}</code></pre>
+          </article>
+          <article class="card" data-reveal data-reveal-delay="60">
+            <h3>Codex</h3>
+            <pre class="code" tabindex="0"><code>{codex}</code></pre>
+          </article>
+          <article class="card" data-reveal data-reveal-delay="120">
+            <h3>Cursor</h3>
+            <p>In <code>.cursor/mcp.json</code>, in the project or your home folder:</p>
+            <pre class="code" tabindex="0"><code>{mcpJson}</code></pre>
+          </article>
+          <article class="card" data-reveal data-reveal-delay="180">
+            <h3>Claude Desktop</h3>
+            <p>In <code>claude_desktop_config.json</code>, under Settings, Developer:</p>
+            <pre class="code" tabindex="0"><code>{mcpJson}</code></pre>
+          </article>
+        </div>
+        {!MCP_PUBLISHED && (
+          <p class="mono muted foot-note">
+            Until the package is on npm, run it from a checkout of the repository:
+            <code>{fromSource}</code> in place of <code>npx -y {pkg}</code>.
+          </p>
+        )}
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="tools-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="tools-title">Five tools that read. Two that ask the app.</h2>
+        <p>
+          The five readers carry the read-only annotation, so a host that asks
+          before writes never has to ask for them. The two writers go through
+          the running app and only while Agent access is on. Each description
+          says what the tool returns and what it does not do, which is what
+          keeps an agent from calling the wrong one.
+        </p>
+        <dl class="kv">
+          <div>
+            <dt><code>list_projects</code></dt>
+            <dd>The projects the app knows, with their repository paths and default branches.</dd>
+          </div>
+          <div>
+            <dt><code>list_capsules</code></dt>
+            <dd>The task capsules on this Mac, newest capture first, filtered by project or status. Ids for everything below.</dd>
+          </div>
+          <div>
+            <dt><code>read_capsule</code></dt>
+            <dd>One capsule as data: folder, files, active file, unsaved files, terminals, tabs, branch, pins, when it was saved.</dd>
+          </div>
+          <div>
+            <dt><code>capsule_briefing</code></dt>
+            <dd>The same capsule as Markdown an agent can load as context. Under four kilobytes.</dd>
+          </div>
+          <div>
+            <dt><code>recent_activity</code></dt>
+            <dd>What the connectors reported recently: connections, captures, restores. Never file contents.</dd>
+          </div>
+          <div>
+            <dt><code>capture_capsule</code></dt>
+            <dd>Asks the app to capture the task now. Returns what was captured and what was skipped. Needs Agent access.</dd>
+          </div>
+          <div>
+            <dt><code>restore_capsule</code></dt>
+            <dd>Asks the app to restore the task, focus mode optional. Returns the receipt the sheet shows: Restored, On next reload, Skipped and why. Needs Agent access.</dd>
+          </div>
+          <div>
+            <dt><code>rabta://capsules/&#123;id&#125;</code></dt>
+            <dd>Every capsule is also a resource, for hosts that browse resources instead of calling tools.</dd>
+          </div>
+        </dl>
+        <p>The briefing for the demo capsule this site is photographed from:</p>
+        <pre class="code" tabindex="0"><code>{briefing}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="limits-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="limits-title">What it will not do.</h2>
+        <dl class="denials">
+          <div data-reveal>
+            <dt>Write to the database</dt>
+            <dd>
+              It opens the file read-only. Capture and restore are requests to
+              the running app, answered only while Agent access is on in
+              Settings, and answered with the app's own receipt.
+            </dd>
+          </div>
+          <div data-reveal data-reveal-delay="60">
+            <dt>Read your files' contents</dt>
+            <dd>
+              A capsule holds paths, titles and URLs. The briefing lists them.
+              What is inside a file stays between you and your editor.
+            </dd>
+          </div>
+          <div data-reveal data-reveal-delay="120">
+            <dt>Reach the network</dt>
+            <dd>
+              No requests, no telemetry, no update check. It opens the
+              database file and, with Agent access on, the app's socket file
+              in the same folder. The only thing it talks to is the agent that
+              launched it and the app on this Mac.
+            </dd>
+          </div>
+          <div data-reveal data-reveal-delay="180">
+            <dt>Run without you</dt>
+            <dd>
+              It is a process your agent host starts and stops. Nothing runs
+              in the background, and removing the one line removes it.
+            </dd>
+          </div>
+        </dl>
+        <p class="foot-note">
+          Agent access is a switch in the app's Settings. On, the app writes a
+          secret file and listens on a socket file beside it, both readable by
+          your user only; off removes both. A wrong secret is refused and the
+          connection closed. The receipt an agent gets back is the one the
+          restore sheet shows you, "On next reload" and "Skipped" included.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta rail" aria-labelledby="cta-title">
+    <h2 id="cta-title">Save a capsule. Then hand it to your agent.</h2>
+    <div class="cta__actions">
+      <a class="button button--primary button--large" href={RELEASE.dmgUrl}>Download for macOS</a>
+      <a class="button button--large" href="/capsules/">How capsules work</a>
+    </div>
+    <p class="mono muted">Free. Apple silicon, {RELEASE.macOsFloor}. No account, no server.</p>
+  </section>
+</Base>

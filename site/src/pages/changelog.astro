@@ -6,7 +6,7 @@ import "../styles/doc.css";
 import "../styles/page.css";
 ---
 <Base
-  title={"Changelog — Rabta"}
+  title={"Changelog · Rabta"}
   description={"Every Rabta release, newest first, with what changed and what it required of you."}
   route="/changelog/"
   ogDescription={"Every Rabta release, newest first."}
@@ -25,14 +25,13 @@ import "../styles/page.css";
 
   <section class="band" data-chapter aria-labelledby="v0-1-0">
     <div class="band__inner">
-      <p class="band__label">29 Jul 2026</p>
       <div class="band__body">
         <div class="release__head">
           <h2 id="v0-1-0">v0.1.0</h2>
           <span class="pill pill--now">Current</span>
         </div>
         <p class="release__meta">
-          First public release — signed and notarized, Apple silicon, macOS 11
+          First public release: signed and notarized, Apple silicon, macOS 11
           or later. The first version anyone else can run.
         </p>
 
@@ -41,7 +40,7 @@ import "../styles/page.css";
             <h3>Capsules</h3>
             <ul>
               <li>Save and restore a task across the editor, browser, terminals
-                and Git — open files, tab URLs, working directories and the
+                and Git: open files, tab URLs, working directories and the
                 branch, in order.</li>
               <li>Switching tasks auto-saves the outgoing one. Restores are
                 additive by default and report partial results instead of hiding
@@ -55,7 +54,7 @@ import "../styles/page.css";
             <h3>Focus mode</h3>
             <ul>
               <li>Off by default. When on, resuming also puts away what the
-                capsule didn't capture — one item at a time, only after a clean
+                capsule didn't capture: one item at a time, only after a clean
                 restore.</li>
               <li>Never closes an unsaved file, a running terminal, or anything
                 pinned. Kept items are reported with the reason.</li>
@@ -65,7 +64,7 @@ import "../styles/page.css";
           <article class="card">
             <h3>Git &amp; GitHub</h3>
             <ul>
-              <li>Safe Git: status, fetch, checkout and branch creation — never
+              <li>Safe Git: status, fetch, checkout and branch creation: never
                 force-checkouts, resets, stashes or discards. A dirty tree
                 refuses with a message.</li>
               <li>Fetch issues through your own <code>gh</code> CLI and start a
@@ -77,7 +76,7 @@ import "../styles/page.css";
             <h3>Connectors</h3>
             <ul>
               <li>Editor connector on Open VSX; browser connector on the Chrome
-                Web Store — <code>tabs</code> and <code>storage</code> only,
+                Web Store: <code>tabs</code> and <code>storage</code> only,
                 structurally unable to read page content.</li>
               <li>Every connector authenticates to a hub bound to
                 <code>127.0.0.1</code>. Browsers pair through an approve/deny
@@ -91,13 +90,12 @@ import "../styles/page.css";
 
   <section class="band" data-chapter aria-labelledby="asks">
     <div class="band__inner">
-      <p class="band__label">0.1.0</p>
       <div class="band__body">
         <h2 id="asks">What it asks of you.</h2>
         <p>
           The build is signed with an Apple Developer ID and notarized, so it
           opens on a normal double-click. If a Gatekeeper warning <em>does</em>
-          appear, the file is not the one that was signed — the
+          appear, the file is not the one that was signed: the
           <a href="/setup/#verify">setup guide</a> has the checksum to check
           that with. The connectors install from Open VSX and the Chrome Web
           Store. There is no auto-update, so future versions are a manual
@@ -126,7 +124,7 @@ import "../styles/page.css";
 
         <div class="grid2">
           <article class="card">
-            <h3>Connectors 0.2.0 — published</h3>
+            <h3>Connectors 0.2.0: published</h3>
             <p>
               Focus mode's close half: <code>tabs.close</code>,
               <code>editor.closeFile</code>, <code>terminal.dispose</code>. On
@@ -153,12 +151,11 @@ import "../styles/page.css";
 
   <section class="band band--close" data-chapter aria-labelledby="earlier">
     <div class="band__inner">
-      <p class="band__label">Before</p>
       <div class="band__body">
         <h2 id="earlier">Before 0.1.0.</h2>
         <p>
           Rabta was built in the open under its former name, OmniBus. There are
-          no published releases before 0.1.0 — the history is in the
+          no published releases before 0.1.0: the history is in the
           <a href="https://github.com/salmuflahi/rabta" rel="noopener noreferrer" target="_blank">repository</a>
           rather than on this page, because nothing before it was something you
           could install.

@@ -11,10 +11,11 @@
 
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { SplitText } from "gsap/SplitText";
 import { drawMark } from "./brand.ts";
 import { DUR, reducedMotion, type MotionEnv, type Teardown } from "./motion.ts";
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, SplitText);
 
 interface HomeEnv extends MotionEnv {
   matchMedia: (query: string) => { matches: boolean };
@@ -42,7 +43,10 @@ function initHero(root: ParentNode, env: HomeEnv): Teardown {
   const slide = parseFloat(getComputedStyle(word).fontSize) * 0.35 || 24;
 
   tl.fromTo(word, { opacity: 0, x: -slide }, { opacity: 1, x: 0, duration: 0.72 }, landed - 0.26);
-  tl.fromTo(lines, { yPercent: 110 }, { yPercent: 0, duration: 0.9, stagger: 0.11 }, landed - 0.12);
+  /* The claim arrives a word at a time, each rising from behind its own
+     baseline; the masks are the .rise lines themselves. */
+  const words = SplitText.create(lines, { type: "words", wordsClass: "w" });
+  tl.fromTo(words.words, { yPercent: 110 }, { yPercent: 0, duration: 0.9, stagger: 0.08 }, landed - 0.12);
   tl.fromTo([lede, actions], { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, stagger: 0.09 }, landed + 0.24);
   if (stage) {
     tl.fromTo(stage, { opacity: 0, y: 40, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 1.1 }, landed + 0.32);
@@ -54,22 +58,28 @@ function initHero(root: ParentNode, env: HomeEnv): Teardown {
      stylesheet's pending state has done its job: hand over to the timeline. */
   delete hero.dataset.hero;
 
-  /* The window drifts up a little as the hero leaves: a scrubbed 40px, never
-     more, so the shot reads as a thing on the desk rather than a layer. */
-  let drift: gsap.core.Tween | null = null;
+  /* The window rests leaned back into the frame, the way a screenshot sits
+     in a film, and settles flat as the reader scrolls: it ends up looking
+     exactly as it does on a Mac. The settle is scrubbed, never timed. */
+  let settle: gsap.core.Tween | null = null;
   const frame = stage?.querySelector(".window");
   if (frame) {
-    drift = gsap.to(frame, {
-      y: -40,
+    gsap.set(frame, { rotateX: 12, rotateY: -7, transformOrigin: "50% 40%", transformPerspective: 1400 });
+    settle = gsap.to(frame, {
+      rotateX: 0,
+      rotateY: 0,
+      y: -32,
       ease: "none",
-      scrollTrigger: { trigger: hero, start: "top top", end: "bottom top", scrub: true },
+      scrollTrigger: { trigger: hero, start: "top top", end: "bottom 30%", scrub: true },
     });
   }
 
   return () => {
     tl.revert();
-    drift?.scrollTrigger?.kill();
-    drift?.revert();
+    words.revert();
+    settle?.scrollTrigger?.kill();
+    settle?.revert();
+    if (frame) gsap.set(frame, { clearProps: "transform" });
     delete hero.dataset.hero;
     if (navBrand) navBrand.style.opacity = "";
   };
@@ -291,9 +301,34 @@ export function initFocusSwitch(root: Document = document, env: MotionEnv = wind
 
 /* ---- boot ----------------------------------------------------------------------- */
 
+/* ---- the spotlight ---------------------------------------------------------
+   A bento cell's border lights up under a fine pointer. The position is two
+   custom properties written through the CSSOM; the ring itself is CSS. */
+
+function initSpotlight(root: ParentNode, env: HomeEnv): Teardown {
+  const cells = [...root.querySelectorAll<HTMLElement>("[data-spotlight]")];
+  const fine = env.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  if (cells.length === 0 || !fine) return () => {};
+  const offs: Teardown[] = [];
+  for (const cell of cells) {
+    const onMove = (event: PointerEvent) => {
+      const box = cell.getBoundingClientRect();
+      cell.style.setProperty("--mx", `${Math.round(event.clientX - box.left)}px`);
+      cell.style.setProperty("--my", `${Math.round(event.clientY - box.top)}px`);
+    };
+    cell.addEventListener("pointermove", onMove);
+    offs.push(() => {
+      cell.removeEventListener("pointermove", onMove);
+      cell.style.removeProperty("--mx");
+      cell.style.removeProperty("--my");
+    });
+  }
+  return () => offs.forEach((off) => off());
+}
+
 export function initHome(root: Document = document, env: HomeEnv = window as unknown as HomeEnv): Teardown {
   if (!root.querySelector("[data-hero]")) return () => {};
-  const offs = [initHero(root, env), initMoves(root, env), initFocusSwitch(root, env)];
+  const offs = [initHero(root, env), initMoves(root, env), initFocusSwitch(root, env), initSpotlight(root, env)];
   /* Web fonts change line lengths, and with them where every trigger sits. */
   document.fonts?.ready.then(() => ScrollTrigger.refresh());
   return () => offs.forEach((off) => off());

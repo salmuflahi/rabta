@@ -211,3 +211,19 @@ Same palette, same mark, same motion, on the desktop app's existing structure. T
 ## 10. Out of scope
 
 Localisation, a CMS or framework, an Intel build, and any change to the hub, connectors or capsule format.
+
+---
+
+## Amendment, 4 September 2026: the second round
+
+The first round shipped the brand. The second round, after review against Raylight's product pages, changes these decisions. Where this amendment and the sections above disagree, this amendment wins.
+
+- **Stack.** The site is an Astro 7 project in `site/`, built to static HTML for GitHub Pages, with the same strict policy: Astro's `security.csp` hashes what it inlines, stylesheets are never inlined, and no page carries an inline style or script. GSAP 3.15 (core, ScrollTrigger, DrawSVG, SplitText) replaces Anime.js. Page transitions are the browser's own cross-document view transitions; there is no client router.
+- **Perspective.** §1.3 said nothing is tilted. The hero window may rest leaned into the frame and settles flat as the reader scrolls, so it ends up looking exactly as it does on a Mac. The loops use resting tilt, committed push-ins, whip pans and rack focus, per the shot grammar in `marketing-videos/site-demos/build-projects.mjs`.
+- **The thread.** رابطة is the tie. One ember line runs down the homepage, drawn by the reader's scrolling, touching the window, the three moves, the capsule, the receipt, the switch and the terminal, and ends where the mark's leg begins in the "no server" chapter. It is the site's signature; everything else stays quiet.
+- **Type.** Inter stays the body and display face. Reem Kufi is added for the name only, where the name is the subject. Geist Mono is added for what is checkable: receipts, terminals, code, hashes, paths. Both are subset by `scripts/fonts/subset.sh` and shipped beside their licences.
+- **The line.** "Pick up the task. Not the pieces." is retired everywhere. The claim is "Leave the task. Return to all of it." The title is "Rabta: leave the task, return to all of it", without a dash.
+- **Home.** Ten chapters: hero, works with, three moves, capsule anatomy, the receipt (tried against three cases in the app's own words), focus mode, for agents, local, where this goes, close. No eyebrow labels anywhere on the site.
+- **Routes.** Eleven: `/capsules/` (how it works) and `/agents/` (the MCP server) join the nine. The nav is Why, Product, Capsules, Agents, Setup, FAQ, plus Download; Changelog, Contact and Brand live in the compact menu and the footer. `/roadmap/` is titled "Where this goes."
+- **Counting.** The site sends one cookieless ping per page view to a counter the maintainer runs on Cloudflare (`workers/count`). Nothing that identifies a visitor is stored; the privacy page says exactly what is. Global Privacy Control and Do Not Track stop the ping.
+- **Agents.** `packages/mcp` is a read-only MCP server over the app's database. Capture and restore from an agent are planned, through an opt-in local socket in the app, and the site says so as roadmap.

@@ -2,14 +2,18 @@
 export const NAV_LINKS = [
   { href: "/why/", label: "Why" },
   { href: "/#product", label: "Product" },
+  { href: "/capsules/", label: "Capsules" },
+  { href: "/agents/", label: "Agents" },
   { href: "/setup/", label: "Setup" },
   { href: "/faq/", label: "FAQ" },
-  { href: "/changelog/", label: "Changelog" },
-  { href: "/contact/", label: "Contact" },
 ] as const;
 
 /** Links the compact menu adds beyond the primary set. */
-export const MENU_EXTRA = [{ href: "/brand/", label: "Brand" }] as const;
+export const MENU_EXTRA = [
+  { href: "/changelog/", label: "Changelog" },
+  { href: "/contact/", label: "Contact" },
+  { href: "/brand/", label: "Brand" },
+] as const;
 
 /**
  * Where `aria-current="page"` lands for a route: the first place the route is

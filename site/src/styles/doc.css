@@ -231,6 +231,17 @@
     outline-offset: 2px;
   }
 
+  /* The block is the surface; the code inside it is plain text, not a run
+     of inline chips. */
+  .code > code {
+    display: block;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+  }
+
   .cmt {
     color: #7c808b;
   }

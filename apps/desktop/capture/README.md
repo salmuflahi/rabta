@@ -82,6 +82,19 @@ node capture/record-frames.mjs leave
 node capture/record-frames.mjs return
 ```
 
+Three flags shape a recording:
+
+| Flag | Effect |
+|---|---|
+| `--region=sheet` | Only the restore sheet is visible; everything else is hidden. Used with `--alpha` to record the sheet as its own layer for the loops' rack focus. |
+| `--alpha` | Transparent page background, so the frames carry alpha where nothing painted. Encodes VP9 `yuva420p` WebM by default. |
+| `--out=mp4\|webm\|png` | The encode: H.264 (default), WebM with alpha, or keep the PNG directory. |
+
+Beside the footage the recorder writes a cue sidecar, `<demo>.json`, with the
+director's cues and the Capture button's and restore sheet's boxes measured
+from the DOM at each cue, so the loops' cursor and sheet placement never come
+from a ruler.
+
 Each run writes `marketing-videos/site-demos/_recordings/<demo>-1280x800.mp4`
 (2560x1600, 30fps, silent H.264) plus a first and last frame for inspection.
 Then, from `marketing-videos/site-demos/`, `node build-projects.mjs` rebuilds

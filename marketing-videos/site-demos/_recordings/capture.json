@@ -1,0 +1,48 @@
+{
+  "demo": "capture",
+  "region": "app",
+  "alpha": false,
+  "fps": 30,
+  "w": 1280,
+  "h": 800,
+  "dpr": 2,
+  "seconds": 4,
+  "durationMs": 4000,
+  "cues": [
+    {
+      "atMs": 0,
+      "action": "show-capsule",
+      "rect": {
+        "button": {
+          "x": 680.55,
+          "y": 179.48,
+          "w": 102.64,
+          "h": 28
+        },
+        "dialog": null
+      },
+      "frame": 0
+    },
+    {
+      "atMs": 1000,
+      "action": "save-state",
+      "rect": {
+        "button": {
+          "x": 680.55,
+          "y": 177.52,
+          "w": 102.64,
+          "h": 28
+        },
+        "dialog": null
+      },
+      "frame": 30
+    }
+  ],
+  "sheet": null,
+  "button": {
+    "x": 680.55,
+    "y": 177.52,
+    "w": 102.64,
+    "h": 28
+  }
+}

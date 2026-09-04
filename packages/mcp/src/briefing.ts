@@ -4,7 +4,7 @@ import type { CapsuleView } from "./shapes.js";
 export const BRIEFING_MAX_BYTES = 4096;
 
 export const CLOSING_LINE =
-  "Restore it from the Rabta app or, once agent access ships, through restore_capsule.";
+  "Restore it from the Rabta app or, with Agent access on in its Settings, through restore_capsule.";
 
 interface Caps {
   files: number;

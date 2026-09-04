@@ -1,13 +1,50 @@
 /* Rabta — the homepage.
  *
- * Seven sections, seven layout families: a centred hero over a Mac window,
- * one marquee, a pinned three-beat sequence, a bento, a split with the one
- * stateful control, the night chapter, and a closing statement. The CSP
- * forbids inline styles, so every state is a class or a data attribute, and
- * every animated thing has a finished state that ships without script.
+ * Ten chapters, tied by one ember thread: a centred hero over a Mac window
+ * that rests leaned into the frame, one marquee, a pinned three-beat
+ * sequence, a bento, the receipt ledger, a split with the one stateful
+ * control, a terminal, the night chapter where the thread becomes the mark,
+ * the roadmap's three rows, and a closing statement. The CSP forbids inline
+ * styles, so every state is a class or a data attribute, and every animated
+ * thing has a finished state that ships without script.
  */
 
 @layer section {
+  /* ---- the thread ------------------------------------------------------------
+     One stroke behind the whole page, measured by scripts/thread.ts. It sits
+     under every chapter's content and shows in the gutters and the gaps, so
+     a card passing over it is a card resting on the line. */
+  .home {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .thread {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .thread path {
+    fill: none;
+    stroke: var(--ember);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    opacity: 0.9;
+  }
+
+  /* Still, at rest: with no script, or with reduced motion, the line is
+     simply there, quietly. */
+  .thread[data-thread="rest"] path {
+    opacity: 0.45;
+  }
+
   /* ---- hero ---------------------------------------------------------------- */
   .hero {
     position: relative;
@@ -48,8 +85,14 @@
   }
 
   .hero__title {
-    max-width: 14ch;
+    max-width: 16ch;
     margin: var(--s7) auto 0;
+  }
+
+  /* Each word is its own block while the claim arrives, so a word can rise
+     from behind the line's baseline on its own. */
+  .rise .w {
+    display: inline-block;
   }
 
   /* Each line is a masked row with the text translated up inside it, so the
@@ -112,9 +155,12 @@
     z-index: 0;
   }
 
+  /* The window rests leaned into the frame and settles flat as the reader
+     scrolls; scripts/home.ts owns the angle, this only gives it depth. */
   .hero__stage .window {
     position: relative;
     z-index: 1;
+    will-change: transform;
   }
 
   /* ---- works with: the one marquee -------------------------------------- */
@@ -322,6 +368,39 @@
     grid-column: span 2;
   }
 
+  /* A fine pointer lights the border of the cell it is over: a one-pixel ring
+     lit from the pointer's position, drawn with a mask so the card's own
+     surface never changes. */
+  .cell[data-spotlight]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    padding: 1px;
+    border-radius: inherit;
+    background: radial-gradient(
+      260px circle at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--ember) 70%, transparent),
+      transparent 70%
+    );
+    -webkit-mask:
+      linear-gradient(var(--ink-0) 0 0) content-box,
+      linear-gradient(var(--ink-0) 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(var(--ink-0) 0 0) content-box,
+      linear-gradient(var(--ink-0) 0 0);
+    mask-composite: exclude;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-state) var(--ease);
+  }
+
+  .cell[data-spotlight]:hover::after,
+  .cell[data-spotlight]:focus-within::after {
+    opacity: 1;
+  }
+
   /* One cell is lit by the ember; one is paper. The other two are ink. */
   .cell--ember {
     background:
@@ -381,6 +460,317 @@
     align-self: end;
     justify-self: start;
     margin: 0 0 12px 12px;
+  }
+
+  /* ---- the receipt: a ledger ---------------------------------------------- */
+  .receipts {
+    padding-top: var(--section);
+  }
+
+  .receipts__inner {
+    max-width: 880px;
+    margin-inline: auto;
+  }
+
+  .receipts__head .lede {
+    margin-top: var(--s4);
+    max-width: 52ch;
+  }
+
+  .receipt-demo {
+    margin-top: var(--s7);
+  }
+
+  .receipt-demo__cases {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s3);
+  }
+
+  /* A case is a switch with its label inside the pill, so the whole pill is
+     the target and the state is readable from the ember ring. */
+  .case {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 6px 14px 6px 8px;
+    border-radius: var(--pill);
+    background: var(--bg-alt);
+    box-shadow: inset 0 0 0 1px var(--hairline-strong);
+    color: var(--text-mute);
+    font-size: var(--fs-small);
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      color var(--dur-state) var(--ease),
+      background-color var(--dur-state) var(--ease),
+      box-shadow var(--dur-state) var(--ease);
+  }
+
+  .case:hover,
+  .case:focus-visible {
+    color: var(--text);
+    background: var(--field);
+  }
+
+  .case[aria-checked="true"] {
+    color: var(--text);
+    box-shadow: inset 0 0 0 1px var(--ember);
+  }
+
+  .case__knob {
+    position: relative;
+    flex: none;
+    width: 28px;
+    height: 18px;
+    border-radius: var(--pill);
+    background: var(--field);
+    transition: background-color var(--dur-state) var(--ease);
+  }
+
+  .case__knob::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--paper-0);
+    transition: transform var(--dur-state) var(--ease);
+  }
+
+  .case[aria-checked="true"] .case__knob {
+    background: var(--ember);
+  }
+
+  .case[aria-checked="true"] .case__knob::after {
+    transform: translateX(10px);
+  }
+
+  .case__label {
+    font-size: var(--fs-small);
+    font-weight: 500;
+    letter-spacing: var(--track-body);
+  }
+
+  .ledger {
+    margin-top: var(--s5);
+    padding: var(--s6);
+    border-radius: var(--r-xl);
+    background: var(--bg-alt);
+  }
+
+  .ledger__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s2) var(--s4);
+    padding-bottom: var(--s4);
+    border-bottom: 1px solid var(--hairline-strong);
+  }
+
+  .ledger__title {
+    font-size: var(--fs-h3);
+    font-weight: 560;
+    letter-spacing: var(--track-h3);
+    color: var(--text);
+  }
+
+  .ledger__sub {
+    font-size: var(--fs-small);
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ledger__rows {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 11rem) minmax(0, 1fr);
+    gap: var(--s4);
+    align-items: baseline;
+    padding: var(--s4) 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .row__tool {
+    font-weight: 560;
+    color: var(--text);
+  }
+
+  .row__status {
+    font-family: var(--mono);
+    font-size: var(--fs-mono);
+    color: var(--text);
+  }
+
+  .row__status::before {
+    display: inline-block;
+    width: 1.4em;
+    content: "✓";
+    color: var(--text-mute);
+  }
+
+  .row[data-receipt-status="wait"] .row__status,
+  .row[data-receipt-status="skip"] .row__status {
+    color: var(--text-mute);
+  }
+
+  .row[data-receipt-status="wait"] .row__status::before {
+    content: "○";
+  }
+
+  .row[data-receipt-status="skip"] .row__status::before {
+    content: "×";
+  }
+
+  .row__why {
+    font-size: var(--fs-small);
+    color: var(--text-faint);
+    text-wrap: pretty;
+  }
+
+  .ledger__foot {
+    margin-top: var(--s5);
+    font-size: var(--fs-caption);
+    color: var(--text-faint);
+  }
+
+  /* ---- for agents: the terminal ---------------------------------------------- */
+  .agents {
+    padding-top: var(--section);
+  }
+
+  .agents__head {
+    max-width: 34ch;
+  }
+
+  .agents__head .lede {
+    margin-top: var(--s4);
+    max-width: 56ch;
+  }
+
+  .term {
+    margin-top: var(--s7);
+    border-radius: var(--r-xl);
+    background: var(--bg-alt);
+    box-shadow: inset 0 0 0 1px var(--hairline-strong);
+    overflow: hidden;
+  }
+
+  .term__name {
+    font-family: var(--sans);
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    color: var(--text-faint);
+  }
+
+  .term__bar {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 var(--s5);
+    border-bottom: 1px solid var(--hairline);
+    font-size: var(--fs-caption);
+    font-weight: 500;
+    color: var(--text-faint);
+  }
+
+  .term__body {
+    margin: 0;
+    padding: var(--s5) var(--s5) var(--s6);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text-mute);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .term__line {
+    display: block;
+  }
+
+  .term__line[data-term-line="cmd"] {
+    color: var(--text);
+  }
+
+  /* The prompt is the ember spent in this chapter. */
+  .term__prompt {
+    color: var(--ember);
+    font-weight: 600;
+  }
+
+  /* While the terminal waits to be typed, the lines are held; the script
+     reveals each in turn. Without script, the whole session is there. */
+  .term[data-term="pending"] .term__line {
+    visibility: hidden;
+  }
+
+  .agents__status {
+    margin-top: var(--s5);
+    font-size: var(--fs-small);
+    color: var(--text-mute);
+  }
+
+  /* ---- where this goes -------------------------------------------------------- */
+  .next {
+    padding-top: var(--section);
+  }
+
+  .next__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    gap: var(--s9);
+    align-items: start;
+  }
+
+  .next__head .lede {
+    margin-top: var(--s4);
+    max-width: 30ch;
+  }
+
+  .next__more {
+    margin-top: var(--s6);
+  }
+
+  .next__list {
+    border-top: 1px solid var(--hairline-strong);
+  }
+
+  .next__list li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: var(--s5);
+    row-gap: 6px;
+    padding: var(--s5) 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .next__list .pill {
+    grid-row: 1 / span 2;
+    align-self: start;
+    margin-top: 4px;
+  }
+
+  .next__list h3 {
+    font-size: var(--fs-h3);
+    font-weight: 560;
+    letter-spacing: var(--track-h3);
+    line-height: 1.2;
+  }
+
+  .next__list p {
+    color: var(--text-mute);
+    max-width: 46ch;
+    text-wrap: pretty;
   }
 
   /* ---- focus mode: the split ---------------------------------------------- */
@@ -534,7 +924,7 @@
 
   .local__grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
     gap: var(--s9);
     align-items: center;
   }
@@ -548,8 +938,11 @@
     max-width: 44ch;
   }
 
+  /* The mark sits on the left, where the thread arrives from the gutter and
+     hands over to the leg; the copy reads beside it. */
   .local__mark {
-    justify-self: end;
+    order: -1;
+    justify-self: start;
     width: min(320px, 60%);
     color: var(--text);
   }
@@ -711,6 +1104,15 @@
       width: 160px;
     }
 
+    .next__grid {
+      grid-template-columns: 1fr;
+      gap: var(--s6);
+    }
+
+    .thread {
+      display: none;
+    }
+
     .local__ledger {
       grid-template-columns: 1fr;
     }
@@ -728,6 +1130,15 @@
     .receipt__tally {
       grid-template-columns: repeat(3, auto);
       justify-content: space-between;
+    }
+
+    .row {
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+
+    .case {
+      width: 100%;
     }
   }
 }

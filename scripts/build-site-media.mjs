@@ -4,10 +4,10 @@
  *   node scripts/build-site-media.mjs
  *
  * Input   marketing-videos/site-demos/<name>/renders/<name>.mp4  (2560x1600, 30fps)
- * Output  website/assets/demos/<name>-desktop.mp4   1920x1200, for laptops and 2x phones
- *         website/assets/demos/<name>-mobile.mp4     720x450, for narrow viewports on a budget
- *         website/assets/demos/<name>.png            the poster, from a frame past the opening veil
- *         website/assets/demos/manifest.json         what shipped, probed, for scripts/verify-media.mjs
+ * Output  site/public/assets/demos/<name>-desktop.mp4   1920x1200, for laptops and 2x phones
+ *         site/public/assets/demos/<name>-mobile.mp4     720x450, for narrow viewports on a budget
+ *         site/public/assets/demos/<name>.png            the poster, from a frame past the opening veil
+ *         site/public/assets/demos/manifest.json         what shipped, probed, for scripts/verify-media.mjs
  *
  * The loops are silent by contract (autoplay would be blocked otherwise), so
  * every output drops audio. H.264 High profile with `+faststart`, so the
@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const DEMOS = join(ROOT, "marketing-videos/site-demos");
-const OUT = join(ROOT, "website/assets/demos");
+const OUT = join(ROOT, "site/public/assets/demos");
 
 /** The loops the site plays, in the order they appear on the page. */
 export const LOOPS = [
@@ -32,6 +32,8 @@ export const LOOPS = [
   "cell-terminals",
   "cell-tabs",
   "cell-branch",
+  "agents-connect",
+  "capsule-anatomy",
 ];
 
 const VARIANTS = {
@@ -103,4 +105,4 @@ for (const name of LOOPS) {
 }
 
 writeFileSync(join(OUT, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
-console.log(`\n${manifest.videos.length} videos, ${manifest.posters.length} posters -> website/assets/demos/`);
+console.log(`\n${manifest.videos.length} videos, ${manifest.posters.length} posters -> site/public/assets/demos/`);

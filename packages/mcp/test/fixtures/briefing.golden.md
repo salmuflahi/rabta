@@ -25,4 +25,4 @@ Folder: ~/code/atlas-api
 ## Pins
 - chrome: https://docs.rs/tokio-tungstenite/
 
-Restore it from the Rabta app or, once agent access ships, through restore_capsule.
+Restore it from the Rabta app or, with Agent access on in its Settings, through restore_capsule.

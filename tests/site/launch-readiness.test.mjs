@@ -22,6 +22,8 @@ const PAGES = {
   "/": "index.html",
   "/why/": "why/index.html",
   "/brand/": "brand/index.html",
+  "/capsules/": "capsules/index.html",
+  "/agents/": "agents/index.html",
   "/setup/": "setup/index.html",
   "/faq/": "faq/index.html",
   "/roadmap/": "roadmap/index.html",

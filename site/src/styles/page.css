@@ -576,8 +576,8 @@
   }
 
   .name__word--arabic {
-    font-family: "Geeza Pro", "Noto Naskh Arabic", "Arial", sans-serif;
-    font-weight: 700;
+    font-family: var(--kufi);
+    font-weight: 600;
     letter-spacing: 0;
     direction: rtl;
     text-align: right;

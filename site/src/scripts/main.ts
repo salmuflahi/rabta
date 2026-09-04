@@ -7,11 +7,16 @@
  * page and tears down on pagehide for the back-forward cache.
  */
 
+import { initAgents } from "./agents.ts";
 import { initMarks, initMarkReplays } from "./brand.ts";
 import { initCopy } from "./copy.ts";
+import { count } from "./count.ts";
 import { initHome } from "./home.ts";
+import { initMagnetic } from "./magnetic.ts";
 import { initProductMedia } from "./media.ts";
 import { initNav, initReveal } from "./motion.ts";
+import { initReceipts } from "./receipts.ts";
+import { initThread } from "./thread.ts";
 
 type Teardown = () => void;
 const teardowns: Teardown[] = [];
@@ -33,6 +38,13 @@ function boot(): void {
   safely("copy", () => initCopy());
   safely("media", () => initProductMedia());
   safely("home", () => initHome());
+  safely("thread", () => initThread());
+  safely("receipts", () => initReceipts());
+  safely("agents", () => initAgents());
+  safely("magnetic", () => initMagnetic());
+  safely("count", () => {
+    count();
+  });
 }
 
 if (document.readyState === "loading") {

@@ -1,7 +1,7 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { expectAtMostOneAccent } from "@/test/accent";
-import { renderWithProviders } from "@/test/smoke-utils";
+import { mockInvoke, renderWithProviders } from "@/test/smoke-utils";
 import { useStore } from "@/store";
 import { SettingsPage } from "./SettingsPage";
 
@@ -191,5 +191,39 @@ describe("SettingsPage privacy section", () => {
     renderWithProviders(<SettingsPage />);
     expect(detail().getByText(/capsules and projects aren't touched/)).toBeInTheDocument();
     expect(detail().getByRole("button", { name: "Reset" })).toBeInTheDocument();
+  });
+});
+
+describe("SettingsPage agents section", () => {
+  const SOCKET = "/Users/me/Library/Application Support/com.omnibus.dev/agent.sock";
+  beforeEach(() => {
+    useStore.getState().resetPrefs();
+    useStore.setState({ settingsSection: "agents" });
+    mockInvoke.mockImplementation((async (cmd: string, args?: unknown) => {
+      const a = (args ?? {}) as Record<string, unknown>;
+      if (cmd === "agent_access_status") return { enabled: false, socketPath: SOCKET };
+      if (cmd === "set_agent_access") return { enabled: Boolean(a.enabled), socketPath: SOCKET };
+      return [];
+    }) as unknown as Parameters<typeof mockInvoke.mockImplementation>[0]);
+  });
+
+  it("shows the socket, off, and turns it on through the bridge", async () => {
+    renderWithProviders(<SettingsPage />);
+    expect(detail().getByRole("heading", { level: 2, name: "Agent access" })).toBeInTheDocument();
+    expect(await detail().findByText(SOCKET)).toBeInTheDocument();
+    expect(detail().getByText("Closed")).toBeInTheDocument();
+
+    const toggle = detail().getByLabelText("Agent access");
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("set_agent_access", { enabled: true }));
+    expect(await detail().findByText("Listening")).toBeInTheDocument();
+    expect(toggle).toBeChecked();
+  });
+
+  it("says what the socket is, in the words the site uses", () => {
+    renderWithProviders(<SettingsPage />);
+    expect(detail().getByText(/Nothing here listens on a network port/)).toBeInTheDocument();
+    expect(detail().getByText("claude mcp add rabta -- npx -y @rabta/mcp")).toBeInTheDocument();
   });
 });

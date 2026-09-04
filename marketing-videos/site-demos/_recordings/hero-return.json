@@ -1,0 +1,81 @@
+{
+  "demo": "hero-return",
+  "region": "app",
+  "alpha": false,
+  "fps": 30,
+  "w": 1280,
+  "h": 800,
+  "dpr": 2,
+  "seconds": 8.5,
+  "durationMs": 8000,
+  "cues": [
+    {
+      "atMs": 0,
+      "action": "show-active-task",
+      "rect": {
+        "button": {
+          "x": 680.55,
+          "y": 181.52,
+          "w": 102.64,
+          "h": 28
+        },
+        "dialog": null
+      },
+      "frame": 0
+    },
+    {
+      "atMs": 1000,
+      "action": "save-state",
+      "rect": {
+        "button": {
+          "x": 680.55,
+          "y": 177.52,
+          "w": 102.64,
+          "h": 28
+        },
+        "dialog": null
+      },
+      "frame": 30
+    },
+    {
+      "atMs": 3000,
+      "action": "leave-task",
+      "rect": {
+        "button": null,
+        "dialog": null
+      },
+      "frame": 90
+    },
+    {
+      "atMs": 4300,
+      "action": "resume-task",
+      "rect": {
+        "button": {
+          "x": 704.72,
+          "y": 179.47,
+          "w": 102.64,
+          "h": 28
+        },
+        "dialog": {
+          "x": 528,
+          "y": 294.95,
+          "w": 440,
+          "h": 240
+        }
+      },
+      "frame": 129
+    }
+  ],
+  "sheet": {
+    "x": 528,
+    "y": 269,
+    "w": 440,
+    "h": 288
+  },
+  "button": {
+    "x": 704.72,
+    "y": 177.52,
+    "w": 102.64,
+    "h": 28
+  }
+}

@@ -8,7 +8,7 @@
       "durationSeconds": 8.5,
       "width": 1920,
       "height": 1200,
-      "bytes": 1796265,
+      "bytes": 1671899,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "hero-return.png"
@@ -20,7 +20,7 @@
       "durationSeconds": 8.5,
       "width": 720,
       "height": 450,
-      "bytes": 461740,
+      "bytes": 296105,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "hero-return.png"
@@ -32,7 +32,7 @@
       "durationSeconds": 4,
       "width": 1920,
       "height": 1200,
-      "bytes": 812244,
+      "bytes": 1124259,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "move-capture.png"
@@ -44,7 +44,7 @@
       "durationSeconds": 4,
       "width": 720,
       "height": 450,
-      "bytes": 230222,
+      "bytes": 243680,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "move-capture.png"
@@ -56,7 +56,7 @@
       "durationSeconds": 4,
       "width": 1920,
       "height": 1200,
-      "bytes": 758276,
+      "bytes": 814112,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "move-leave.png"
@@ -68,7 +68,7 @@
       "durationSeconds": 4,
       "width": 720,
       "height": 450,
-      "bytes": 188766,
+      "bytes": 156114,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "move-leave.png"
@@ -80,7 +80,7 @@
       "durationSeconds": 5.5,
       "width": 1920,
       "height": 1200,
-      "bytes": 1028943,
+      "bytes": 990486,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "move-return.png"
@@ -92,7 +92,7 @@
       "durationSeconds": 5.5,
       "width": 720,
       "height": 450,
-      "bytes": 289004,
+      "bytes": 148529,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "move-return.png"
@@ -104,7 +104,7 @@
       "durationSeconds": 4,
       "width": 1920,
       "height": 1200,
-      "bytes": 841846,
+      "bytes": 444352,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "cell-files.png"
@@ -116,7 +116,7 @@
       "durationSeconds": 4,
       "width": 720,
       "height": 450,
-      "bytes": 224208,
+      "bytes": 59196,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "cell-files.png"
@@ -128,7 +128,7 @@
       "durationSeconds": 4,
       "width": 1920,
       "height": 1200,
-      "bytes": 649506,
+      "bytes": 391092,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "cell-terminals.png"
@@ -140,7 +140,7 @@
       "durationSeconds": 4,
       "width": 720,
       "height": 450,
-      "bytes": 174927,
+      "bytes": 57226,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "cell-terminals.png"
@@ -152,7 +152,7 @@
       "durationSeconds": 4,
       "width": 1920,
       "height": 1200,
-      "bytes": 823819,
+      "bytes": 462884,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "cell-tabs.png"
@@ -164,7 +164,7 @@
       "durationSeconds": 4,
       "width": 720,
       "height": 450,
-      "bytes": 216555,
+      "bytes": 85151,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "cell-tabs.png"
@@ -176,7 +176,7 @@
       "durationSeconds": 4,
       "width": 1920,
       "height": 1200,
-      "bytes": 623183,
+      "bytes": 359748,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "cell-branch.png"
@@ -188,10 +188,58 @@
       "durationSeconds": 4,
       "width": 720,
       "height": 450,
-      "bytes": 158210,
+      "bytes": 45269,
       "codec": "h264",
       "audioStreams": 0,
       "poster": "cell-branch.png"
+    },
+    {
+      "file": "agents-connect-desktop.mp4",
+      "demo": "agents-connect",
+      "variant": "desktop",
+      "durationSeconds": 5,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 274546,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "agents-connect.png"
+    },
+    {
+      "file": "agents-connect-mobile.mp4",
+      "demo": "agents-connect",
+      "variant": "mobile",
+      "durationSeconds": 5,
+      "width": 720,
+      "height": 450,
+      "bytes": 64906,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "agents-connect.png"
+    },
+    {
+      "file": "capsule-anatomy-desktop.mp4",
+      "demo": "capsule-anatomy",
+      "variant": "desktop",
+      "durationSeconds": 6,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 1004048,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "capsule-anatomy.png"
+    },
+    {
+      "file": "capsule-anatomy-mobile.mp4",
+      "demo": "capsule-anatomy",
+      "variant": "mobile",
+      "durationSeconds": 6,
+      "width": 720,
+      "height": 450,
+      "bytes": 216316,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "capsule-anatomy.png"
     }
   ],
   "posters": [
@@ -199,49 +247,61 @@
       "file": "hero-return.png",
       "width": 1920,
       "height": 1200,
-      "bytes": 497013
+      "bytes": 660879
     },
     {
       "file": "move-capture.png",
       "width": 1920,
       "height": 1200,
-      "bytes": 484821
+      "bytes": 619479
     },
     {
       "file": "move-leave.png",
       "width": 1920,
       "height": 1200,
-      "bytes": 495207
+      "bytes": 627206
     },
     {
       "file": "move-return.png",
       "width": 1920,
       "height": 1200,
-      "bytes": 498370
+      "bytes": 620883
     },
     {
       "file": "cell-files.png",
       "width": 1920,
       "height": 1200,
-      "bytes": 439604
+      "bytes": 433876
     },
     {
       "file": "cell-terminals.png",
       "width": 1920,
       "height": 1200,
-      "bytes": 313027
+      "bytes": 354444
     },
     {
       "file": "cell-tabs.png",
       "width": 1920,
       "height": 1200,
-      "bytes": 443525
+      "bytes": 456548
     },
     {
       "file": "cell-branch.png",
       "width": 1920,
       "height": 1200,
-      "bytes": 353684
+      "bytes": 345190
+    },
+    {
+      "file": "agents-connect.png",
+      "width": 1920,
+      "height": 1200,
+      "bytes": 157335
+    },
+    {
+      "file": "capsule-anatomy.png",
+      "width": 1920,
+      "height": 1200,
+      "bytes": 552886
     }
   ]
 }

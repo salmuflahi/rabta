@@ -1,5 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
+import { MCP_PUBLISHED, RELEASE } from "../config.ts";
 import "../styles/tokens.css";
 import "../styles/shell.css";
 import "../styles/page.css";
@@ -10,6 +11,7 @@ import "../styles/landing.css";
   description={"Rabta remembers the files, terminals, browser tabs and Git branch around each task, then puts that working context back when you return."}
   route="/"
   ogDescription={"Workspace memory for macOS. Keep the files, terminals, tabs and Git branch around a task, then get them back when you return."}
+  mainClass="home"
 >
   <Fragment slot="head">
     <script type="application/ld+json" is:inline>
@@ -25,16 +27,25 @@ import "../styles/landing.css";
   "downloadUrl": "https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg",
   "url": "https://rabta.build/",
   "license": "https://opensource.org/licenses/MIT",
-  "description": "A local-first macOS tool that saves the working context around a task — editor files, terminals, browser tabs and Git branch — and restores it on demand.",
+  "description": "A local-first macOS tool that saves the working context around a task: editor files, terminals, browser tabs and Git branch, and restores it on demand.",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
   "author": { "@type": "Person", "name": "Sammy Almuflahi" }
 }
 </script>
   </Fragment>
 
+  <!-- ==== the thread =======================================================
+       One ember line, drawn by the reader's scrolling, that ties the chapters
+       together and ends as the leg of the mark. Geometry is measured by
+       scripts/thread.ts; at rest the stroke is simply there. -->
+  <svg class="thread" data-thread aria-hidden="true" focusable="false" preserveAspectRatio="none" viewBox="0 0 1000 1000">
+    <path data-thread-path d="M0 0" />
+  </svg>
+
   <!-- ==== hero =============================================================
        The mark draws itself, the word arrives beside it, and the claim rises
-       under both. Then the real app, in a window, doing the thing. -->
+       under both, a word at a time. Then the real app, in a window that rests
+       leaned into the frame and settles flat as you scroll. -->
   <section class="hero" id="top" aria-labelledby="hero-title" data-hero>
     <div class="rail hero__inner">
       <div class="hero__lockup" aria-hidden="true">
@@ -58,7 +69,7 @@ import "../styles/landing.css";
       </p>
 
       <div class="hero__actions">
-        <a class="button button--primary button--large" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">
+        <a class="button button--primary button--large" href={RELEASE.dmgUrl} data-magnetic>
           Download for macOS
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.6v9.2M3.2 7.4 7 11.2l3.8-3.8M1.8 12.6h10.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </a>
@@ -70,7 +81,7 @@ import "../styles/landing.css";
          lights are decorative and inert; real ones would imply a control
          that does nothing. -->
     <div class="shell hero__stage" data-hero-window>
-      <figure class="window">
+      <figure class="window" data-thread-anchor="bottom">
         <div class="window__bar">
           <span class="window__lights" aria-hidden="true"><span></span><span></span><span></span></span>
           <span class="window__title">Rabta — connector-reconnect.capsule</span>
@@ -130,7 +141,7 @@ import "../styles/landing.css";
   <!-- ==== three moves =====================================================
        Capture, leave, return. The stage pins while the reader scrolls three
        beats, and the window's content changes per beat. Scrubbed and
-       reversible by js/home.js; a list with one window on phones. -->
+       reversible by scripts/home.ts; a list with one window on phones. -->
   <section class="moves" id="product" aria-labelledby="moves-title">
     <div class="rail moves__head">
       <h2 class="h2" id="moves-title">Three moves. Nothing else to learn.</h2>
@@ -140,7 +151,7 @@ import "../styles/landing.css";
     <div class="moves__scroller" data-moves>
       <div class="moves__stage">
         <div class="shell moves__layout">
-          <ol class="moves__list">
+          <ol class="moves__list" data-thread-anchor="gutter">
             <li class="move" data-move="0" aria-current="step">
               <span class="move__n" aria-hidden="true">1</span>
               <h3>Capture</h3>
@@ -176,16 +187,16 @@ import "../styles/landing.css";
 
   <!-- ==== what a capsule holds ============================================
        Four things, four cells, each showing the part of the real app that
-       holds it. -->
+       holds it. A fine pointer lights the border of the cell it is over. -->
   <section class="holds" id="pieces" aria-labelledby="holds-title">
     <div class="rail">
-      <div class="holds__head" data-reveal>
+      <div class="holds__head" data-reveal data-thread-anchor="gutter">
         <h2 class="h2" id="holds-title">A capsule is the whole surface of a task.</h2>
         <p class="lede">Not the code. The arrangement around it: which files, which terminals, which tabs, which branch.</p>
       </div>
 
       <div class="holds__grid">
-        <article class="cell cell--wide" data-reveal>
+        <article class="cell cell--wide" data-reveal data-spotlight>
           <div class="cell__text">
             <h3>The files</h3>
             <p>Every open file and its order, plus the workspace folder they belong to.</p>
@@ -196,7 +207,7 @@ import "../styles/landing.css";
           </div>
         </article>
 
-        <article class="cell cell--ember" data-reveal data-reveal-delay="80">
+        <article class="cell cell--ember" data-reveal data-reveal-delay="80" data-spotlight>
           <div class="cell__text">
             <h3>The terminals</h3>
             <p>Each one's working directory. Never its output.</p>
@@ -207,7 +218,7 @@ import "../styles/landing.css";
           </div>
         </article>
 
-        <article class="cell cell--paper paper" data-reveal>
+        <article class="cell cell--paper paper" data-reveal data-spotlight>
           <div class="cell__text">
             <h3>The tabs</h3>
             <p>URLs and titles from the browser you approved. Nothing on the page.</p>
@@ -218,7 +229,7 @@ import "../styles/landing.css";
           </div>
         </article>
 
-        <article class="cell cell--wide" data-reveal data-reveal-delay="80">
+        <article class="cell cell--wide" data-reveal data-reveal-delay="80" data-spotlight>
           <div class="cell__text">
             <h3>The branch</h3>
             <p>Restored first, and never forced. A dirty tree stops the switch and says so.</p>
@@ -228,6 +239,61 @@ import "../styles/landing.css";
             <button class="cell__play media-play media-play--small" type="button" hidden data-media-play data-label-play="Play" data-label-pause="Pause">Play</button>
           </div>
         </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==== the receipt =====================================================
+       Rabta's restore sheet never rounds up. Three switches describe the Mac
+       at the moment of resuming; the ledger re-reads itself in the sheet's
+       own words. The first case ships in the markup. -->
+  <section class="receipts" id="receipts" aria-labelledby="receipts-title">
+    <div class="rail receipts__inner">
+      <div class="receipts__head" data-reveal>
+        <h2 class="h2" id="receipts-title">The receipt never rounds up.</h2>
+        <p class="lede">A restore reports each tool the way it went: restored, waiting on a reload, or skipped and why. Change what is true on the Mac and read what the sheet says.</p>
+      </div>
+
+      <div class="receipt-demo" data-receipt-demo data-thread-anchor="gutter" data-reveal data-reveal-delay="80">
+        <div class="receipt-demo__cases" role="group" aria-label="What is true when you resume">
+          <button class="case" type="button" role="switch" aria-checked="true" data-receipt-case="chrome">
+            <span class="case__knob" aria-hidden="true"></span>
+            <span class="case__label">Chrome is closed</span>
+          </button>
+          <button class="case" type="button" role="switch" aria-checked="false" data-receipt-case="dirty">
+            <span class="case__knob" aria-hidden="true"></span>
+            <span class="case__label">A file has unsaved changes</span>
+          </button>
+          <button class="case" type="button" role="switch" aria-checked="false" data-receipt-case="branch">
+            <span class="case__knob" aria-hidden="true"></span>
+            <span class="case__label">The branch has uncommitted work</span>
+          </button>
+        </div>
+
+        <div class="ledger" aria-live="polite">
+          <div class="ledger__head">
+            <p class="ledger__title" data-receipt-title>Workspace partially restored</p>
+            <p class="ledger__sub" data-receipt-sub>Restored 2 of 3.</p>
+          </div>
+          <ul class="ledger__rows">
+            <li class="row" data-receipt-row="git" data-receipt-status="ok">
+              <span class="row__tool">Git</span>
+              <span class="row__status" data-receipt-label>Restored</span>
+              <span class="row__why" data-receipt-why>feat/connector-reconnect</span>
+            </li>
+            <li class="row" data-receipt-row="vscode" data-receipt-status="ok">
+              <span class="row__tool">VS Code</span>
+              <span class="row__status" data-receipt-label>Restored</span>
+              <span class="row__why" data-receipt-why>4 files, 3 terminals</span>
+            </li>
+            <li class="row" data-receipt-row="chrome" data-receipt-status="wait">
+              <span class="row__tool">Chrome</span>
+              <span class="row__status" data-receipt-label>On next reload</span>
+              <span class="row__why" data-receipt-why>Chrome is not running</span>
+            </li>
+          </ul>
+          <p class="ledger__foot">A refusal is not an error. Rabta says what it left alone, and why.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -244,7 +310,7 @@ import "../styles/landing.css";
           only after a clean restore. Unsaved files, running terminals and
           anything pinned are kept, and the receipt says why.
         </p>
-        <div class="switchrow">
+        <div class="switchrow" data-thread-anchor="gutter">
           <button class="switch" type="button" role="switch" aria-checked="true" data-focus-toggle aria-labelledby="focus-switch-label">
             <span class="switch__knob" aria-hidden="true"></span>
           </button>
@@ -269,8 +335,42 @@ import "../styles/landing.css";
     </div>
   </section>
 
+  <!-- ==== for agents ======================================================
+       The MCP server lets an agent read a capsule as a briefing. The session
+       below is real: the command, and lines from the briefing the server's
+       own tests pin. Until the package is on npm, the chapter says so. -->
+  <section class="agents" id="agents" aria-labelledby="agents-title">
+    <div class="rail">
+      <div class="agents__head" data-reveal>
+        <h2 class="h2" id="agents-title">Your agent starts where you stopped.</h2>
+        <p class="lede">Claude Code, Cursor and Codex can read a capsule through Rabta's MCP server: the files, terminals, tabs and branch of a task, as one briefing, before the first prompt.</p>
+      </div>
+
+      <figure class="term" data-term data-thread-anchor="gutter" data-reveal data-reveal-delay="80" aria-label="A terminal session that adds the Rabta MCP server and reads a capsule briefing">
+        <div class="term__bar"><span class="term__name">Terminal</span></div>
+        <pre class="term__body"><code><span class="term__line" data-term-line="cmd"><span class="term__prompt">$</span> claude mcp add rabta -- npx -y @rabta/mcp</span>
+<span class="term__line" data-term-line="out">Added stdio MCP server rabta</span>
+<span class="term__line" data-term-line="cmd"><span class="term__prompt">&gt;</span> capsule_briefing task_reconnect</span>
+<span class="term__line" data-term-line="brief"># Wire the connector SDK reconnect</span>
+<span class="term__line" data-term-line="brief">Project atlas-api on branch feat/connector-reconnect, saved 2026-07-29T14:12:00.000000+00:00.</span>
+<span class="term__line" data-term-line="brief">## Files</span>
+<span class="term__line" data-term-line="brief">- src/hub.rs</span>
+<span class="term__line" data-term-line="brief">- src/connector/session.rs (active)</span>
+<span class="term__line" data-term-line="brief">## Terminals</span>
+<span class="term__line" data-term-line="brief">- cargo watch in ~/code/atlas-api (busy)</span></code></pre>
+      </figure>
+
+      {MCP_PUBLISHED ? (
+        <p class="agents__status" data-agents-status="published">Read-only today, from the capsules already on your disk. <a class="link link--arrow" href="/agents/">Connect an agent</a></p>
+      ) : (
+        <p class="agents__status" data-agents-status="built">The server is built and ships with the next release. <a class="link link--arrow" href="/agents/">See how it will work</a></p>
+      )}
+    </div>
+  </section>
+
   <!-- ==== the night chapter ===============================================
-       Local-first, stated flat. The mark's ember is the only light. -->
+       Local-first, stated flat. The thread ends in the mark, and the mark's
+       ember is the only light. -->
   <section class="local" id="local" aria-labelledby="local-title">
     <div class="local__glow" aria-hidden="true"></div>
     <div class="rail local__grid">
@@ -284,7 +384,7 @@ import "../styles/landing.css";
         <p class="local__more"><a class="link link--arrow" href="/privacy/">Read the full privacy policy</a></p>
       </div>
       <div class="local__mark" aria-hidden="true">
-        <svg class="mark" data-mark="draw" viewBox="0 0 100 100" focusable="false">
+        <svg class="mark" data-mark="thread" data-thread-end viewBox="0 0 100 100" focusable="false">
           <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
             <path class="stem" d="M25 22V84" />
             <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
@@ -313,6 +413,36 @@ import "../styles/landing.css";
     </div>
   </section>
 
+  <!-- ==== where this goes =================================================
+       Three things from docs/ROADMAP.md, at the stage they are named under.
+       Planned means planned. -->
+  <section class="next" id="next" aria-labelledby="next-title">
+    <div class="rail next__grid">
+      <div class="next__head" data-reveal>
+        <h2 class="h2" id="next-title">Where this goes.</h2>
+        <p class="lede">Three things in the repository, at the stage they are named under. No dates, on purpose.</p>
+        <p class="next__more"><a class="link link--arrow" href="/roadmap/">The whole roadmap</a></p>
+      </div>
+      <ol class="next__list">
+        <li data-reveal>
+          <span class="pill">Planned</span>
+          <h3>Intel and universal builds</h3>
+          <p>The largest group who cannot run Rabta today. Packaging, not architecture.</p>
+        </li>
+        <li data-reveal data-reveal-delay="60">
+          <span class="pill">Planned</span>
+          <h3>Focus mode's close half, in the app</h3>
+          <p>The connectors can already close tabs, files and terminals. The app side that drives them, with the never-close rules held there.</p>
+        </li>
+        <li data-reveal data-reveal-delay="120">
+          <span class="pill">Planned</span>
+          <h3>Auto-update that asks first</h3>
+          <p>Not wired yet. It would be the first thing in Rabta to make a request on its own, so it gets designed to ask, or it stays unbuilt.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
   <!-- ==== the close =======================================================
        Every number here is the artifact's own: 5.5 MB, macOS 11+, Apple
        silicon only, no Intel build, MIT, signed and notarized. -->
@@ -322,7 +452,7 @@ import "../styles/landing.css";
       <p class="lede">Free and MIT-licensed. Runs entirely on your Mac.</p>
 
       <div class="close__actions">
-        <a class="button button--primary button--large" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">
+        <a class="button button--primary button--large" href={RELEASE.dmgUrl}>
           Download Rabta 0.1.0
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.6v9.2M3.2 7.4 7 11.2l3.8-3.8M1.8 12.6h10.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </a>

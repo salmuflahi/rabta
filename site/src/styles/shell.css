@@ -440,6 +440,40 @@
     align-items: center;
     gap: var(--s6);
     height: 100%;
+    max-width: var(--rail);
+    margin-top: 0;
+    border-radius: 0;
+    transition:
+      max-width var(--dur-state) var(--ease),
+      height var(--dur-state) var(--ease),
+      margin-top var(--dur-state) var(--ease),
+      padding var(--dur-state) var(--ease),
+      background-color var(--dur-state) var(--ease),
+      box-shadow var(--dur-state) var(--ease),
+      border-radius var(--dur-state) var(--ease);
+  }
+
+  /* Scrolled, the bar draws in to a pill that floats over the page: the
+     chrome gets out of the way of whatever the reader stopped on. */
+  .nav--pill {
+    background: transparent;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .nav--pill .nav__inner {
+    max-width: 1040px;
+    height: 50px;
+    margin-top: 7px;
+    padding-inline: var(--s3) var(--s2);
+    border-radius: var(--pill);
+    background: color-mix(in srgb, var(--bg-alt) 86%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    box-shadow:
+      0 0 0 1px var(--hairline-strong),
+      0 18px 40px -24px var(--shadow-deep);
   }
 
   .nav__links {
@@ -696,6 +730,47 @@
     [data-reveal="pending"] {
       opacity: 1;
       transform: none;
+    }
+  }
+}
+
+/* ---- page transitions --------------------------------------------------------
+   Pages are separate documents. The browser carries the lockup from one to
+   the next and dips the rest through ink for a beat, so a click reads as a
+   turn of the page rather than a reload. No script is involved. */
+@layer state {
+  @view-transition {
+    navigation: auto;
+  }
+
+  .nav .brand {
+    view-transition-name: brand;
+  }
+
+  ::view-transition-old(root) {
+    animation: ink-out var(--dur-state) var(--ease) both;
+  }
+
+  ::view-transition-new(root) {
+    animation: ink-in var(--dur-reveal) var(--ease) both;
+  }
+
+  @keyframes ink-out {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes ink-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    @view-transition {
+      navigation: none;
     }
   }
 }

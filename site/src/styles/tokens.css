@@ -22,6 +22,30 @@
       U+2122, U+2190-2199, U+2212, U+2215, U+2264-2265, U+FFFD;
   }
 
+  /* Reem Kufi, only where the name is the subject. A geometric Kufi whose
+     strokes share the mark's logic; subset to the letters of رابطة and one
+     phrase, so it costs a few kilobytes. scripts/fonts/subset.sh builds it. */
+  @font-face {
+    font-family: "Reem Kufi Sub";
+    src: url("/assets/fonts/reem-kufi-sub.woff2") format("woff2");
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0600-06FF, U+0020;
+  }
+
+  /* Geist Mono, for what is checkable: receipts, terminals, code, hashes,
+     paths. Printable ASCII plus a few marks, from the same script. */
+  @font-face {
+    font-family: "Geist Mono Sub";
+    src: url("/assets/fonts/geist-mono-sub.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0020-007E, U+00A0, U+00B7, U+2013-2014, U+2018-201D, U+2026,
+      U+2192, U+2713, U+2717;
+  }
+
   :root {
     color-scheme: dark;
 
@@ -57,8 +81,10 @@
     /* ---- type ----------------------------------------------------------- */
     --sans: "Inter Var", -apple-system, BlinkMacSystemFont, "SF Pro Display",
       "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas,
-      monospace;
+    --mono: "Geist Mono Sub", ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+      Monaco, Consolas, monospace;
+    --kufi: "Reem Kufi Sub", "Geeza Pro", "Noto Kufi Arabic", "Noto Naskh Arabic",
+      sans-serif;
 
     /* Sizes are fluid between a phone and a 1440 desk. Tracking is a
        function of size: tighter as the type gets bigger. */

@@ -1,0 +1,26 @@
+# Rabta
+
+> Rabta is a local-first macOS app that saves a task's capsule (the open files, the terminals and their directories, the browser tabs, the git branch) and restores it later with an honest receipt. No server, no account, no telemetry. MIT licensed, Apple silicon, macOS 11 or later.
+
+Rabta connects to VS Code, Cursor, VSCodium and Windsurf through an editor extension, and to Chrome, Arc and Chromium browsers through a browser extension, over a WebSocket hub bound to 127.0.0.1. It stores pointers (paths, titles, URLs, a branch name), never file contents.
+
+## Pages
+
+- [Home](https://rabta.build/): the product in one page: capture, leave, return.
+- [How capsules work](https://rabta.build/capsules/): what is stored, exactly, where it lives, the restore order, the receipt.
+- [For agents](https://rabta.build/agents/): the MCP server (@rabta/mcp) that briefs an AI agent on a task from the capsules on this Mac. Read-only.
+- [Why Rabta](https://rabta.build/why/): the argument, the name, the commitments, what it will never do.
+- [Setup](https://rabta.build/setup/): install the app and the two connectors.
+- [FAQ](https://rabta.build/faq/)
+- [Privacy](https://rabta.build/privacy/): what is stored on your machine, what the connectors reach, what this website collects.
+- [Changelog](https://rabta.build/changelog/) and [Where this goes](https://rabta.build/roadmap/).
+- [Brand](https://rabta.build/brand/): the mark, its story, the files.
+
+## Source
+
+- https://github.com/salmuflahi/rabta (MIT)
+- The MCP server lives in packages/mcp of that repository.
+
+## Full text
+
+- https://rabta.build/llms-full.txt

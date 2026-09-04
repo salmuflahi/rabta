@@ -12,6 +12,8 @@ const routes = [
   "/",
   "/why/",
   "/brand/",
+  "/capsules/",
+  "/agents/",
   "/setup/",
   "/faq/",
   "/roadmap/",
@@ -171,7 +173,7 @@ test("the brand's own copy carries no em-dash", async () => {
   // Headings and paragraphs on the pages written for the redesign, and the
   // shared chrome. Reference documents (/setup/, /privacy/, /faq/, /roadmap/,
   // /changelog/, /contact/) keep their prose as written.
-  for (const route of ["/", "/why/", "/brand/", "/404.html"]) {
+  for (const route of ["/", "/why/", "/brand/", "/capsules/", "/agents/", "/404.html"]) {
     const html = await readRoute(route);
     const body = (html.match(/<main[\s\S]*<\/main>/)?.[0] ?? "").replace(/<!--[\s\S]*?-->/g, "");
     for (const [block] of body.matchAll(/<(?:h[1-3]|p)\b[^>]*>[\s\S]*?<\/(?:h[1-3]|p)>/g)) {
@@ -237,7 +239,9 @@ test("every route wears the same shell", async () => {
 
     if (route !== "/") {
       assert.doesNotMatch(await builtCssFor(html), /\.hero__/, `${route}: carries the landing styles`);
-      assert.doesNotMatch(html, /data-product-media/, route);
+      // Two inner pages carry one loop each; everything else carries none.
+      const regionsAllowed = { "/agents/": 1, "/capsules/": 1 };
+      assert.equal((html.match(/data-product-media=/g) ?? []).length, regionsAllowed[route] ?? 0, `${route}: product media regions`);
     }
   }
 });
@@ -262,8 +266,8 @@ test("nothing on the site responds to a mouse but not to a keyboard", async () =
       for (const part of selector.split(",")) {
         const trimmed = part.trim();
         if (!trimmed.includes(":hover")) continue;
-        const partner = trimmed.replace(/:hover/g, ":focus-visible");
-        assert.ok(all.includes(partner), `${file}: "${trimmed}" has no ":focus-visible" counterpart`);
+        const partners = [trimmed.replace(/:hover/g, ":focus-visible"), trimmed.replace(/:hover/g, ":focus-within")];
+        assert.ok(partners.some((partner) => all.includes(partner)), `${file}: "${trimmed}" has no ":focus-visible" or ":focus-within" counterpart`);
       }
     }
   }
@@ -429,7 +433,8 @@ test("the night chapter states the guarantees and draws the mark", async () => {
   const html = await readRoute("/");
   const night = html.match(/<section class="local"[\s\S]*?<\/section>/)?.[0] ?? "";
   assert.ok(night, "the chapter exists");
-  assert.match(night, /data-mark="draw"/);
+  assert.match(night, /data-mark="thread"/, "the mark finishes the thread");
+  assert.match(night, /data-thread-end/);
   assert.equal((night.match(/<h3>/g) ?? []).length, 4, "four guarantees");
   assert.match(night, /href="\/privacy\/"/);
 });
@@ -454,7 +459,9 @@ test("the inner pages are laid out, not just typeset", async () => {
     "/why/": { bands: 4, cards: 3, headline: "The code is saved." },
     "/brand/": { bands: 6, headline: "An R that is also a ر." },
     "/faq/": { bands: 4, groups: 4, headline: "The questions the docs answer sideways." },
-    "/roadmap/": { bands: 3, cards: 10, headline: "What's next, without dates." },
+    "/roadmap/": { bands: 3, cards: 10, headline: "Where this goes." },
+    "/agents/": { bands: 4, cards: 4, headline: "Your agent starts where you left off." },
+    "/capsules/": { bands: 4, cards: 3, headline: "What a capsule holds, and how it comes back." },
     "/changelog/": { bands: 4, cards: 6, headline: "What shipped." },
     "/contact/": { bands: 3, cards: 3, headline: "Talk to a human." },
   };

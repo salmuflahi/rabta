@@ -12,15 +12,37 @@ export type CaptureMode =
   | { kind: "screen"; name: ScreenName }
   | { kind: "demo"; name: DemoName };
 
+/** What a demo recording shows. `app` is the whole window; `sheet` hides
+ *  everything but the restore dialog so the recorder can capture it as an
+ *  alpha layer the loops composite over the app at their own depth. */
+export type CaptureRegion = "app" | "sheet";
+
+export type DemoAction =
+  | "show-active-task"
+  | "show-capsule"
+  | "save-state"
+  | "leave-task"
+  | "resume-task";
+
+export interface DemoCue {
+  readonly atMs: number;
+  readonly action: DemoAction;
+}
+
 export const DEMO_TIMELINES = {
+  // The hero is cut as three shots by marketing-videos/site-demos: a 3s
+  // tilted shot on the capsule (the click lands at 1000ms, where the camera's
+  // 700ms push arrives), a flat shot whose whip pan hides the Overview
+  // switch, and the restore sheet. The leave and resume cues sit where those
+  // shots need them; move one and re-cut the loop.
   "hero-return": {
     durationMs: 8000,
     finalLabel: "Workspace partially restored",
     cues: [
       { atMs: 0, action: "show-active-task" },
-      { atMs: 500, action: "save-state" },
-      { atMs: 2000, action: "leave-task" },
-      { atMs: 4000, action: "resume-task" },
+      { atMs: 1000, action: "save-state" },
+      { atMs: 3000, action: "leave-task" },
+      { atMs: 4300, action: "resume-task" },
     ],
   },
   "honest-return": {
@@ -37,7 +59,9 @@ export const DEMO_TIMELINES = {
     finalLabel: "Capsule saved",
     cues: [
       { atMs: 0, action: "show-capsule" },
-      { atMs: 900, action: "save-state" },
+      // 1000, not 900: the loop's push-in starts at 300ms and takes 700ms,
+      // and it must land on the frame the button is pressed.
+      { atMs: 1000, action: "save-state" },
     ],
   },
   leave: {
@@ -83,6 +107,10 @@ export function parseCaptureMode(hash: string): CaptureMode {
     kind: "screen",
     name: requested && SCREENS.includes(requested) ? requested : "overview",
   };
+}
+
+export function parseCaptureRegion(hash: string): CaptureRegion {
+  return /(?:^|[#&])region=sheet(?:&|$)/.test(hash) ? "sheet" : "app";
 }
 
 // ---------------------------------------------------------------- posing

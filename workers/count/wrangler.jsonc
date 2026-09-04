@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "rabta-count",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+
+  // One D1 database, aggregates only. Create it once with
+  //   wrangler d1 create count
+  // and paste the id it prints over the placeholder below.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "count",
+      "database_id": "REPLACE_AFTER_wrangler_d1_create",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // 00:05 UTC daily: drop yesterday's per-visitor hashes and the salt that
+  // made them, so nothing older than today can be correlated with anything.
+  "triggers": { "crons": ["5 0 * * *"] },
+
+  // Plain configuration. Secrets are not here: STATS_TOKEN is set with
+  //   wrangler secret put STATS_TOKEN
+  // ACCESS_TEAM and ACCESS_AUD stay empty until the Zero Trust application
+  // in front of /stats exists (see README).
+  "vars": {
+    "ALLOWED_ORIGIN": "https://rabta.build",
+    "ACCESS_TEAM": "",
+    "ACCESS_AUD": ""
+  }
+
+  // Custom domain. Enable after the rabta.build zone moves to Cloudflare DNS,
+  // then set workers_dev to false so the old URL stops answering.
+  // "routes": [{ "pattern": "count.rabta.build", "custom_domain": true }]
+}

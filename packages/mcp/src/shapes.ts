@@ -177,22 +177,25 @@ export function capsuleSavedAt(resources: ResourceRow[]): string | null {
 
 /** Assembles the capsule document from its rows. Two editors on one task merge into one editor. */
 export function buildCapsuleView(task: TaskRow, resources: ResourceRow[], pins: PinRow[]): CapsuleView {
-  // Declared through assertions so control-flow narrowing starts from the
-  // union, not from `null`; otherwise `browser?.tabs` inside the loop is a
-  // property read on `never`.
-  let editor = null as EditorView | null;
-  let browser = null as BrowserView | null;
-  let branch = null as string | null;
+  // One accumulator object: TypeScript narrows a `let` assigned in a loop
+  // down to `null` at the loop head, which turned `browser?.tabs` into a read
+  // on `never`. Property assignments on an object keep the declared union.
+  const acc: { editor: EditorView | null; browser: BrowserView | null; branch: string | null } = {
+    editor: null,
+    browser: null,
+    branch: null,
+  };
 
   for (const r of resources) {
     const kind = r.connector_kind.toLowerCase();
     const payload = parseJsonObject(r.payload);
     if (EDITOR_KINDS.has(kind)) {
-      editor = mergeEditor(editor, decodeEditor(payload));
+      acc.editor = mergeEditor(acc.editor, decodeEditor(payload));
     } else if (BROWSER_KINDS.has(kind)) {
-      browser = { tabs: [...(browser?.tabs ?? []), ...decodeBrowser(payload).tabs] };
+      const tabs = acc.browser ? acc.browser.tabs : [];
+      acc.browser = { tabs: [...tabs, ...decodeBrowser(payload).tabs] };
     } else if (kind === "git") {
-      branch = branch ?? decodeBranch(payload);
+      acc.branch = acc.branch ?? decodeBranch(payload);
     }
   }
 
@@ -202,9 +205,9 @@ export function buildCapsuleView(task: TaskRow, resources: ResourceRow[], pins: 
     project: task.project_name,
     status: task.status,
     savedAt: capsuleSavedAt(resources),
-    branch,
-    editor,
-    browser,
+    branch: acc.branch,
+    editor: acc.editor,
+    browser: acc.browser,
     pins: pins.map((p) => ({
       id: p.id,
       connectorKind: p.connector_kind,

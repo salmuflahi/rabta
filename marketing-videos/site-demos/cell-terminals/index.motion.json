@@ -3,8 +3,8 @@
   "assertions": [
     {
       "kind": "keepsMoving",
-      "withinSelector": ".frame",
-      "maxStaticSec": 2
+      "withinSelector": ".scene",
+      "maxStaticSec": 1.2
     },
     {
       "kind": "staysInFrame",

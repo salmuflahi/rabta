@@ -12,7 +12,9 @@ import type { CapsuleView } from "../src/shapes.ts";
 import { FIXTURE, buildFixtureDb } from "./fixture-db.ts";
 
 const GOLDEN = fileURLToPath(new URL("./fixtures/briefing.golden.md", import.meta.url));
-const TOOL_NAMES = ["capsule_briefing", "list_capsules", "list_projects", "read_capsule", "recent_activity"];
+const READ_TOOLS = ["capsule_briefing", "list_capsules", "list_projects", "read_capsule", "recent_activity"];
+const WRITE_TOOLS = ["capture_capsule", "restore_capsule"];
+const TOOL_NAMES = [...READ_TOOLS, ...WRITE_TOOLS].sort();
 
 let client: Client;
 let db: ReturnType<typeof buildFixtureDb>;
@@ -50,18 +52,22 @@ afterAll(async () => {
 });
 
 describe("tool surface", () => {
-  it("exposes five read-only tools with titles, descriptions and described parameters", async () => {
+  it("exposes five read-only tools and two writes, with titles, descriptions and described parameters", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(TOOL_NAMES);
     for (const tool of tools) {
       expect(tool.title, tool.name).toBeTruthy();
       expect(tool.description, tool.name).toBeTruthy();
-      expect(tool.annotations, tool.name).toMatchObject({
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      });
+      if (READ_TOOLS.includes(tool.name)) {
+        expect(tool.annotations, tool.name).toMatchObject({
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        });
+      } else {
+        expect(tool.annotations, tool.name).toMatchObject({ readOnlyHint: false, openWorldHint: false });
+      }
       const properties = (tool.inputSchema as { properties?: Record<string, { description?: string }> }).properties ?? {};
       for (const [param, schema] of Object.entries(properties)) {
         expect(schema.description, `${tool.name}.${param}`).toBeTruthy();
