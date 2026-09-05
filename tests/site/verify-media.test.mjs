@@ -11,7 +11,7 @@ import {
 } from "../../scripts/verify-media.mjs";
 
 const manifest = JSON.parse(
-  await readFile(resolve(ROOT, "website/assets/demos/manifest.json"), "utf8"),
+  await readFile(resolve(ROOT, "site/public/assets/demos/manifest.json"), "utf8"),
 );
 
 /** ffprobe output for an asset that is exactly what the manifest claims. */
@@ -63,7 +63,7 @@ test("the manifest's own numbers sit inside the approved budgets", () => {
 });
 
 test("a wrong manifest duration is caught", () => {
-  const hero = manifest.videos.find((v) => v.file === "hero-return-desktop.m4v");
+  const hero = manifest.videos.find((v) => v.file === "hero-return-desktop.mp4");
   const tampered = { ...hero, durationSeconds: 1 };
 
   // The file itself is untouched, so only the manifest is lying.
@@ -71,13 +71,13 @@ test("a wrong manifest duration is caught", () => {
 
   assert.ok(problems.length > 0, "the tampered manifest is rejected");
   assert.ok(
-    problems.some((p) => p.includes("hero-return-desktop.m4v") && /duration/.test(p)),
+    problems.some((p) => p.includes("hero-return-desktop.mp4") && /duration/.test(p)),
     problems.join(" | "),
   );
 });
 
 test("a re-encode that drifts from the manifest is caught", () => {
-  const hero = manifest.videos.find((v) => v.file === "hero-return-desktop.m4v");
+  const hero = manifest.videos.find((v) => v.file === "hero-return-desktop.mp4");
 
   const drifted = { ...goodProbe(hero), format: { duration: "6.4" } };
   assert.ok(
@@ -86,9 +86,9 @@ test("a re-encode that drifts from the manifest is caught", () => {
   );
 
   const resized = goodProbe(hero);
-  resized.streams[0].width = 1920;
+  resized.streams[0].width = 1280;
   assert.ok(
-    checkVideo(hero, resized, hero.bytes).some((p) => /1280x720/.test(p)),
+    checkVideo(hero, resized, hero.bytes).some((p) => /1920x1200/.test(p)),
     "a resize is rejected",
   );
 });
@@ -110,21 +110,21 @@ test("a stray audio track or wrong codec is caught", () => {
 });
 
 test("a bloated desktop file is caught", () => {
-  const hero = manifest.videos.find((v) => v.file === "hero-return-desktop.m4v");
-  const fat = { ...hero, bytes: 3_000_000 };
-  const problems = checkVideo(fat, goodProbe(hero), 3_000_000);
+  const hero = manifest.videos.find((v) => v.file === "hero-return-desktop.mp4");
+  const fat = { ...hero, bytes: 9_000_000 };
+  const problems = checkVideo(fat, goodProbe(hero), 9_000_000);
   assert.ok(problems.some((p) => /budget/.test(p)), problems.join(" | "));
 });
 
 test("a mobile variant that is not smaller than its desktop pair is caught", () => {
   const videos = manifest.videos;
-  const desktop = videos.find((v) => v.file === "hero-return-desktop.m4v");
+  const desktop = videos.find((v) => v.file === "hero-return-desktop.mp4");
   const sizes = sizesFor(videos);
-  sizes.set("hero-return-mobile.m4v", Math.round(desktop.bytes * 0.9));
+  sizes.set("hero-return-mobile.mp4", Math.round(desktop.bytes * 0.9));
 
   const problems = checkManifest(manifest, probesFor(videos), sizes);
   assert.ok(
-    problems.some((p) => p.includes("hero-return-mobile.m4v") && p.includes("%")),
+    problems.some((p) => p.includes("hero-return-mobile.mp4") && p.includes("%")),
     problems.join(" | "),
   );
   assert.equal(MOBILE_SHARE, 0.75);
@@ -134,18 +134,18 @@ test("a missing or empty asset is caught, never skipped", () => {
   const videos = manifest.videos;
 
   const withoutFile = sizesFor(videos);
-  withoutFile.delete("honest-return-mobile.m4v");
+  withoutFile.delete("move-leave-mobile.mp4");
   assert.ok(
     checkManifest(manifest, probesFor(videos), withoutFile).some((p) =>
-      /honest-return-mobile\.m4v: missing from disk/.test(p),
+      /move-leave-mobile\.mp4: missing from disk/.test(p),
     ),
   );
 
   const emptyPoster = sizesFor(videos);
-  emptyPoster.set("hero-return.png", 0);
+  emptyPoster.set("hero-return.jpg", 0);
   assert.ok(
     checkManifest(manifest, probesFor(videos), emptyPoster).some((p) =>
-      /hero-return\.png: is empty/.test(p),
+      /hero-return\.jpg: is empty/.test(p),
     ),
   );
 });
@@ -157,7 +157,7 @@ test("an unprobeable file is a failure, not a pass", () => {
 });
 
 test("the homepage plays exactly the sources the manifest describes", async () => {
-  const html = await readFile(resolve(ROOT, "website/index.html"), "utf8");
+  const html = await readFile(resolve(ROOT, "site/dist/index.html"), "utf8");
   const referenced = [
     ...html.matchAll(/data-src-(?:desktop|mobile)="\/assets\/demos\/([^"]+)"/g),
   ]

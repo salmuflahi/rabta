@@ -317,12 +317,13 @@ export function OverviewPage() {
         <>
           <GroupHeading>Also open</GroupHeading>
           <GroupedList>
-            {alsoOpen.map((c) => (
+            {alsoOpen.map((c, i) => (
               <button
                 key={c.task.id}
                 type="button"
                 onClick={() => openInCapsules(c.task.id)}
-                className="flex w-full cursor-default items-center gap-3 px-4 py-2.5 text-left transition-colors duration-fast ease-standard hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                style={{ animationDelay: `${Math.min(i, 12) * 22}ms` }}
+                className="animate-page-in flex w-full cursor-default items-center gap-3 px-4 py-2.5 text-left transition-colors duration-fast ease-standard hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               >
                 <span className="min-w-0 flex-1 truncate text-body text-foreground">{c.task.title}</span>
                 {c.branch && (
@@ -341,8 +342,8 @@ export function OverviewPage() {
         <>
           <GroupHeading>Recent</GroupHeading>
           <GroupedList>
-            {recent.map((e) => (
-              <div key={e.seq} className="flex items-center gap-3 px-4 py-2.5">
+            {recent.map((e, i) => (
+              <div key={e.seq} style={{ animationDelay: `${Math.min(i, 12) * 22}ms` }} className="animate-page-in flex items-center gap-3 px-4 py-2.5">
                 <span className="min-w-0 flex-1 truncate text-body text-foreground">
                   {describeEvent(e, resolveName).sentence}
                 </span>

@@ -1,0 +1,179 @@
+/* Rabta — tokens.
+   docs/superpowers/specs/2026-09-03-rabta-brand-redesign-design.md §2, §3, §5.
+
+   Ink, paper, one ember. Thirteen colour literals live in this file and
+   nowhere else on the site; tests/site/site-contract.test.mjs pins the set. */
+
+@layer tokens, reset, type, layout, component, section, state;
+
+@layer tokens {
+  @font-face {
+    font-family: "Inter Var";
+    /* Absolute and byte-identical to the <link rel=preload>, so the font is
+       fetched exactly once. Inter 4 with both axes: weight 400–700 and
+       optical size 14–32, which is what makes large Inter read as a display
+       face rather than a stretched UI font. */
+    src: url("/assets/fonts/inter-var.woff2") format("woff2");
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0020-007E, U+00A0-00FF, U+0131, U+0152-0153, U+02BB-02BC,
+      U+02C6, U+02DA, U+02DC, U+2010-2027, U+2030-203A, U+2044, U+20AC,
+      U+2122, U+2190-2199, U+2212, U+2215, U+2264-2265, U+FFFD;
+  }
+
+  /* Reem Kufi, only where the name is the subject. A geometric Kufi whose
+     strokes share the mark's logic; subset to the letters of رابطة and one
+     phrase, so it costs a few kilobytes. scripts/fonts/subset.sh builds it. */
+  @font-face {
+    font-family: "Reem Kufi Sub";
+    src: url("/assets/fonts/reem-kufi-sub.woff2") format("woff2");
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0600-06FF, U+0020;
+  }
+
+  /* Geist Mono, for what is checkable: receipts, terminals, code, hashes,
+     paths. Printable ASCII plus a few marks, from the same script. */
+  @font-face {
+    font-family: "Geist Mono Sub";
+    src: url("/assets/fonts/geist-mono-sub.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0020-007E, U+00A0, U+00B7, U+2013-2014, U+2018-201D, U+2026,
+      U+2192, U+2713, U+2717;
+  }
+
+  :root {
+    color-scheme: dark;
+
+    /* ---- the palette ---------------------------------------------------- */
+    --paper-0: #ffffff;
+    --paper-1: #f5f5f7;
+    --paper-2: #eaeaee;
+    --ink-0: #0a0b0e;
+    --ink-1: #14161b;
+    --ink-2: #1e2128;
+    --ember: #ff6b2c;
+    --ember-deep: #c2501b;
+
+    /* ---- semantic, ink by default ---------------------------------------
+       The site lives in the night: the same world the app is used in, and
+       the one its screenshots were taken in. Paper is the alternate, for
+       the cell or plate that needs to read as a different material. */
+    --bg: var(--ink-0);
+    --bg-alt: var(--ink-1);
+    --field: var(--ink-2);
+    --text: #f5f5f7;
+    --text-mute: #b4b8c2;
+    --text-faint: #7c808b;
+    --hairline: rgba(245, 245, 247, 0.08);
+    --hairline-strong: rgba(245, 245, 247, 0.16);
+    --accent: var(--ember);
+    --accent-text: var(--ember);
+    --accent-soft: rgba(255, 107, 44, 0.16);
+    --on-accent: #0e0f12;
+    --shadow-tint: rgba(0, 0, 0, 0.35);
+    --shadow-deep: rgba(0, 0, 0, 0.6);
+
+    /* ---- type ----------------------------------------------------------- */
+    --sans: "Inter Var", -apple-system, BlinkMacSystemFont, "SF Pro Display",
+      "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: "Geist Mono Sub", ui-monospace, "SF Mono", SFMono-Regular, Menlo,
+      Monaco, Consolas, monospace;
+    --kufi: "Reem Kufi Sub", "Geeza Pro", "Noto Kufi Arabic", "Noto Naskh Arabic",
+      sans-serif;
+
+    /* Sizes are fluid between a phone and a 1440 desk. Tracking is a
+       function of size: tighter as the type gets bigger. */
+    --fs-display: clamp(52px, 4vw + 32px, 108px);
+    --fs-h1: clamp(40px, 2.4vw + 26px, 64px);
+    --fs-h2: clamp(32px, 1.2vw + 24px, 44px);
+    --fs-h3: clamp(21px, 0.5vw + 18px, 26px);
+    --fs-lede: clamp(18px, 0.4vw + 16px, 22px);
+    --fs-body: 17px;
+    --fs-small: 15px;
+    --fs-caption: 13px;
+    --fs-mono: 13px;
+
+    --track-display: -0.045em;
+    --track-h1: -0.04em;
+    --track-h2: -0.03em;
+    --track-h3: -0.02em;
+    --track-lede: -0.012em;
+    --track-body: -0.011em;
+
+    /* ---- space: 4px base ------------------------------------------------ */
+    --s1: 4px;
+    --s2: 8px;
+    --s3: 12px;
+    --s4: 16px;
+    --s5: 24px;
+    --s6: 32px;
+    --s7: 40px;
+    --s8: 56px;
+    --s9: 72px;
+    --s10: 96px;
+    --s11: 128px;
+    --s12: 160px;
+
+    /* One beat for every section on the site. */
+    --section: clamp(88px, 10vw, 160px);
+    --section-tight: clamp(64px, 7vw, 112px);
+
+    /* ---- layout --------------------------------------------------------- */
+    --shell: 1320px;
+    --rail: 1180px;
+    --measure: 62ch;
+    --nav-h: 64px;
+    --gutter: 40px;
+
+    /* ---- shape ---------------------------------------------------------- */
+    --r-s: 8px;
+    --r-m: 12px;
+    --r-l: 16px;
+    --r-xl: 24px;
+    --pill: 999px;
+
+    /* ---- motion: the return --------------------------------------------- */
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-hover: 120ms;
+    --dur-state: 240ms;
+    --dur-reveal: 480ms;
+    --dur-ceremony: 900ms;
+  }
+
+  /* Paper: the same semantic tokens on white. A surface that carries the
+     class reads as a different material inside the night: one bento cell,
+     the brand page's paper plate. */
+  .paper {
+    color-scheme: light;
+    --bg: var(--paper-0);
+    --bg-alt: var(--paper-1);
+    --field: var(--paper-2);
+    --text: #0e0f12;
+    --text-mute: #4a4d57;
+    --text-faint: #6f7380;
+    --hairline: rgba(14, 15, 18, 0.08);
+    --hairline-strong: rgba(14, 15, 18, 0.14);
+    --accent-text: var(--ember-deep);
+    --accent-soft: rgba(255, 107, 44, 0.12);
+    --shadow-tint: rgba(14, 15, 18, 0.1);
+    --shadow-deep: rgba(14, 15, 18, 0.22);
+  }
+
+  @media (max-width: 899px) {
+    :root {
+      --gutter: 24px;
+    }
+  }
+
+  @media (max-width: 599px) {
+    :root {
+      --gutter: 18px;
+      --nav-h: 56px;
+    }
+  }
+}

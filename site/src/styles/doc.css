@@ -1,0 +1,364 @@
+/* ==========================================================================
+   Rabta — document pages
+   /setup/, /privacy/ and 404.
+
+   A document needs a measure, a heading rhythm, a sticky index, and code
+   that can be read and copied. It shares the head and the rail with the
+   layout pages (page.css) and changes only what long-form text needs.
+   ========================================================================== */
+
+@layer section {
+  /* ---- the document grid: a sticky index beside the body ------------------- */
+  .doc-grid {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: var(--s9);
+    align-items: start;
+  }
+
+  .doc-nav {
+    position: sticky;
+    top: calc(var(--nav-h) + 24px);
+  }
+
+  .doc-nav p {
+    margin-bottom: var(--s3);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .doc-nav ol {
+    display: flex;
+    flex-direction: column;
+    counter-reset: index;
+  }
+
+  .doc-nav li {
+    counter-increment: index;
+  }
+
+  .doc-nav a {
+    display: flex;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--text-mute);
+    text-decoration: none;
+    transition: color var(--dur-hover) var(--ease);
+  }
+
+  .doc-nav a::before {
+    content: counter(index);
+    flex: none;
+    min-width: 1.6ch;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-faint);
+  }
+
+  .doc-nav a:hover,
+  .doc-nav a:focus-visible {
+    color: var(--text);
+  }
+
+  @media (max-width: 899px) {
+    .doc-grid {
+      grid-template-columns: 1fr;
+      gap: var(--s6);
+    }
+
+    .doc-nav {
+      position: static;
+      padding: var(--s5);
+      border-radius: var(--r-l);
+      background: var(--bg-alt);
+    }
+  }
+
+  /* ---- prose --------------------------------------------------------------- */
+  .prose {
+    max-width: var(--measure);
+    color: var(--text-mute);
+    line-height: 1.65;
+  }
+
+  .doc-body {
+    counter-reset: section;
+  }
+
+  .doc-body > h2 {
+    counter-increment: section;
+  }
+
+  .doc-body > h2::before {
+    content: counter(section);
+    display: block;
+    margin-bottom: 6px;
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--accent-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .prose h2 {
+    margin-top: var(--s9);
+    font-size: var(--fs-h2);
+    font-weight: 600;
+    line-height: 1.06;
+    letter-spacing: var(--track-h2);
+    color: var(--text);
+    text-wrap: balance;
+    scroll-margin-top: calc(var(--nav-h) + 24px);
+  }
+
+  .prose > h2:first-child {
+    margin-top: 0;
+  }
+
+  .prose h3 {
+    margin-top: var(--s7);
+    font-size: var(--fs-h3);
+    font-weight: 560;
+    line-height: 1.25;
+    letter-spacing: var(--track-h3);
+    color: var(--text);
+    scroll-margin-top: calc(var(--nav-h) + 24px);
+  }
+
+  .prose p {
+    margin-top: var(--s4);
+  }
+
+  .prose h2 + p,
+  .prose h3 + p {
+    margin-top: var(--s4);
+  }
+
+  .prose strong {
+    font-weight: 560;
+    color: var(--text);
+  }
+
+  .prose em {
+    font-style: italic;
+  }
+
+  .prose ul,
+  .prose ol {
+    margin-top: var(--s4);
+    padding-left: 1.4em;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+  }
+
+  .prose ul {
+    list-style: disc;
+  }
+
+  .prose ol {
+    list-style: decimal;
+  }
+
+  .prose li::marker {
+    color: var(--text-faint);
+  }
+
+  .prose li > .code {
+    margin-top: var(--s2);
+  }
+
+  .prose table {
+    width: 100%;
+    margin-top: var(--s5);
+    border-collapse: collapse;
+    font-size: var(--fs-small);
+  }
+
+  .prose th,
+  .prose td {
+    padding: 12px 0;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .prose th {
+    font-weight: 600;
+    color: var(--text);
+    font-size: var(--fs-caption);
+  }
+
+  .prose td:first-child {
+    width: 28%;
+    padding-right: var(--s5);
+    font-weight: 560;
+    color: var(--text);
+  }
+
+  /* ---- the note ------------------------------------------------------------- */
+  .note {
+    margin-top: var(--s5);
+    padding: var(--s4) var(--s5);
+    border-radius: var(--r-m);
+    background: var(--bg-alt);
+    border-left: 3px solid var(--ember);
+  }
+
+  .note p {
+    margin: 0;
+    font-size: var(--fs-small);
+    color: var(--text-mute);
+  }
+
+  /* ---- code you can copy ---------------------------------------------------- */
+  .code {
+    margin: var(--s4) 0 0;
+    padding: var(--s4) var(--s5);
+    border-radius: var(--r-m);
+    background: var(--bg-alt);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .code:focus-visible {
+    outline-offset: 2px;
+  }
+
+  /* The block is the surface; the code inside it is plain text, not a run
+     of inline chips. */
+  .code > code {
+    display: block;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+  }
+
+  .cmt {
+    color: #7c808b;
+  }
+
+  .out {
+    color: var(--ember);
+    user-select: all;
+  }
+
+  .copy-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    margin-top: var(--s3);
+  }
+
+  .copy {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: var(--pill);
+    font-size: 14px;
+    font-weight: 560;
+    color: var(--text);
+    background: var(--bg-alt);
+    box-shadow: inset 0 0 0 1px var(--hairline-strong);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-hover) var(--ease),
+      transform var(--dur-hover) var(--ease);
+  }
+
+  .copy:hover,
+  .copy:focus-visible {
+    background: var(--field);
+    transform: translateY(-1px);
+  }
+
+  .copy-status {
+    font-size: var(--fs-caption);
+    color: var(--text-faint);
+  }
+
+  .kv {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+    margin-top: var(--s4);
+  }
+
+  .kv > div {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: var(--s4);
+    align-items: baseline;
+  }
+
+  .kv dt {
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .kv dd {
+    overflow-wrap: anywhere;
+  }
+
+  .kv code {
+    user-select: all;
+  }
+
+  /* ---- 404 ------------------------------------------------------------------- */
+  .notfound {
+    min-height: calc(100vh - var(--nav-h));
+    display: grid;
+    align-content: center;
+    padding-block: var(--s10);
+  }
+
+  .notfound__code {
+    margin-bottom: var(--s4);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--accent-text);
+  }
+
+  .notfound h1 {
+    max-width: 16ch;
+    font-size: var(--fs-h1);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: var(--track-h1);
+    color: var(--text);
+  }
+
+  .notfound > div > p {
+    max-width: 48ch;
+    margin-top: var(--s5);
+    color: var(--text-mute);
+    font-size: var(--fs-lede);
+    line-height: 1.45;
+  }
+
+  .notfound .cta__actions {
+    justify-content: flex-start;
+  }
+
+  .notfound .mark {
+    width: 72px;
+    height: 72px;
+    margin-bottom: var(--s6);
+    color: var(--text);
+    overflow: visible;
+  }
+
+  .notfound .mark .leg {
+    stroke: var(--ember);
+  }
+}

@@ -1,0 +1,167 @@
+---
+import Base from "../layouts/Base.astro";
+import "../styles/tokens.css";
+import "../styles/shell.css";
+import "../styles/doc.css";
+import "../styles/page.css";
+---
+<Base
+  title={"Roadmap · Rabta"}
+  description={"What is not built yet, what is next, and what has been deliberately deferred. Scoped honestly, with no dates attached to work that has not started."}
+  route="/roadmap/"
+  ogDescription={"What is not built yet, what is next, and what has been deliberately deferred."}
+>
+  <div class="wrap page-head">
+    <p class="page-head__label">Roadmap</p>
+
+    <h1>Where this goes.</h1>
+    <p class="lede">
+      Everything here is real work in the repository, at the stage it is named
+      under. Nothing carries a date, because nothing here ships until it is
+      right. What already shipped is on the
+      <a href="/changelog/">changelog</a>.
+    </p>
+    <p class="mono muted">Reflects Rabta 0.1.0 · updated 4 September 2026</p>
+  </div>
+
+  <section class="band" data-chapter aria-labelledby="packaged">
+    <div class="band__inner">
+      <p class="band__label"><span class="pill pill--now">Shipping</span></p>
+      <div class="band__body">
+        <h2 id="packaged">Next up.</h2>
+        <p>Published, or with a store.</p>
+
+        <div class="grid2">
+          <article class="card">
+            <h3>Connectors 0.2.0: focus mode's reconcile step</h3>
+            <p>
+              The close half of focus mode lives in the connectors:
+              <code>tabs.close</code>, <code>editor.closeFile</code>,
+              <code>terminal.dispose</code>. Live on Open VSX and the Visual
+              Studio Marketplace; the browser connector is in Chrome Web Store
+              review. The desktop app stays at 0.1.0: this is a
+              connector-only bump, and the app does not drive the closing half
+              yet.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Agents can read capsules</h3>
+            <p>
+              An MCP server, <code>@rabta/mcp</code>, lets Claude Code, Cursor
+              and Codex list the capsules on this Mac and load one as a
+              briefing: the files, the terminals, the tabs, the branch.
+              Reads come straight from the same database the app writes.
+              Capture and restore from an agent go through Agent access, a
+              switch in Settings that opens a local socket file and closes it
+              again; the receipt is the one the app shows. <a href="/agents/">How it
+              works.</a>
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>A higher editor floor</h3>
+            <p>
+              0.2.0 raises <code>engines.vscode</code> from ^1.85 to ^1.93.
+              Busy-terminal detection needs shell-execution events that are only
+              stable from 1.93, and there is no fallback for older editors,
+              anyone on 1.85 to 1.92 stops seeing updates until they upgrade.
+            </p>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" data-chapter aria-labelledby="queued">
+    <div class="band__inner">
+      <p class="band__label"><span class="pill">Queued</span></p>
+      <div class="band__body">
+        <h2 id="queued">Planned.</h2>
+        <p>Known, wanted, not started or blocked.</p>
+
+        <div class="grid2">
+          <article class="card">
+            <h3>Focus mode's close half, in the app</h3>
+            <p>
+              The connectors can already close tabs, files and terminals. The
+              app side that drives them is the work, and the rule that makes
+              focus mode trustworthy has to hold there: never an unsaved file,
+              a running terminal, or anything pinned.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Intel and universal macOS builds</h3>
+            <p>
+              The current bundle is arm64 only. Nothing in the app is
+              deliberately Apple-silicon-specific; this is packaging work.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Auto-update</h3>
+            <p>
+              Not wired. It needs an update endpoint and a signing keypair
+              separate from the Apple certificate: and it would be the first
+              thing in Rabta that makes an outbound request on its own, so it
+              gets designed carefully or not at all.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Bulk multi-select on capsules</h3>
+            <p>
+              So archiving or deleting several is one gesture rather than a
+              repeated one. A larger opt-in feature, not built yet.
+            </p>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" data-chapter aria-labelledby="deferred">
+    <div class="band__inner">
+      <p class="band__label"><span class="pill">Deferred</span></p>
+      <div class="band__body">
+        <h2 id="deferred">Later.</h2>
+        <p>Deliberately not now.</p>
+
+        <div class="grid2">
+          <article class="card">
+            <h3>More connectors</h3>
+            <p>
+              Docker, Postman, Figma, Linear, Jira: each one is a protocol
+              conversation, not a plugin drop. Doing four badly would be worse
+              than doing none.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>A plugin SDK and automation rules</h3>
+            <p>
+              Worth doing once the protocol has stopped moving. Publishing an
+              SDK against a moving target is a promise you then have to break.
+            </p>
+          </article>
+
+          <article class="card">
+            <h3>Cloud sync and team collaboration</h3>
+            <p>
+              Opt-in only, and only if they can meet the local-first bar.
+              Anything that would send data off your machine is off by default
+              and asks first.
+            </p>
+          </article>
+        </div>
+
+        <p class="mono muted foot-note">
+          Items move between these three groups as work happens. The
+          <a href="/changelog/">changelog</a> is the record of what actually
+          shipped.
+        </p>
+      </div>
+    </div>
+  </section>
+</Base>

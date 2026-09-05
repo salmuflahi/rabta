@@ -35,7 +35,7 @@ const outFlag = process.argv.indexOf("--out");
 const OUT_DIR =
   outFlag !== -1 && process.argv[outFlag + 1]
     ? resolve(process.argv[outFlag + 1])
-    : join(repoRoot, "website/assets/shots/src");
+    : join(repoRoot, "site/public/assets/shots/src");
 
 const PORT = 5199;
 const VIEWPORT = { width: 1280, height: 800 };

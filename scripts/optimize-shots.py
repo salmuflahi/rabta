@@ -4,9 +4,9 @@ Build the responsive image set the website actually loads.
 
     python3 scripts/optimize-shots.py
 
-Input   website/assets/shots/src/*.png   (2560x1600 captures, see
+Input   site/public/assets/shots/src/*.png   (2560x1600 captures, see
                                           apps/desktop/capture/README.md)
-Output  website/assets/shots/<name>-<width>.{avif,webp,png}
+Output  site/public/assets/shots/<name>-<width>.{avif,webp,png}
 
 Why three formats: AVIF is the smallest by a wide margin, WebP covers older
 Safari, and one PNG per image is kept as the universal <img src> fallback so
@@ -37,8 +37,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "website/assets/shots/src"
-OUT = ROOT / "website/assets/shots"
+SRC = ROOT / "site/public/assets/shots/src"
+OUT = ROOT / "site/public/assets/shots"
 
 WIDTHS = (640, 1024, 1600)
 FALLBACK_WIDTH = 1024  # the single width kept as PNG for <img src>

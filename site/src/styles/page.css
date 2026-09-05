@@ -1,0 +1,851 @@
+/* Rabta — the inner pages, and the components every route shares with the
+ * homepage: the window, the page head, the band, the card, the question
+ * group, the pill, the channel.
+ *
+ * doc.css gives a page a document (a measure, a heading rhythm, code you can
+ * copy). This file gives a page a layout: a head that says the thing, bands
+ * that name themselves, cards that carry the content. A page can open with
+ * a band and drop into `.prose` where long-form text belongs; /setup/ and
+ * /privacy/ do exactly that.
+ */
+
+@layer section {
+  /* ---- the window ----------------------------------------------------------
+     The real app in a Mac window. Flat, never in perspective. The frame is
+     what says "this is a window on your own machine" rather than a picture
+     of software. */
+  .window {
+    position: relative;
+    border-radius: 14px;
+    background: var(--ink-1);
+    box-shadow:
+      0 0 0 1px var(--hairline-strong),
+      0 40px 80px -30px var(--shadow-deep),
+      0 12px 30px -16px var(--shadow-tint);
+    overflow: hidden;
+  }
+
+  .window__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    height: 40px;
+    padding: 0 14px;
+    background: var(--ink-0);
+    border-bottom: 1px solid rgba(245, 245, 247, 0.08);
+  }
+
+  .window__lights {
+    display: inline-flex;
+    gap: 8px;
+  }
+
+  .window__lights span {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  /* macOS's own window controls, at their system values: a quotation, not a
+     palette addition. Used exactly once, here. */
+  .window__lights span:nth-child(1) {
+    background: #ff5f57;
+  }
+
+  .window__lights span:nth-child(2) {
+    background: #febc2e;
+  }
+
+  .window__lights span:nth-child(3) {
+    background: #28c840;
+  }
+
+  .window__title {
+    flex: 1;
+    text-align: center;
+    padding-right: 52px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #7c808b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .window__stage {
+    position: relative;
+    display: grid;
+    grid-template-areas: "stage";
+    aspect-ratio: 16 / 10;
+    background: var(--ink-1);
+  }
+
+  .window__stage--video {
+    aspect-ratio: 16 / 9;
+  }
+
+  .window__stage > * {
+    grid-area: stage;
+  }
+
+  .window__stage img,
+  .window__video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .window--shot {
+    margin-top: var(--s7);
+  }
+
+  .window--shot figcaption {
+    padding: var(--s3) 0 0;
+  }
+
+  figure.window > figcaption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: translateY(100%);
+    padding-top: var(--s3);
+    font-size: var(--fs-caption);
+    color: var(--text-faint);
+    text-align: center;
+  }
+
+  /* The demo's controls. Both ship `hidden` and js/media.js reveals them, so
+     a scriptless visitor gets the poster and no dead controls. */
+  /* Bottom-left of the stage, out of the footage's way: the lens in every
+     loop sits at or above centre, and a control over it would fight it. */
+  .media-play {
+    z-index: 2;
+    align-self: end;
+    justify-self: start;
+    margin: 0 0 16px 16px;
+    min-height: 44px;
+    padding: 12px 20px;
+    border-radius: var(--pill);
+    background: rgba(10, 11, 14, 0.72);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    color: #f5f5f7;
+    font-size: 14px;
+    font-weight: 560;
+    box-shadow: inset 0 0 0 1px rgba(245, 245, 247, 0.18);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-hover) var(--ease),
+      transform var(--dur-hover) var(--ease);
+  }
+
+  .media-play:hover,
+  .media-play:focus-visible {
+    background: rgba(10, 11, 14, 0.9);
+    transform: translateY(-1px);
+  }
+
+  .media-play:disabled,
+  .media-play[hidden] {
+    display: none;
+  }
+
+  .media-play--small {
+    min-height: 32px;
+    padding: 8px 12px;
+    font-size: 12px;
+    z-index: 3;
+  }
+
+  .media-track {
+    z-index: 2;
+    align-self: end;
+    height: 2px;
+    background: rgba(245, 245, 247, 0.14);
+  }
+
+  .media-track[hidden] {
+    display: none;
+  }
+
+  .media-track span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--ember);
+  }
+
+  /* ---- the page head ---------------------------------------------------------
+     Every inner page opens the same way: a small label, the claim, a lede,
+     and one line of metadata. Left-aligned, on the rail. */
+  .page-head {
+    padding-top: clamp(40px, 6vw, 80px);
+    padding-bottom: var(--s8);
+  }
+
+  .page-head__label {
+    margin-bottom: var(--s4);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--accent-text);
+  }
+
+  .page-head h1 {
+    max-width: 18ch;
+    font-size: var(--fs-h1);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: var(--track-h1);
+    color: var(--text);
+    text-wrap: balance;
+  }
+
+  .page-head .lede {
+    max-width: 58ch;
+    margin-top: var(--s5);
+  }
+
+  .page-head .mono,
+  .page-head__meta {
+    margin-top: var(--s5);
+    font-family: var(--sans);
+    font-size: var(--fs-caption);
+    color: var(--text-faint);
+  }
+
+  /* ---- the band ---------------------------------------------------------------
+     One section: a label naming it, a heading saying the thing, optionally a
+     line of consequence, then cards or question groups. */
+  .band {
+    padding-block: var(--section-tight);
+    border-top: 1px solid var(--hairline);
+  }
+
+  .band:first-of-type {
+    border-top: 0;
+  }
+
+  .band--close {
+    padding-block: var(--s9);
+  }
+
+  .band__inner {
+    width: min(100% - var(--gutter) * 2, var(--rail));
+    margin-inline: auto;
+  }
+
+  .band__label {
+    margin-bottom: var(--s3);
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--text-faint);
+  }
+
+  .band__body > h2 {
+    max-width: 22ch;
+    font-size: var(--fs-h2);
+    font-weight: 600;
+    line-height: 1.06;
+    letter-spacing: var(--track-h2);
+    color: var(--text);
+    text-wrap: balance;
+  }
+
+  .band__body > h2 + p {
+    max-width: 62ch;
+    margin-top: var(--s4);
+    font-size: var(--fs-body);
+    line-height: 1.6;
+    color: var(--text-mute);
+  }
+
+  .band--split .band__body {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: var(--s8);
+    align-items: start;
+  }
+
+  .band--split .band__body > h2 {
+    max-width: 16ch;
+  }
+
+  .band--split .band__prose > p + p {
+    margin-top: var(--s5);
+  }
+
+  .band--split .band__prose > p {
+    max-width: 56ch;
+    color: var(--text-mute);
+    line-height: 1.6;
+  }
+
+  .band--split .band__body > figure {
+    grid-column: 1 / -1;
+  }
+
+  /* ---- the card -----------------------------------------------------------------
+     Shared by the commitments, the roadmap stages, the contact channels and
+     the changelog's groups. One surface, no border, a rise on hover only
+     when the whole card is a link. */
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+    padding: var(--s6);
+    border-radius: var(--r-xl);
+    background: var(--bg-alt);
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .card h3 {
+    font-size: var(--fs-h3);
+    font-weight: 560;
+    line-height: 1.2;
+    letter-spacing: var(--track-h3);
+    text-wrap: balance;
+  }
+
+  .card p,
+  .card li {
+    color: var(--text-mute);
+    font-size: var(--fs-small);
+    line-height: 1.55;
+  }
+
+  .card ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    padding-left: 1.1em;
+    list-style: disc;
+  }
+
+  .card__index {
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--accent-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .card__eyebrow {
+    font-size: var(--fs-caption);
+    font-weight: 600;
+    color: var(--text-faint);
+  }
+
+  .grid2,
+  .grid3 {
+    display: grid;
+    gap: var(--s4);
+    margin-top: var(--s7);
+  }
+
+  .grid2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* A card that is a link rises to meet the cursor and shows where it goes. */
+  a.card {
+    transition:
+      transform var(--dur-state) var(--ease),
+      box-shadow var(--dur-state) var(--ease),
+      background-color var(--dur-state) var(--ease);
+  }
+
+  a.card:hover,
+  a.card:focus-visible {
+    transform: translateY(-2px);
+    background: var(--field);
+    box-shadow: 0 0 0 1px var(--hairline-strong), 0 30px 60px -30px var(--shadow-deep);
+  }
+
+  .channel {
+    justify-content: flex-start;
+  }
+
+  .channel__action {
+    margin-top: auto;
+    padding-top: var(--s3);
+    font-size: var(--fs-small);
+    font-weight: 560;
+    color: var(--text);
+  }
+
+  .channel__arrow {
+    display: inline-block;
+    transition: transform var(--dur-state) var(--ease);
+  }
+
+  a.card:hover .channel__arrow,
+  a.card:focus-visible .channel__arrow {
+    transform: translateX(4px);
+  }
+
+  .channel__where {
+    display: none;
+  }
+
+  /* ---- the question group ---------------------------------------------------- */
+  .qa {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s7) var(--s8);
+    margin-top: var(--s7);
+  }
+
+  .qa h3 {
+    font-size: 19px;
+    font-weight: 560;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+    color: var(--text);
+  }
+
+  .qa p {
+    margin-top: var(--s2);
+    color: var(--text-mute);
+    line-height: 1.6;
+    font-size: var(--fs-small);
+  }
+
+  /* ---- the pill ------------------------------------------------------------------ */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: var(--pill);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text-mute);
+    background: var(--field);
+  }
+
+  .pill--now {
+    color: var(--on-accent);
+    background: var(--ember);
+  }
+
+  .release__head {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+  }
+
+  .release__head h2 {
+    font-size: var(--fs-h2);
+    font-weight: 600;
+    line-height: 1.06;
+    letter-spacing: var(--track-h2);
+    color: var(--text);
+  }
+
+  .release__meta {
+    max-width: 60ch;
+    margin-top: var(--s4);
+    color: var(--text-mute);
+  }
+
+  .denials {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 var(--s8);
+    margin-top: var(--s7);
+    border-top: 1px solid var(--hairline-strong);
+  }
+
+  .denials > div {
+    padding: var(--s5) 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .denials dt {
+    font-size: var(--fs-h3);
+    font-weight: 560;
+    line-height: 1.2;
+    letter-spacing: var(--track-h3);
+    color: var(--text);
+  }
+
+  .denials dd {
+    margin-top: var(--s2);
+    color: var(--text-mute);
+    line-height: 1.55;
+    max-width: 44ch;
+  }
+
+  .foot-note {
+    max-width: 62ch;
+    margin-top: var(--s7);
+    font-size: var(--fs-caption);
+    line-height: 1.6;
+    color: var(--text-faint);
+  }
+
+  .foot-note code {
+    font-size: 12px;
+  }
+
+  /* ---- the closing statement on an inner page --------------------------------- */
+  .cta {
+    padding-top: var(--section-tight);
+    text-align: center;
+  }
+
+  .cta h2 {
+    max-width: 18ch;
+    margin-inline: auto;
+    font-size: var(--fs-h1);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: var(--track-h1);
+    color: var(--text);
+    text-wrap: balance;
+  }
+
+  .cta__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--s3);
+    margin-top: var(--s6);
+  }
+
+  .cta .mono {
+    margin-top: var(--s5);
+    font-size: var(--fs-caption);
+    color: var(--text-faint);
+    font-family: var(--sans);
+  }
+
+  /* ---- /why/ and /brand/ ---------------------------------------------------------
+     The manifesto: statements big enough to be read from across the room. */
+  .statement {
+    padding-block: var(--section-tight);
+    border-top: 1px solid var(--hairline);
+  }
+
+  .statement:first-of-type {
+    border-top: 0;
+  }
+
+  .statement__inner {
+    width: min(100% - var(--gutter) * 2, var(--rail));
+    margin-inline: auto;
+  }
+
+  .statement h2 {
+    max-width: 20ch;
+    font-size: var(--fs-h1);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: var(--track-h1);
+    color: var(--text);
+    text-wrap: balance;
+  }
+
+  .statement .lede {
+    max-width: 52ch;
+    margin-top: var(--s5);
+  }
+
+  /* The name, set as the two words it is. */
+  .name {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s8);
+    align-items: end;
+    margin-top: var(--s8);
+  }
+
+  .name__word {
+    font-size: clamp(64px, 9vw, 140px);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.045em;
+    color: var(--text);
+  }
+
+  .name__word--arabic {
+    font-family: var(--kufi);
+    font-weight: 600;
+    letter-spacing: 0;
+    direction: rtl;
+    text-align: right;
+  }
+
+  .name p {
+    margin-top: var(--s4);
+    color: var(--text-mute);
+    max-width: 30ch;
+  }
+
+  /* The three strokes, one per column, each drawn on its own mark. */
+  .strokes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s4);
+    margin-top: var(--s8);
+  }
+
+  .stroke {
+    padding: var(--s6);
+    border-radius: var(--r-xl);
+    background: var(--bg-alt);
+  }
+
+  .stroke .mark {
+    width: 96px;
+    height: 96px;
+    color: var(--text);
+    overflow: visible;
+  }
+
+  .stroke .mark path {
+    opacity: 0.16;
+  }
+
+  .stroke .mark .lit {
+    opacity: 1;
+  }
+
+  .stroke .mark .leg.lit {
+    stroke: var(--ember);
+  }
+
+  .stroke h3 {
+    margin-top: var(--s5);
+    font-size: var(--fs-h3);
+    font-weight: 560;
+    letter-spacing: var(--track-h3);
+    line-height: 1.2;
+    color: var(--text);
+  }
+
+  .stroke p {
+    margin-top: var(--s2);
+    color: var(--text-mute);
+    font-size: var(--fs-small);
+    line-height: 1.55;
+  }
+
+  /* The specimen: the living mark, large, with a replay control. */
+  .specimen {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s4);
+    margin-top: var(--s8);
+  }
+
+  .specimen__plate {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    border-radius: var(--r-xl);
+    background: var(--bg-alt);
+    color: var(--text);
+  }
+
+  .specimen__plate--paper {
+    background: var(--paper-0);
+  }
+
+  .specimen__plate .mark {
+    width: 52%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .specimen__plate .mark .leg {
+    stroke: var(--ember);
+  }
+
+  .specimen__replay {
+    position: absolute;
+    right: var(--s4);
+    bottom: var(--s4);
+  }
+
+  .specimen__plate--paper .button {
+    background: var(--paper-1);
+    color: #0e0f12;
+    box-shadow: inset 0 0 0 1px rgba(14, 15, 18, 0.14);
+  }
+
+  .specimen__plate--paper .button:hover,
+  .specimen__plate--paper .button:focus-visible {
+    background: var(--paper-2);
+  }
+
+  /* Colourways and downloads. */
+  .ways {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--s4);
+    margin-top: var(--s7);
+  }
+
+  .way {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s4);
+    padding: var(--s5);
+    border-radius: var(--r-l);
+    background: var(--bg-alt);
+  }
+
+  .way__plate {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--r-m);
+  }
+
+  .way__plate--paper {
+    background: var(--paper-0);
+  }
+
+  .way__plate--ink {
+    background: var(--ink-0);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+
+  .way__plate--ember {
+    background: var(--ember);
+  }
+
+  .way__plate img {
+    width: 44%;
+    height: auto;
+  }
+
+  .way__plate img.way__lockup {
+    width: 78%;
+  }
+
+  .way h3 {
+    font-size: var(--fs-small);
+    font-weight: 560;
+    color: var(--text);
+  }
+
+  .way .link {
+    font-size: var(--fs-caption);
+    width: fit-content;
+  }
+
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--s4);
+    margin-top: var(--s7);
+  }
+
+  .swatch {
+    border-radius: var(--r-l);
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+
+  .swatch__color {
+    aspect-ratio: 16 / 9;
+  }
+
+  .swatch__meta {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s3);
+    padding: var(--s3) var(--s4);
+    font-size: var(--fs-caption);
+    background: var(--bg-alt);
+  }
+
+  .swatch__meta b {
+    font-weight: 560;
+    color: var(--text);
+  }
+
+  .swatch__meta span {
+    font-family: var(--mono);
+    color: var(--text-faint);
+  }
+
+  /* The lockup construction diagram on /brand/. */
+  .construction {
+    margin-top: var(--s8);
+    padding: var(--s7);
+    border-radius: var(--r-xl);
+    background: var(--bg-alt);
+  }
+
+  .construction img {
+    width: min(100%, 720px);
+    height: auto;
+    margin-inline: auto;
+  }
+
+  .construction p {
+    margin-top: var(--s5);
+    max-width: 60ch;
+    margin-inline: auto;
+    text-align: center;
+    font-size: var(--fs-small);
+    color: var(--text-mute);
+  }
+
+  /* ---- responsive ------------------------------------------------------------------ */
+  @media (max-width: 899px) {
+    .grid3,
+    .qa,
+    .denials,
+    .name,
+    .specimen {
+      grid-template-columns: 1fr;
+    }
+
+    .grid2 {
+      grid-template-columns: 1fr;
+    }
+
+    .band--split .band__body {
+      grid-template-columns: 1fr;
+      gap: var(--s5);
+    }
+
+    .strokes {
+      grid-template-columns: 1fr;
+    }
+
+    .ways,
+    .swatches {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .name__word--arabic {
+      text-align: left;
+    }
+  }
+}
+
+/* The brand page's swatches: every colour through its token, never a literal
+   outside tokens.css. */
+@layer section {
+  .swatch__color--paper-0 { background: var(--paper-0); }
+  .swatch__color--paper-1 { background: var(--paper-1); }
+  .swatch__color--ink-0 { background: var(--ink-0); }
+  .swatch__color--ink-1 { background: var(--ink-1); }
+  .swatch__color--ember { background: var(--ember); }
+  .swatch__color--ember-deep { background: var(--ember-deep); }
+  .swatch__color--text { background: var(--text); }
+  .swatch__color--text-mute { background: var(--text-mute); }
+}

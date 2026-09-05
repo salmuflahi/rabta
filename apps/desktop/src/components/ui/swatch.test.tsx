@@ -37,12 +37,12 @@ describe("Swatch", () => {
 
   it("marks exactly one option selected via aria-checked, never colour alone", () => {
     render(
-      <Swatch value="petrol" onChange={() => {}} theme="light" ariaLabel="Accent" />,
+      <Swatch value="iris" onChange={() => {}} theme="light" ariaLabel="Accent" />,
     );
     const radios = screen.getAllByRole("radio");
     const checked = radios.filter((r) => r.getAttribute("aria-checked") === "true");
     expect(checked).toHaveLength(1);
-    expect(checked[0]).toHaveAccessibleName("Petrol");
+    expect(checked[0]).toHaveAccessibleName("Iris");
   });
 
   it("gives the selected swatch a distinct shape cue (box-shadow ring), not just a colour change", () => {
@@ -50,7 +50,7 @@ describe("Swatch", () => {
       <Swatch value="sky" onChange={() => {}} theme="light" ariaLabel="Accent" />,
     );
     const selected = screen.getByRole("radio", { name: "Sky" });
-    const unselected = screen.getByRole("radio", { name: "Sand" });
+    const unselected = screen.getByRole("radio", { name: "Graphite" });
     // The selected swatch's box-shadow carries two additional rings (1.5px
     // surface-coloured + 3.5px own-colour) beyond the shared inset hairline
     // every swatch has — a real geometric change, not merely a fill colour.
@@ -69,32 +69,32 @@ describe("Swatch", () => {
     render(
       <Swatch value="tangerine" onChange={onChange} theme="light" ariaLabel="Accent" />,
     );
-    fireEvent.click(screen.getByRole("radio", { name: "Sand" }));
-    expect(onChange).toHaveBeenCalledWith("sand");
+    fireEvent.click(screen.getByRole("radio", { name: "Sky" }));
+    expect(onChange).toHaveBeenCalledWith("sky");
   });
 
   it("renders each accent's theme-correct hex as its background colour", () => {
     render(
       <Swatch value="tangerine" onChange={() => {}} theme="dark" ariaLabel="Accent" />,
     );
-    const petrol = screen.getByRole("radio", { name: "Petrol" });
-    // Dark-theme petrol base differs from light-theme petrol base — proves
+    const iris = screen.getByRole("radio", { name: "Iris" });
+    // Dark-theme iris base differs from light-theme iris base — proves
     // the `theme` prop actually selects the per-theme variant. Read the raw
     // `style` attribute rather than the CSSOM `.style.background` property,
     // which may normalise the hex string to rgb() in some environments.
-    expect((petrol.getAttribute("style") || "").toLowerCase()).toContain(
-      ACCENTS.petrol.dark.base.toLowerCase(),
+    expect((iris.getAttribute("style") || "").toLowerCase()).toContain(
+      ACCENTS.iris.dark.base.toLowerCase(),
     );
   });
 
   it("moves selection to the next option on ArrowRight, wrapping at the end", () => {
     const onChange = vi.fn();
     render(
-      <Swatch value="sand" onChange={onChange} theme="light" ariaLabel="Accent" />,
+      <Swatch value="sky" onChange={onChange} theme="light" ariaLabel="Accent" />,
     );
-    const sand = screen.getByRole("radio", { name: "Sand" });
-    sand.focus();
-    fireEvent.keyDown(sand, { key: "ArrowRight" });
+    const sky = screen.getByRole("radio", { name: "Sky" });
+    sky.focus();
+    fireEvent.keyDown(sky, { key: "ArrowRight" });
     expect(onChange).toHaveBeenCalledWith("tangerine");
   });
 
@@ -106,37 +106,37 @@ describe("Swatch", () => {
     const tangerine = screen.getByRole("radio", { name: "Tangerine" });
     tangerine.focus();
     fireEvent.keyDown(tangerine, { key: "ArrowLeft" });
-    expect(onChange).toHaveBeenCalledWith("sand");
+    expect(onChange).toHaveBeenCalledWith("sky");
   });
 
   it("jumps to the first option on Home and the last on End", () => {
     const onChange = vi.fn();
     render(
-      <Swatch value="petrol" onChange={onChange} theme="light" ariaLabel="Accent" />,
+      <Swatch value="iris" onChange={onChange} theme="light" ariaLabel="Accent" />,
     );
-    const petrol = screen.getByRole("radio", { name: "Petrol" });
-    petrol.focus();
-    fireEvent.keyDown(petrol, { key: "Home" });
+    const iris = screen.getByRole("radio", { name: "Iris" });
+    iris.focus();
+    fireEvent.keyDown(iris, { key: "Home" });
     expect(onChange).toHaveBeenLastCalledWith("tangerine");
-    fireEvent.keyDown(petrol, { key: "End" });
-    expect(onChange).toHaveBeenLastCalledWith("sand");
+    fireEvent.keyDown(iris, { key: "End" });
+    expect(onChange).toHaveBeenLastCalledWith("sky");
   });
 
   it("calls onChange with the focused option's AccentId on Space", () => {
     const onChange = vi.fn();
     render(
-      <Swatch value="sand" onChange={onChange} theme="light" ariaLabel="Accent" />,
+      <Swatch value="sky" onChange={onChange} theme="light" ariaLabel="Accent" />,
     );
-    const petrol = screen.getByRole("radio", { name: "Petrol" });
-    petrol.focus();
-    fireEvent.keyDown(petrol, { key: " " });
-    expect(onChange).toHaveBeenCalledWith("petrol");
+    const iris = screen.getByRole("radio", { name: "Iris" });
+    iris.focus();
+    fireEvent.keyDown(iris, { key: " " });
+    expect(onChange).toHaveBeenCalledWith("iris");
   });
 
   it("calls onChange with the focused option's AccentId on Enter", () => {
     const onChange = vi.fn();
     render(
-      <Swatch value="sand" onChange={onChange} theme="light" ariaLabel="Accent" />,
+      <Swatch value="sky" onChange={onChange} theme="light" ariaLabel="Accent" />,
     );
     const sky = screen.getByRole("radio", { name: "Sky" });
     sky.focus();
@@ -153,7 +153,7 @@ describe("Swatch", () => {
     const tangerine = screen.getByRole("radio", { name: "Tangerine" });
     tangerine.focus();
     fireEvent.keyDown(tangerine, { key: "ArrowRight" });
-    expect(screen.getByRole("radio", { name: "Petrol" })).toHaveFocus();
+    expect(screen.getByRole("radio", { name: "Iris" })).toHaveFocus();
   });
 
   it("only the selected option is in tab order — a roving tabindex", () => {

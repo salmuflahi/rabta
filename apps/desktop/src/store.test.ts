@@ -141,12 +141,12 @@ describe("readPrefs with a persisted landingPage outside NavKey", () => {
   it("preserves other valid preferences when landingPage is corrupt", () => {
     localStorage.setItem(
       "rabta.prefs",
-      JSON.stringify({ landingPage: "nope", theme: "dark", accent: "petrol" })
+      JSON.stringify({ landingPage: "nope", theme: "dark", accent: "iris" })
     );
     const prefs = readPrefs();
     expect(prefs.landingPage).toBe(DEFAULT_PREFS.landingPage);
     expect(prefs.theme).toBe("dark");
-    expect(prefs.accent).toBe("petrol");
+    expect(prefs.accent).toBe("iris");
   });
 
   it("round-trips every real view untouched", () => {

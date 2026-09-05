@@ -44,7 +44,7 @@ describe("App global keyboard shortcuts", () => {
 
   it("starts one session-tracking lifecycle from the app root", async () => {
     const { unmount } = renderWithProviders(<App />);
-    await screen.findByText("Rabta");
+    await screen.findByRole("img", { name: "Rabta" });
 
     expect(
       mockInvoke.mock.calls.filter(([command]) => command === "session_update")
@@ -55,7 +55,7 @@ describe("App global keyboard shortcuts", () => {
 
   it("⌘⇧N navigates to Capsules and sets newTaskRequest", async () => {
     renderWithProviders(<App />);
-    await screen.findByText("Rabta");
+    await screen.findByRole("img", { name: "Rabta" });
 
     fireEvent.keyDown(window, { key: "n", metaKey: true, shiftKey: true });
 
@@ -78,7 +78,7 @@ describe("App global keyboard shortcuts", () => {
 
   it("⌘N (no shift) navigates to Projects, opens the register dialog, and clears newProjectRequest", async () => {
     renderWithProviders(<App />);
-    await screen.findByText("Rabta");
+    await screen.findByRole("img", { name: "Rabta" });
 
     fireEvent.keyDown(window, { key: "n", metaKey: true });
 
@@ -101,7 +101,7 @@ describe("App global keyboard shortcuts", () => {
     );
     useStore.setState({ ...STORE_DEFAULTS, view: "projects", activeTaskId: "task-42" });
     renderWithProviders(<App />);
-    await screen.findByText("Rabta");
+    await screen.findByRole("img", { name: "Rabta" });
 
     fireEvent.keyDown(window, { key: "r", metaKey: true });
 
@@ -117,7 +117,7 @@ describe("App global keyboard shortcuts", () => {
     );
     useStore.setState({ ...STORE_DEFAULTS, view: "projects", activeTaskId: null });
     renderWithProviders(<App />);
-    await screen.findByText("Rabta");
+    await screen.findByRole("img", { name: "Rabta" });
 
     fireEvent.keyDown(window, { key: "r", metaKey: true });
 
@@ -129,7 +129,7 @@ describe("App global keyboard shortcuts", () => {
     mockInvoke.mockImplementation(async () => [] as unknown[]); // list_projects -> []
     useStore.setState({ ...STORE_DEFAULTS, view: "capsules" });
     renderWithProviders(<App />);
-    await screen.findByText("Rabta");
+    await screen.findByRole("img", { name: "Rabta" });
 
     await waitFor(() => expect(useStore.getState().view).toBe("overview"));
   });
@@ -141,7 +141,7 @@ describe("App global keyboard shortcuts", () => {
       cmd === "list_projects" ? [FAKE_PROJECT] : [],
     );
     renderWithProviders(<App />);
-    await screen.findByText("Rabta");
+    await screen.findByRole("img", { name: "Rabta" });
 
     const input = document.createElement("input");
     document.body.appendChild(input);
@@ -166,7 +166,7 @@ describe("App global keyboard shortcuts", () => {
 
   it("⌘\\ toggles sidebarCollapsed and persists it, even while focus is in a text input", async () => {
     renderWithProviders(<App />);
-    await screen.findByText("Rabta");
+    await screen.findByRole("img", { name: "Rabta" });
 
     fireEvent.keyDown(window, { key: "\\", metaKey: true });
     expect(useStore.getState().sidebarCollapsed).toBe(true);
@@ -185,7 +185,7 @@ describe("App global keyboard shortcuts", () => {
 
   it("repeated ⌘N reopens the register dialog every time, even after it was closed in between", async () => {
     renderWithProviders(<App />);
-    await screen.findByText("Rabta");
+    await screen.findByRole("img", { name: "Rabta" });
 
     fireEvent.keyDown(window, { key: "n", metaKey: true });
     expect(await screen.findByPlaceholderText("my-project")).toBeInTheDocument();

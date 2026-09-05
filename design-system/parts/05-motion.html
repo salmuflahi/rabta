@@ -1,23 +1,21 @@
-<!-- @dsCard group="Motion" name="Duration & easing" -->
+<!-- @dsCard group="Motion" name="The return" -->
 <div class="card-head">
-  <h1>Duration &amp; easing</h1>
-  <p>One curve for everything: <span class="card-mono">cubic-bezier(0.22, 1, 0.36, 1)</span>.
-  Durations are named by what they are for, so feedback cannot drift the way
-  per-rule values already had once.</p>
+  <h1>The return</h1>
+  <p>One settling curve, one spring for a landed moment, four durations.
+  Anything that comes back moves the way the leg of the mark does: out, then
+  a curl back to rest.</p>
 </div>
 
-<div class="spec"><span class="card-label">120ms &mdash; <span class="card-mono">--dur</span></span><span class="card-sub">State changes that are not hovers. The default.</span></div>
-<div class="spec"><span class="card-label">180ms &mdash; <span class="card-mono">--hover-dur</span></span><span class="card-sub">Every hover on the site, without exception. One number so the whole surface answers at the same speed.</span></div>
-<div class="spec"><span class="card-label">140ms &mdash; <span class="card-mono">--resolve-step</span></span><span class="card-sub">One beat of the restore sequence. Rows are multiples of it, so the rhythm is a single number rather than four hand-picked delays.</span></div>
-<div class="spec"><span class="card-label">420ms &mdash; <span class="card-mono">--mark-dur</span></span><span class="card-sub">A chapter mark drawn once on entry. Slower than a hover, so it reads as an opening rather than a response.</span></div>
-<div class="spec"><span class="card-label">520ms &mdash; <span class="card-mono">--fold-duration</span></span><span class="card-sub">The receipt fold, after a 100ms delay.</span></div>
+<div class="spec"><span class="card-label">--ease</span><span class="card-sub"><span class="card-mono">cubic-bezier(0.16, 1, 0.3, 1)</span> for everything that settles.</span></div>
+<div class="spec"><span class="card-label">The spring</span><span class="card-sub"><span class="card-mono">stiffness 260, damping 18</span>. The last stroke of the mark, a restore completing.</span></div>
+<div class="spec"><span class="card-label">--dur-hover 120ms</span><span class="card-sub">A button lifting, the rule under a link drawing.</span></div>
+<div class="spec"><span class="card-label">--dur-state 240ms</span><span class="card-sub">A row selecting, the focus switch, a beat changing in the pinned sequence.</span></div>
+<div class="spec"><span class="card-label">--dur-reveal 480ms</span><span class="card-sub">A section arriving as it scrolls in.</span></div>
+<div class="spec"><span class="card-label">--dur-ceremony 900ms</span><span class="card-sub">The whole entrance of the restore sheet.</span></div>
+<div class="spec"><span class="card-label">The mark, 1100ms</span><span class="card-sub">Stem 420 from 0, bowl 560 from 180, leg 640 from 560, then the spring. The same numbers in <span class="card-mono">website/js/brand.js</span> and <span class="card-mono">apps/desktop/src/lib/motion.ts</span>.</span></div>
 
 <div class="card-note">
-  <p><strong>Reduced motion is a real branch, not a switch-off.</strong> Under
-  <span class="card-mono">prefers-reduced-motion: reduce</span> the fold, the
-  restore sequence and the counters resolve straight to their finished state
-  &mdash; the information still arrives, it just does not travel.</p>
-  <p style="margin-top: 12px"><strong>Anything that plays on its own can be
-  paused</strong> (WCAG 2.2.2), and a deliberate pause outranks scroll: once a
-  visitor has paused a clip, scrolling back into view will not restart it.</p>
+  <p><strong>Scroll is a timeline, not a trigger.</strong> Nothing fires once
+  and disappears if the reader scrolls back. Under reduced motion everything
+  collapses to a fade and the mark is simply there.</p>
 </div>

@@ -5,7 +5,7 @@
  *   ./design-system/build.mjs
  *
  * Each card is a fragment in parts/, wrapped here into a standalone page with
- * the site's OWN stylesheets inlined — website/css/tokens.css and shell.css,
+ * the site's OWN stylesheets inlined — site/src/styles/tokens.css and shell.css,
  * verbatim. The cards therefore render with the real values and the real
  * component rules; changing a token changes every card that shows it.
  *
@@ -25,17 +25,17 @@ import { fileURLToPath } from "node:url";
 const HERE = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const ROOT = resolve(HERE, "..");
 const OUT = join(HERE, "dist");
-const CSS = join(ROOT, "website", "css");
+const CSS = join(ROOT, "site", "src", "styles");
 
 const read = (p) => readFileSync(p, "utf8");
 
 /* The font, inlined. Everything else the stylesheets reference by URL is
    decoration these cards do not use. */
-const font = readFileSync(join(ROOT, "website/assets/fonts/inter-latin-variable.woff2")).toString(
+const font = readFileSync(join(ROOT, "site/public/assets/fonts/inter-var.woff2")).toString(
   "base64",
 );
 const tokens = read(join(CSS, "tokens.css")).replace(
-  /url\("\/assets\/fonts\/inter-latin-variable\.woff2"\)/,
+  /url\("\/assets\/fonts\/inter-var\.woff2"\)/,
   `url("data:font/woff2;base64,${font}")`,
 );
 if (!tokens.includes("data:font/woff2")) {
@@ -62,9 +62,9 @@ function build(file) {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${title} — Rabta</title>
 <style>
-/* ---- website/css/tokens.css, verbatim (font inlined) ---- */
+/* ---- site/src/styles/tokens.css, verbatim (font inlined) ---- */
 ${tokens}
-/* ---- website/css/shell.css, verbatim ---- */
+/* ---- site/src/styles/shell.css, verbatim ---- */
 ${shell}
 /* ---- design-system/card.css: the card's own chrome ---- */
 ${card}

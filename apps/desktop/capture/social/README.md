@@ -7,7 +7,7 @@ node apps/desktop/capture/social/build.mjs             # build everything
 node apps/desktop/capture/social/build.mjs app-tour    # build one
 ```
 
-Output goes to `website/assets/social/`. Captions for each video live in
+Output goes to `marketing-videos/social/`. Captions for each video live in
 `docs/RABTA-SOCIAL-CAPTIONS.md`.
 
 ## Adding a video
@@ -23,8 +23,8 @@ SVG.
   "headline": "...",         // wraps and shrinks automatically
   "subhead": "...",
   "tagline": "...",          // the orange line
-  "shots": ["restore"]       // dump: names in website/assets/shots/src/
-  // "source": "x.m4v"       // demo: a file in website/assets/demos/
+  "shots": ["restore"]       // dump: names in site/public/assets/shots/src/
+  // "source": "x.m4v"       // demo: a file in site/public/assets/demos/
 }
 ```
 
@@ -45,7 +45,7 @@ Instagram carousel. Takes `slides` instead of `duration`:
 }
 ```
 
-Output lands in `website/assets/social/carousels/<id>/01.png`. The build enforces
+Output lands in `marketing-videos/social/carousels/<id>/01.png`. The build enforces
 TikTok's 4–35 slide range. Slide 1 is the cover — it has to work as a still, on
 mute, at thumbnail size.
 

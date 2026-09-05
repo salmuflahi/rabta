@@ -1,10 +1,11 @@
 // Pure motion foundation: no React, no invoke, no side effects at import.
 // Shared timing constants + a guarded prefers-reduced-motion check that the
-// signature Resume ceremony (and later microinteractions) build on.
+// signature Restore ceremony (and later microinteractions) build on.
 //
-// Motion rules (see docs/superpowers/plans/2026-07-21-qol-polish-arc.md,
-// Phase A1): transform/opacity only, brand ease, respect
-// `prefers-reduced-motion` everywhere.
+// The vocabulary is the brand's, shared with the website — see
+// docs/superpowers/specs/2026-09-03-rabta-brand-redesign-design.md §5:
+// one settling curve, one spring for landed moments, transform/opacity
+// only, and reduced motion honoured everywhere.
 
 /** User's motion preference (Settings → Appearance). "system" follows the OS
  * `prefers-reduced-motion`; "full"/"reduced" force it either way. */
@@ -31,43 +32,37 @@ export function prefersReducedMotion(pref: MotionPref = "system"): boolean {
 }
 
 // Timing constants (ms) for the fold → restore → unfold → fade ceremony.
-// FOLD_MS used to be declared here too, but nothing outside this file's own
-// test ever referenced it — the fold → restore ceremony's real fold timing
-// lives as its own local constant in RestoreExperience.tsx, which is the
-// only place it's actually used.
 export const RESTORE_MIN_MS = 260;
 export const UNFOLD_MS = 180;
 export const FADE_MS = 120;
 export const STAGGER_MS = 60;
 export const MAX_RESTORE_MS = 4000;
 
-/** Brand ease — matches Tailwind's `ease-brand` utility. */
-export const BRAND_EASE = "cubic-bezier(0.2, 0.8, 0.2, 1)";
+/** The brand's one settling curve. Everything that comes to rest uses it;
+ * matches Tailwind's `ease-brand` utility and the website's `--ease`. */
+export const BRAND_EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 
-/** Ease used by the Restore Experience sheet/backdrop/fold (a gentler,
- * more "settling" curve than `BRAND_EASE` — no bounce/overshoot). See
- * docs/superpowers/specs/2026-07-22-restore-experience-spec.md.
- *
- * This used to also be exported as `STANDARD_EASE` with a second doc
- * comment claiming it was a separate "Part 17" consolidated token — same
- * cubic-bezier value, two names, zero call sites for the second one. That
- * export (along with the equally-unreferenced `MOTION_FAST_MS`,
- * `MOTION_STANDARD_MS`, `SIDEBAR_MS`) has been removed; this is the one
- * name for this curve now. */
-export const RESTORE_SHEET_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+/** The Restore Experience's sheet/backdrop curve. Since the brand redesign
+ * this is the same curve as `BRAND_EASE` — the sheet no longer has a
+ * private, gentler ease. Kept as a named export because the restore code
+ * reads better naming the thing it is easing. */
+export const RESTORE_SHEET_EASE = BRAND_EASE;
 
 /**
  * Durations, in milliseconds, that `tailwind.config.js` publishes as
  * `duration-*` utilities. This file is the source; the config reads from it.
- * Before Phase 4 the two restated each other and drifted.
  */
 export const DUR = {
-  fast: 120,
-  standard: 180,
+  /** Hover and press feedback. */
+  fast: 100,
+  /** A state change: a row selecting, a chip retinting, a view settling. */
+  standard: 160,
+  /** The sidebar/main boundary sliding. Also `.sidebar-track` in index.css. */
   sidebar: 280,
-  switch: 170,
-  /** The Migrate and pairing sheets' slide-down. */
-  sheet: 300,
+  /** The macOS switch's knob travel. */
+  switch: 150,
+  /** The Migrate, pairing and restore sheets' entrance. */
+  sheet: 260,
 } as const;
 
 /**
@@ -77,5 +72,26 @@ export const DUR = {
 export const EASE = {
   brand: BRAND_EASE,
   standard: RESTORE_SHEET_EASE,
+  /** The handoff's macOS curve, for the switch knob and the sidebar slide. */
   mac: "cubic-bezier(0.32, 0.72, 0, 1)",
+} as const;
+
+/**
+ * The spring for a landed moment — the mark's last stroke settling, a
+ * restore completing. Shared with Motion's `type: "spring"` transitions so
+ * the app and the marketing site land the same way.
+ */
+export const LANDED_SPRING = { type: "spring", stiffness: 260, damping: 18, mass: 1 } as const;
+
+/**
+ * The mark's stroke choreography (ms). Stem, then the bowl overlapping it,
+ * then the leg — the return — last. Same numbers the website's brand.js
+ * uses, so the logo draws identically in the app and on the page.
+ */
+export const MARK_DRAW = {
+  stem: { delay: 0, duration: 420 },
+  bowl: { delay: 180, duration: 560 },
+  leg: { delay: 560, duration: 640 },
+  /** When the whole mark has landed and the spring may start. */
+  total: 1100,
 } as const;

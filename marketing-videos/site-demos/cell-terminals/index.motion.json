@@ -1,0 +1,14 @@
+{
+  "duration": 4,
+  "assertions": [
+    {
+      "kind": "keepsMoving",
+      "withinSelector": ".scene",
+      "maxStaticSec": 1.2
+    },
+    {
+      "kind": "staysInFrame",
+      "selector": "#root"
+    }
+  ]
+}

@@ -113,6 +113,10 @@ function handle(cmd: string, args: Args): unknown {
       // gate is the story — everywhere else it would read as a permanent
       // alert the product doesn't actually have.
       return /capture=connectors/.test(window.location.hash) ? PENDING_PAIRINGS : [];
+    case "agent_access_status":
+      return { enabled: false, socketPath: "~/Library/Application Support/com.omnibus.dev/agent.sock" };
+    case "set_agent_access":
+      return { enabled: Boolean(args?.enabled), socketPath: "~/Library/Application Support/com.omnibus.dev/agent.sock" };
     case "hub_port":
       return HUB_PORT;
     case "git_status": {

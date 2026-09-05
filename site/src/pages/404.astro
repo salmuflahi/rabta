@@ -1,0 +1,33 @@
+---
+import Base from "../layouts/Base.astro";
+import "../styles/tokens.css";
+import "../styles/shell.css";
+import "../styles/doc.css";
+import "../styles/page.css";
+---
+<Base
+  title={"Page not found · Rabta"}
+  description={"That page doesn't exist on rabta.build. Here's the way back."}
+  mainClass="wrap notfound"
+>
+  <div>
+    <svg class="mark" data-mark="draw" viewBox="0 0 100 100" aria-hidden="true">
+      <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
+        <path class="stem" d="M25 22V84" />
+        <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
+        <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
+      </g>
+    </svg>
+    <p class="notfound__code">404, not found</p>
+    <h1>This page didn't come back.</h1>
+    <p>
+      The link is wrong or the page has moved. Here is the way back, and the
+      footer carries every other link on the site.
+    </p>
+    <div class="cta__actions">
+      <a class="button button--primary" href="/">Home</a>
+      <a class="button" href="https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg">Download</a>
+      <a class="button" href="/setup/">Setup</a>
+    </div>
+  </div>
+</Base>

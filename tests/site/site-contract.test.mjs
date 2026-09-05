@@ -1,16 +1,19 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { access, readFile, readdir } from "node:fs/promises";
+import { access, readFile, readdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { SITE, localReferences, readRoute } from "./helpers.mjs";
+import { COMPONENTS, SCRIPTS, SITE, STYLES, builtCssFor, localReferences, readRoute, stripFrontmatter } from "./helpers.mjs";
+import { MARK_DRAW as SITE_MARK_DRAW } from "../../site/src/scripts/mark-draw.ts";
+import { MARK_DRAW as APP_MARK_DRAW } from "../../apps/desktop/src/lib/motion.ts";
 
-// Every route the site serves. The eight-page rebuild added five, and until
-// they were listed here none of them were covered by any guard in this file —
-// not the palette rule, not the no-third-party rule, not the responsibility
-// boundaries. A page that no test knows about is a page that can ship anything.
+// Every route the site serves. A page that no test knows about is a page
+// that can ship anything.
 const routes = [
   "/",
   "/why/",
+  "/brand/",
+  "/capsules/",
+  "/agents/",
   "/setup/",
   "/faq/",
   "/roadmap/",
@@ -20,474 +23,189 @@ const routes = [
   "/404.html",
 ];
 
-/** The eight real pages — `routes` minus the 404, which has no chrome and is
- * exempt from the nav, footer and metadata rules by design. */
+/** The nine real pages — `routes` minus the 404, which is exempt from the
+ * sitemap and the current-route marking. */
 const pages = routes.filter((route) => route !== "/404.html");
 
-test("all routes use the Living Instrument responsibility boundaries", async () => {
+// ---------------------------------------------------------------------------
+// The brand: paper, ink, one ember.
+// docs/superpowers/specs/2026-09-03-rabta-brand-redesign-design.md §2.
+
+/** The thirteen colour literals the brand owns. tokens.css defines them and
+ * no other stylesheet may introduce a fourteenth. */
+const PALETTE = new Set([
+  "#ffffff",
+  "#f5f5f7",
+  "#eaeaee",
+  "#0a0b0e",
+  "#14161b",
+  "#1e2128",
+  "#ff6b2c",
+  "#c2501b",
+  "#0e0f12",
+  "#4a4d57",
+  "#6f7380",
+  "#b4b8c2",
+  "#7c808b",
+]);
+
+/** macOS's own window-control colours, on the window frame's traffic lights.
+ * A quotation, not a palette addition: used once each, in page.css only. */
+const QUOTED = new Set(["#ff5f57", "#febc2e", "#28c840"]);
+
+/** The site's stylesheets as written. Astro bundles them per page family. */
+const STYLESHEETS = ["tokens.css", "shell.css", "landing.css", "page.css", "doc.css"];
+
+// `&#8220;`-style entities are not colours, hence the lookbehind.
+const hexLiterals = (source) =>
+  [...source.matchAll(/(?<![&\w])#[0-9a-f]{3,8}\b/gi)].map((m) => m[0].toLowerCase());
+
+test("every route wears the same stylesheets and one h1", async () => {
   for (const route of routes) {
     const html = await readRoute(route);
-    assert.match(html, /\/css\/tokens\.css/);
-    assert.match(html, /\/css\/shell\.css/);
-    assert.match(html, /\/css\/(?:landing|doc)\.css/);
-    assert.match(html, /\/css\/receipt-fold\.css/);
-    assert.doesNotMatch(html, /\/css\/(?:components|sections)\.css/);
+    const css = await builtCssFor(html);
+    assert.ok(css.length > 0, `${route}: links no built stylesheet`);
+    assert.match(css, /@layer tokens/, `${route}: tokens`);
+    assert.match(css, /\.nav__inner/, `${route}: shell`);
+    assert.match(css, /\.window__lights/, `${route}: page components`);
+    assert.match(css, route === "/" ? /\.hero__/ : /\.doc-grid/, `${route}: the page family's own sheet`);
+    assert.doesNotMatch(html, /receipt-fold|instrument\.js|reveal\.js/, route);
     assert.equal((html.match(/<h1\b/g) ?? []).length, 1, route);
   }
 });
 
-test("the approved palette is canonical", async () => {
-  const css = (
-    await readFile(resolve(SITE, "css/tokens.css"), "utf8")
-  ).toLowerCase();
-
-  for (const value of [
-    "#102526",
-    "#ff6b2c",
-    "#f3f0e8",
-    "#173239",
-    "#66858c",
-    "#a9bec2",
-    "#d9e3e3",
-  ]) {
-    assert.match(css, new RegExp(value));
+test("the palette is thirteen literals, all of them in tokens.css", async () => {
+  const tokens = (await readFile(resolve(STYLES, "tokens.css"), "utf8")).toLowerCase();
+  for (const value of PALETTE) {
+    assert.match(tokens, new RegExp(value), `tokens.css defines ${value}`);
+  }
+  for (const value of hexLiterals(tokens)) {
+    assert.ok(PALETTE.has(value), `tokens.css: unapproved colour ${value}`);
+  }
+  // Petrol is gone on every surface of the brand.
+  for (const file of STYLESHEETS) {
+    const css = (await readFile(resolve(STYLES, file), "utf8")).toLowerCase();
+    assert.doesNotMatch(css, /#102526|#173239|#66858c|#a9bec2|#d9e3e3|#f3f0e8/, `${file}: petrol`);
   }
 });
 
-test("token literals stay within the approved Living Instrument palette", async () => {
-  const css = await readFile(resolve(SITE, "css/tokens.css"), "utf8");
-  const approved = new Set([
-    "#102526",
-    "#ff6b2c",
-    "#f3f0e8",
-    "#173239",
-    "#66858c",
-    "#a9bec2",
-    "#d9e3e3",
-  ]);
-  const literals = [...css.matchAll(/#[0-9a-f]{3,8}\b/gi)].map((match) =>
-    match[0].toLowerCase(),
-  );
-
-  assert.ok(
-    literals.every((value) => approved.has(value)),
-    `unapproved token color: ${literals.find((value) => !approved.has(value))}`,
-  );
-});
-
-test("homepage hero retains the approved responsive display scale", async () => {
-  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
-  const hero = css.match(/\.hero h1 \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-
-  // The redesigned hero is one fluid clamp rather than three fixed steps: it
-  // is centred and its measure is capped in `ch`, so a per-breakpoint size
-  // would only ever be re-deriving what the clamp already gives. The bounds
-  // are the contract — 42px is the smallest the two lines stay two lines at,
-  // and 82px is where the second line stops fitting a 1440px rail.
-  assert.match(hero, /font-size:\s*clamp\(42px,\s*6\.6vw,\s*82px\)/);
-  assert.match(hero, /line-height:\s*0\.98/);
-  assert.match(hero, /letter-spacing:\s*-0\.045em/);
-  assert.match(hero, /text-wrap:\s*balance/);
-});
-
-test("homepage surfaces stay within the approved Living Instrument palette", async () => {
-  const approved = new Set([
-    "#102526",
-    "#ff6b2c",
-    "#f3f0e8",
-    "#173239",
-    "#66858c",
-    "#a9bec2",
-    "#d9e3e3",
-  ]);
-
-  // The one documented exception: macOS's own window-control colours, at their
-  // system values, on the hero window's traffic lights. They are a quotation,
-  // not a palette addition — the frame claims "this is a Mac app", and a Mac
-  // app's close button is that red. Drawing them in brand colours would make
-  // the frame a stylised picture of a window rather than a window.
-  const quoted = new Set(["#ff5f57", "#febc2e", "#28c840"]);
-
-  for (const file of ["css/shell.css", "css/landing.css", "index.html"]) {
-    const source = await readFile(resolve(SITE, file), "utf8");
-    const literals = [...source.matchAll(/#[0-9a-f]{3,8}\b/gi)].map((match) =>
-      match[0].toLowerCase(),
-    );
-    const stray = literals.find(
-      (value) => !approved.has(value) && !quoted.has(value),
-    );
-    assert.ok(!stray, `${file}: unapproved color ${stray}`);
+test("no stylesheet or page introduces a colour the brand does not own", async () => {
+  for (const file of STYLESHEETS) {
+    const css = await readFile(resolve(STYLES, file), "utf8");
+    for (const value of hexLiterals(css)) {
+      assert.ok(
+        PALETTE.has(value) || (file === "page.css" && QUOTED.has(value)),
+        `${file}: unapproved colour ${value}`,
+      );
+    }
   }
 
-  // An exception that can spread is not an exception, it is a second palette.
-  // Each quoted colour must appear exactly once, and only in the traffic-light
-  // rule it was granted for.
-  // The window component lives in page.css now — the homepage and /why/ both
-  // use it, and two copies of a window chrome is how two windows stop looking
-  // like the same product.
-  const owner = await readFile(resolve(SITE, "css/page.css"), "utf8");
-  for (const value of quoted) {
-    assert.equal(
-      (owner.match(new RegExp(value, "gi")) ?? []).length,
-      1,
-      `${value} is used more than once`,
-    );
+  // The traffic lights: once each, only on the lights, only in page.css.
+  const page = await readFile(resolve(STYLES, "page.css"), "utf8");
+  for (const value of QUOTED) {
+    assert.equal((page.match(new RegExp(value, "gi")) ?? []).length, 1, `${value} is used more than once`);
     assert.match(
-      owner,
+      page,
       new RegExp(`\\.window__lights span:nth-child\\(\\d\\) \\{\\s*background: ${value};`, "i"),
       `${value} is used outside the traffic lights`,
     );
   }
 
-  // And nowhere but page.css at all.
-  for (const file of ["css/shell.css", "css/doc.css", "css/landing.css", "css/tokens.css"]) {
-    const source = await readFile(resolve(SITE, file), "utf8");
-    for (const value of quoted) {
-      assert.doesNotMatch(source, new RegExp(value, "i"), `${file}: ${value}`);
-    }
-  }
-});
-
-test("homepage uses the exact approved responsive section rhythm", async () => {
-  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
-  const desktop = css.slice(0, css.indexOf("@media (max-width: 980px)"));
-  const tablet = css.slice(
-    css.indexOf("@media (max-width: 980px)"),
-    css.indexOf("@media (max-width: 640px)"),
-  );
-
-  // One rhythm, not six hand-picked numbers: every section on the redesigned
-  // page opens on the same 104px beat, and the closing band is the only one
-  // that differs — it is the page ending, so it gets more air above and below.
-  for (const selector of [".moves", ".holds", ".focus", ".history", ".local"]) {
-    const body = desktop.match(
-      new RegExp(`\\${selector} \\{([\\s\\S]*?)\\n\\s*\\}`),
-    )?.[1] ?? "";
-    assert.match(body, /padding-top:\s*104px/, `${selector} desktop`);
-  }
-
-  const hero = desktop.match(/\.hero \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-  assert.match(hero, /padding-top:\s*92px/);
-
-  const download = desktop.match(/\.download \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-  assert.match(download, /padding-block:\s*120px 110px/);
-
-  // The tablet step collapses the whole rhythm at once, so the sections cannot
-  // drift apart from each other on the way down.
-  assert.match(tablet, /\.moves,\n\s*\.holds,\n\s*\.focus,\n\s*\.history,\n\s*\.local \{\s*\n\s*padding-top:\s*80px/);
-});
-
-/** WCAG relative luminance of a #rrggbb string. */
-function luminance(hex) {
-  const channel = (value) => {
-    const v = value / 255;
-    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-  };
-  const n = Number.parseInt(hex.slice(1), 16);
-  return (
-    0.2126 * channel((n >> 16) & 255) +
-    0.7152 * channel((n >> 8) & 255) +
-    0.0722 * channel(n & 255)
-  );
-}
-
-function contrast(a, b) {
-  const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-  return (light + 0.05) / (dark + 0.05);
-}
-
-test("cool-mid is a display colour, and small text never uses it", async () => {
-  const petrol = "#102526";
-  const panel = "#173239";
-  const coolMid = "#66858c";
-  const coolSoft = "#a9bec2";
-
-  // The fact this whole rule rests on: cool-mid clears the 3:1 that text at
-  // 24px+ needs, but not the 4.5:1 that anything smaller needs.
-  assert.ok(contrast(coolMid, petrol) >= 3, "cool-mid is legible as display type");
-  assert.ok(
-    contrast(coolMid, petrol) < 4.5,
-    "cool-mid is NOT AA for small text — if this ever passes, revisit the rule",
-  );
-  assert.ok(contrast(coolMid, panel) < 4.5);
-
-  // Which is why every small register uses cool-soft instead.
-  assert.ok(contrast(coolSoft, petrol) >= 4.5);
-  assert.ok(contrast(coolSoft, panel) >= 4.5);
-
-  // And why the dark-on-light surfaces are safe.
-  assert.ok(contrast(petrol, "#d9e3e3") >= 4.5);
-  assert.ok(contrast(petrol, "#f3f0e8") >= 4.5);
-  assert.ok(contrast(petrol, "#ff6b2c") >= 4.5, "button label on the accent");
-
-  const doc = await readFile(resolve(SITE, "css/doc.css"), "utf8");
-  for (const selector of [
-    ".marker",
-    ".muted",
-    ".cmt",
-    ".note p",
-    ".prose th",
-    ".prose tbody th",
-    ".copy-status",
-    ".notfound__code",
-  ]) {
-    const body =
-      doc.match(
-        new RegExp(`\\${selector.replaceAll(" ", "\\s+")} \\{([\\s\\S]*?)\\n\\s*\\}`),
-      )?.[1] ?? "";
-    assert.doesNotMatch(body, /color:\s*var\(--text-3\)/, selector);
-  }
-});
-
-/** Every selector list in a stylesheet, paired with its declaration block. */
-async function rulesOf(file) {
-  const css = await readFile(resolve(SITE, file), "utf8");
-  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
-  return [...stripped.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((match) => ({
-    selector: match[1].replace(/\s+/g, " ").trim(),
-    body: match[2],
-  }));
-}
-
-const STYLESHEETS = [
-  "css/tokens.css",
-  "css/shell.css",
-  "css/landing.css",
-  "css/doc.css",
-  "css/receipt-fold.css",
-];
-
-test("nothing on the site responds to a mouse but not to a keyboard", async () => {
-  // The single rule the hover system exists to hold: a keyboard user gets the
-  // same feedback a pointer user gets, or the feedback does not ship.
-  for (const file of STYLESHEETS) {
-    const rules = await rulesOf(file);
-    const selectors = rules.map((rule) => rule.selector).join(" | ");
-
-    for (const rule of rules) {
-      for (const part of rule.selector.split(",")) {
-        const trimmed = part.trim();
-        if (!trimmed.includes(":hover")) continue;
-        const partner = trimmed.replace(/:hover/g, ":focus-visible");
-        assert.ok(
-          selectors.includes(partner),
-          `${file}: "${trimmed}" has no ":focus-visible" counterpart`,
-        );
-      }
-    }
-  }
-});
-
-test("hover motion runs on one duration and one curve", async () => {
-  const tokens = await readFile(resolve(SITE, "css/tokens.css"), "utf8");
-  assert.match(tokens, /--hover-dur:\s*180ms/);
-  assert.match(tokens, /--cut-skew:\s*-18deg/);
-
-  const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");
-
-  // The sweep waits off the leading edge and lands flush; the diagonal is its
-  // front face, so the fold's geometry appears in motion and never as shape.
-  const rest = shell.match(/\.sweep::before \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-  // The resting side is --cut-x, which js/instrument.js sets to the edge the
-  // pointer crossed. It must stay a whole offset with a left-hand default:
-  // calc() will not re-resolve a percentage scaled by a substituted number,
-  // and the default is what keyboard focus and a scriptless page get.
-  assert.match(
-    rest,
-    /transform:\s*translateX\(var\(--cut-x, -130%\)\) skewX\(var\(--cut-skew\)\)/,
-  );
-  assert.match(rest, /transition:\s*transform var\(--hover-dur\) var\(--ease-out\)/);
-
-  const landed = shell.match(
-    /\.sweep:hover::before,\s*\.sweep:focus-visible::before \{([\s\S]*?)\n\s*\}/,
-  )?.[1] ?? "";
-  assert.match(landed, /transform:\s*translateX\(0\) skewX\(var\(--cut-skew\)\)/);
-
-  // No hover rule may invent its own timing.
-  for (const file of ["css/shell.css", "css/landing.css", "css/doc.css"]) {
-    const rules = await rulesOf(file);
-    for (const rule of rules) {
-      if (!/transition/.test(rule.body)) continue;
-      // `0.01ms` is the reduced-motion collapse, not a hand-picked duration.
-      const literal = rule.body.match(/transition[^;]*?(?<![\d.])(\d+)ms/);
-      assert.ok(
-        !literal,
-        `${file}: "${rule.selector}" hard-codes ${literal?.[1]}ms instead of a token`,
-      );
-    }
-  }
-});
-
-test("the current route is marked in the nav, not just in the markup", async () => {
-  const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");
-  const rule =
-    shell.match(
-      /\.nav__links a\[aria-current="page"\]::before \{([\s\S]*?)\n\s*\}/,
-    )?.[1] ?? "";
-
-  // The indicator holds the same fill the hover lands, so "you are here" and
-  // "you are about to go here" are the same mark in two tenses.
-  assert.match(rule, /transform:\s*translateX\(0\) skewX\(var\(--cut-skew\)\)/);
-  assert.match(rule, /transition:\s*none/, "the indicator is a state, not a gesture");
-
-  // And the attribute it depends on is actually on every route that has a
-  // chrome link to itself.
-  //
-  // This deliberately does not look only inside `.nav__links`. The eight-page
-  // rebuild moved Privacy and Roadmap into the footer, so a nav-only check
-  // reported those pages as unmarked when they are correctly marked — in the
-  // other nav. What matters is that a page marks itself exactly once, and
-  // marks the link that actually points at it.
-  for (const route of [
-    "/why/",
-    "/setup/",
-    "/faq/",
-    "/roadmap/",
-    "/changelog/",
-    "/contact/",
-    "/privacy/",
-  ]) {
+  for (const route of routes) {
     const html = await readRoute(route);
-    const marks = html.match(/<a href="([^"]*)"[^>]*aria-current="page"/g) ?? [];
-    assert.equal(marks.length, 1, `${route}: expected exactly one aria-current`);
-    assert.match(
-      marks[0],
-      new RegExp(`href="${route}"`),
-      `${route}: aria-current is on the wrong link`,
+    const body = html.match(/<body[\s\S]*<\/body>/)?.[0] ?? html;
+    for (const value of hexLiterals(body)) {
+      assert.ok(PALETTE.has(value), `${route}: unapproved colour ${value} in markup`);
+    }
+    assert.match(html, /<meta name="theme-color" content="#0a0b0e"\s*\/?>/, `${route}: theme-color`);
+    assert.match(html, /<meta name="color-scheme" content="dark"\s*\/?>/, `${route}: color-scheme`);
+  }
+});
+
+test("the mark's geometry is the brand source, wherever it is inlined", async () => {
+  const source = await readFile(resolve(SITE, "assets/brand/mark.svg"), "utf8");
+  const strokes = [...source.matchAll(/\bd="([^"]+)"/g)].map((m) => m[1]);
+  assert.equal(strokes.length, 3, "mark.svg carries three strokes");
+
+  let inlined = 0;
+  for (const route of routes) {
+    const html = await readRoute(route);
+    for (const [svg] of html.matchAll(/<svg class="mark"[\s\S]*?<\/svg>/g)) {
+      inlined += 1;
+      const d = [...svg.matchAll(/\bd="([^"]+)"/g)].map((m) => m[1]);
+      assert.deepEqual(d, strokes, `${route}: an inline mark drifted from mark.svg`);
+      assert.match(svg, /class="stem/, `${route}: stem`);
+      assert.match(svg, /class="bowl/, `${route}: bowl`);
+      assert.match(svg, /class="leg/, `${route}: leg`);
+    }
+  }
+  assert.ok(inlined >= 5, `the mark is inlined on the pages that draw it (${inlined})`);
+
+  // The tile and the lockups are generated from the same geometry.
+  const tile = await readFile(resolve(SITE, "assets/brand/rabta-mark.svg"), "utf8");
+  for (const d of strokes) assert.ok(tile.includes(d), "the tile carries the mark's strokes");
+  for (const file of ["lockup.svg", "lockup-paper.svg", "lockup-mono.svg"]) {
+    const lockup = await readFile(resolve(SITE, `assets/brand/${file}`), "utf8");
+    for (const d of strokes) assert.ok(lockup.includes(d), `${file} carries the mark's strokes`);
+  }
+});
+
+test("the type is Inter 4 with both axes, self-hosted, preloaded once", async () => {
+  const font = await stat(resolve(SITE, "assets/fonts/inter-var.woff2"));
+  assert.ok(font.size > 20_000 && font.size < 90_000, `subset is ${font.size} bytes`);
+  const tokens = await readFile(resolve(STYLES, "tokens.css"), "utf8");
+  assert.match(tokens, /font-family: "Inter Var";/);
+  assert.match(tokens, /font-weight: 400 700;/);
+  const shell = await readFile(resolve(STYLES, "shell.css"), "utf8");
+  assert.match(shell, /font-optical-sizing: auto;/, "the display cut is on");
+  for (const route of routes) {
+    const html = await readRoute(route);
+    assert.equal(
+      (html.match(/rel="preload" as="font"[^>]*inter-var\.woff2/g) ?? []).length,
+      1,
+      `${route}: preloads the font once`,
     );
+    assert.doesNotMatch(html, /inter-latin-variable/, `${route}: the old subset`);
   }
-
-  // Home is the exception, and deliberately so: its chrome link is the brand
-  // mark, not a nav item, so there is nothing to mark.
-  const home = await readRoute("/");
-  assert.equal(
-    (home.match(/aria-current="page"/g) ?? []).length,
-    0,
-    "home marks no nav item",
-  );
 });
 
-test("every enhancement resolves to the finished state without JavaScript", async () => {
-  // The whole rule for this layer: CSS ships the completed page, and the
-  // modules only opt elements into being animated on the way there.
-  const landing = await readFile(resolve(SITE, "css/landing.css"), "utf8");
-
-  // The headline's lines are only hidden once js/reveal.js has marked their
-  // section pending. Nothing in the markup carries that state, so a page whose
-  // script never runs renders the finished thing rather than an empty box.
-  assert.match(landing, /\[data-reveal="pending"\] \.rise > span \{[\s\S]*?opacity:\s*0/);
-  const html = await readRoute("/");
-  assert.doesNotMatch(html, /data-resolve="pending"/);
-  assert.doesNotMatch(html, /data-reveal="pending"/);
-
-  // A counter's markup holds its final value, so a scriptless page shows it.
-  for (const [, value] of html.matchAll(/data-count>(\d+)</g)) {
-    assert.ok(Number.parseInt(value, 10) > 0, `counter ships ${value}`);
+test("the brand's own copy carries no em-dash", async () => {
+  // Headings and paragraphs on the pages written for the redesign, and the
+  // shared chrome. Reference documents (/setup/, /privacy/, /faq/, /roadmap/,
+  // /changelog/, /contact/) keep their prose as written.
+  for (const route of ["/", "/why/", "/brand/", "/capsules/", "/agents/", "/404.html"]) {
+    const html = await readRoute(route);
+    const body = (html.match(/<main[\s\S]*<\/main>/)?.[0] ?? "").replace(/<!--[\s\S]*?-->/g, "");
+    for (const [block] of body.matchAll(/<(?:h[1-3]|p)\b[^>]*>[\s\S]*?<\/(?:h[1-3]|p)>/g)) {
+      if (/window__title/.test(block)) continue;
+      assert.doesNotMatch(block.replace(/<[^>]+>/g, ""), /[—–]/, `${route}: ${block.slice(0, 80)}`);
+    }
   }
-  // Three, in the footer's receipt. The homepage's own counters went with the
-  // bento; the receipt's are the shell's and appear on every route.
-  assert.equal((html.match(/data-count/g) ?? []).length, 3);
-
-  // The focus receipt is the same rule in a different shape: its three tallies
-  // ship their real values, so the section reads correctly before home.js runs.
-  for (const [, value] of html.matchAll(/data-tally="[a-z]+">(\d+)</g)) {
-    assert.ok(Number.parseInt(value, 10) >= 0, `tally ships ${value}`);
+  for (const file of ["Nav.astro", "Foot.astro"]) {
+    const chrome = stripFrontmatter(await readFile(resolve(COMPONENTS, file), "utf8")).replace(/<!--[\s\S]*?-->/g, "");
+    assert.doesNotMatch(chrome.replace(/<[^>]+>/g, ""), /[—–]/, file);
   }
-  assert.equal((html.match(/data-tally=/g) ?? []).length, 3);
-
-  const instrument = await readFile(resolve(SITE, "js/instrument.js"), "utf8");
-  // Counting and sequencing are motion with no meaning of their own, so both
-  // stand down under reduced motion rather than merely running faster.
-  assert.equal(
-    (instrument.match(/prefers-reduced-motion/g) ?? []).length +
-      (instrument.match(/matchMedia\?\.\(REDUCED\)/g) ?? []).length,
-    3,
-  );
 });
 
-test("chapter marks are drawn at rest, so a script failure cannot hide them", async () => {
-  const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");
-  const mark = shell.match(/\.eyebrow::before \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-
-  // No transform in the resting rule means scaleX(1) — visible by default.
-  assert.doesNotMatch(mark, /transform:\s*scaleX\(0\)/);
-  assert.match(shell, /\[data-reveal="pending"\] \.eyebrow::before \{\s*transform:\s*scaleX\(0\)/);
-
-  const reveal = await readFile(resolve(SITE, "js/reveal.js"), "utf8");
-  assert.match(reveal, /dataset\.reveal = "pending"/);
-  assert.match(reveal, /IntersectionObserver/);
-});
-
-test("homepage metadata uses the approved contrast pairings", async () => {
-  const landing = await readFile(resolve(SITE, "css/landing.css"), "utf8");
-  const shell = await readFile(resolve(SITE, "css/shell.css"), "utf8");
-
-  // Mono metadata is the quietest text on the page and the easiest to render
-  // unreadable. Every instance of it resolves to a checked token rather than a
-  // hand-dimmed value.
-  for (const [selector, token] of [
-    [".requirement,\n  .download__meta", "cool-mid"],
-    [".marquee__logo", "cool-mid"],
-    [".figcard__fig", "cool-mid"],
-    [".hero__lede", "cool-soft"],
-    [".moves__hint", "cool-soft"],
-  ]) {
-    const body = landing.match(
-      new RegExp(`\\${selector.replaceAll(" ", "\\s+")} \\{([\\s\\S]*?)\\n\\s*\\}`),
-    )?.[1] ?? "";
-    assert.match(body, new RegExp(`color:\\s*var\\(--${token}\\)`), selector);
-  }
-
-  const livingShell = shell.slice(shell.indexOf("Living Instrument shared shell"));
-  const footerMeta = livingShell.match(/\.foot__meta \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-  assert.match(footerMeta, /color:\s*var\(--cool-soft\)/);
-});
-
-test("homepage footer includes the published release page", async () => {
-  const html = await readRoute("/");
-  const footer = html.match(/<footer\b[\s\S]*?<\/footer>/)?.[0] ?? "";
-  assert.match(
-    footer,
-    /href="https:\/\/github\.com\/salmuflahi\/rabta\/releases\/tag\/v0\.1\.0"[^>]*>Releases<\/a>/,
-  );
-});
-
-test("document routes keep detail but never load product media", async () => {
-  const setup = await readRoute("/setup/");
-  const privacy = await readRoute("/privacy/");
-  const notFound = await readRoute("/404.html");
-
-  // The homepage deliberately sheds these; /setup/ is where they live.
-  assert.ok(
-    setup.includes(
-      "3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655",
-    ),
-  );
-  assert.ok(setup.includes("86M2X6MUA3"));
-  assert.ok(privacy.includes("127.0.0.1"));
-
-  for (const html of [setup, privacy, notFound]) {
-    assert.doesNotMatch(html, /<video\b/);
-    assert.match(html, /data-receipt-fold/);
-  }
-
-  assert.ok(notFound.includes("Home"));
-  assert.ok(notFound.includes("Download"));
-  assert.ok(notFound.includes("Setup"));
-});
+// ---------------------------------------------------------------------------
+// The shell.
 
 test("every route wears the same shell", async () => {
   for (const route of routes) {
     const html = await readRoute(route);
-
-    // One nav, one footer, one main, one receipt — no route keeps a private
-    // copy of the chrome.
     assert.equal((html.match(/<main\b/g) ?? []).length, 1, route);
-    assert.equal((html.match(/data-receipt-fold/g) ?? []).length, 1, route);
-    assert.match(html, /<header class="nav">/, route);
+    assert.match(html, /<header class="nav" data-nav>/, route);
     assert.match(html, /class="rail nav__inner"/, route);
     assert.match(html, /<footer class="foot">/, route);
     assert.match(html, /class="rail foot__grid"/, route);
+
+    // The lockup, in both colourways, in the nav and the footer.
+    const nav = html.match(/<header class="nav"[\s\S]*?<\/header>/)?.[0] ?? "";
+    assert.match(nav, /class="brand__ink" src="\/assets\/brand\/lockup\.svg"/, `${route}: nav lockup`);
+    assert.match(nav, /class="brand__paper" src="\/assets\/brand\/lockup-paper\.svg"/, `${route}: nav lockup, paper`);
+    assert.equal((nav.match(/class="nav__links"[\s\S]*?<\/nav>/)?.[0].match(/<a /g) ?? []).length, 6, `${route}: six links`);
+    assert.match(nav, /nav__download/, `${route}: the download button`);
+    assert.match(nav, /<details class="nav__menu">/, `${route}: the compact menu`);
 
     const footer = html.match(/<footer\b[\s\S]*?<\/footer>/)?.[0] ?? "";
     for (const link of [
@@ -496,6 +214,7 @@ test("every route wears the same shell", async () => {
       '"/roadmap/"',
       '"/faq/"',
       '"/contact/"',
+      '"/brand/"',
       "https://github.com/salmuflahi/rabta",
       "https://github.com/salmuflahi/rabta/releases/tag/v0.1.0",
       "open-vsx.org",
@@ -505,11 +224,6 @@ test("every route wears the same shell", async () => {
     ]) {
       assert.ok(footer.includes(link), `${route} footer → ${link}`);
     }
-
-    // `rel="me"` is the link-back half of identity verification: it is what
-    // lets each profile prove it belongs to this site rather than merely
-    // pointing at it. Dropping it turns three verified profiles into three
-    // ordinary links and nothing visibly breaks, which is why it is asserted.
     for (const profile of [
       "https://github.com/salmuflahi/rabta",
       "https://www.instagram.com/rabtaconnector/",
@@ -518,36 +232,317 @@ test("every route wears the same shell", async () => {
       const tag = footer.match(new RegExp(`<a href="${profile.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*>`))?.[0] ?? "";
       assert.match(tag, /rel="[^"]*\bme\b/, `${route}: ${profile} lacks rel="me"`);
     }
-
-    // Four labelled columns, not one undifferentiated row. The labels are what
-    // make the footer navigable rather than a list of everything.
     for (const heading of ["Product", "Get started", "Project", "Contact &amp; legal"]) {
-      assert.ok(
-        footer.includes(`<p class="foot__head">${heading}</p>`),
-        `${route} footer → ${heading} column`,
-      );
+      assert.ok(footer.includes(`<p class="foot__head">${heading}</p>`), `${route} footer → ${heading} column`);
     }
     assert.ok(footer.includes("Rabta v0.1.0 · MIT · nothing leaves this Mac"), route);
 
-    // The document routes never carry homepage composition or media behaviour.
     if (route !== "/") {
-      assert.doesNotMatch(html, /\/css\/landing\.css/, route);
-      assert.doesNotMatch(html, /data-product-media/, route);
-      assert.doesNotMatch(html, /class="[^"]*\breturn-field\b/, route);
+      assert.doesNotMatch(await builtCssFor(html), /\.hero__/, `${route}: carries the landing styles`);
+      // Two inner pages carry one loop each; everything else carries none.
+      const regionsAllowed = { "/agents/": 1, "/capsules/": 1 };
+      assert.equal((html.match(/data-product-media=/g) ?? []).length, regionsAllowed[route] ?? 0, `${route}: product media regions`);
     }
   }
 });
 
-test("no route links to an anchor that does not exist", async () => {
+test("the current route is marked exactly once, on the link that points at it", async () => {
+  for (const route of pages.filter((r) => r !== "/")) {
+    const html = await readRoute(route);
+    const marks = html.match(/<a href="([^"]*)"[^>]*aria-current="page"/g) ?? [];
+    assert.equal(marks.length, 1, `${route}: expected exactly one aria-current`);
+    assert.match(marks[0], new RegExp(`href="${route}"`), `${route}: aria-current is on the wrong link`);
+  }
   const home = await readRoute("/");
-  const idsIn = (html) =>
-    new Set([...html.matchAll(/id="([^"]+)"/g)].map((match) => match[1]));
-  const homeIds = idsIn(home);
+  assert.equal((home.match(/aria-current="page"/g) ?? []).length, 0, "home marks no nav item");
+});
 
+test("nothing on the site responds to a mouse but not to a keyboard", async () => {
+  for (const file of STYLESHEETS) {
+    const css = (await readFile(resolve(STYLES, file), "utf8")).replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => m[1].replace(/\s+/g, " ").trim());
+    const all = rules.join(" | ");
+    for (const selector of rules) {
+      for (const part of selector.split(",")) {
+        const trimmed = part.trim();
+        if (!trimmed.includes(":hover")) continue;
+        const partners = [trimmed.replace(/:hover/g, ":focus-visible"), trimmed.replace(/:hover/g, ":focus-within")];
+        assert.ok(partners.some((partner) => all.includes(partner)), `${file}: "${trimmed}" has no ":focus-visible" or ":focus-within" counterpart`);
+      }
+    }
+  }
+});
+
+test("motion runs on the brand's tokens, and stands down under reduced motion", async () => {
+  const tokens = await readFile(resolve(STYLES, "tokens.css"), "utf8");
+  assert.match(tokens, /--ease: cubic-bezier\(0\.16, 1, 0\.3, 1\);/);
+  assert.match(tokens, /--dur-hover: 120ms;/);
+  assert.match(tokens, /--dur-state: 240ms;/);
+  assert.match(tokens, /--dur-reveal: 480ms;/);
+
+  // No transition or animation may invent its own duration.
+  for (const file of ["shell.css", "landing.css", "page.css", "doc.css"]) {
+    const css = (await readFile(resolve(STYLES, file), "utf8")).replace(/\/\*[\s\S]*?\*\//g, "");
+    for (const [, body] of css.matchAll(/\{([^{}]*)\}/g)) {
+      if (!/transition/.test(body)) continue;
+      const literal = body.match(/transition[^;]*?(?<![\d.])([1-9]\d*)ms/);
+      assert.ok(!literal, `${file}: a transition hard-codes ${literal?.[1]}ms instead of a token`);
+    }
+  }
+
+  const shell = await readFile(resolve(STYLES, "shell.css"), "utf8");
+  assert.match(shell, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(shell, /\[data-reveal="pending"\] \{\s*opacity: 1;/);
+
+  // Every module that animates reads the preference, and nothing listens to
+  // the scroll event: scrubbing goes through ScrollTrigger or an observer.
+  const animating = (await readdir(SCRIPTS)).filter((f) => f.endsWith(".ts"));
+  let gsapModules = 0;
+  for (const file of animating) {
+    const ts = await readFile(resolve(SCRIPTS, file), "utf8");
+    assert.doesNotMatch(ts, /addEventListener\(["']scroll["']/, `${file}: listens to scroll directly`);
+    if (!/from "gsap/.test(ts)) continue;
+    gsapModules += 1;
+    assert.match(ts, /reducedMotion\(/, `${file}: animates without honouring reduced motion`);
+  }
+  assert.ok(gsapModules >= 2, "the motion modules import gsap");
+  // The mark draws with the same numbers in the app and on the page.
+  assert.deepEqual(SITE_MARK_DRAW, APP_MARK_DRAW, "the site's mark timing drifted from the app's");
+  assert.deepEqual(SITE_MARK_DRAW, { stem: { delay: 0, duration: 420 }, bowl: { delay: 180, duration: 560 }, leg: { delay: 560, duration: 640 }, total: 1100 });
+});
+
+test("every enhancement resolves to the finished state without JavaScript", async () => {
+  for (const route of routes) {
+    const html = await readRoute(route);
+    assert.doesNotMatch(html, /data-reveal="pending"/, route);
+    assert.doesNotMatch(html, /data-hero="pending"/, route);
+    assert.doesNotMatch(html, /data-moves="live"/, route);
+    assert.doesNotMatch(html, /\sstyle="/, `${route}: inline style`);
+  }
+  const home = await readRoute("/");
+  for (const [, value] of home.matchAll(/data-tally="[a-z]+">(\d+)</g)) {
+    assert.ok(Number.parseInt(value, 10) >= 0, `tally ships ${value}`);
+  }
+  assert.equal((home.match(/data-tally=/g) ?? []).length, 3);
+});
+
+// ---------------------------------------------------------------------------
+// The homepage.
+
+test("homepage has the approved narrative", async () => {
+  const html = await readRoute("/");
+  for (const copy of [
+    "Leave the task.",
+    "Return to all of it.",
+    "Three moves. Nothing else to learn.",
+    "A capsule is the whole surface of a task.",
+    "Resuming can also put away what isn't in the task.",
+    "There is no account, because there is no server.",
+    "Stop rebuilding the same workspace.",
+  ]) {
+    assert.ok(html.includes(copy), copy);
+  }
+  for (const id of ["top", "product", "pieces", "focus", "local", "download"]) {
+    assert.match(html, new RegExp(`id="${id}"`), id);
+  }
+  for (const removed of ['class="return-field', 'class="bento', 'class="heat', 'data-receipt-fold', 'class="badge']) {
+    assert.doesNotMatch(html, new RegExp(removed), removed);
+  }
+});
+
+test("the hero is the mark, the claim, and the real app", async () => {
+  const html = await readRoute("/");
+  const hero = html.match(/<section class="hero"[\s\S]*?<\/section>/)?.[0] ?? "";
+  assert.match(hero, /data-hero-mark/);
+  assert.match(hero, /data-hero-word>abta</, "the word arrives beside the mark");
+  assert.equal((hero.match(/class="rise"/g) ?? []).length, 2, "two lines rise");
+  assert.equal((hero.match(/class="button/g) ?? []).length, 2, "one primary, one quiet");
+  assert.equal((hero.match(/button--primary/g) ?? []).length, 1, "one ember in the hero");
+  assert.match(hero, /data-product-media="hero"/);
+  assert.match(hero, /poster="\/assets\/demos\/hero-return\.jpg"/, "the hero's poster is a frame of its own loop");
+  assert.match(hero, /data-src-desktop="\/assets\/demos\/hero-return-desktop\.mp4"/);
+  assert.match(hero, /data-src-mobile="\/assets\/demos\/hero-return-mobile\.mp4"/);
+  assert.equal((html.match(/<video\b/g) ?? []).length, 8, "eight loops on the page: the hero, three moves, four cells");
+  for (const video of html.match(/<video\b[^>]*>/g) ?? []) {
+    assert.match(video, /\bmuted\b/, "every loop is silent");
+    assert.match(video, /\bplaysinline\b/, "every loop stays in its frame on iOS");
+    assert.match(video, /preload="none"/, "no loop downloads before its script decides to");
+    assert.match(video, /aria-label="[^"]+"/, "every loop says what it shows");
+    assert.doesNotMatch(video, /\bautoplay\b/, "no loop plays without the script's consent");
+    assert.doesNotMatch(video, /\ssrc=/, "sources attach at runtime, from data-src-*");
+  }
+});
+
+test("the homepage's claims about the build match what ships", async () => {
+  const html = (await readRoute("/")).replace(/<!--[\s\S]*?-->/g, "");
+  assert.ok(html.includes("no Intel build"), "names the missing Intel build");
+  assert.ok(html.includes("macOS 11+"), "the real floor");
+  assert.ok(html.includes("5.5 MB"), "the real size");
+  assert.ok(html.includes("MIT-licensed"), "the real licence");
+  assert.ok(html.includes("Signed and notarized"), "the real signing status");
+  assert.doesNotMatch(html, /Apple silicon &amp; Intel|Apple silicon & Intel/);
+  assert.doesNotMatch(html, /macOS 13/);
+  assert.doesNotMatch(html, /while in beta/);
+  assert.doesNotMatch(html, /14 MB/);
+});
+
+test("the three moves ship as a list and scrub into a sequence", async () => {
+  const html = await readRoute("/");
+  const moves = html.match(/<section class="moves"[\s\S]*?<\/section>/)?.[0] ?? "";
+  assert.equal((moves.match(/class="move"/g) ?? []).length, 3);
+  assert.equal((moves.match(/data-move-shot="\d"/g) ?? []).length, 3);
+  assert.match(moves, /data-move-shot="0" data-active/, "the first beat is up before any script runs");
+  assert.match(moves, /class="move" data-move="0" aria-current="step"/, "the first move is current before any script runs");
+  for (const copy of ["Capture", "Leave", "Return"]) {
+    assert.ok(moves.includes(`<h3>${copy}</h3>`), copy);
+  }
+  for (const [i, beat] of ["move-capture", "move-leave", "move-return"].entries()) {
+    const shot = moves.match(new RegExp(`<video data-move-shot="${i}"[^>]*>`))?.[0] ?? "";
+    assert.match(shot, new RegExp(`poster="/assets/demos/${beat}\\.jpg"`), `${beat} poster`);
+    assert.match(shot, new RegExp(`data-src-desktop="/assets/demos/${beat}-desktop\\.mp4"`), `${beat} desktop loop`);
+    assert.match(shot, new RegExp(`data-src-mobile="/assets/demos/${beat}-mobile\\.mp4"`), `${beat} mobile loop`);
+  }
+  assert.doesNotMatch(moves, /data-product-media/, "the moves' loops belong to the sequence, not to media.js");
+});
+
+test("the bento has exactly four cells and every one shows the real app", async () => {
+  const html = await readRoute("/");
+  const bento = html.match(/<div class="holds__grid">[\s\S]*?<\/section>/)?.[0] ?? "";
+  const cells = bento.match(/<article class="cell[^"]*"/g) ?? [];
+  assert.equal(cells.length, 4);
+  assert.ok(cells.some((c) => /cell--ember/.test(c)), "one ember cell");
+  assert.ok(cells.some((c) => /cell--paper paper/.test(c)), "one paper cell");
+  assert.equal((bento.match(/class="cell__art" data-product-media="cell-[a-z]+"/g) ?? []).length, 4, "every cell is its own media block");
+  assert.equal((bento.match(/<video\b/g) ?? []).length, 4, "a loop per cell");
+  assert.equal((bento.match(/data-media-play/g) ?? []).length, 4, "every cell's loop can be paused");
+  assert.doesNotMatch(bento, /<img\b/, "the cells show footage of the app, not crops of stills");
+});
+
+test("the focus switch ships in the state that makes its section legible", async () => {
+  const html = await readRoute("/");
+  const toggle = html.match(/<button[^>]*data-focus-toggle[^>]*>/)?.[0] ?? "";
+  assert.ok(toggle, "the switch exists");
+  assert.match(toggle, /role="switch"/);
+  assert.match(toggle, /aria-checked="true"/, "ships on");
+  assert.match(toggle, /type="button"/);
+  assert.ok(html.includes("6 tabs closed · 4 kept"));
+  assert.ok(html.includes("focus mode on"));
+});
+
+test("the night chapter states the guarantees and draws the mark", async () => {
+  const html = await readRoute("/");
+  const night = html.match(/<section class="local"[\s\S]*?<\/section>/)?.[0] ?? "";
+  assert.ok(night, "the chapter exists");
+  assert.match(night, /data-mark="thread"/, "the mark finishes the thread");
+  assert.match(night, /data-thread-end/);
+  assert.equal((night.match(/<h3>/g) ?? []).length, 4, "four guarantees");
+  assert.match(night, /href="\/privacy\/"/);
+});
+
+test("the marquee names only apps a connector actually speaks to", async () => {
+  const html = await readRoute("/");
+  const marquee = html.match(/<div class="marquee"[\s\S]*?<\/div>\s*<\/div>/)?.[0] ?? "";
+  for (const app of ["VS Code", "Cursor", "Zed", "Ghostty", "iTerm2", "Terminal", "Warp", "Chrome", "Arc", "Firefox"]) {
+    assert.ok(marquee.includes(`>${app}</span>`), app);
+  }
+  assert.equal((marquee.match(/class="marquee__logo"/g) ?? []).length, 20);
+  assert.match(marquee, /aria-hidden="true"/);
+  assert.ok(html.includes("Connectors currently speak to VS Code"));
+  assert.equal((html.match(/class="marquee"/g) ?? []).length, 1, "one marquee on the page");
+});
+
+// ---------------------------------------------------------------------------
+// The inner pages.
+
+test("the inner pages are laid out, not just typeset", async () => {
+  const shaped = {
+    "/why/": { bands: 4, cards: 3, headline: "The code is saved." },
+    "/brand/": { bands: 6, headline: "An R that is also a ر." },
+    "/faq/": { bands: 4, groups: 4, headline: "The questions the docs answer sideways." },
+    "/roadmap/": { bands: 3, cards: 10, headline: "Where this goes." },
+    "/agents/": { bands: 4, cards: 4, headline: "Your agent starts where you left off." },
+    "/capsules/": { bands: 4, cards: 3, headline: "What a capsule holds, and how it comes back." },
+    "/changelog/": { bands: 4, cards: 6, headline: "What shipped." },
+    "/contact/": { bands: 3, cards: 3, headline: "Talk to a human." },
+  };
+  for (const [route, want] of Object.entries(shaped)) {
+    const html = await readRoute(route);
+    assert.ok(html.includes(want.headline), `${route}: headline`);
+    assert.equal((html.match(/<section class="band[^"]*"/g) ?? []).length, want.bands, `${route}: band count`);
+    if (want.cards !== undefined) {
+      assert.equal((html.match(/class="card[ "]/g) ?? []).length, want.cards, `${route}: card count`);
+    }
+    if (want.groups !== undefined) {
+      assert.equal((html.match(/class="qa"/g) ?? []).length, want.groups, `${route}: question-group count`);
+    }
+    for (const band of html.match(/<section class="band[\s\S]*?<\/section>/g) ?? []) {
+      assert.equal((band.match(/<h2\b/g) ?? []).length, 1, `${route}: a band with ${(band.match(/<h2\b/g) ?? []).length} h2s`);
+    }
+    assert.doesNotMatch(html, /class="prose"/, `${route}: a prose document`);
+    // Section-number eyebrows are gone; a label names the section in words.
+    assert.doesNotMatch(html, /class="band__label">0\d ·/, `${route}: numbered label`);
+  }
+});
+
+test("the brand page draws the mark, explains it, and hands out the files", async () => {
+  const html = await readRoute("/brand/");
+  assert.equal((html.match(/data-mark="draw"/g) ?? []).length, 2, "two living specimens");
+  for (const [, id] of html.matchAll(/data-mark-replay aria-controls="([^"]+)"/g)) {
+    assert.match(html, new RegExp(`id="${id}"`), `replay control points at ${id}`);
+  }
+  assert.equal((html.match(/class="stroke"/g) ?? []).length, 3, "three strokes explained");
+  assert.match(html, /class="name__word name__word--arabic">رابطة</);
+  for (const file of ["lockup.svg", "lockup-paper.svg", "icon-512.png", "mark.svg"]) {
+    assert.match(html, new RegExp(`href="/assets/brand/${file.replace(".", "\\.")}" download`), `${file} download`);
+    await access(resolve(SITE, `assets/brand/${file}`));
+  }
+  assert.equal((html.match(/class="swatch"/g) ?? []).length, 8, "eight swatches");
+});
+
+test("the two document pages are navigable, not just long", async () => {
+  for (const route of ["/setup/", "/privacy/"]) {
+    const html = await readRoute(route);
+    assert.match(html, /class="doc-grid"/, `${route}: no document grid`);
+    assert.match(html, /<nav class="doc-nav"/, `${route}: no sidebar index`);
+    assert.match(html, /class="prose doc-body"/, `${route}: no numbered body`);
+    const nav = html.match(/<nav class="doc-nav"[\s\S]*?<\/nav>/)?.[0] ?? "";
+    const linked = [...nav.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]);
+    const sections = [...html.matchAll(/<h2 id="([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual(linked, sections, `${route}: index and sections disagree`);
+    assert.doesNotMatch(html, /<h2 id="[^"]+">\s*\d+\./, `${route}: a heading still carries its own number`);
+  }
+});
+
+test("no page styles itself with a class no stylesheet it loads defines", async () => {
+  const stylesheets = new Map();
+  const cssFor = async (file) => {
+    if (!stylesheets.has(file)) stylesheets.set(file, await readFile(resolve(SITE, file), "utf8"));
+    return stylesheets.get(file);
+  };
+  // Hooks rather than styling: JS targets, or names used only as a state.
+  const behavioural = new Set(["visually-hidden", "lit", "stem", "bowl"]);
+  for (const route of routes) {
+    const html = await readRoute(route);
+    const links = [...html.matchAll(/<link rel="stylesheet" href="\/([^"]+)"/g)].map((m) => m[1]);
+    const css = (await Promise.all(links.map(cssFor))).join("\n");
+    const main = html.match(/<main\b[\s\S]*?<\/main>/)?.[0] ?? "";
+    const used = new Set([...main.matchAll(/class="([^"]+)"/g)].flatMap((m) => m[1].split(/\s+/)).filter(Boolean));
+    for (const name of used) {
+      if (behavioural.has(name)) continue;
+      assert.ok(css.includes(`.${name}`), `${route}: .${name} is used in <main> but defined in none of ${links.join(", ")}`);
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Links, assets, and the outside world.
+
+test("no route links to an anchor that does not exist", async () => {
+  const idsIn = (html) => new Set([...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
+  const homeIds = idsIn(await readRoute("/"));
   for (const route of routes) {
     const html = await readRoute(route);
     const ownIds = idsIn(html);
-
     for (const [, target] of html.matchAll(/href="\/#([^"]+)"/g)) {
       assert.ok(homeIds.has(target), `${route} → /#${target} is not on the homepage`);
     }
@@ -557,96 +552,49 @@ test("no route links to an anchor that does not exist", async () => {
   }
 });
 
-test("every route paints the same browser chrome colour", async () => {
-  for (const route of routes) {
-    const html = await readRoute(route);
-    assert.match(
-      html,
-      /<meta name="theme-color" content="#102526" \/>/,
-      route,
-    );
-  }
-});
-
 test("every route carries its canonical title", async () => {
   const expected = new Map([
-    ["/", "Rabta — Pick up the task. Not the pieces."],
+    ["/", "Rabta: leave the task, return to all of it"],
+    ["/brand/", "Brand"],
     ["/setup/", "Setup"],
     ["/privacy/", "Privacy"],
     ["/404.html", "Page not found"],
   ]);
-
   for (const [route, fragment] of expected) {
     const html = await readRoute(route);
     const title = html.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.trim() ?? "";
     assert.ok(title.includes(fragment), `${route}: ${title}`);
     assert.ok(title.includes("Rabta"), route);
   }
-
   const home = await readRoute("/");
-  assert.match(
-    home,
-    /<meta property="og:title" content="Rabta — Pick up the task\. Not the pieces\." \/>/,
-  );
+  assert.match(home, /<meta property="og:title" content="Rabta: leave the task, return to all of it"\s*\/?>/);
 });
 
 test("the social card and the link preview say the same thing", async () => {
   const card = await readFile(resolve(SITE, "assets/brand/og-card.html"), "utf8");
   const home = await readRoute("/");
-
-  // A card that argues one thing while the preview beside it argues another
-  // is the one social-image bug nobody catches, because the two are never
-  // rendered side by side except by the platform.
-  const ogTitle =
-    home.match(/<meta property="og:title" content="([^"]+)"/)?.[1] ?? "";
-  const headline = (card.match(/<h1>([\s\S]*?)<\/h1>/)?.[1] ?? "")
-    .replace(/<[^>]+>/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
+  const ogTitle = home.match(/<meta property="og:title" content="([^"]+)"/)?.[1] ?? "";
+  const headline = (card.match(/<h1>([\s\S]*?)<\/h1>/)?.[1] ?? "").replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
   assert.ok(ogTitle, "homepage declares an og:title");
   assert.equal(headline, ogTitle);
   assert.ok(card.includes("Workspace memory for macOS"));
-
-  // The card is uploaded with the rest of website/, so it is bound by the
-  // palette and no-third-party rules like any other page.
-  const approved = new Set([
-    "#102526",
-    "#ff6b2c",
-    "#f3f0e8",
-    "#173239",
-    "#66858c",
-    "#a9bec2",
-    "#d9e3e3",
-  ]);
-  const literals = [...card.matchAll(/#[0-9a-f]{3,8}\b/gi)].map((match) =>
-    match[0].toLowerCase(),
-  );
-  assert.ok(
-    literals.every((value) => approved.has(value)),
-    `og-card: unapproved colour ${literals.find((value) => !approved.has(value))}`,
-  );
-  assert.deepEqual(
-    [...card.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"/g)].map((m) => m[1]),
-    [],
-  );
+  assert.match(card, /src="lockup(?:-paper)?\.svg"/, "the card carries the lockup");
+  for (const value of hexLiterals(card)) {
+    assert.ok(PALETTE.has(value), `og-card: unapproved colour ${value}`);
+  }
+  assert.deepEqual([...card.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"/g)].map((m) => m[1]), []);
 });
 
 test("the generated social preview is the declared size", async () => {
   const png = await readFile(resolve(SITE, "assets/brand/og-cover.png"));
   assert.equal(png.subarray(1, 4).toString("ascii"), "PNG");
-
-  // IHDR width/height live at bytes 16..24 of every PNG.
-  const width = png.readUInt32BE(16);
-  const height = png.readUInt32BE(20);
-  assert.equal(width, 1200);
-  assert.equal(height, 630);
-
+  assert.equal(png.readUInt32BE(16), 1200);
+  assert.equal(png.readUInt32BE(20), 630);
   for (const route of routes) {
     const html = await readRoute(route);
     if (!html.includes("og:image")) continue;
-    assert.match(html, /<meta property="og:image:width" content="1200" \/>/, route);
-    assert.match(html, /<meta property="og:image:height" content="630" \/>/, route);
+    assert.match(html, /<meta property="og:image:width" content="1200"\s*\/?>/, route);
+    assert.match(html, /<meta property="og:image:height" content="630"\s*\/?>/, route);
   }
 });
 
@@ -662,31 +610,20 @@ test("all root-relative assets exist", async () => {
 
 test("every declared media source is on disk", async () => {
   const home = await readRoute("/");
-
   const regions = home.match(/data-product-media="[^"]+"/g) ?? [];
-  // Pinned as a set rather than a count: what matters is which demos the page
-  // declares, and a bare number says nothing about which one went missing.
-  // One, since the rebuild — the design's composition has a single demo slot,
-  // the window under the headline. `capture` and `return` are still built and
-  // still in the manifest; they have no section to sit in on this page.
-  assert.deepEqual(regions.sort(), ['data-product-media="hero"']);
-
-  // These are attached by JavaScript, so no crawler and no earlier contract
-  // would ever notice them going missing.
-  const sources = [
-    ...home.matchAll(/data-src-(?:desktop|mobile)="(\/[^"]+)"/g),
-  ].map((match) => match[1]);
-  // Two variants (desktop, mobile) per demo region.
-  assert.equal(sources.length, regions.length * 2);
-  for (const source of sources) {
-    await access(resolve(SITE, `.${source}`));
-  }
-
+  assert.deepEqual(regions.sort(), [
+    'data-product-media="cell-branch"',
+    'data-product-media="cell-files"',
+    'data-product-media="cell-tabs"',
+    'data-product-media="cell-terminals"',
+    'data-product-media="hero"',
+  ]);
+  const sources = [...home.matchAll(/data-src-(?:desktop|mobile)="(\/[^"]+)"/g)].map((m) => m[1]);
+  assert.equal(sources.length, (home.match(/<video\b/g) ?? []).length * 2, "a desktop and a mobile file per loop");
+  for (const source of sources) await access(resolve(SITE, `.${source}`));
   const posters = [...home.matchAll(/poster="(\/[^"]+)"/g)].map((m) => m[1]);
-  assert.equal(posters.length, regions.length);
-  for (const poster of posters) {
-    await access(resolve(SITE, `.${poster}`));
-  }
+  assert.equal(posters.length, (home.match(/<video\b/g) ?? []).length, "every loop has a poster");
+  for (const poster of posters) await access(resolve(SITE, `.${poster}`));
 });
 
 test("no route opens a new tab without noopener", async () => {
@@ -698,366 +635,27 @@ test("no route opens a new tab without noopener", async () => {
   }
 });
 
-test("nothing in the shipped site references the local probe file", async () => {
-  for (const route of routes) {
-    const html = await readRoute(route);
-    assert.doesNotMatch(html, /__cap\.html/, route);
-  }
-
-  for (const file of [
-    "css/tokens.css",
-    "css/shell.css",
-    "css/landing.css",
-    "css/doc.css",
-    "css/receipt-fold.css",
-    "js/main.js",
-    "js/media.js",
-    "js/receipt-fold.js",
-  ]) {
-    const source = await readFile(resolve(SITE, file), "utf8");
-    assert.doesNotMatch(source, /__cap/, file);
-  }
-});
-
 test("no third-party subresource is loaded", async () => {
   for (const route of routes) {
     const html = await readRoute(route);
-    const external = [
-      ...html.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"/g),
-    ].map((match) => match[1]);
-    const subresources = external.filter((url) =>
-      /\.(?:js|css|woff2?|png|jpe?g|avif|webp|svg|m4v)(?:[?#]|$)/i.test(
-        url,
-      ),
-    );
+    const external = [...html.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"/g)].map((m) => m[1]);
+    const subresources = external.filter((url) => /\.(?:js|css|woff2?|png|jpe?g|avif|webp|svg|m4v)(?:[?#]|$)/i.test(url));
     assert.deepEqual(subresources, [], route);
   }
 });
 
 test("no stylesheet or module reaches off this origin", async () => {
-  // The privacy claim is that the site serves every byte itself, so this
-  // covers CSS and JS too — a font @import or a CDN module would contradict
-  // the page's own copy without touching any route's HTML.
   const files = [
-    ...(await readdir(resolve(SITE, "css"))).map((f) => `css/${f}`),
-    ...(await readdir(resolve(SITE, "js"))).map((f) => `js/${f}`),
+    ...(await readdir(resolve(SITE, "_astro"))).filter((f) => /\.(?:css|js)$/.test(f)).map((f) => `_astro/${f}`),
     "assets/brand/og-card.html",
   ];
-
   for (const file of files) {
     const source = await readFile(resolve(SITE, file), "utf8");
     const external = [
       ...source.matchAll(/url\(\s*["']?(https?:\/\/[^"')]+)/g),
       ...source.matchAll(/@import\s+(?:url\()?["'](https?:\/\/[^"']+)/g),
       ...source.matchAll(/(?:from|import)\s+["'](https?:\/\/[^"']+)/g),
-    ].map((match) => match[1]);
+    ].map((m) => m[1]);
     assert.deepEqual(external, [], file);
-  }
-});
-
-
-test("the inner pages are laid out, not just typeset", async () => {
-  // Five pages shipped as `.prose` documents — the right shape for /setup/ and
-  // /privacy/, which are read like reference material, and the wrong one for
-  // pages that are scanned. The redesign gives them bands: a label naming the
-  // section, a heading saying the thing, then cards or question groups.
-  //
-  // This asserts the structure rather than the styling, because the failure it
-  // guards is a page quietly reverting to a wall of `<h3>` + `<p>` — which
-  // would look fine, read fine, and be a different page than the one designed.
-  const shaped = {
-    "/why/": { bands: 3, cards: 3, headline: "The code is saved." },
-    "/faq/": { bands: 4, groups: 4, headline: "The questions the docs answer sideways." },
-    "/roadmap/": { bands: 3, cards: 10, headline: "What's next, without dates." },
-    "/changelog/": { bands: 4, cards: 6, headline: "What shipped." },
-    "/contact/": { bands: 3, cards: 3, headline: "Talk to a human." },
-  };
-
-  for (const [route, want] of Object.entries(shaped)) {
-    const html = await readRoute(route);
-
-    assert.ok(html.includes(want.headline), `${route}: headline`);
-    assert.equal(
-      (html.match(/<section class="band[^"]*"/g) ?? []).length,
-      want.bands,
-      `${route}: band count`,
-    );
-    if (want.cards !== undefined) {
-      assert.equal(
-        (html.match(/class="card[ "]/g) ?? []).length,
-        want.cards,
-        `${route}: card count`,
-      );
-    }
-    if (want.groups !== undefined) {
-      assert.equal(
-        (html.match(/class="qa"/g) ?? []).length,
-        want.groups,
-        `${route}: question-group count`,
-      );
-    }
-
-    // Every band names itself and carries exactly one h2. A band whose label
-    // and heading disagree about what the section is is worse than neither.
-    const bands = html.match(/<section class="band[\s\S]*?<\/section>/g) ?? [];
-    for (const band of bands) {
-      assert.match(band, /class="band__label"/, `${route}: band without a label`);
-      assert.equal(
-        (band.match(/<h2\b/g) ?? []).length,
-        1,
-        `${route}: band with ${(band.match(/<h2\b/g) ?? []).length} h2s`,
-      );
-    }
-
-    // These five no longer carry a document body. /setup/ and /privacy/ still
-    // do, deliberately — they are the reference pages.
-    assert.doesNotMatch(html, /class="prose"/, `${route}: still a prose document`);
-    assert.match(html, /\/css\/page\.css/, `${route}: page.css not linked`);
-  }
-});
-
-test("no page styles itself with a class no stylesheet it loads defines", async () => {
-  // `/why/` shipped with `class="cta"` and `class="hero__actions"` on its
-  // closing block. `.cta` was defined nowhere at all, and `.hero__actions`
-  // lives in landing.css — which document routes deliberately never load. Both
-  // rendered as bare block elements: a heading, two links and a line of text
-  // stacked with default margins at the end of an otherwise composed page.
-  //
-  // It survived review because nothing was *broken*. The markup was right, the
-  // content was right, the page returned 200. Only the rendering was wrong, and
-  // no assertion in this suite reads rendering. This one reads the next best
-  // thing: whether a class the markup relies on is defined in a stylesheet that
-  // page actually links.
-  const stylesheets = new Map();
-  const cssFor = async (file) => {
-    if (!stylesheets.has(file)) {
-      stylesheets.set(file, await readFile(resolve(SITE, file), "utf8"));
-    }
-    return stylesheets.get(file);
-  };
-
-  // Classes that are hooks rather than styling: JS targets, or names used only
-  // as a descendant qualifier. Each needs a reason, not just an entry.
-  const behavioural = new Set([
-    "visually-hidden", // defined in shell.css's reset layer via [class]
-  ]);
-
-  for (const route of [...routes, "/404.html"]) {
-    const html = await readRoute(route);
-    const links = [...html.matchAll(/<link rel="stylesheet" href="\/([^"]+)"/g)].map(
-      (m) => m[1],
-    );
-    const css = (await Promise.all(links.map(cssFor))).join("\n");
-
-    const main = html.match(/<main\b[\s\S]*?<\/main>/)?.[0] ?? "";
-    const used = new Set(
-      [...main.matchAll(/class="([^"]+)"/g)]
-        .flatMap((m) => m[1].split(/\s+/))
-        .filter(Boolean),
-    );
-
-    for (const name of used) {
-      if (behavioural.has(name)) continue;
-      assert.ok(
-        css.includes(`.${name}`),
-        `${route}: .${name} is used in <main> but defined in none of ${links.join(", ")}`,
-      );
-    }
-  }
-});
-
-// ---------------------------------------------------------------------------
-// The redesigned homepage.
-//
-// The seven guards these replace described the previous composition — the
-// Return Field, the two full-bleed colour chapters, the bento, the product
-// stages. None of those elements exists any more; the page was rebuilt to the
-// design comp, which is centre-weighted and built from a hero window, three
-// hover rows, four figure cards, a focus receipt, a contribution graph and two
-// closing bands.
-//
-// Deleting a guard because the thing it guarded is gone is correct. Deleting
-// it without writing its replacement is how a page ends up with no coverage at
-// all, so each of the properties worth holding is re-stated below against what
-// actually shipped.
-
-test("homepage has the approved narrative", async () => {
-  const html = await readRoute("/");
-
-  // An editorial contract, not a description: the page's argument cannot drift
-  // a sentence at a time without someone deciding to.
-  for (const copy of [
-    "Pick up the task.",
-    "Not the pieces.",
-    "New — focus mode puts away what isn't in the task",
-    "Three moves. Nothing else to learn.",
-    "A capsule is the whole surface of a task.",
-    "Resuming can also put away what isn't in the task.",
-    "Nothing is lost.",
-    "Every task you came back to.",
-    "There is no account, because there is no server.",
-    "Stop rebuilding the same workspace.",
-  ]) {
-    assert.ok(html.includes(copy), copy);
-  }
-
-  for (const id of ["how-it-works", "pieces", "focus", "history", "local", "download"]) {
-    assert.match(html, new RegExp(`id="${id}"`));
-  }
-
-  // The previous composition's classes, so a half-finished revert is caught.
-  for (const removed of [
-    'class="return-field',
-    'class="bento',
-    'class="thesis',
-    'class="honest-return',
-    'class="chapter-heading',
-  ]) {
-    assert.doesNotMatch(html, new RegExp(removed), removed);
-  }
-});
-
-test("the homepage's claims about the build match what ships", async () => {
-  // Comments stripped: the source explains at length why the design's numbers
-  // were not used, and quoting a wrong claim in order to reject it must not
-  // read as making it.
-  const html = (await readRoute("/")).replace(/<!--[\s\S]*?-->/g, "");
-
-  // The design comp says "Apple silicon & Intel", "macOS 13 or later", "14 MB"
-  // and "Free while in beta". All four are wrong for the artifact this page
-  // links to, and the last one implies a price that does not exist. The layout
-  // is the design's; these numbers are the product's.
-  assert.ok(html.includes("no Intel build"), "names the missing Intel build");
-  assert.ok(html.includes("macOS 11+"), "the real floor");
-  assert.ok(html.includes("5.5 MB"), "the real size");
-  assert.ok(html.includes("MIT-licensed"), "the real licence");
-
-  assert.doesNotMatch(html, /Apple silicon &amp; Intel|Apple silicon & Intel/);
-  assert.doesNotMatch(html, /macOS 13/);
-  assert.doesNotMatch(html, /while in beta/);
-  assert.doesNotMatch(html, /14 MB/);
-});
-
-test("homepage is a focused download narrative", async () => {
-  const html = await readRoute("/");
-
-  // One video. The design comp has a single demo slot — the window under the
-  // headline — and the two loops the previous page carried have no home in
-  // this composition. Raising this number needs a section to put one in, not
-  // just an asset.
-  assert.equal((html.match(/<video\b/g) ?? []).length, 1);
-  assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
-
-  assert.doesNotMatch(html, /type="radio"/);
-  assert.doesNotMatch(html, /3978ec57|86M2X6MUA3/);
-});
-
-test("the hover rows are a disclosure, not a hover-only secret", async () => {
-  const html = await readRoute("/");
-  const css = await readFile(resolve(SITE, "css/landing.css"), "utf8");
-
-  // Every row is focusable, so the description is reachable without a pointer.
-  assert.equal((html.match(/class="move" tabindex="0"/g) ?? []).length, 3);
-
-  // And the text is in the markup at full weight — folded by opacity, which
-  // keeps it in the accessibility tree, never `display: none`.
-  for (const copy of [
-    "Files, terminals, tabs and the branch, sealed into one capsule",
-    "Resuming closes what is not in the task, and says what it kept",
-    "Everything comes back, branch first, with a receipt",
-  ]) {
-    assert.ok(html.includes(copy), copy);
-  }
-  const desc = css.match(/\.move__desc \{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-  assert.match(desc, /opacity:\s*0/);
-  assert.doesNotMatch(desc, /display:\s*none|visibility:\s*hidden/);
-
-  // A pointer-less device gets them all open rather than none.
-  const noHover = css.slice(css.indexOf("@media not all and (hover: hover)"));
-  assert.match(noHover, /\.move__desc \{[\s\S]*?opacity:\s*1/);
-});
-
-test("the focus switch ships in the state that makes its section legible", async () => {
-  const html = await readRoute("/");
-
-  // With no JavaScript the toggle cannot move, so the page must ship showing
-  // the interesting half: focus mode on, and a receipt that has something in
-  // it. Shipping "off" would leave a scriptless visitor reading a section
-  // about a feature next to a result where nothing happened.
-  const toggle = html.match(/<button[^>]*data-focus-toggle[^>]*>/)?.[0] ?? "";
-  assert.ok(toggle, "the switch exists");
-  assert.match(toggle, /role="switch"/, "a real switch, not a styled div");
-  assert.match(toggle, /aria-checked="true"/, "ships on");
-  assert.match(toggle, /type="button"/);
-
-  assert.ok(html.includes("6 tabs closed · 4 kept"));
-  assert.ok(html.includes("focus mode on"));
-});
-
-test("the contribution graph is markup, not a runtime artefact", async () => {
-  const html = await readRoute("/");
-
-  // 140 cells: twenty weeks of seven days, written into the page. It is
-  // illustrative and it never changes, so generating it at runtime would only
-  // mean a scriptless visitor sees an empty box where the argument was.
-  const grid = html.match(/<div class="heat__grid"[\s\S]*?<\/div>/)?.[0] ?? "";
-  assert.equal((grid.match(/class="heat__cell"/g) ?? []).length, 140);
-
-  // It is a graphic with one accessible name, not 140 announced spans.
-  assert.match(grid, /role="img"/);
-  assert.match(grid, /aria-label="[^"]+"/);
-});
-
-test("the marquee names only apps a connector actually speaks to", async () => {
-  const html = await readRoute("/");
-  const marquee = html.match(/<div class="marquee"[\s\S]*?<\/div>\s*<\/div>/)?.[0] ?? "";
-
-  // A logo wall is a claim. Everything on it is an editor the Open VSX
-  // extension installs into, a terminal those editors host, or a browser the
-  // Chrome connector runs in — nothing aspirational.
-  for (const app of ["VS Code", "Cursor", "Zed", "Ghostty", "iTerm2", "Terminal", "Warp", "Chrome", "Arc", "Firefox"]) {
-    assert.ok(marquee.includes(`>${app}</span>`), app);
-  }
-
-  // Duplicated once so the CSS can translate the track by exactly -50% and
-  // loop seamlessly without measuring anything.
-  assert.equal((marquee.match(/class="marquee__logo"/g) ?? []).length, 20);
-
-  // Decorative: the same list is given to assistive technology once, as a
-  // sentence, rather than twice as twenty orphaned labels.
-  assert.match(marquee, /aria-hidden="true"/);
-  assert.ok(html.includes("Connectors currently speak to VS Code"));
-});
-
-test("the two document pages are navigable, not just long", async () => {
-  // /setup/ and /privacy/ are the pages people read while doing something —
-  // installing, or checking what is stored before they trust the app. They are
-  // also the only two long enough to get lost in. They had a boxed table of
-  // contents that scrolled away at the top, useful once and then gone exactly
-  // when it starts mattering.
-  for (const route of ["/setup/", "/privacy/"]) {
-    const html = await readRoute(route);
-
-    assert.match(html, /class="doc-grid"/, `${route}: no document grid`);
-    assert.match(html, /<nav class="doc-nav"/, `${route}: no sidebar index`);
-    assert.match(html, /class="prose doc-body"/, `${route}: no numbered body`);
-    assert.match(html, /class="page-head__meta"/, `${route}: no contents line`);
-
-    // Every section is reachable from the sidebar, and every sidebar entry
-    // points at a section that exists. Either half drifting is how an index
-    // quietly starts lying.
-    const nav = html.match(/<nav class="doc-nav"[\s\S]*?<\/nav>/)?.[0] ?? "";
-    const linked = [...nav.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]);
-    const sections = [...html.matchAll(/<h2 id="([^"]+)"/g)].map((m) => m[1]);
-    assert.deepEqual(linked, sections, `${route}: index and sections disagree`);
-
-    // The numbers are generated by CSS counters. A hand-typed "1." in a
-    // heading would double them, which is what the old markup did.
-    assert.doesNotMatch(
-      html,
-      /<h2 id="[^"]+">\s*\d+\./,
-      `${route}: a heading still carries its own number`,
-    );
-    assert.doesNotMatch(html, /class="toc"/, `${route}: the boxed TOC is back`);
   }
 });

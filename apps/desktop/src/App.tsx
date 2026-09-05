@@ -319,7 +319,12 @@ export default function App() {
         <MigrateSheet />
         <PairingSheet />
         <AppShell>
-          <CurrentPage view={view} />
+          {/* Keyed on the view so a switch remounts the wrapper and the
+              view settles in rather than snapping; reduced motion makes it
+              instant through the global rule in index.css. */}
+          <div key={view} className="h-full min-h-0 animate-view-in">
+            <CurrentPage view={view} />
+          </div>
         </AppShell>
       </div>
       <CommandPalette />

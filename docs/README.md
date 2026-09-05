@@ -17,15 +17,17 @@ not have to open all of them to find one.
 | File | What it is |
 |---|---|
 | [SECURITY-AUDIT-2026-08.md](SECURITY-AUDIT-2026-08.md) | Full audit of 0.1.0 — findings, evidence, and what it did *not* cover. True of 0.1.0; re-run each minor release. |
-| [privacy-policy.md](privacy-policy.md) | The policy's source. `website/privacy/` is the published form. |
+| [privacy-policy.md](privacy-policy.md) | The policy's source. `site/src/pages/privacy.astro` is the published form. |
 | [store-listings.md](store-listings.md) | Copy for the Marketplace, Open VSX and Chrome Web Store listings. |
+| [GO-LIVE.md](GO-LIVE.md) | The steps only the owner can do, with the check for each: the npm publish and the next app release. |
+| [../packages/mcp/README.md](../packages/mcp/README.md) | The MCP server: five read-only tools over the app's database, plus capture and restore through Agent access. |
 
 ## Design
 
 | File | What it is |
 |---|---|
-| [site-design-plan.md](site-design-plan.md) | The website's design system — palette, type scale, grid, motion. Cited by rule comments in `website/css/`. |
-| [claude-rabta-living-instrument-handoff.md](claude-rabta-living-instrument-handoff.md) | The Living Instrument handoff the site's visual language comes from. |
+| [site-design-plan.md](site-design-plan.md) | Superseded. The previous (Living Instrument) site system, kept for history. The current brand system is `superpowers/specs/2026-09-03-rabta-brand-redesign-design.md`. |
+| [claude-rabta-living-instrument-handoff.md](claude-rabta-living-instrument-handoff.md) | Superseded. The Living Instrument handoff the previous site came from. |
 | [design-brief-pins-and-focus-mode.md](design-brief-pins-and-focus-mode.md) | Brief for pins and focus mode in the app. |
 
 ## Marketing
@@ -48,13 +50,12 @@ Not reference material. Nothing outside this directory should depend on them.
 
 ## Where things are that are *not* here
 
-- **`marketing` renders and video projects** — `video-editing/`,
-  `video-exports/`, `website/assets/social/`, `website/assets/demos/micro/`.
+- **`marketing` renders and video projects**: `video-editing/`,
+  `video-exports/`, `marketing-videos/social/`, `marketing-videos/*/renders/`.
   All gitignored. Roughly a gigabyte of project files and MP4s that git is the
-  wrong store for. The last two sit under `website/` but are **not** part of the
-  site: `.github/workflows/pages.yml` uploads the entire `website/` directory,
-  so anything committed there is published at rabta.build whether or not a page
-  links it.
+  wrong store for. None of it sits under `site/`: `.github/workflows/pages.yml`
+  builds `site/` with Astro and uploads `site/dist`, so only what a page
+  references, plus everything in `site/public/`, is published at rabta.build.
 - **Built artifacts** — `dist-artifacts/`, gitignored. The DMG, the `.vsix` and
   the Chrome zip.
 - **Signing material** — `/signing/`, gitignored, and it stays that way.

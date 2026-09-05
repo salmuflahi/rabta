@@ -1,0 +1,64 @@
+name: Publish @rabta/mcp
+
+# Publishes packages/mcp to npm with provenance, through npm's trusted
+# publishing: GitHub proves to npm that this workflow, in this repository, on
+# this tag, is the one publishing. There is no npm token anywhere, nothing to
+# rotate, and nothing a phone is needed for.
+#
+# ONE-TIME SETUP (npmjs.com, done once by the package owner):
+#   1. Create the free `rabta` organisation (Add Organization → Unlimited
+#      public packages) so `@rabta/*` is yours. Two-factor on the account can be
+#      a passkey (Touch ID on the Mac) rather than an authenticator app.
+#   2. Publish the first version from this workflow: push a tag `mcp-v0.1.0`.
+#      A package that does not exist yet is created on first publish; after
+#      that, on the package page: Settings → Publishing access → Trusted
+#      publishing → GitHub Actions, with
+#        repository: salmuflahi/rabta   workflow: publish-mcp.yml
+#      (Until the trusted publisher is configured, the first publish needs a
+#      granular access token in an NPM_TOKEN secret; delete it afterwards.)
+#   3. Flip MCP_PUBLISHED to true in site/src/config.ts once
+#      `npm view @rabta/mcp version` resolves, and the site stops saying
+#      "ships with the next release".
+#
+# The tag's version must equal packages/mcp/package.json's; the job refuses
+# otherwise, so a tag can never publish a version the code does not claim.
+
+on:
+  push:
+    tags:
+      - "mcp-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - name: The tag names the version in package.json, or nothing publishes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          tag="${GITHUB_REF_NAME#mcp-v}"
+          version="$(node -p "require('./packages/mcp/package.json').version")"
+          test "$tag" = "$version" || { echo "tag $tag != package.json $version"; exit 1; }
+      - run: pnpm --filter @rabta/mcp build
+      - run: pnpm --filter @rabta/mcp test
+      - name: Dry run, so the tarball's contents are in the log
+        working-directory: packages/mcp
+        run: npm pack --dry-run
+      - name: Publish with provenance
+        working-directory: packages/mcp
+        run: npm publish --provenance --access public
+        env:
+          # Only consulted while trusted publishing is not configured yet.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

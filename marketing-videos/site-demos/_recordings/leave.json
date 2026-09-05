@@ -1,0 +1,38 @@
+{
+  "demo": "leave",
+  "region": "app",
+  "alpha": false,
+  "fps": 30,
+  "w": 1280,
+  "h": 800,
+  "dpr": 2,
+  "seconds": 4,
+  "durationMs": 4000,
+  "cues": [
+    {
+      "atMs": 0,
+      "action": "show-capsule",
+      "rect": {
+        "button": {
+          "x": 680.55,
+          "y": 179.48,
+          "w": 102.64,
+          "h": 28
+        },
+        "dialog": null
+      },
+      "frame": 0
+    },
+    {
+      "atMs": 900,
+      "action": "leave-task",
+      "rect": {
+        "button": null,
+        "dialog": null
+      },
+      "frame": 27
+    }
+  ],
+  "sheet": null,
+  "button": null
+}

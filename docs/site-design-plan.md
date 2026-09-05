@@ -1,3 +1,5 @@
+> **Superseded on 2026-09-03.** This document describes the Living Instrument site system, which the brand redesign retired along with petrol, the fold and the receipt. The current system is [`docs/superpowers/specs/2026-09-03-rabta-brand-redesign-design.md`](superpowers/specs/2026-09-03-rabta-brand-redesign-design.md) and its public form is [rabta.build/brand/](https://rabta.build/brand/). Kept for history; nothing in `website/` or `apps/desktop/` follows it any more.
+
 # rabta.build — site design plan
 
 **Status:** contract. This is followed literally during the rebuild. Anything not

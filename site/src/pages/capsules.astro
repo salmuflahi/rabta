@@ -1,0 +1,236 @@
+---
+import Base from "../layouts/Base.astro";
+import { RELEASE } from "../config.ts";
+import "../styles/tokens.css";
+import "../styles/shell.css";
+import "../styles/doc.css";
+import "../styles/page.css";
+
+// The rows a capsule is made of, exactly as the app stores them: one row per
+// connector, the latest capture only, plus the branch the app read from git.
+const rows = `[
+  {
+    "connector_kind": "vscode",
+    "resource_type": "workspace",
+    "payload": {
+      "workspaceFolder": "~/code/atlas-api",
+      "openFiles": ["src/hub.rs", "src/connector/session.rs", "tests/reconnect.rs"],
+      "activeFile": "src/connector/session.rs",
+      "dirtyFiles": ["tests/reconnect.rs"],
+      "terminals": [
+        { "name": "zsh", "cwd": "~/code/atlas-api", "busy": false },
+        { "name": "cargo watch", "cwd": "~/code/atlas-api", "busy": true }
+      ]
+    }
+  },
+  {
+    "connector_kind": "chrome",
+    "resource_type": "workspace",
+    "payload": {
+      "tabs": [
+        { "url": "https://docs.rs/tokio-tungstenite/", "title": "tokio-tungstenite docs" },
+        { "url": "https://developer.mozilla.org/", "title": "WebSocket close codes - MDN" }
+      ]
+    }
+  },
+  {
+    "connector_kind": "git",
+    "resource_type": "branch",
+    "payload": { "branch": "feat/connector-reconnect" }
+  }
+]`;
+
+const kinds = "hello · welcome · command · response · event · error · pair · paired · ping · pong";
+---
+<Base
+  title={"How capsules work: what Rabta stores and how it restores it"}
+  description={"A capsule is four kinds of pointer: the files, the terminals, the tabs and the branch of one task. What is written down, exactly, where it lives on your Mac, the order it comes back in, and the receipt that reports it."}
+  route="/capsules/"
+  ogTitle={"How capsules work"}
+  ogDescription={"What a Rabta capsule stores, exactly, where it lives on your Mac, and how it comes back with a receipt."}
+>
+  <div class="wrap page-head">
+    <p class="page-head__label">How it works</p>
+    <h1>What a capsule holds, and how it comes back.</h1>
+    <p class="lede">
+      Four kinds of pointer, written down: the files you had open, the
+      terminals and their directories, the tabs, the branch. Kept in one file
+      on your Mac, restored in the right order, reported honestly.
+    </p>
+    <p class="mono muted">Pointers, never contents. Your disk, never a server.</p>
+  </div>
+
+  <section class="band band--split" aria-labelledby="format-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="format-title">Four pointers, and the order you had them in.</h2>
+        <div class="band__prose">
+          <p>
+            Saving a capsule asks each connector for its state. The editor
+            answers with the workspace folder, the open files in their tab
+            order, which one is active and which have unsaved changes, and the
+            terminals with their working directories. The browser answers with
+            the tabs it is allowed to see: their addresses and titles, nothing
+            from inside the page. The branch is read from the repository
+            itself.
+          </p>
+          <p>
+            That is the whole capsule. No file contents, no diffs, no terminal
+            output, no page text. Small enough to read in one screen, which is
+            also what makes it safe to keep.
+          </p>
+        </div>
+        <figure class="window window--shot" data-reveal>
+          <div class="window__bar">
+            <span class="window__lights" aria-hidden="true"><span></span><span></span><span></span></span>
+            <span class="window__title">Rabta — Capsules</span>
+          </div>
+          <div class="window__stage" data-product-media="capsule">
+            <video
+              class="window__video"
+              width="1280" height="800"
+              muted playsinline loop preload="none"
+              poster="/assets/demos/capsule-anatomy.jpg"
+              data-src-desktop="/assets/demos/capsule-anatomy-desktop.mp4"
+              data-src-mobile="/assets/demos/capsule-anatomy-mobile.mp4"
+              aria-label="The capsule screen of the real app, pulled apart into four planes in depth: the files, the terminals, the tabs and the branch, then laid flat again."
+            ></video>
+            <button class="media-play" type="button" hidden data-media-play data-label-play="Play demo" data-label-pause="Pause demo">Play demo</button>
+          </div>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="rows-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="rows-title">Exactly what is stored.</h2>
+        <p>
+          A capsule is a set of rows, one per connector, keyed by the task.
+          Each save replaces that connector's row, so a capsule is always the
+          latest capture and never a history. Anything you pin ("always open
+          this") is kept in its own row, authored by you and never overwritten
+          by a capture.
+        </p>
+        <pre class="code" tabindex="0"><code>{rows}</code></pre>
+        <p class="mono muted foot-note">
+          The shapes are the connectors' own: <code>WorkspaceState</code> from
+          the editor connector and <code>TabsState</code> from the browser
+          connector, both in the public repository.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="restore-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="restore-title">Back in the right order, with a receipt.</h2>
+        <p>
+          Resuming a capsule is additive: it opens things and closes nothing,
+          unless you turn on focus mode. The order matters, because a branch
+          switch changes what is on disk before the editor looks.
+        </p>
+        <div class="grid3">
+          <article class="card" data-reveal>
+            <span class="card__index" aria-hidden="true">01</span>
+            <h3>Git first</h3>
+            <p>
+              The branch is checked out before anything else. A working tree
+              with uncommitted changes refuses the switch, and the refusal is
+              reported as a skip with its reason. Nothing is reset, stashed or
+              discarded.
+            </p>
+          </article>
+          <article class="card" data-reveal data-reveal-delay="80">
+            <span class="card__index" aria-hidden="true">02</span>
+            <h3>Then the editor</h3>
+            <p>
+              Files open in their order, terminals in their directories. If
+              the capsule belongs to a different folder, the editor reloads its
+              window and the rest lands when it reconnects: the receipt says
+              "On next reload" rather than pretending.
+            </p>
+          </article>
+          <article class="card" data-reveal data-reveal-delay="160">
+            <span class="card__index" aria-hidden="true">03</span>
+            <h3>Then the browser</h3>
+            <p>
+              Tabs open by address. If the browser is not running, the capsule
+              waits for it, and the receipt says so. Pinned tabs and anything
+              the extension cannot open are left alone.
+            </p>
+          </article>
+        </div>
+        <dl class="kv">
+          <div>
+            <dt>Restored</dt>
+            <dd>The tool did what the capsule asked.</dd>
+          </div>
+          <div>
+            <dt>On next reload</dt>
+            <dd>Queued for the connector's reconnect; it will finish on its own.</dd>
+          </div>
+          <div>
+            <dt>Skipped</dt>
+            <dd>Not done, with the reason: a dirty tree, a closed app, a file that is not there.</dd>
+          </div>
+          <div>
+            <dt>Put away, kept</dt>
+            <dd>With focus mode on, what was closed and what was deliberately left open: unsaved files, busy terminals, pins.</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="lives-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="lives-title">One file under Application Support.</h2>
+        <p>
+          Capsules live in a SQLite database in the app's own folder, readable
+          with any SQLite tool and deletable with the app. The hub that talks
+          to the connectors binds to the loopback address and to nothing else;
+          a connector finds it through a file only your user can read.
+        </p>
+        <dl class="kv">
+          <div>
+            <dt>Where</dt>
+            <dd><code>~/Library/Application Support/com.omnibus.dev/omnibus.db</code></dd>
+          </div>
+          <div>
+            <dt>Format</dt>
+            <dd>SQLite, write-ahead logging, versioned migrations. Other readers, such as the <a href="/agents/">MCP server</a>, open it read-only while the app runs.</dd>
+          </div>
+          <div>
+            <dt>Moving Macs</dt>
+            <dd>Export a <code>.rabta</code> bundle from Settings, encrypted with a passphrase, and import it on the other side.</dd>
+          </div>
+          <div>
+            <dt>The hub</dt>
+            <dd>A WebSocket server on <code>127.0.0.1</code>. Its port and a per-run secret are written to <code>hub.json</code> with owner-only permissions; the browser extension pairs once and keeps a token.</dd>
+          </div>
+          <div>
+            <dt>The protocol</dt>
+            <dd>Version 1, ten message kinds: {kinds}. Defined once in TypeScript and once in Rust, held in lockstep by shared fixtures. Internal until the SDK ships.</dd>
+          </div>
+          <div>
+            <dt>Connectors today</dt>
+            <dd>One for VS Code, Cursor, VSCodium and Windsurf. One for Chrome, Arc and Chromium browsers. Terminals come with the editor.</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta rail" aria-labelledby="cta-title">
+    <h2 id="cta-title">Leave the task. Return to all of it.</h2>
+    <div class="cta__actions">
+      <a class="button button--primary button--large" href={RELEASE.dmgUrl}>Download for macOS</a>
+      <a class="button button--large" href="/setup/">Read the setup guide</a>
+    </div>
+    <p class="mono muted">Free. Apple silicon, {RELEASE.macOsFloor}. No account, no server.</p>
+  </section>
+</Base>

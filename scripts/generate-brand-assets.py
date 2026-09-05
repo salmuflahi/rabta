@@ -1,29 +1,32 @@
 #!/usr/bin/env python3
 """
-Generate every Rabta brand raster from one vector source.
+Generate every Rabta brand raster from the vector sources.
 
-    python3 scripts/generate-brand-assets.py [--check]
+    python3 scripts/generate-brand-assets.py
 
-Source of truth
----------------
-`website/assets/brand/rabta-mark.svg` — the ONLY brand-mark source in this
-repository. Every favicon, app icon, connector icon and social image below is
-derived from it, including the `-primary` (transparent) and `-mono`
-(currentColor) colourways, which are re-emitted from the canonical path data
-so they can never drift from the mark.
+Sources of truth
+----------------
+`site/public/assets/brand/mark.svg`        the glyph: an R whose leg is a ر,
+                                       three strokes in currentColor.
+`site/public/assets/brand/rabta-mark.svg`  the tile: the glyph, ink, on an
+                                       ember squircle. Dock icon, favicon,
+                                       social avatar.
 
-This script has no fallback geometry and no mark colour literals of its own:
-if the source SVG is missing it exits rather than drawing anything. It is
-therefore structurally incapable of reproducing the pre-0.1.0 navy/sky
-circular icon that `scripts/make-icon.py` used to generate. That script has
-been deleted; this replaces it.
+Every favicon, app icon, connector icon and colourway below is derived from
+those two files. The glyph's stroke geometry is parsed out of mark.svg, so an
+edit to the mark flows into every derived asset on the next run; the tile is
+used verbatim. There is no fallback artwork: if a source is missing this
+script exits rather than drawing anything.
+
+The lockup SVGs (glyph + "abta" as outlines) are produced by the font step in
+the brand pipeline, not here — they need Inter's outlines, which live in the
+font, not in this repository.
 
 Requirements
 ------------
-macOS. Uses `sips` (rasterise + resize) and `iconutil` (.icns), both built in.
-The social card is composed in HTML and rendered with headless Google Chrome.
-`.ico` is written by the pure-Python packer below — no third-party imaging
-libraries are needed.
+macOS. Uses `sips` (rasterise + resize) and `iconutil` (.icns), both built
+in. The social card is composed in HTML and rendered with headless Google
+Chrome. `.ico` is written by the pure-Python packer below.
 
 Outputs are listed on stdout. Re-running is idempotent.
 """
@@ -36,13 +39,15 @@ import struct
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE = ROOT / "website/assets/brand/rabta-mark.svg"
+GLYPH_SOURCE = ROOT / "site/public/assets/brand/mark.svg"
+TILE_SOURCE = ROOT / "site/public/assets/brand/rabta-mark.svg"
 
-BRAND = ROOT / "website/assets/brand"
-WEB = ROOT / "website"
+BRAND = ROOT / "site/public/assets/brand"
+WEB = ROOT / "site/public"
 TAURI = ROOT / "apps/desktop/src-tauri/icons"
 APP_BRAND = ROOT / "apps/desktop/src/assets/brand"
 CHROME = ROOT / "connectors/chrome/icons"
@@ -58,6 +63,11 @@ CHROME_CANDIDATES = [
     "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
 ]
 
+# The brand's two colours, as the spec names them. The only literals here.
+EMBER = "#FF6B2C"
+INK = "#0A0B0E"
+PAPER = "#F5F5F7"
+
 written: list[Path] = []
 
 
@@ -71,94 +81,78 @@ def note(path: Path) -> None:
     print(f"  {path.relative_to(ROOT)}")
 
 
-# --------------------------------------------------------------- source
+# --------------------------------------------------------------- sources
 
-def read_source() -> tuple[str, str, str]:
-    """Returns (glyph_path_d, fold_path_d, tile_radius) from the canonical mark.
-
-    Parsed rather than hard-coded so the mark's geometry lives in exactly one
-    place. Any edit to the SVG flows into every derived asset on the next run.
-    """
-    if not SOURCE.exists():
-        fail(
-            f"missing brand source: {SOURCE.relative_to(ROOT)}\n"
-            "This script derives every icon from that file and has no fallback "
-            "artwork by design."
-        )
-
-    svg = SOURCE.read_text()
+def read_glyph() -> tuple[str, list[str], str]:
+    """Returns (group transform, [stem, bowl, leg] path data, stroke width)
+    parsed from the canonical glyph."""
+    if not GLYPH_SOURCE.exists():
+        fail(f"missing brand source: {GLYPH_SOURCE.relative_to(ROOT)}")
+    svg = GLYPH_SOURCE.read_text()
     paths = re.findall(r'<path\b[^>]*\bd="([^"]+)"', svg)
-    if len(paths) != 2:
-        fail(f"expected 2 <path> elements in the mark, found {len(paths)}")
-
-    rx = re.search(r'<rect\b[^>]*\brx="([\d.]+)"', svg)
-    if not rx:
-        fail("expected a rounded <rect> tile in the mark")
-
-    return paths[0], paths[1], rx.group(1)
-
-
-GLYPH_D, FOLD_D, TILE_RX = read_source()
-
-INK = "#102526"      # tile / glyph on light
-CREAM = "#F3F0E8"    # glyph on tile
-TANGERINE = "#FF6B2C"  # the fold
+    if len(paths) != 3:
+        fail(f"expected the glyph's 3 strokes in mark.svg, found {len(paths)}")
+    transform = re.search(r'<g\b[^>]*\btransform="([^"]+)"', svg)
+    width = re.search(r'\bstroke-width="([\d.]+)"', svg)
+    if not transform or not width:
+        fail("mark.svg must carry the glyph group's transform and stroke-width")
+    return transform.group(1), paths, width.group(1)
 
 
-def svg_tile(scale: float = 1.0) -> str:
-    """The mark on its tile. `scale` < 1 insets the glyph for maskable icons,
-    where platforms crop to a circle inscribed in the square."""
-    if scale == 1.0:
-        inner = (
-            f'<path fill="{CREAM}" fill-rule="evenodd" d="{GLYPH_D}"/>'
-            f'<path fill="{TANGERINE}" d="{FOLD_D}"/>'
-        )
-    else:
-        offset = 32 * (1 - scale)
-        inner = (
-            f'<g transform="translate({offset:.3f} {offset:.3f}) scale({scale})">'
-            f'<path fill="{CREAM}" fill-rule="evenodd" d="{GLYPH_D}"/>'
-            f'<path fill="{TANGERINE}" d="{FOLD_D}"/>'
-            f"</g>"
-        )
+def read_tile() -> str:
+    if not TILE_SOURCE.exists():
+        fail(f"missing brand source: {TILE_SOURCE.relative_to(ROOT)}")
+    svg = TILE_SOURCE.read_text()
+    if EMBER.lower() not in svg.lower():
+        fail("rabta-mark.svg is not the ember tile")
+    return svg
+
+
+TRANSFORM, (STEM, BOWL, LEG), STROKE = read_glyph()
+TILE = read_tile()
+
+
+def glyph_group(main: str, leg: str, extra_transform: str = "") -> str:
+    t = f"{extra_transform} {TRANSFORM}".strip()
     return (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
-        f'<rect width="64" height="64" rx="{TILE_RX}" fill="{INK}"/>'
-        f"{inner}</svg>\n"
+        f'<g transform="{t}" fill="none" stroke-width="{STROKE}" stroke-linejoin="round">'
+        f'<path stroke="{main}" d="{STEM}"/><path stroke="{main}" d="{BOWL}"/>'
+        f'<path stroke="{leg}" d="{LEG}"/></g>'
     )
 
 
 def svg_maskable() -> str:
-    """Full-bleed tile (no corner radius) with the glyph inset into the safe
-    zone, so a circular or squircle platform mask never clips it."""
-    offset = 32 * (1 - 0.62)
+    """Full-bleed ember square with the glyph inset into the safe zone, so a
+    circular or squircle platform mask never clips it."""
     return (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
-        f'<rect width="64" height="64" fill="{INK}"/>'
-        f'<g transform="translate({offset:.3f} {offset:.3f}) scale(0.62)">'
-        f'<path fill="{CREAM}" fill-rule="evenodd" d="{GLYPH_D}"/>'
-        f'<path fill="{TANGERINE}" d="{FOLD_D}"/>'
-        "</g></svg>\n"
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+        f'<rect width="100" height="100" fill="{EMBER}"/>'
+        f'{glyph_group(INK, INK, "translate(50 50) scale(0.5) translate(-45.5 -43)")}'
+        "</svg>\n"
     )
 
 
 def svg_primary() -> str:
-    """Transparent background, ink glyph — for light surfaces."""
+    """Transparent background, ink glyph with the ember leg — for paper."""
     return (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
-        f'<path fill="{INK}" fill-rule="evenodd" d="{GLYPH_D}"/>'
-        f'<path fill="{TANGERINE}" d="{FOLD_D}"/>'
-        "</svg>\n"
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+        f"{glyph_group(INK, EMBER)}</svg>\n"
+    )
+
+
+def svg_paper() -> str:
+    """Transparent background, paper glyph with the ember leg — for ink."""
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+        f"{glyph_group(PAPER, EMBER)}</svg>\n"
     )
 
 
 def svg_mono() -> str:
     """Single-colour, inherits `currentColor` — for tinted contexts."""
     return (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
-        f'<path fill="currentColor" fill-rule="evenodd" d="{GLYPH_D}"/>'
-        f'<path fill="currentColor" d="{FOLD_D}"/>'
-        "</svg>\n"
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+        f'{glyph_group("currentColor", "currentColor")}</svg>\n'
     )
 
 
@@ -208,10 +202,9 @@ def write_icns(tmp: Path, out: Path) -> None:
     """Build a macOS .icns via iconutil from a generated .iconset."""
     iconset = tmp / "rabta.iconset"
     iconset.mkdir(parents=True, exist_ok=True)
-    tile = svg_tile()
     for base in (16, 32, 128, 256, 512):
-        rasterise(tile, base, iconset / f"icon_{base}x{base}.png", tmp)
-        rasterise(tile, base * 2, iconset / f"icon_{base}x{base}@2x.png", tmp)
+        rasterise(TILE, base, iconset / f"icon_{base}x{base}.png", tmp)
+        rasterise(TILE, base * 2, iconset / f"icon_{base}x{base}@2x.png", tmp)
     subprocess.run(
         ["iconutil", "-c", "icns", str(iconset), "-o", str(out)],
         check=True,
@@ -254,8 +247,6 @@ def render_og_card(tmp: Path) -> None:
 
     # Chrome does not reliably exit after --screenshot with a virtual time
     # budget; wait for the file to stop growing, then reap it.
-    import time
-
     last, stable, deadline = -1, 0, time.time() + 60
     while time.time() < deadline:
         time.sleep(0.3)
@@ -288,20 +279,19 @@ def main() -> None:
     require("sips")
     require("iconutil")
 
-    print(f"source    {SOURCE.relative_to(ROOT)}")
+    print(f"sources   {GLYPH_SOURCE.relative_to(ROOT)}, {TILE_SOURCE.relative_to(ROOT)}")
     print("writing:")
-
-    tile = svg_tile()
 
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
 
         # --- vector colourways, re-emitted from the canonical geometry -----
         for path, text in (
-            (BRAND / "favicon.svg", tile),
+            (BRAND / "favicon.svg", TILE),
             (BRAND / "rabta-mark-primary.svg", svg_primary()),
+            (BRAND / "rabta-mark-paper.svg", svg_paper()),
             (BRAND / "rabta-mark-mono.svg", svg_mono()),
-            (APP_BRAND / "rabta-mark.svg", tile),
+            (APP_BRAND / "rabta-mark.svg", TILE),
             (APP_BRAND / "rabta-mark-primary.svg", svg_primary()),
             (APP_BRAND / "rabta-mark-mono.svg", svg_mono()),
         ):
@@ -311,25 +301,25 @@ def main() -> None:
 
         # --- website favicons and app icons -------------------------------
         for size in (16, 32):
-            note(rasterise(tile, size, BRAND / f"favicon-{size}.png", tmp))
-        note(rasterise(tile, 180, BRAND / "apple-touch-icon.png", tmp))
-        note(rasterise(tile, 192, BRAND / "icon-192.png", tmp))
-        note(rasterise(tile, 512, BRAND / "icon-512.png", tmp))
+            note(rasterise(TILE, size, BRAND / f"favicon-{size}.png", tmp))
+        note(rasterise(TILE, 180, BRAND / "apple-touch-icon.png", tmp))
+        note(rasterise(TILE, 192, BRAND / "icon-192.png", tmp))
+        note(rasterise(TILE, 512, BRAND / "icon-512.png", tmp))
         note(rasterise(svg_maskable(), 512, BRAND / "icon-512-maskable.png", tmp))
 
         ico_sources = [
-            rasterise(tile, s, tmp / f"ico-{s}.png", tmp) for s in (16, 32, 48)
+            rasterise(TILE, s, tmp / f"ico-{s}.png", tmp) for s in (16, 32, 48)
         ]
         write_ico(ico_sources, WEB / "favicon.ico")
         note(WEB / "favicon.ico")
 
         # --- Tauri bundle --------------------------------------------------
-        note(rasterise(tile, 32, TAURI / "32x32.png", tmp))
-        note(rasterise(tile, 64, TAURI / "64x64.png", tmp))
-        note(rasterise(tile, 128, TAURI / "128x128.png", tmp))
-        note(rasterise(tile, 256, TAURI / "128x128@2x.png", tmp))
-        note(rasterise(tile, 512, TAURI / "icon.png", tmp))
-        write_ico(ico_sources + [rasterise(tile, 256, tmp / "ico-256.png", tmp)],
+        note(rasterise(TILE, 32, TAURI / "32x32.png", tmp))
+        note(rasterise(TILE, 64, TAURI / "64x64.png", tmp))
+        note(rasterise(TILE, 128, TAURI / "128x128.png", tmp))
+        note(rasterise(TILE, 256, TAURI / "128x128@2x.png", tmp))
+        note(rasterise(TILE, 512, TAURI / "icon.png", tmp))
+        write_ico(ico_sources + [rasterise(TILE, 256, tmp / "ico-256.png", tmp)],
                   TAURI / "icon.ico")
         note(TAURI / "icon.ico")
         write_icns(tmp, TAURI / "icon.icns")
@@ -337,13 +327,13 @@ def main() -> None:
 
         # --- connectors ----------------------------------------------------
         for size in (16, 32, 48, 128):
-            note(rasterise(tile, size, CHROME / f"icon{size}.png", tmp))
-        note(rasterise(tile, 128, VSCODE / "icon.png", tmp))
+            note(rasterise(TILE, size, CHROME / f"icon{size}.png", tmp))
+        note(rasterise(TILE, 128, VSCODE / "icon.png", tmp))
 
         # --- social card ---------------------------------------------------
         render_og_card(tmp)
 
-    print(f"\n{len(written)} assets written from {SOURCE.name}.")
+    print(f"\n{len(written)} assets written.")
 
 
 if __name__ == "__main__":

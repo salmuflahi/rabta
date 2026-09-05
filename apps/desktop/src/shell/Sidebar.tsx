@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Lockup } from "@/components/brand/Mark";
 import { Icon } from "@/components/ui/icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -19,26 +20,11 @@ import {
   TRAFFIC_LIGHT_WRAPPER_INSET_CLASS,
 } from "./titlebar";
 
-/** The mark, inlined so `currentColor` inherits the sidebar's ivory.
- * The tiled `rabta-mark.svg` stays the Dock icon, where it sits against
- * the desktop and reads properly. */
-function BrandMark({ className }: { className?: string }) {
-  return (
-    <svg
-      data-brand-mark
-      viewBox="0 0 64 64"
-      role="img"
-      aria-label="Rabta"
-      className={className}
-    >
-      <path
-        fill="currentColor"
-        fillRule="evenodd"
-        d="M13 8h28.5L56 22.5V51a5 5 0 0 1-5 5H22L8 42V13a5 5 0 0 1 5-5Zm8 13h14v-5l14 16-14 16v-5H25l-8-8V25a4 4 0 0 1 4-4Z"
-      />
-      <path fill="currentColor" d="M41.5 8v14.5H56Z" />
-    </svg>
-  );
+/** The lockup — the mark and "abta" as outlines — inlined so `currentColor`
+ * inherits the sidebar's paper. The tiled `rabta-mark.svg` stays the Dock
+ * icon, where it sits against the desktop and reads properly. */
+function BrandLockup({ className }: { className?: string }) {
+  return <Lockup capHeight={11} className={className} title="Rabta" />;
 }
 
 function NavRow({
@@ -232,8 +218,7 @@ function BrandRow() {
         data-tauri-drag-region
         className="flex min-w-0 items-center gap-2 overflow-hidden text-sidebar-foreground/90"
       >
-        <BrandMark className="size-4 shrink-0 text-sidebar-foreground" />
-        <span className="truncate text-body font-semibold tracking-tight">Rabta</span>
+        <BrandLockup className="shrink-0 text-sidebar-foreground" />
       </div>
       <div className="flex-1" />
     </div>

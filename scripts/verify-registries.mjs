@@ -67,7 +67,7 @@ async function openVsx() {
   // the listing carries no publisher badge, and the site says so on /roadmap/.
   // If that ever flips, the roadmap entry becomes the stale claim.
   if (!namespace.verified) {
-    const roadmap = await readFile(resolve(ROOT, "website/roadmap/index.html"), "utf8");
+    const roadmap = await readFile(resolve(ROOT, "site/dist/roadmap/index.html"), "utf8");
     if (!/unverified namespace on Open VSX/i.test(roadmap)) {
       problems.push(
         "Open VSX namespace is unverified but /roadmap/ no longer says so",
@@ -117,7 +117,7 @@ async function marketplace() {
 // ---- the site --------------------------------------------------------------
 
 async function site(published) {
-  const setup = await readFile(resolve(ROOT, "website/setup/index.html"), "utf8");
+  const setup = await readFile(resolve(ROOT, "site/dist/setup/index.html"), "utf8");
 
   // The page may be in either of two states, and both are legitimate:
   //

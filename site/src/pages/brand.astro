@@ -1,0 +1,222 @@
+---
+import Base from "../layouts/Base.astro";
+import "../styles/tokens.css";
+import "../styles/shell.css";
+import "../styles/doc.css";
+import "../styles/page.css";
+---
+<Base
+  title={"Brand · Rabta"}
+  description={"The Rabta mark: an R whose leg is the Arabic ر of رابطة. Where it comes from, how it moves, the colours it lives in, and the files to use it."}
+  route="/brand/"
+  ogTitle={"The Rabta mark"}
+  ogDescription={"An R that is also a ر. The mark, its three strokes, its colours, and the files to use it."}
+>
+  <div class="wrap page-head">
+    <p class="page-head__label">Brand</p>
+    <h1>An R that is also a ر.</h1>
+    <p class="lede">
+      Two alphabets, one glyph, three strokes. This page is the mark: where
+      it comes from, how it moves, the colours it lives in, and the files to
+      use it.
+    </p>
+  </div>
+
+  <!-- The living mark. Each plate draws itself when it scrolls into view and
+       again on request. -->
+  <section class="band" aria-labelledby="mark-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="mark-title">Three strokes, in the order the product happens.</h2>
+        <p>
+          The stem: you start a task, and something comes down to rest. The
+          bowl: you capture, and the loop closes around what is open. The leg:
+          you leave, and you come back. That third stroke is the Arabic ر of
+          رابطة, and it is the one that gets the colour.
+        </p>
+
+        <div class="specimen">
+          <div class="specimen__plate">
+            <svg class="mark" id="specimen-ink" data-mark="draw" viewBox="0 0 100 100" role="img" aria-label="The Rabta mark on ink">
+              <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
+                <path class="stem" d="M25 22V84" />
+                <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
+                <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
+              </g>
+            </svg>
+            <button class="button button--small specimen__replay" type="button" data-mark-replay aria-controls="specimen-ink">Draw it again</button>
+          </div>
+          <div class="specimen__plate specimen__plate--paper paper">
+            <svg class="mark" id="specimen-paper" data-mark="draw" viewBox="0 0 100 100" role="img" aria-label="The Rabta mark on paper">
+              <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
+                <path class="stem" d="M25 22V84" />
+                <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
+                <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
+              </g>
+            </svg>
+            <button class="button button--small specimen__replay" type="button" data-mark-replay aria-controls="specimen-paper">Draw it again</button>
+          </div>
+        </div>
+
+        <div class="strokes">
+          <div class="stroke" data-reveal>
+            <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
+              <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
+                <path class="stem lit" d="M25 22V84" />
+                <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
+                <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
+              </g>
+            </svg>
+            <h3>The stem</h3>
+            <p>You start. A task is a name for the thing you are doing, and something comes down to rest.</p>
+          </div>
+          <div class="stroke" data-reveal data-reveal-delay="80">
+            <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
+              <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
+                <path class="stem" d="M25 22V84" />
+                <path class="bowl lit" d="M25 28H46a16 16 0 0 1 0 32H25" />
+                <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
+              </g>
+            </svg>
+            <h3>The bowl</h3>
+            <p>You capture. The loop closes around the files, the terminals, the tabs and the branch.</p>
+          </div>
+          <div class="stroke" data-reveal data-reveal-delay="160">
+            <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
+              <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
+                <path class="stem" d="M25 22V84" />
+                <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
+                <path class="leg lit" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
+              </g>
+            </svg>
+            <h3>The leg</h3>
+            <p>You leave, and you come back. The stroke goes out and returns. This is the ر, and this is the brand.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="name-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="name-title">Rabta is رابطة: a bond, a link, the thing that ties things together.</h2>
+        <p>
+          The product is exactly that. Your tools each remember their own piece
+          of a task; Rabta is the bond between them. The name is pronounced
+          RAHB-tah, and it is written in the two alphabets the mark carries.
+        </p>
+        <div class="name" aria-hidden="true">
+          <div>
+            <p class="name__word">Rabta</p>
+            <p>Set in Inter, weight 560, the face of everything else on this site.</p>
+          </div>
+          <div>
+            <p class="name__word name__word--arabic">رابطة</p>
+            <p>The ر is the second letter, and it is the leg of the mark. Set in Reem Kufi, a geometric Kufi whose strokes share the mark's logic.</p>
+          </div>
+        </div>
+        <p class="mono muted foot-note">
+          Three faces on this site, all under the SIL Open Font License and
+          each shipped beside its licence: Inter for everything, Reem Kufi for
+          the name only, Geist Mono for what is checkable: receipts,
+          terminals, code, hashes, paths.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="lockup-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="lockup-title">The mark, then the rest of the word.</h2>
+        <p>
+          The R's stem is scaled to Inter's cap height, so the mark and the
+          letters after it share a cap line. The wordmark ships as outlines and
+          never depends on a font being installed. Clear space around the
+          lockup is one stem-width; the smallest it should ever be set is 22px
+          tall, and the tile should never go below 16px.
+        </p>
+        <div class="construction" data-reveal>
+          <img src="/assets/brand/lockup.svg" width="2945" height="1213" alt="The Rabta lockup: the mark followed by the letters a, b, t, a, with the leg of the R in ember orange." />
+          <p>Never outline the mark, rotate it, put it in a circle, add a shadow, or draw the leg in anything but the ember or the mark's own colour.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="ways-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="ways-title">Paper, ink, and the tile.</h2>
+        <p>
+          Two-tone is the default on paper and on ink: the stem and bowl in the
+          text colour, the leg in the ember. The tile is the mark in ink on an
+          ember squircle, for the Dock, the favicon and any avatar. Mono is for
+          the places two colours are not available.
+        </p>
+        <div class="ways">
+          <div class="way" data-reveal>
+            <div class="way__plate way__plate--paper"><img class="way__lockup" src="/assets/brand/lockup.svg" width="2945" height="1213" alt="" /></div>
+            <h3>Lockup on paper</h3>
+            <a class="link link--arrow" href="/assets/brand/lockup.svg" download>Download SVG</a>
+          </div>
+          <div class="way" data-reveal data-reveal-delay="60">
+            <div class="way__plate way__plate--ink"><img class="way__lockup" src="/assets/brand/lockup-paper.svg" width="2945" height="1213" alt="" /></div>
+            <h3>Lockup on ink</h3>
+            <a class="link link--arrow" href="/assets/brand/lockup-paper.svg" download>Download SVG</a>
+          </div>
+          <div class="way" data-reveal data-reveal-delay="120">
+            <div class="way__plate way__plate--paper"><img src="/assets/brand/rabta-mark.svg" width="100" height="100" alt="" /></div>
+            <h3>The tile</h3>
+            <a class="link link--arrow" href="/assets/brand/icon-512.png" download>Download PNG</a>
+          </div>
+          <div class="way" data-reveal data-reveal-delay="180">
+            <div class="way__plate way__plate--paper"><img src="/assets/brand/rabta-mark-primary.svg" width="100" height="100" alt="" /></div>
+            <h3>The mark alone</h3>
+            <a class="link link--arrow" href="/assets/brand/mark.svg" download>Download SVG</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="palette-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="palette-title">Paper, ink, one ember.</h2>
+        <p>
+          Both worlds are neutral with a cool cast, so a screenshot of the dark
+          app sits naturally on the light site. The ember is spent once per
+          view: on the primary action, or on the live thing, never both.
+        </p>
+        <div class="swatches">
+          <div class="swatch" data-reveal><div class="swatch__color swatch__color--paper-0"></div><div class="swatch__meta"><b>Paper</b><span>#FFFFFF</span></div></div>
+          <div class="swatch" data-reveal data-reveal-delay="40"><div class="swatch__color swatch__color--paper-1"></div><div class="swatch__meta"><b>Paper, alt</b><span>#F5F5F7</span></div></div>
+          <div class="swatch" data-reveal data-reveal-delay="80"><div class="swatch__color swatch__color--ink-0"></div><div class="swatch__meta"><b>Ink</b><span>#0A0B0E</span></div></div>
+          <div class="swatch" data-reveal data-reveal-delay="120"><div class="swatch__color swatch__color--ink-1"></div><div class="swatch__meta"><b>Ink, raised</b><span>#14161B</span></div></div>
+          <div class="swatch" data-reveal data-reveal-delay="160"><div class="swatch__color swatch__color--ember"></div><div class="swatch__meta"><b>Ember</b><span>#FF6B2C</span></div></div>
+          <div class="swatch" data-reveal data-reveal-delay="200"><div class="swatch__color swatch__color--ember-deep"></div><div class="swatch__meta"><b>Ember, deep</b><span>#C2501B</span></div></div>
+          <div class="swatch" data-reveal data-reveal-delay="240"><div class="swatch__color swatch__color--text"></div><div class="swatch__meta"><b>Text</b><span>#0E0F12</span></div></div>
+          <div class="swatch" data-reveal data-reveal-delay="280"><div class="swatch__color swatch__color--text-mute"></div><div class="swatch__meta"><b>Text, muted</b><span>#4A4D57</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band band--close" aria-labelledby="motion-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="motion-title">Everything that comes back moves the way the leg does.</h2>
+        <p>
+          One settling curve for anything that comes to rest, and one spring
+          for the moment something lands. The mark draws itself in just over a
+          second, stem first, leg last. A window returns by rising into place;
+          a headline rises from behind its own baseline; a restore completes
+          with the ember. Under reduced motion, all of it collapses to a fade,
+          and the mark is simply there.
+        </p>
+      </div>
+    </div>
+  </section>
+</Base>

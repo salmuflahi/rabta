@@ -17,8 +17,10 @@ import App from "@/App";
 import { ThemeProvider } from "@/components/theme-provider";
 import { IconSprite } from "@/components/ui/icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
 import { useStore } from "@/store";
-import { DEMO_TIMELINES, parseCaptureMode } from "./director";
+import { DEMO_TIMELINES, parseCaptureMode, parseCaptureRegion } from "./director";
+import type { DemoAction } from "./director";
 import "@/index.css";
 
 // --------------------------------------------------------------- direction
@@ -29,13 +31,26 @@ const mobileDemo = /(?:^|[#&])variant=mobile(?:&|$)/.test(window.location.hash);
 if (mode.kind === "demo") {
   document.documentElement.dataset.demo = mode.name;
   document.documentElement.dataset.demoVariant = mobileDemo ? "mobile" : "desktop";
+  // `region=sheet` makes index.html hide everything but the restore dialog,
+  // so the recorder can capture the sheet alone as an alpha layer.
+  document.documentElement.dataset.demoRegion = parseCaptureRegion(window.location.hash);
+  // The contract, readable by the recorder, so its cue sidecar is written
+  // from the same numbers that drive the page rather than a copy of them.
+  (window as unknown as { __rabtaDemo: unknown }).__rabtaDemo = {
+    name: mode.name,
+    ...DEMO_TIMELINES[mode.name],
+  };
 }
 
+/** The capsule's real save control. Its label is "Capture" (it was "Save
+ *  State" before the rebrand and the director's cue still says so); either
+ *  spelling is accepted so a rename in the app fails loudly here instead of
+ *  silently recording a demo in which nothing was pressed. */
 function clickRealSaveState(): void {
-  const button = Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(
-    (candidate) => candidate.textContent?.replace(/\s+/g, " ").trim() === "Save State",
+  const button = Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find((candidate) =>
+    /^(Capture|Save State)$/.test(candidate.textContent?.replace(/\s+/g, " ").trim() ?? ""),
   );
-  if (!button) throw new Error("capture: the real Save State control was not rendered");
+  if (!button) throw new Error("capture: the real Capture (Save State) control was not rendered");
   button.click();
 }
 
@@ -77,23 +92,28 @@ function Director() {
       started = true;
       document.documentElement.dataset.demoStarted = "true";
 
-      if (mode.name === "hero-return") {
-        setView("capsules");
-        later(500, clickRealSaveState);
-        later(2000, () => {
+      // Every demo is its DEMO_TIMELINES entry, played: the cue times there
+      // are the only copy, so the recorder's sidecar, the director test and
+      // the footage cannot drift apart.
+      const perform: Record<DemoAction, () => void> = {
+        "show-active-task": () => setView("capsules"),
+        "show-capsule": () => setView("capsules"),
+        "save-state": clickRealSaveState,
+        "leave-task": () => {
           setView("overview");
           // Overview confirms the backend's current task on mount. Let that
           // real load settle, then direct the public store to the other-task
           // cut required by the storyboard.
           later(50, () => setActiveTaskId("task_focus"));
-        });
-        later(4000, () => {
+        },
+        "resume-task": () => {
           setView("capsules");
           requestResume("task_reconnect");
-        });
-      } else {
-        setView("capsules");
-        later(700, () => requestResume("task_reconnect"));
+        },
+      };
+      for (const cue of timeline.cues) {
+        if (cue.atMs === 0) perform[cue.action]();
+        else later(cue.atMs, perform[cue.action]);
       }
 
       later(timeline.durationMs, () => {
@@ -132,6 +152,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <TooltipProvider delayDuration={200}>
         <Director />
         <App />
+        {/* Mounted exactly as src/main.tsx mounts it, so the app's real
+            reaction to Capture — the "Saved state" toast — is in the footage.
+            Without it the click was invisible: nothing on screen changed. */}
+        <Toaster />
       </TooltipProvider>
     </ThemeProvider>
   </>,

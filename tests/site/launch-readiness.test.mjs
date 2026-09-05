@@ -13,12 +13,16 @@ import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-const SITE = resolve(dirname(fileURLToPath(import.meta.url)), "../../website");
 
-/** The eight routes a visitor can reach, and the file each is served from. */
+const SITE = resolve(dirname(fileURLToPath(import.meta.url)), "../../site/dist");
+
+/** The nine routes a visitor can reach, and the file each is served from. */
 const PAGES = {
   "/": "index.html",
   "/why/": "why/index.html",
+  "/brand/": "brand/index.html",
+  "/capsules/": "capsules/index.html",
+  "/agents/": "agents/index.html",
   "/setup/": "setup/index.html",
   "/faq/": "faq/index.html",
   "/roadmap/": "roadmap/index.html",
@@ -41,17 +45,25 @@ test("every page delivers the security policy", async () => {
   // check that stops one route being quietly exempt.
   for (const [route, file] of Object.entries(PAGES)) {
     const html = await read(file);
-    assert.match(html, /http-equiv="Content-Security-Policy"/, route);
+    assert.match(html, /http-equiv="content-security-policy"/i, route);
     assert.match(html, /name="referrer" content="strict-origin-when-cross-origin"/, route);
   }
 });
 
 test("the policy forbids exactly what the site does not use", async () => {
-  const head = await read("_chrome/head.html");
-  // The policy is the `content` attribute — not the file, whose comment
-  // legitimately mentions 'unsafe-inline' while explaining why it is absent.
-  const policy = head.match(/Content-Security-Policy" content="([^"]+)"/)?.[1] ?? "";
-  assert.ok(policy, "no policy found in the shared head");
+  // Astro generates the policy at build time: our directives from
+  // astro.config.ts plus script-src and style-src with hashes of whatever it
+  // inlined. The hashes differ per page; the directives must not.
+  const policyOf = (html) => html.match(/http-equiv="content-security-policy" content="([^"]+)"/i)?.[1] ?? "";
+  const shape = (policy) => policy.replace(/'sha256-[^']+'/g, "").replace(/\s+/g, " ").split(";").map((d) => d.trim()).filter(Boolean).sort();
+  const pages = await all();
+  const policy = policyOf(pages["/"]);
+  assert.ok(policy, "no policy found on the homepage");
+  for (const [route, html] of Object.entries(pages)) {
+    assert.deepEqual(shape(policyOf(html)), shape(policy), `${route}: its policy differs from the homepage's`);
+  }
+  // The one request that leaves the origin at runtime: the counter ping.
+  assert.ok(policy.includes("connect-src 'self';"), "connect-src is this origin and nothing else");
 
   // Each of these is only safe to forbid because the site genuinely does not
   // rely on it — the two tests below prove that rather than assuming it.
@@ -160,7 +172,7 @@ test("no internal link points at a page that does not exist", async () => {
   for (const [route, html] of Object.entries(await all())) {
     for (const [, href] of html.matchAll(/href="(\/[^"#?]*)"/g)) {
       if (known.has(href)) continue;
-      // Anything else must be a real file in website/.
+      // Anything else must be a real file in the build.
       await assert.doesNotReject(
         () => access(resolve(SITE, href.replace(/^\//, ""))),
         `${route}: dead internal link ${href}`,
@@ -318,7 +330,7 @@ test("404 obeys the same inline-content rules as a real route", async () => {
   // meant the CSP-compatibility assertions never ran against it. The CSP
   // applies to it exactly as it does to everything else.
   const html = await read("404.html");
-  assert.match(html, /http-equiv="Content-Security-Policy"/, "404: no policy");
+  assert.match(html, /http-equiv="content-security-policy"/i, "404: no policy");
   assert.doesNotMatch(html, /\sstyle="/, "404: inline style attribute");
   assert.doesNotMatch(html, /<style[\s>]/, "404: inline <style> block");
   for (const tag of html.match(/<script(?![^>]*\bsrc=)[^>]*>/g) ?? []) {

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=2560, height=1600" />
+    <title>Rabta · move-capture</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js" integrity="sha384-sG0Hv1tP1lZCk9KQmrIbY/XNwi+OY84GQqhMscbnsoBFqAz8KNCil1kvfL3Hbbk2" crossorigin="anonymous"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 2560px; height: 1600px; overflow: hidden; background: #0a0b0e; }
+      #root { position: relative; width: 2560px; height: 1600px; overflow: hidden; background: #0a0b0e; }
+      /* The app's own pixels: authored at 1280x800, shown at 2x. */
+      .frame { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; transform: scale(2); transform-origin: 0 0; overflow: hidden; background: #0a0b0e; }
+      /* The void the camera exposes at the frame's edges is a designed surface. */
+      .scene { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(120% 90% at 50% 42%, #13151b 0%, #0a0b0e 62%); }
+      .defs { position: absolute; width: 0; height: 0; }
+      /* The lens: static perspective, never tweened. The whip's streak lives here, above the 3D context. */
+      .stage { position: absolute; inset: 0; perspective: 1000px; perspective-origin: 50% 50%; }
+      .stage.whip { filter: url(#streak); }
+      /* The world: preserve-3d and clean — only applyCamera() writes its transform. */
+      .world { position: absolute; inset: 0; transform-style: preserve-3d; transform-origin: 50% 50%; will-change: transform; }
+      .plate { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; object-fit: cover; display: block; }
+      .plate.card { border-radius: 10px; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06); }
+      /* Depth of field on leaf layers only: a --dof blur and a dim. */
+      .dof { --dof: 0px; filter: blur(var(--dof)); will-change: filter, opacity; }
+      .region { --dof: 0px; }
+      
+      /* The far side of a tilted page falls out of focus. */
+      .plate.far { filter: blur(6px); -webkit-mask-image: linear-gradient(100deg, #000 0%, #000 20%, transparent 46%); mask-image: linear-gradient(100deg, #000 0%, #000 20%, transparent 46%); border-radius: 10px; }
+      /* Bloom: a pre-blurred copy of the plate, screened over it in the world. */
+      .plate.bloom { mix-blend-mode: screen; opacity: 0.14; pointer-events: none; }
+      .cursor { position: absolute; left: 0; top: 0; width: 22px; height: 30px; will-change: transform; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5)); }
+      .cursor svg { display: block; width: 22px; height: 30px; }
+      .ring { position: absolute; left: -14px; top: -14px; width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.9); will-change: transform, opacity; }
+      /* The grade, beside the stage, on every loop. */
+      .grade { position: absolute; inset: 0; pointer-events: none; }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse 78% 68% at 50% 46%, rgba(0, 0, 0, 0) 42%, rgba(0, 0, 0, 0.5) 100%); }
+      .grain { position: absolute; inset: 0; width: 1280px; height: 800px; mix-blend-mode: overlay; opacity: 0.035; }
+      /* agents-connect: an authored terminal in the world. */
+      .term { position: absolute; left: 240px; top: 190px; width: 800px; height: 420px; border-radius: 14px; background: #0e1015; box-shadow: 0 40px 90px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.07); overflow: hidden; transform: translateZ(0); }
+      .term .bar { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; background: #13161c; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+      .term .dot { width: 12px; height: 12px; border-radius: 50%; background: #2a2f3a; }
+      .term .title { margin-left: auto; margin-right: auto; font: 500 13px/1 ui-sans-serif, -apple-system, "SF Pro Text", Inter, system-ui, sans-serif; color: #8b93a7; letter-spacing: 0.01em; }
+      .term .body { padding: 26px 30px; font: 400 17px/1.75 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: #e6e8ee; }
+      .term .line { white-space: nowrap; min-height: 30px; }
+      .term .prompt { color: #FF6B2C; font-weight: 600; }
+      .term .out { color: #a3abbd; }
+      .term .out:last-child { color: #e6e8ee; }
+      .term .caret { display: inline-block; width: 9px; height: 19px; margin-left: 2px; vertical-align: -3px; background: #FF6B2C; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4" data-width="2560" data-height="1600">
+      <div class="frame">
+        <div class="scene">
+          <svg class="defs" aria-hidden="true">
+            <filter id="streak" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur id="streak-blur" in="SourceGraphic" stdDeviation="0 0" /></filter>
+          </svg>
+          <div class="stage" id="stage">
+            <div class="world" id="world" data-layout-allow-overflow>
+          <video id="a-plate-0" class="plate" src="assets/capture-1280x800.mp4?layer=a-plate-0" data-start="0" data-duration="4" data-media-start="0" data-track-index="0" muted playsinline style="transform: translateZ(0px);"></video>
+          <video id="a-bloom-1" class="plate bloom" src="assets/capture-1280x800-bloom.mp4?layer=a-bloom-1" data-start="0" data-duration="4" data-media-start="0" data-track-index="2" muted playsinline style="transform: translateZ(0.5px);"></video>
+          
+          <div class="cursor" id="cursor"><svg viewBox="0 0 24 32" width="22" height="30" aria-hidden="true"><path d="M2 2 L2 24 L8 18.5 L12 28 L16 26 L12 17 L20 17 Z" fill="#101114" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+          <div class="ring" id="ring"></div>
+            </div>
+          </div>
+          <div class="grade" data-layout-ignore>
+            <div class="vignette"></div>
+            <svg class="grain" viewBox="0 0 1280 800" preserveAspectRatio="none" aria-hidden="true">
+              <filter id="grain-f" x="0" y="0" width="100%" height="100%"><feTurbulence id="grain-t" type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="0" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
+              <rect width="1280" height="800" filter="url(#grain-f)" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const world = document.getElementById("world");
+      const cursor = document.getElementById("cursor");
+      const ring = document.getElementById("ring");
+      const streakNode = document.getElementById("streak-blur");
+      const grainNode = document.getElementById("grain-t");
+      const tl = gsap.timeline({ paused: true });
+
+      // The camera: one state, one writer, translate outside the rotations so
+      // x/y stay screen-aligned at any tilt.
+      const cam = { x: 0, y: 0, z: 0, rx: 0, ry: 0 };
+      function applyCamera() {
+        world.style.transform = `translate3d(${cam.x}px, ${cam.y}px, ${cam.z}px) rotateX(${cam.rx}deg) rotateY(${cam.ry}deg)`;
+      }
+      // The whip's streak: a proxy peaking during the burst, seeded at 0.
+      const streak = { v: 0 };
+      const writeStreak = () => streakNode.setAttribute("stdDeviation", `${streak.v.toFixed(2)} 0`);
+      writeStreak();
+
+  // shot a — 0s to 4s
+  Object.assign(cam, { x: 0, y: 0, z: 0, rx: 0, ry: 0 }); applyCamera();
+  tl.fromTo(cam, { x: 0, y: 0, z: 0, rx: 0, ry: 0 }, { ...{ x: -91.9, y: 168.5, z: 444.44, rx: 0, ry: 0 }, duration: 0.7, ease: "expo.in", immediateRender: true, onUpdate: applyCamera }, 0.3);
+  tl.fromTo(cam, { x: -91.9, y: 168.5, z: 444.44, rx: 0, ry: 0 }, { ...{ x: -91.9, y: 168.5, z: 462.37, rx: 0, ry: 0 }, duration: 2.3, ease: "none", immediateRender: false, onUpdate: applyCamera }, 1);
+  tl.fromTo(cam, { x: -91.9, y: 168.5, z: 462.37, rx: 0, ry: 0 }, { ...{ x: 0, y: 0, z: 0, rx: 0, ry: 0 }, duration: 0.6, ease: "expo.out", immediateRender: false, onUpdate: applyCamera }, 3.3);
+  gsap.set(cursor, { x: 891.9, y: 331.5, z: 30, autoAlpha: 0, transformOrigin: "0 0" });
+  gsap.set(ring, { x: 731.9, y: 191.5, z: 30, autoAlpha: 0, scale: 0.3 });
+  tl.set(cursor, { autoAlpha: 1 }, 0);
+  tl.fromTo(cursor, { x: 891.9, y: 331.5 }, { x: 731.9, y: 191.5, duration: 0.5, ease: "power2.inOut", immediateRender: false }, 0.4);
+  tl.fromTo(cursor, { scale: 1 }, { scale: 0.9, duration: 0.06, ease: "power2.in", immediateRender: false }, 0.94);
+  tl.fromTo(cursor, { scale: 0.9 }, { scale: 1, duration: 0.14, ease: "power2.out", immediateRender: false }, 1);
+  tl.fromTo(ring, { autoAlpha: 0.7, scale: 0.3 }, { autoAlpha: 0, scale: 1.8, duration: 0.5, ease: "power2.out", immediateRender: false }, 1);
+
+      // One driver across the loop: rewrites the camera after every other
+      // tween has rendered (so a seek in any order ends on the same pose) and
+      // reseeds the grain per frame, so it is alive and still deterministic.
+      const clock = { t: 0 };
+      grainNode.setAttribute("seed", "0");
+      tl.to(clock, {
+        t: 4,
+        duration: 4,
+        ease: "none",
+        onUpdate: () => {
+          applyCamera();
+          grainNode.setAttribute("seed", String(Math.min(120, Math.floor(clock.t * 30 + 1e-6))));
+        },
+      }, 0);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

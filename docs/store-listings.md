@@ -82,21 +82,18 @@ serves **Cursor / VSCodium / Windsurf**.
 
 ## Status & notes
 
-- **Open VSX:** ✅ published — `rabta-connect.rabta-vscode` 0.1.0:
+- **Open VSX:** ✅ published — `rabta-connect.rabta-vscode` 0.2.0, namespace verified:
   <https://open-vsx.org/extension/rabta-connect/rabta-vscode> (serves Cursor /
   VSCodium / Windsurf).
-- **Chrome Web Store:** ⏳ pending review — item "Rabta Connector", **Store id
+- **Chrome Web Store:** ✅ live at 0.1.1, 0.2.0 in review — item "Rabta Connector", **Store id
   `aaombpafbhjkoinppogieaclijddlebo`**, publisher `rabta-connect`. The older item
   under a prior account (id `eglannhohnfalopddjbjhgiimeblmgbj`) is **obsolete** —
   do not link or resubmit it. Rabta hardcodes **no** Store id (the hub accepts
   valid `chrome-extension://` origins and pairing is approved in-app per
   connector), so the new id needs no code change.
-- **VS Code Marketplace (Microsoft):** not yet published (Azure DevOps PAT
-  blocker). Don't claim Marketplace publication anywhere until it's live.
+- **VS Code Marketplace (Microsoft):** ✅ published — `rabta-connect.rabta-vscode`
+  0.2.0, publisher verified. `scripts/verify-registries.mjs` checks both
+  registries against what the site says.
 - **Website / download:** <https://rabta.build/> · DMG
   <https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg>
   (SHA-256 `3978ec57af7d37ab32670033d679c21a28cf74cebb0435ce011049e05635c655`).
-- `connectors/vscode/package.json` still lacks `repository`/`icon` — Marketplace
-  listings look bare without them. A public `repository` URL now exists (the
-  website repo, `salmuflahi/rabta`) if you want to add it in a future 0.1.1
-  (don't republish 0.1.0 to Open VSX just for this — see RELEASE.md).

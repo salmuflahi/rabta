@@ -76,13 +76,13 @@ describe.each(["light", "dark"] as const)("%s theme, every accent's button label
 // *best available* candidate, not just the first one tried — is pinned.
 describe("resolvePrimaryForeground's fallback of last resort", () => {
   it("returns the best-available candidate, not just the first, when none clears the bar", () => {
-    // Achromatic "0 0% 50%": both of light theme's candidates fail 4.5:1
-    // against it (white ~3.98:1, --foreground ~4.20:1) — the "impossible"
-    // band for this candidate pair is L 47%-51%, found by scanning; 50% is
-    // comfortably inside it either way. Crucially the two don't fail
-    // *equally* — otherwise "best available" and "just the first" would be
-    // indistinguishable and this test would prove nothing.
-    const contrivedBase = "0 0% 50%";
+    // Achromatic "0 0% 47%": both of light theme's candidates fail 4.5:1
+    // against it (the ink ~4.34:1, white ~4.42:1) — the "impossible" band
+    // for this candidate pair is a sliver around L 47-48%, found by
+    // scanning. Crucially the two don't fail *equally* — otherwise "best
+    // available" and "just the first" would be indistinguishable and this
+    // test would prove nothing.
+    const contrivedBase = "0 0% 47%";
     const [first, second] = LABEL_CANDIDATES.light;
     const firstRatio = contrastRatio(first, contrivedBase);
     const secondRatio = contrastRatio(second, contrivedBase);

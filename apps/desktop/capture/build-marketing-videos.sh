@@ -2,9 +2,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-DEMO="$ROOT/website/assets/demos"
+DEMO="$ROOT/site/public/assets/demos"
 MICRO="$DEMO/micro"
-SOCIAL="$ROOT/website/assets/social"
+SOCIAL="$ROOT/marketing-videos/social"
 CARDS="$ROOT/apps/desktop/capture/cards"
 
 mkdir -p "$MICRO" "$SOCIAL"

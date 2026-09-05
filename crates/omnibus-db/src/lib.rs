@@ -167,6 +167,39 @@ impl Db {
         install_id_with_conn(&conn)
     }
 
+    /// A `db_meta` value, or `None` when the key was never set. Small
+    /// per-database facts live here: the install id, and switches that must
+    /// survive a relaunch without being preferences of the UI.
+    pub fn get_meta(&self, key: &str) -> Result<Option<String>> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        match conn.query_row(
+            "SELECT value FROM db_meta WHERE key = ?1",
+            [key],
+            |r| r.get::<_, String>(0),
+        ) {
+            Ok(value) => Ok(Some(value)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Sets a `db_meta` value, replacing any earlier one.
+    pub fn set_meta(&self, key: &str, value: &str) -> Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        conn.execute(
+            "INSERT INTO db_meta (key, value) VALUES (?1, ?2)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            [key, value],
+        )?;
+        Ok(())
+    }
+
     /// Whether a table exists — used by tests and sanity checks.
     pub fn table_exists(&self, name: &str) -> Result<bool> {
         let conn = self

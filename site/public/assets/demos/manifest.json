@@ -1,0 +1,307 @@
+{
+  "schemaVersion": 2,
+  "videos": [
+    {
+      "file": "hero-return-desktop.mp4",
+      "demo": "hero-return",
+      "variant": "desktop",
+      "durationSeconds": 8.5,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 1671899,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "hero-return.jpg"
+    },
+    {
+      "file": "hero-return-mobile.mp4",
+      "demo": "hero-return",
+      "variant": "mobile",
+      "durationSeconds": 8.5,
+      "width": 720,
+      "height": 450,
+      "bytes": 296105,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "hero-return.jpg"
+    },
+    {
+      "file": "move-capture-desktop.mp4",
+      "demo": "move-capture",
+      "variant": "desktop",
+      "durationSeconds": 4,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 1124259,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "move-capture.jpg"
+    },
+    {
+      "file": "move-capture-mobile.mp4",
+      "demo": "move-capture",
+      "variant": "mobile",
+      "durationSeconds": 4,
+      "width": 720,
+      "height": 450,
+      "bytes": 243680,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "move-capture.jpg"
+    },
+    {
+      "file": "move-leave-desktop.mp4",
+      "demo": "move-leave",
+      "variant": "desktop",
+      "durationSeconds": 4,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 814112,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "move-leave.jpg"
+    },
+    {
+      "file": "move-leave-mobile.mp4",
+      "demo": "move-leave",
+      "variant": "mobile",
+      "durationSeconds": 4,
+      "width": 720,
+      "height": 450,
+      "bytes": 156114,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "move-leave.jpg"
+    },
+    {
+      "file": "move-return-desktop.mp4",
+      "demo": "move-return",
+      "variant": "desktop",
+      "durationSeconds": 5.5,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 990486,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "move-return.jpg"
+    },
+    {
+      "file": "move-return-mobile.mp4",
+      "demo": "move-return",
+      "variant": "mobile",
+      "durationSeconds": 5.5,
+      "width": 720,
+      "height": 450,
+      "bytes": 148529,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "move-return.jpg"
+    },
+    {
+      "file": "cell-files-desktop.mp4",
+      "demo": "cell-files",
+      "variant": "desktop",
+      "durationSeconds": 4,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 444352,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "cell-files.jpg"
+    },
+    {
+      "file": "cell-files-mobile.mp4",
+      "demo": "cell-files",
+      "variant": "mobile",
+      "durationSeconds": 4,
+      "width": 720,
+      "height": 450,
+      "bytes": 59196,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "cell-files.jpg"
+    },
+    {
+      "file": "cell-terminals-desktop.mp4",
+      "demo": "cell-terminals",
+      "variant": "desktop",
+      "durationSeconds": 4,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 391092,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "cell-terminals.jpg"
+    },
+    {
+      "file": "cell-terminals-mobile.mp4",
+      "demo": "cell-terminals",
+      "variant": "mobile",
+      "durationSeconds": 4,
+      "width": 720,
+      "height": 450,
+      "bytes": 57226,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "cell-terminals.jpg"
+    },
+    {
+      "file": "cell-tabs-desktop.mp4",
+      "demo": "cell-tabs",
+      "variant": "desktop",
+      "durationSeconds": 4,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 462884,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "cell-tabs.jpg"
+    },
+    {
+      "file": "cell-tabs-mobile.mp4",
+      "demo": "cell-tabs",
+      "variant": "mobile",
+      "durationSeconds": 4,
+      "width": 720,
+      "height": 450,
+      "bytes": 85151,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "cell-tabs.jpg"
+    },
+    {
+      "file": "cell-branch-desktop.mp4",
+      "demo": "cell-branch",
+      "variant": "desktop",
+      "durationSeconds": 4,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 359748,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "cell-branch.jpg"
+    },
+    {
+      "file": "cell-branch-mobile.mp4",
+      "demo": "cell-branch",
+      "variant": "mobile",
+      "durationSeconds": 4,
+      "width": 720,
+      "height": 450,
+      "bytes": 45269,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "cell-branch.jpg"
+    },
+    {
+      "file": "agents-connect-desktop.mp4",
+      "demo": "agents-connect",
+      "variant": "desktop",
+      "durationSeconds": 5,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 274546,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "agents-connect.jpg"
+    },
+    {
+      "file": "agents-connect-mobile.mp4",
+      "demo": "agents-connect",
+      "variant": "mobile",
+      "durationSeconds": 5,
+      "width": 720,
+      "height": 450,
+      "bytes": 64906,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "agents-connect.jpg"
+    },
+    {
+      "file": "capsule-anatomy-desktop.mp4",
+      "demo": "capsule-anatomy",
+      "variant": "desktop",
+      "durationSeconds": 6,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 1004048,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "capsule-anatomy.jpg"
+    },
+    {
+      "file": "capsule-anatomy-mobile.mp4",
+      "demo": "capsule-anatomy",
+      "variant": "mobile",
+      "durationSeconds": 6,
+      "width": 720,
+      "height": 450,
+      "bytes": 216316,
+      "codec": "h264",
+      "audioStreams": 0,
+      "poster": "capsule-anatomy.jpg"
+    }
+  ],
+  "posters": [
+    {
+      "file": "hero-return.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 67824
+    },
+    {
+      "file": "move-capture.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 100227
+    },
+    {
+      "file": "move-leave.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 103132
+    },
+    {
+      "file": "move-return.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 101261
+    },
+    {
+      "file": "cell-files.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 24888
+    },
+    {
+      "file": "cell-terminals.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 34955
+    },
+    {
+      "file": "cell-tabs.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 33525
+    },
+    {
+      "file": "cell-branch.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 25080
+    },
+    {
+      "file": "agents-connect.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 15714
+    },
+    {
+      "file": "capsule-anatomy.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 52173
+    }
+  ]
+}

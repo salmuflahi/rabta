@@ -1,0 +1,8 @@
+# working output
+**/renders/
+**/snapshots/
+**/.hyperframes/
+**/node_modules/
+**/*.log
+**/.hf-check.json
+_recordings/*.png

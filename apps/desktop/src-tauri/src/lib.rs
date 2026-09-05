@@ -17,6 +17,7 @@ use crate::git::GitStatus;
 use crate::github::{Issue, StartedTask};
 use crate::projects::RepoInspection;
 
+pub mod agent_ipc;
 pub mod capsules;
 /// Demo fixture for screenshots. Debug builds only — see the module docs for
 /// the three layers that keep it away from a real database.
@@ -34,6 +35,8 @@ pub struct DbHandle(pub Db);
 /// it and risking disagreement with `data_dir_for`.
 pub struct DataDir(pub std::path::PathBuf);
 struct CapsulesHandle(Capsules);
+/// The agent socket, running or not; Settings flips it.
+struct AgentIpcHandle(agent_ipc::AgentIpc);
 
 /// Snapshot of connected connectors for the UI.
 #[tauri::command]
@@ -235,6 +238,31 @@ async fn activate_task(
 #[tauri::command]
 fn active_task(caps: State<'_, CapsulesHandle>) -> Option<String> {
     caps.0.active_task()
+}
+
+/// Whether the agent socket is listening, and where it is.
+#[tauri::command]
+fn agent_access_status(ipc: State<'_, AgentIpcHandle>) -> agent_ipc::AgentAccessStatus {
+    ipc.0.status()
+}
+
+/// Turns the agent socket on or off and remembers the choice in the
+/// database, so it survives a relaunch. Off removes the socket and the
+/// secret; on writes a fresh secret.
+#[tauri::command]
+async fn set_agent_access(
+    ipc: State<'_, AgentIpcHandle>,
+    db: State<'_, DbHandle>,
+    enabled: bool,
+) -> Result<agent_ipc::AgentAccessStatus, String> {
+    if enabled {
+        ipc.0.start()?;
+    } else {
+        ipc.0.stop();
+    }
+    db.0.set_meta(agent_ipc::META_KEY, if enabled { "1" } else { "0" })
+        .map_err(|e| e.to_string())?;
+    Ok(ipc.0.status())
 }
 
 /// Updates whether the app is focused and the user is idle.
@@ -661,6 +689,7 @@ pub fn run() {
                 .map_err(|e| format!("failed to open omnibus.db: {e}"))?;
 
             app.manage(DataDir(data_dir.clone()));
+            let agent_dir = data_dir.clone();
 
             let mut hub_cfg = HubConfig::new(data_dir);
             hub_cfg.preferred_port = 17872;
@@ -722,6 +751,21 @@ pub fn run() {
             let hub = Arc::new(hub);
             let capsules = Capsules::new(hub.clone(), db.clone(), Duration::from_millis(1500));
             capsules.spawn_continuation();
+
+            // Agent access: only if the switch was on when the app last ran.
+            let agent_ipc = agent_ipc::AgentIpc::new(agent_dir, Arc::new(capsules.clone()));
+            let wanted = db
+                .get_meta(agent_ipc::META_KEY)
+                .map_err(|e| e.to_string())?
+                .as_deref()
+                == Some("1");
+            if wanted {
+                if let Err(e) = agent_ipc.start() {
+                    log::warn!("agent access could not start: {e}");
+                }
+            }
+            app.manage(AgentIpcHandle(agent_ipc));
+
             app.manage(HubHandle(hub));
             app.manage(CapsulesHandle(capsules));
             app.manage(DbHandle(db));
@@ -745,6 +789,8 @@ pub fn run() {
             delete_project,
             save_capsule,
             activate_task,
+            agent_access_status,
+            set_agent_access,
             active_task,
             session_update,
             session_heartbeat,

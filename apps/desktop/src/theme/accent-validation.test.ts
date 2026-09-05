@@ -39,8 +39,8 @@ describe("applyAccent with invalid id", () => {
   });
 
   it("still correctly applies a valid accent id", () => {
-    applyAccent("petrol", "light", root);
-    const expected = ACCENTS.petrol.light;
+    applyAccent("iris", "light", root);
+    const expected = ACCENTS.iris.light;
     expect(root.style.getPropertyValue("--primary")).toBeTruthy();
     // Verify it's not the default by checking it differs from tangerine
     const tangerineRoot = document.createElement("div");
@@ -99,7 +99,7 @@ describe("readPrefs with corrupt persisted accent", () => {
   it("preserves all other preferences when roundtripping with valid accent", () => {
     const validPrefs = {
       ...DEFAULT_PREFS,
-      accent: "petrol" as AccentId,
+      accent: "iris" as AccentId,
       theme: "light" as const,
       motion: "reduced" as const,
       developerMode: true,
@@ -108,7 +108,7 @@ describe("readPrefs with corrupt persisted accent", () => {
     writePrefs(validPrefs);
 
     const readBack = readPrefs();
-    expect(readBack.accent).toBe("petrol");
+    expect(readBack.accent).toBe("iris");
     expect(readBack.theme).toBe("light");
     expect(readBack.motion).toBe("reduced");
     expect(readBack.developerMode).toBe(true);

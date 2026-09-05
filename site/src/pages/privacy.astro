@@ -1,0 +1,347 @@
+---
+import Base from "../layouts/Base.astro";
+import "../styles/tokens.css";
+import "../styles/shell.css";
+import "../styles/doc.css";
+import "../styles/page.css";
+---
+<Base
+  title={"Privacy policy · Rabta"}
+  description={"Rabta's privacy policy: no account, no cloud, no telemetry, no crash reporting and no update checks. Exactly what is stored on your machine, what the connectors reach, and what this website does and does not collect."}
+  route="/privacy/"
+  ogDescription={"No account, no cloud, no telemetry. Exactly what Rabta stores on your machine and what its connectors can reach."}
+>
+  <div class="wrap page-head">
+    <p class="page-head__label">Privacy</p>
+
+    <h1>Privacy policy</h1>
+    <p class="lede">
+      Rabta is a local-first desktop tool. There is no Rabta server, no account
+      and no telemetry: so most of this policy describes things that do not
+      happen, and is precise about where the exceptions are.
+    </p>
+    <p class="mono muted">
+      Effective 29 July 2026 · Applies to Rabta 0.1.0 and rabta.build
+    </p>
+    <p class="page-head__meta">12 sections · what is stored · what never leaves · how to delete it</p>
+  </div>
+
+  <div class="wrap">
+    <div class="doc-grid">
+      <nav class="doc-nav" aria-labelledby="toc-title">
+              <p id="toc-title">On this page</p>
+              <ol>
+                <li><a href="#summary">The short version</a></li>
+                <li><a href="#account">Accounts</a></li>
+                <li><a href="#local">What Rabta stores on your machine</a></li>
+                <li><a href="#code">Your source code</a></li>
+                <li><a href="#connectors">Connectors and their permissions</a></li>
+                <li><a href="#telemetry">Telemetry, crash reports, update checks</a></li>
+                <li><a href="#github">Optional GitHub features</a></li>
+                <li><a href="#website">This website</a></li>
+                <li><a href="#thirdparty">Third parties you may reach</a></li>
+                <li><a href="#control">Deleting and moving your data</a></li>
+                <li><a href="#changes">Changes to this policy</a></li>
+                <li><a href="#contact">Contact</a></li>
+              </ol>
+            </nav>
+
+      <div class="prose doc-body">
+
+    <h2 id="summary">The short version</h2>
+
+    <p>
+      Rabta stores what it needs on your own Mac and nowhere else. It has no
+      backend to send data to, collects no analytics, and requires no account.
+      The only times anything leaves your machine are things you start yourself:
+      downloading the app or extension from their hosts, the optional GitHub
+      features, which run your own <code>gh</code> command-line tool, and the
+      Git menu's Fetch, which runs your own <code>git</code> binary against the
+      remote your repository already points at.
+    </p>
+
+    <h2 id="account">Accounts</h2>
+
+    <p>
+      <strong>Rabta does not require an account, and does not offer one.</strong>
+      There is no sign-up, no login, no email address, no licence key and no
+      profile. Nothing you do in the app is tied to an identity, because there is
+      no identity to tie it to.
+    </p>
+
+    <h2 id="local">What Rabta stores on your machine</h2>
+
+    <p>Everything Rabta stores lives in a single folder on your Mac:</p>
+
+    <pre class="code" tabindex="0">~/Library/Application Support/com.omnibus.dev/</pre>
+
+    <p>
+      <strong>Why that path says &#8220;omnibus&#8221;.</strong> Rabta was called
+      Omnibus before release, and <code>com.omnibus.dev</code> is the bundle
+      identifier it shipped under. It is deliberately unchanged: macOS uses the
+      bundle id to locate an app&#8217;s data, so renaming it would orphan the
+      capsules of anyone who installed an early build. It is a folder name, not
+      a service &#8212; nothing about it involves a third party.
+    </p>
+
+    <p>Everything Rabta writes is in there, and it is a short list:</p>
+
+    <ul role="list">
+      <li><code>omnibus.db</code>: a local database of your projects, tasks,
+        capsules and event history. Alongside it you will see
+        <code>omnibus.db-wal</code> and <code>omnibus.db-shm</code>: SQLite's
+        own journal and shared-memory files. They hold the same data mid-write,
+        not different data.</li>
+      <li><code>hub.json</code>: the port the local hub is listening on and a
+        shared secret, regenerated every time the app starts.</li>
+      <li><code>agent.sock</code> and <code>agent.secret</code>: present only
+        while Agent access is on in Settings. A local socket file an AI agent
+        on this Mac can ask to capture or restore a capsule through, and the
+        secret it must present first. Both are readable by your user only, and
+        turning the switch off removes both. Nothing about them touches the
+        network.</li>
+      <li><code>.window-state.json</code>: the size and position of the
+        window, so it reopens where you left it.</li>
+    </ul>
+
+    <h3>The exact categories of data stored</h3>
+
+    <table>
+      <thead>
+        <tr><th scope="col">Category</th><th scope="col">What that means</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Projects</td>
+          <td>A name, a repository path, an optional dev URL, the default branch, an icon choice, ordering and timestamps</td>
+        </tr>
+        <tr>
+          <td>Tasks</td>
+          <td>A title you typed, which project it belongs to, whether it is open or done, and timestamps</td>
+        </tr>
+        <tr>
+          <td>Capsule resources</td>
+          <td>Per task: file <em>paths</em> that were open, the workspace folder, the count and working directories of terminals, browser tab <em>URLs and titles</em>, and a git branch name</td>
+        </tr>
+        <tr>
+          <td>Connectors</td>
+          <td>Each connector's name, kind, declared capabilities, version, when it was first and last seen, and the pairing token you approved it with: so an approved connector does not have to be re-approved on every launch. It is generated on this machine, means nothing anywhere else, and is deleted with the folder</td>
+        </tr>
+        <tr>
+          <td>Activity</td>
+          <td>A log of commands sent to connectors and the responses and events received, with timestamps</td>
+        </tr>
+        <tr>
+          <td>Session timing</td>
+          <td>How long a project was active, counted on your machine</td>
+        </tr>
+        <tr>
+          <td>Preferences</td>
+          <td>Theme, motion setting, landing page and similar UI choices, in the app's local storage</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      None of this is transmitted anywhere. It is written to your disk, read back
+      by the app, and gone when you delete it.
+    </p>
+
+    <h2 id="code">Your source code</h2>
+
+    <p>
+      <strong>Rabta does not read the contents of your files, and does not upload
+      them.</strong>
+    </p>
+
+    <p>
+      A capsule records <em>which</em> files were open, their paths, not what
+      is in them. The editor extension does not read document text, and the app
+      has no code that opens your project files for their contents. The same goes
+      for terminals: Rabta records that terminals existed and their working
+      directories, never their scrollback or output. For the browser it records
+      tab URLs and titles, never page contents.
+    </p>
+
+    <p>
+      Rabta does read your repository's git <em>metadata</em>: current branch,
+      branch list, whether the working tree is dirty, how many files changed: by
+      running your own <code>git</code> binary. It does not read the diffs
+      themselves, and it sends none of it anywhere.
+    </p>
+
+    <h2 id="connectors">Connectors and their permissions</h2>
+
+    <h3>Editor connector (Cursor, VSCodium, Windsurf, VS Code)</h3>
+    <p>
+      Runs inside your editor and connects to the Rabta app on
+      <code>127.0.0.1</code>. It reports which files, workspace folder and
+      terminals are open, and reopens them on request. It authenticates by
+      reading the local <code>hub.json</code> secret, a file only processes
+      running as you can read. It sends nothing to any other destination.
+    </p>
+
+    <h3>Browser connector (Chrome)</h3>
+    <p>
+      Published on the Chrome Web Store. It requests three permissions, and no
+      host permissions at all:
+    </p>
+    <ul role="list">
+      <li><code>tabs</code>: to read the URLs and titles of open http/https,
+        non-incognito tabs, so they can be snapshotted into a capsule and
+        reopened later.</li>
+      <li><code>storage</code>: to hold the pairing token that lets it talk to
+        the Rabta app.</li>
+      <li><code>alarms</code>: to keep the local connection alive.</li>
+    </ul>
+    <p>
+      It requests no host permissions and runs no content scripts, so it is
+      structurally unable to read page contents. It connects only after you press
+      <strong>Approve</strong> in the Rabta app, and its only destination is the
+      Rabta app on the same computer.
+    </p>
+
+    <h2 id="telemetry">Telemetry, crash reports, update checks</h2>
+
+    <ul role="list">
+      <li><strong>Telemetry: none.</strong> Rabta 0.1.0 contains no analytics
+        SDK, no usage pings, no event reporting and no advertising code.</li>
+      <li><strong>Crash reporting: none.</strong> There is no crash reporting
+        service. A crash produces whatever macOS records locally, and nothing is
+        sent to us.</li>
+      <li><strong>Update checks: none.</strong> Rabta 0.1.0 has no auto-updater
+        and does not check for new versions. It makes no outbound request on
+        launch or on a timer. A new version is something you choose to come back
+        and download.</li>
+    </ul>
+
+    <h2 id="github">Optional GitHub features</h2>
+
+    <p>
+      Rabta can list a project's open GitHub issues and start a task from one.
+      This does nothing unless you already have the GitHub CLI (<code>gh</code>)
+      installed and authenticated, and it works by running your own
+      <code>gh</code> binary with a fixed set of arguments.
+    </p>
+
+    <p>
+      When you use it, <code>gh</code> contacts GitHub on your behalf with your
+      existing GitHub credentials. Rabta never sees, stores or transmits those
+      credentials. This and the Git menu's Fetch are the two places where
+      something you do in the app can produce a network request to a third
+      party, so both are worth knowing about: even though each request is made
+      by a tool you installed and configured yourself.
+    </p>
+
+    <p>
+      Fetch runs <code>git fetch --all</code>, which contacts the remote your
+      repository already points at and updates its remote-tracking refs. It
+      never merges, and it sends nothing about your machine that a
+      <code>git fetch</code> you typed yourself would not.
+    </p>
+
+    <h2 id="website">This website</h2>
+
+    <p>
+      <strong>rabta.build makes no request beyond loading its own files.</strong>
+      No analytics, no counter, no tag manager, no advertising or tracking
+      pixel, no hosted-font request, no embedded video player, no chat widget.
+      Fonts, styles, scripts, images and the product loops are all served from
+      this domain, and the page's security policy forbids a connection to any
+      other.
+    </p>
+
+    <ul role="list">
+      <li><strong>Cookies: none.</strong> The site sets no cookies and uses no
+        local or session storage.</li>
+      <li><strong>Forms: none.</strong> There is nothing here to sign up for and
+        no field that collects personal data.</li>
+      <li><strong>Server logs.</strong> This is a static site served by a web
+        host. As essentially all web hosts do, that host may keep standard access
+        logs, typically IP address, user agent, requested path and timestamp,
+        for operational and security purposes. Those logs belong to the host, are
+        not forwarded to us, and are not combined with anything else or used to
+        build a profile.</li>
+    </ul>
+
+    <h2 id="thirdparty">Third parties you may reach</h2>
+
+    <p>
+      Following a link takes you to someone else's service, which has its own
+      privacy policy and will see the request:
+    </p>
+
+    <ul role="list">
+      <li><strong>GitHub</strong>: hosts the macOS download, the release notes
+        and the issue tracker. Downloading the DMG is a request to GitHub.</li>
+      <li><strong>Open VSX</strong>: hosts the editor extension for Cursor,
+        VSCodium and Windsurf. Installing it from your editor, or downloading
+        the <code>.vsix</code>, is a request to Open VSX.</li>
+      <li><strong>Visual Studio Marketplace</strong>: hosts the same editor
+        extension for stock VS Code. Installing it there is a request to
+        Microsoft.</li>
+      <li><strong>Chrome Web Store</strong>: hosts the browser extension.
+        Installing it is a request to Google.</li>
+    </ul>
+
+    <p>
+      These are ordinary software distribution channels. We receive no data about
+      you from them beyond the public counters they show everyone.
+    </p>
+
+    <h2 id="control">Deleting and moving your data</h2>
+
+    <h3>Deleting</h3>
+    <ul role="list">
+      <li>Delete a single capsule or task from the <strong>Capsules</strong>
+        view.</li>
+      <li>Archive or delete a project from the <strong>Projects</strong> view.</li>
+      <li>Delete everything by removing the data folder:
+        <pre class="code" tabindex="0">rm -rf ~/Library/Application\ Support/com.omnibus.dev</pre>
+      </li>
+      <li>Uninstalling the app and the extension removes the rest.</li>
+    </ul>
+    <p>
+      Because nothing was ever copied anywhere, deleting it locally deletes it
+      completely. There is no server-side copy to request the removal of and no
+      retention period to wait out.
+    </p>
+
+    <h3>Moving it</h3>
+    <p>
+      Rabta 0.1.0 has no export command. It does not need one to be portable:
+      <code>omnibus.db</code> is an ordinary database file you can copy, inspect
+      or back up yourself. Open the folder from <strong>Settings › Privacy &amp;
+      data › Reveal in Finder</strong>.
+    </p>
+
+    <h3>Your rights</h3>
+    <p>
+      Rights like access, correction, export and erasure exist so you can act on
+      data somebody else is holding. Nobody else is holding any here: there is
+      no account, no server and no copy outside your machine: so these are all
+      things you can do directly and immediately with the files on your own disk.
+    </p>
+
+    <h2 id="changes">Changes to this policy</h2>
+
+    <p>
+      If Rabta's behaviour changes in a way that affects this policy: say a
+      future version added an update check or an optional sync feature: this
+      page will be updated and its effective date changed before that version
+      ships. Anything that would send data off your machine would be off by
+      default and would ask first.
+    </p>
+
+    <h2 id="contact">Contact</h2>
+
+    <p>
+      Questions about this policy, or anything above:
+      <a href="mailto:support@rabta.build">support@rabta.build</a>.
+      Bugs and feature requests are better as
+      <a href="https://github.com/salmuflahi/rabta/issues" target="_blank" rel="noopener noreferrer">GitHub issues</a>.
+    </p>
+      </div>
+    </div>
+  </div>
+</Base>

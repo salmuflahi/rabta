@@ -1,63 +1,88 @@
 <!-- @dsCard group="Foundations" name="Palette" -->
 <div class="card-head">
   <h1>Palette</h1>
-  <p>Seven hues, and no eighth. Orange means exactly one thing &mdash; the live
-  thing, or the primary action &mdash; so it can never be spent on decoration.</p>
+  <p>Ink, paper, one ember. Thirteen literals live in tokens.css and nowhere
+  else. The ember is spent once per view: the primary action, or the live
+  thing, never both.</p>
 </div>
 
-<div class="card-grid" style="--card-min: 216px">
+<div class="card-grid" style="--card-min: 200px">
   <div class="swatch">
-    <div class="swatch__chip" style="background: var(--petrol)"></div>
-    <span class="card-label">Petrol</span>
-    <span class="card-mono">--petrol&nbsp;&nbsp;#102526</span>
-    <p class="card-sub">The ground. Every surface starts here.</p>
+    <div class="swatch__chip" style="background: var(--ink-0)"></div>
+    <span class="card-label">Ink</span>
+    <span class="card-mono">--ink-0&nbsp;&nbsp;#0a0b0e</span>
+    <p class="card-sub">The canvas of the site and the dark sidebar in the app.</p>
   </div>
   <div class="swatch">
-    <div class="swatch__chip" style="background: var(--orange)"></div>
-    <span class="card-label">Orange</span>
-    <span class="card-mono">--orange&nbsp;&nbsp;#ff6b2c</span>
-    <p class="card-sub">Connected, active, primary. One meaning only.</p>
+    <div class="swatch__chip" style="background: var(--ink-1)"></div>
+    <span class="card-label">Ink, raised</span>
+    <span class="card-mono">--ink-1&nbsp;&nbsp;#14161b</span>
+    <p class="card-sub">Cards and bands; the dark canvas in the app.</p>
   </div>
   <div class="swatch">
-    <div class="swatch__chip" style="background: var(--ivory)"></div>
-    <span class="card-label">Ivory</span>
-    <span class="card-mono">--ivory&nbsp;&nbsp;#f3f0e8</span>
-    <p class="card-sub">Text that carries the sentence.</p>
+    <div class="swatch__chip" style="background: var(--ink-2)"></div>
+    <span class="card-label">Ink, field</span>
+    <span class="card-mono">--ink-2&nbsp;&nbsp;#1e2128</span>
+    <p class="card-sub">Hover and fields on ink.</p>
   </div>
   <div class="swatch">
-    <div class="swatch__chip" style="background: var(--cool-panel)"></div>
-    <span class="card-label">Cool panel</span>
-    <span class="card-mono">--cool-panel&nbsp;&nbsp;#173239</span>
-    <p class="card-sub">A surface lifted off the ground.</p>
+    <div class="swatch__chip" style="background: var(--paper-0)"></div>
+    <span class="card-label">Paper</span>
+    <span class="card-mono">--paper-0&nbsp;&nbsp;#ffffff</span>
+    <p class="card-sub">The alternate material: one bento cell, the paper plates.</p>
   </div>
   <div class="swatch">
-    <div class="swatch__chip" style="background: var(--cool-mid)"></div>
-    <span class="card-label">Cool mid</span>
-    <span class="card-mono">--cool-mid&nbsp;&nbsp;#66858c</span>
-    <p class="card-sub">Dormant states, quiet marks. Not body text.</p>
+    <div class="swatch__chip" style="background: var(--paper-1)"></div>
+    <span class="card-label">Paper, alt</span>
+    <span class="card-mono">--paper-1&nbsp;&nbsp;#f5f5f7</span>
+    <p class="card-sub">Text on ink; bands on paper.</p>
   </div>
   <div class="swatch">
-    <div class="swatch__chip" style="background: var(--cool-soft)"></div>
-    <span class="card-label">Cool soft</span>
-    <span class="card-mono">--cool-soft&nbsp;&nbsp;#a9bec2</span>
-    <p class="card-sub">Secondary text, borders, the sentence under the sentence.</p>
+    <div class="swatch__chip" style="background: var(--paper-2)"></div>
+    <span class="card-label">Paper, field</span>
+    <span class="card-mono">--paper-2&nbsp;&nbsp;#eaeaee</span>
+    <p class="card-sub">Fields on paper.</p>
   </div>
   <div class="swatch">
-    <div class="swatch__chip" style="background: var(--cool-field)"></div>
-    <span class="card-label">Cool field</span>
-    <span class="card-mono">--cool-field&nbsp;&nbsp;#d9e3e3</span>
-    <p class="card-sub">The light end. Inverted panels and fields.</p>
+    <div class="swatch__chip" style="background: var(--ember)"></div>
+    <span class="card-label">Ember</span>
+    <span class="card-mono">--ember&nbsp;&nbsp;#ff6b2c</span>
+    <p class="card-sub">The accent, the leg of the mark, the one CTA.</p>
+  </div>
+  <div class="swatch">
+    <div class="swatch__chip" style="background: var(--ember-deep)"></div>
+    <span class="card-label">Ember, deep</span>
+    <span class="card-mono">--ember-deep&nbsp;&nbsp;#c2501b</span>
+    <p class="card-sub">Ember as small text on paper (4.6:1).</p>
+  </div>
+  <div class="swatch">
+    <div class="swatch__chip" style="background: var(--text)"></div>
+    <span class="card-label">Text on paper</span>
+    <span class="card-mono">--text&nbsp;&nbsp;#0e0f12</span>
+    <p class="card-sub">Body and display when the surface is paper.</p>
+  </div>
+  <div class="swatch">
+    <div class="swatch__chip" style="background: var(--text-mute)"></div>
+    <span class="card-label">Muted on paper</span>
+    <span class="card-mono">--text-mute&nbsp;&nbsp;#4a4d57</span>
+    <p class="card-sub">Secondary on paper, 7.9:1.</p>
+  </div>
+  <div class="swatch">
+    <div class="swatch__chip" style="background: var(--text-mute)"></div>
+    <span class="card-label">Muted on ink</span>
+    <span class="card-mono">--text-mute&nbsp;&nbsp;#b4b8c2</span>
+    <p class="card-sub">Secondary on ink, 11:1.</p>
+  </div>
+  <div class="swatch">
+    <div class="swatch__chip" style="background: var(--text-faint)"></div>
+    <span class="card-label">Faint on ink</span>
+    <span class="card-mono">--text-faint&nbsp;&nbsp;#7c808b</span>
+    <p class="card-sub">Metadata on ink, 4.9:1.</p>
   </div>
 </div>
 
 <div class="card-note">
-  <p><strong>Measured against petrol:</strong> ivory 14.03:1, cool-field 12.21:1,
-  cool-soft 8.24:1, orange 5.62:1, cool-mid 4.03:1. Petrol on orange is 5.62:1.
-  Cool-mid clears 3:1, so it is legitimate for UI boundaries and large text but
-  never for body copy.</p>
-  <p style="margin-top: 12px"><strong>There is no black.</strong> Both hairlines
-  derive from ivory &mdash; <span class="card-mono">rgba(243,240,232,0.08)</span>
-  and <span class="card-mono">&hellip;0.14</span>. A single
-  <span class="card-mono">rgba(0,0,0,&hellip;)</span> rule was the one token whose
-  base was not an approved hue; it was removed.</p>
+  <p><strong>Petrol is gone.</strong> No surface in the brand is teal any more.
+  Both worlds are neutral with a cool cast (hue about 225 degrees) so
+  screenshots of the dark app sit naturally on the site.</p>
 </div>

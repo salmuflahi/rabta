@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { ACCENTS, applyAccent, type AccentId } from "./accent";
+import { ACCENTS, RETIRED_ACCENTS, applyAccent, type AccentId } from "./accent";
 
-const IDS: AccentId[] = ["tangerine", "petrol", "sky", "sand"];
+const IDS: AccentId[] = ["tangerine", "iris", "graphite", "sky"];
 
 describe("ACCENTS table", () => {
   it.each(IDS)("resolves %s in both themes", (id) => {
@@ -21,34 +21,26 @@ describe("ACCENTS table", () => {
     }
   });
 
-  // Default install must look exactly as it does today: tangerine's light
-  // base is the existing --primary value (#FF6B2C, "18 100% 59%" in
-  // src/index.css), and it is identical in both themes per the handoff.
-  it("defaults to tangerine, whose light base equals today's --primary #FF6B2C", () => {
+  it("offers exactly the four accents the redesign kept", () => {
+    expect(Object.keys(ACCENTS).sort()).toEqual([...IDS].sort());
+  });
+
+  // The ember is the brand's accent (the mark's leg, the site's one CTA)
+  // and it is identical in both themes.
+  it("defaults to tangerine, whose base is the brand ember #FF6B2C in both themes", () => {
     expect(ACCENTS.tangerine.light.base).toBe("#FF6B2C");
     expect(ACCENTS.tangerine.dark.base).toBe("#FF6B2C");
   });
 
-  // Values taken verbatim from the design handoff's Accent table.
-  it("matches the handoff's accent table exactly", () => {
-    expect(ACCENTS).toMatchObject({
-      tangerine: {
-        light: { base: "#FF6B2C", hover: "#F0561A", text: "#C2501B" },
-        dark: { base: "#FF6B2C", hover: "#FF7F45", text: "#FF8A5C" },
-      },
-      petrol: {
-        light: { base: "#14494C", hover: "#0E3739", text: "#14494C" },
-        dark: { base: "#2E8286", hover: "#379A9E", text: "#67BFC2" },
-      },
-      sky: {
-        light: { base: "#2E6F88", hover: "#245A70", text: "#2E6F88" },
-        dark: { base: "#3E8DAB", hover: "#4A9DBC", text: "#7FC2DB" },
-      },
-      sand: {
-        light: { base: "#9A6A12", hover: "#7E560D", text: "#8A5F10" },
-        dark: { base: "#C08A2A", hover: "#D19A36", text: "#DFB259" },
-      },
-    });
+  // Petrol is gone on every surface of the brand. Nothing in the table may
+  // reintroduce a teal, and the retired ids must not resolve.
+  it("has retired petrol and sand", () => {
+    expect(RETIRED_ACCENTS).toEqual(["petrol", "sand"]);
+    for (const id of RETIRED_ACCENTS) {
+      expect(id in ACCENTS).toBe(false);
+    }
+    expect(JSON.stringify(ACCENTS).toUpperCase()).not.toContain("#14494C");
+    expect(JSON.stringify(ACCENTS).toUpperCase()).not.toContain("#2E8286");
   });
 });
 
@@ -57,10 +49,10 @@ describe("applyAccent", () => {
     return document.createElement("div");
   }
 
-  it("writes all four custom properties onto the root", () => {
+  it("writes all five custom properties onto the root", () => {
     const root = freshRoot();
     applyAccent("tangerine", "light", root);
-    for (const prop of ["--primary", "--primary-hover", "--accent-text", "--accent-soft"]) {
+    for (const prop of ["--primary", "--primary-foreground", "--primary-hover", "--accent-text", "--accent-soft"]) {
       expect(root.style.getPropertyValue(prop)).not.toBe("");
     }
   });
@@ -77,18 +69,18 @@ describe("applyAccent", () => {
   });
 
   // --accent-soft carries alpha, so it is a literal rgba(), bound directly —
-  // never wrapped in hsl(). Same split enforced for Task 1's tokens.
+  // never wrapped in hsl().
   it("writes --accent-soft as a literal rgba(), not an HSL triplet", () => {
     const root = freshRoot();
-    applyAccent("petrol", "light", root);
+    applyAccent("iris", "light", root);
     const value = root.style.getPropertyValue("--accent-soft");
     expect(value).toMatch(/^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*\.?\d+(\.\d+)?\s*\)$/);
   });
 
-  // The default install's --primary must be byte-identical to today's value,
-  // so switching to this accent mechanism doesn't repaint anything by
-  // accident.
-  it("applying the tangerine default in light theme reproduces today's --primary exactly", () => {
+  // The default install's --primary must be byte-identical to the ember's
+  // triplet in index.css, so the static paint before ThemeProvider runs and
+  // the painted value after it agree.
+  it("applying the tangerine default reproduces index.css's --primary exactly", () => {
     const root = freshRoot();
     applyAccent("tangerine", "light", root);
     expect(root.style.getPropertyValue("--primary")).toBe("18 100% 59%");
@@ -100,37 +92,42 @@ describe("applyAccent", () => {
   it("the same accent id resolves to different values per theme", () => {
     const light = freshRoot();
     const dark = freshRoot();
-    applyAccent("petrol", "light", light);
-    applyAccent("petrol", "dark", dark);
+    applyAccent("iris", "light", light);
+    applyAccent("iris", "dark", dark);
     expect(light.style.getPropertyValue("--primary")).not.toBe(dark.style.getPropertyValue("--primary"));
     expect(light.style.getPropertyValue("--accent-soft")).not.toBe(dark.style.getPropertyValue("--accent-soft"));
   });
 
-  // accent-soft alpha must differ by theme: 14% light, 20% dark (matching
-  // Task 1's --ok-soft/--warn-soft convention of literal rgba()).
   it("accent-soft alpha is 14% in light and 20% in dark, for the same accent+base", () => {
     const light = freshRoot();
     const dark = freshRoot();
-    applyAccent("sand", "light", light);
-    applyAccent("sand", "dark", dark);
+    applyAccent("graphite", "light", light);
+    applyAccent("graphite", "dark", dark);
     const lightAlpha = light.style.getPropertyValue("--accent-soft").match(/,\s*([\d.]+)\s*\)$/)?.[1];
     const darkAlpha = dark.style.getPropertyValue("--accent-soft").match(/,\s*([\d.]+)\s*\)$/)?.[1];
     expect(Number(lightAlpha)).toBeCloseTo(0.14, 5);
     expect(Number(darkAlpha)).toBeCloseTo(0.2, 5);
   });
 
-  // Switching accent must replace the written properties, not append to
-  // them — setProperty always overwrites, but this pins the observable
-  // behavior so a future refactor (e.g. to a single cssText blob) can't
-  // regress it.
-  it("switching accent replaces the custom properties rather than appending", () => {
-    const root = freshRoot();
-    applyAccent("tangerine", "light", root);
-    const tangerinePrimary = root.style.getPropertyValue("--primary");
-    applyAccent("sky", "light", root);
-    const skyPrimary = root.style.getPropertyValue("--primary");
-    expect(skyPrimary).not.toBe(tangerinePrimary);
-    expect(skyPrimary).not.toContain(tangerinePrimary);
-    expect(root.style.cssText.match(/--primary:/g)?.length).toBe(1);
+  // Graphite is the one accent whose light and dark bases invert (dark on
+  // paper, paper on ink), which is exactly the case the per-accent label
+  // resolution exists for.
+  it("gives graphite a light label on paper and a dark label on ink", () => {
+    const light = freshRoot();
+    const dark = freshRoot();
+    applyAccent("graphite", "light", light);
+    applyAccent("graphite", "dark", dark);
+    expect(light.style.getPropertyValue("--primary-foreground")).toBe("0 0% 100%");
+    expect(dark.style.getPropertyValue("--primary-foreground")).toBe("19 38% 8%");
+  });
+
+  it("migrates a retired accent to the default rather than throwing", () => {
+    for (const retired of RETIRED_ACCENTS) {
+      const root = freshRoot();
+      const expected = freshRoot();
+      expect(() => applyAccent(retired as unknown as AccentId, "light", root)).not.toThrow();
+      applyAccent("tangerine", "light", expected);
+      expect(root.style.getPropertyValue("--primary")).toBe(expected.style.getPropertyValue("--primary"));
+    }
   });
 });

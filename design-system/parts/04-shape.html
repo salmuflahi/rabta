@@ -1,48 +1,18 @@
-<!-- @dsCard group="Foundations" name="Shape & the fold" -->
+<!-- @dsCard group="Foundations" name="Shape" -->
 <div class="card-head">
-  <h1>Shape &amp; the fold</h1>
-  <p>Five radii, and one chamfer that is not a radius at all. A cut top-right
-  corner means &ldquo;this holds context&rdquo; &mdash; it is the product's mark,
-  and nothing else in the system may wear it.</p>
-</div>
-
-<div class="card-row" style="margin-bottom: 32px">
-  <div style="text-align: center"><div style="width: 76px; height: 76px; background: var(--cool-panel); border: 1px solid var(--hairline-strong); border-radius: var(--r1)"></div><span class="card-mono">--r1 4</span></div>
-  <div style="text-align: center"><div style="width: 76px; height: 76px; background: var(--cool-panel); border: 1px solid var(--hairline-strong); border-radius: var(--r2)"></div><span class="card-mono">--r2 8</span></div>
-  <div style="text-align: center"><div style="width: 76px; height: 76px; background: var(--cool-panel); border: 1px solid var(--hairline-strong); border-radius: var(--r3)"></div><span class="card-mono">--r3 12</span></div>
-  <div style="text-align: center"><div style="width: 76px; height: 76px; background: var(--cool-panel); border: 1px solid var(--hairline-strong); border-radius: var(--r4)"></div><span class="card-mono">--r4 16</span></div>
-  <div style="text-align: center"><div style="width: 76px; height: 76px; background: var(--cool-panel); border: 1px solid var(--hairline-strong); border-radius: var(--r5)"></div><span class="card-mono">--r5 20</span></div>
+  <h1>Shape</h1>
+  <p>Five radii, and a pill for anything you press. Nothing on the site is
+  square, and nothing carries a decorative corner any more.</p>
 </div>
 
 <div class="card-row">
-  <div style="text-align: center">
-    <div style="width: 108px; height: 108px; background: var(--cool-panel); clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%)"></div>
-    <span class="card-mono">--fold-sm 12</span>
-  </div>
-  <div style="text-align: center">
-    <div style="width: 108px; height: 108px; background: var(--cool-panel); clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%)"></div>
-    <span class="card-mono">--fold 18</span>
-  </div>
-  <div style="text-align: center">
-    <div style="width: 108px; height: 108px; background: var(--cool-panel); clip-path: polygon(0 0, calc(100% - 56px) 0, 100% 56px, 100% 100%, 0 100%)"></div>
-    <span class="card-mono">--fold-lg 56</span>
-  </div>
-  <div style="text-align: center">
-    <div style="position: relative; width: 108px; height: 108px; background: var(--cool-panel); clip-path: polygon(0 0, calc(100% - 56px) 0, 100% 56px, 100% 100%, 0 100%)">
-      <div style="position: absolute; top: 0; right: 0; width: 56px; height: 56px; background: var(--orange); clip-path: polygon(0 0, 100% 100%, 0 100%)"></div>
-    </div>
-    <span class="card-mono">turned back</span>
-  </div>
+  <div class="plate" style="width: 96px; height: 96px; background: var(--bg-alt); border-radius: var(--r-s)"><span class="card-mono">8</span></div>
+  <div class="plate" style="width: 96px; height: 96px; background: var(--bg-alt); border-radius: var(--r-m)"><span class="card-mono">12</span></div>
+  <div class="plate" style="width: 96px; height: 96px; background: var(--bg-alt); border-radius: var(--r-l)"><span class="card-mono">16</span></div>
+  <div class="plate" style="width: 96px; height: 96px; background: var(--bg-alt); border-radius: var(--r-xl)"><span class="card-mono">24</span></div>
+  <div class="plate" style="width: 140px; height: 48px; background: var(--ember); color: var(--on-accent); border-radius: var(--pill)"><span class="card-mono" style="color: inherit">pill</span></div>
 </div>
 
-<div class="card-note">
-  <p><strong>The underside is orange</strong>, and it is the only place a large
-  orange field is allowed &mdash; it is the inside of the paper, not decoration.</p>
-  <p style="margin-top: 12px"><strong>Geometry.</strong> The animated fold rotates
-  about the hinge midpoint with
-  <span class="card-mono">rotate3d(1, 1, 0, &hellip;)</span>, not
-  <span class="card-mono">rotateY</span>. rotateY mirrors horizontally rather than
-  across the 45&deg; hinge and leaves a visible notch where the two triangles
-  should meet; the underside's clip-path is mirrored to match. There is a test
-  pinning the hinge endpoints at every phase.</p>
-</div>
+<div class="spec" style="margin-top: 24px"><span class="card-label">Controls</span><span class="card-sub">Buttons are pills. Fields and code blocks are 12. The compact menu is 16.</span></div>
+<div class="spec"><span class="card-label">Cards and cells</span><span class="card-sub">24. The window frame is 14, because it is quoting macOS rather than the site.</span></div>
+<div class="spec"><span class="card-label">Hairlines</span><span class="card-sub">rgba at 8% and 16% of the text colour. Never a solid grey line.</span></div>

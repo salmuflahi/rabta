@@ -421,6 +421,94 @@ function DeveloperSection() {
   );
 }
 
+// ─── Agents ──────────────────────────────────────────────────────────────────
+
+interface AgentAccessStatus {
+  enabled: boolean;
+  socketPath: string;
+}
+
+/** The one line that connects Claude Code to the read-only MCP server. */
+export const AGENT_INSTALL_COMMAND = "claude mcp add rabta -- npx -y @rabta/mcp";
+
+function isAgentStatus(value: unknown): value is AgentAccessStatus {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as AgentAccessStatus).enabled === "boolean" &&
+    typeof (value as AgentAccessStatus).socketPath === "string"
+  );
+}
+
+function AgentsSection() {
+  const [status, setStatus] = useState<AgentAccessStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    invoke("agent_access_status")
+      .then((value) => {
+        if (!cancelled && isAgentStatus(value)) setStatus(value);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function toggle(enabled: boolean) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const next = await invoke("set_agent_access", { enabled });
+      if (isAgentStatus(next)) setStatus(next);
+      toastOk(enabled ? "Agent access on" : "Agent access off");
+    } catch (e) {
+      toastErr(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyInstall() {
+    try {
+      await navigator.clipboard.writeText(AGENT_INSTALL_COMMAND);
+      toastOk("Copied");
+    } catch (e) {
+      toastErr(e);
+    }
+  }
+
+  return (
+    <>
+      <p className="mt-4 text-sub leading-[1.55] text-muted-foreground">
+        An agent on this Mac can already read your capsules through the Rabta MCP server. Agent
+        access adds the other half, capture and restore, through a socket file in the data folder
+        that only your user can open. Nothing here listens on a network port.
+      </p>
+      <SettingCard>
+        <SettingRow
+          title="Agent access"
+          description="Let an agent capture and restore capsules, with the same receipt you get. Off closes the socket and forgets the secret."
+          htmlFor="agent-access"
+        >
+          <SwitchMac
+            id="agent-access"
+            checked={status?.enabled ?? false}
+            onCheckedChange={(v) => void toggle(v)}
+          />
+        </SettingRow>
+        <SettingRow title="Socket" description={status?.socketPath ?? "Not available in this build."}>
+          <RowValue>{status?.enabled ? "Listening" : "Closed"}</RowValue>
+        </SettingRow>
+        <SettingRow title="Connect Claude Code" description={AGENT_INSTALL_COMMAND}>
+          <RowButton onClick={() => void copyInstall()}>Copy command</RowButton>
+        </SettingRow>
+      </SettingCard>
+    </>
+  );
+}
+
 // ─── The section list ────────────────────────────────────────────────────────
 
 /** Which component renders each section's rows, keyed by the section id in
@@ -432,6 +520,7 @@ const RENDERERS: Record<string, () => React.ReactNode> = {
   appearance: () => <AppearanceSection />,
   capsules: () => <CapsulesSection />,
   connectors: () => <ConnectorsSection />,
+  agents: () => <AgentsSection />,
   privacy: () => <PrivacySection />,
   migrate: () => <MigrateSection />,
   developer: () => <DeveloperSection />,

@@ -26,6 +26,28 @@
       html[data-demo-variant="mobile"] .card-lift > div > div:last-child {
         justify-content: flex-start;
       }
+
+      /* Sheet-only recordings (`#demo=…&region=sheet`, record-frames.mjs
+         --region=sheet --alpha): the page paints nothing but the restore
+         dialog, over a transparent background, so the recorder's PNGs carry
+         the sheet — shadow included — as an alpha layer the site's loops
+         composite over the app at their own depth. Visibility, not display:
+         layout stays identical to the app recording, so the sheet lands in
+         exactly the same place and at exactly the same frame. */
+      html[data-demo-region="sheet"],
+      html[data-demo-region="sheet"] body {
+        background: transparent !important;
+      }
+      html[data-demo-region="sheet"] #root {
+        visibility: hidden;
+      }
+      html[data-demo-region="sheet"] [role="dialog"][aria-modal="true"],
+      html[data-demo-region="sheet"] [role="dialog"][aria-modal="true"] * {
+        visibility: visible;
+      }
+      html[data-demo-region="sheet"] .fixed.inset-0.z-50 {
+        background: transparent !important;
+      }
     </style>
   </head>
   <body>
