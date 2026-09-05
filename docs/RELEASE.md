@@ -18,9 +18,9 @@ Neither store has this version yet: both listings below are still serving
 | Channel | State |
 |---|---|
 | macOS DMG | ✅ Signed (Developer ID `86M2X6MUA3`), notarized, stapled, hosted |
-| Open VSX (Cursor / VSCodium / Windsurf) | ✅ Published — `rabta-connect.rabta-vscode` 0.1.0; 0.2.0 packaged, awaiting upload |
+| Open VSX (Cursor / VSCodium / Windsurf) | ✅ Published — `rabta-connect.rabta-vscode` 0.2.0, namespace verified |
 | Chrome Web Store | ✅ Live — [Rabta Connector](https://chromewebstore.google.com/detail/rabta-connector/aaombpafbhjkoinppogieaclijddlebo) 0.1.1; 0.2.0 packaged, awaiting upload |
-| VS Code Marketplace (Microsoft) | ❌ Not published (blocked on Azure DevOps PAT) |
+| VS Code Marketplace (Microsoft) | ✅ Published — `rabta-connect.rabta-vscode` 0.2.0, publisher verified |
 | Trader / account verification (Google) | ⏳ Pending |
 
 **Public downloads**

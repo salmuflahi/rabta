@@ -76,7 +76,11 @@ omnibus/
 │   └── fake/               # simulated connector — the SDK reference, still used in CI
 ├── packages/
 │   ├── protocol/           # the wire protocol: Zod schemas + shared JSON fixtures
-│   └── connector-sdk/      # Node TS SDK: discovery, handshake, reconnect (used by vscode + fake)
+│   ├── connector-sdk/      # Node TS SDK: discovery, handshake, reconnect (used by vscode + fake)
+│   └── mcp/                # @rabta/mcp: the MCP server agents connect to (read-only + Agent access)
+├── site/                   # rabta.build: Astro, built to site/dist for GitHub Pages
+├── workers/count/          # the site's visitor counter: a Cloudflare Worker on D1, private /stats
+├── marketing-videos/       # the site's product loops: recordings + HyperFrames compositions
 └── docs/
     ├── vision.md           # product vision + privacy principles
     └── superpowers/        # per-phase design specs and implementation plans

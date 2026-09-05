@@ -5,6 +5,12 @@ is live on all eight pages. The connectors are published at 0.1.0 on the Visual
 Studio Marketplace, Open VSX and the Chrome Web Store, with 0.2.0 built and
 waiting.
 
+**Update, 4 September 2026.** The Open VSX namespace claim was approved (the
+namespace is verified), both editor registries carry connectors 0.2.0 with a
+verified publisher, and the site is rebuilt on Astro with `/capsules/` and
+`/agents/`. The MCP server and Agent access are built and ship with the next
+app release; see "Next" below. `scripts/verify-registries.mjs` is the check.
+
 This is the plan for the next three releases. It is ordered by what unblocks the
 most, not by what is most interesting to build.
 
