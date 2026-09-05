@@ -19,6 +19,7 @@ not have to open all of them to find one.
 | [SECURITY-AUDIT-2026-08.md](SECURITY-AUDIT-2026-08.md) | Full audit of 0.1.0 — findings, evidence, and what it did *not* cover. True of 0.1.0; re-run each minor release. |
 | [privacy-policy.md](privacy-policy.md) | The policy's source. `site/src/pages/privacy.astro` is the published form. |
 | [store-listings.md](store-listings.md) | Copy for the Marketplace, Open VSX and Chrome Web Store listings. |
+| [GO-LIVE.md](GO-LIVE.md) | The steps only the owner can do, with the check for each: the counter, the domain, deploy secrets, the npm publish, the next app release. |
 | [../packages/mcp/README.md](../packages/mcp/README.md) | The MCP server: five read-only tools over the app's database, plus capture and restore through Agent access. |
 | [../workers/count/README.md](../workers/count/README.md) | The visitor counter: what the beacon carries, what the Worker keeps, how to deploy it. |
 
