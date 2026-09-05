@@ -43,3 +43,6 @@ apps/desktop/capture/social/audio/
 # re-downloads the pinned sources on demand; only its outputs are committed.
 scripts/fonts/.venv/
 scripts/fonts/.cache/
+
+# Astro writes its generated types and preview state here; never source.
+site/.astro/
