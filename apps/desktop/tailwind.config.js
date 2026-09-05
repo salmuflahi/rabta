@@ -169,6 +169,11 @@ export default {
         // Motion table's numbers. Nothing should *look* animated; it should
         // just feel settled rather than snapping in.
         "page-in": { from: { opacity: "0", transform: "translateY(4px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        // A whole view arriving. Opacity only, on purpose: a transform on the
+        // view's wrapper would become the containing block for the restore
+        // sheet's fixed overlay and pin it to the wrapper instead of the
+        // window. The rows inside use `page-in` for the rise.
+        "view-in": { from: { opacity: "0" }, to: { opacity: "1" } },
         // Restore Experience's reduced-motion PATH-B indeterminate progress —
         // a neutral full-width track with a gentle opacity-only pulse (no
         // width/transform movement, no fabricated percentage). See
@@ -197,6 +202,7 @@ export default {
         "restore-pulse": "restore-pulse 1.8s ease-in-out infinite",
         "live-ping": "live-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite",
         "page-in": `page-in ${DUR.standard}ms ${EASE.brand} both`,
+        "view-in": `view-in ${DUR.standard}ms ${EASE.brand} both`,
         "skeleton-sweep": "skeleton-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite",
       },
       transitionTimingFunction: {

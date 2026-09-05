@@ -602,6 +602,7 @@ export function CapsulesPage() {
                       type="button"
                       aria-current={isSelected ? "true" : undefined}
                       onClick={() => selectCapsule(t.id)}
+                      style={{ animationDelay: `${Math.min(flatCapsuleIndex.get(t.id) ?? 0, 12) * 22}ms` }}
                       className={cn(
                         // DELIBERATE DIVERGENCE FROM THE HANDOFF, matching
                         // the one the sidebar already makes (Sidebar.tsx's
@@ -615,6 +616,9 @@ export function CapsulesPage() {
                         // accent is for. Neutral `--secondary` at weight 510
                         // instead, exactly as the nav does it.
                         "block w-full cursor-default rounded-md px-2 py-1.5 text-left transition-colors duration-fast ease-standard",
+                        // Rows settle in one after another when a list appears; a
+                        // row that is already there never re-animates.
+                        "animate-page-in",
                         isSelected ? "bg-secondary" : "hover:bg-hover",
                       )}
                     >

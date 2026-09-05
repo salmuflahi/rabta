@@ -114,15 +114,22 @@ describe("Segmented", () => {
     expect(hasToken(group.className, "rounded-[7px]")).toBe(true);
   });
 
-  it("gives the selected segment the raised-surface shadow and weight 510 (whole class tokens)", () => {
-    render(
+  it("gives the selected segment weight 510 and slides one raised surface under it (whole class tokens)", () => {
+    const { container } = render(
       <Segmented value="dark" onChange={() => {}} options={options} ariaLabel="Theme" />,
     );
     const selected = screen.getByRole("radio", { name: "Dark" });
     const unselected = screen.getByRole("radio", { name: "Light" });
-    expect(hasToken(selected.className, "shadow-raised")).toBe(true);
     expect(hasToken(selected.className, "font-510")).toBe(true);
-    expect(hasToken(unselected.className, "shadow-raised")).toBe(false);
+    expect(hasToken(unselected.className, "font-510")).toBe(false);
+    // The raised surface is one element that travels, not a style on each
+    // segment, so switching reads as the surface moving.
+    const thumb = container.querySelector("[data-segmented-thumb]") as HTMLElement;
+    expect(thumb).not.toBeNull();
+    expect(thumb.getAttribute("aria-hidden")).toBe("true");
+    expect(hasToken(thumb.className, "shadow-raised")).toBe(true);
+    expect(hasToken(thumb.className, "bg-card")).toBe(true);
+    expect(hasToken(selected.className, "shadow-raised")).toBe(false);
     expect(hasToken(unselected.className, "font-510")).toBe(false);
   });
 

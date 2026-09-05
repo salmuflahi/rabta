@@ -45,6 +45,42 @@ export const Segmented = React.forwardRef<HTMLDivElement, SegmentedProps>(functi
   ref,
 ) {
   const itemRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
+  const groupRef = React.useRef<HTMLDivElement | null>(null);
+
+  /* The raised surface is one element that slides to the selected segment,
+     rather than each segment painting its own: the eye follows the surface
+     across, which is what the macOS control does. Measured from layout, so
+     it is right for any label width; re-measured when the group resizes
+     (fonts settling, the pane narrowing). Under reduced motion the global
+     rule in index.css makes the slide instant. */
+  const [thumb, setThumb] = React.useState<{ x: number; w: number } | null>(null);
+  const measure = React.useCallback(() => {
+    const index = options.findIndex((option) => option.value === value);
+    const el = itemRefs.current[index];
+    if (!el) {
+      setThumb(null);
+      return;
+    }
+    setThumb({ x: el.offsetLeft, w: el.offsetWidth });
+  }, [options, value]);
+  React.useLayoutEffect(() => {
+    measure();
+  }, [measure]);
+  React.useEffect(() => {
+    const node = groupRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [measure]);
+  const setGroupRef = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      groupRef.current = node;
+      if (typeof ref === "function") ref(node);
+      else if (ref) ref.current = node;
+    },
+    [ref],
+  );
 
   const selectIndex = (index: number) => {
     const option = options[index];
@@ -86,11 +122,19 @@ export const Segmented = React.forwardRef<HTMLDivElement, SegmentedProps>(functi
 
   return (
     <div
-      ref={ref}
+      ref={setGroupRef}
       role="radiogroup"
       aria-label={ariaLabel}
-      className={cn("inline-flex items-center gap-px rounded-[7px] bg-secondary p-0.5", className)}
+      className={cn("relative inline-flex items-center gap-px rounded-[7px] bg-secondary p-0.5", className)}
     >
+      {thumb && (
+        <span
+          aria-hidden
+          data-segmented-thumb
+          className="pointer-events-none absolute bottom-0.5 left-0 top-0.5 rounded-[5px] bg-card shadow-raised transition-[transform,width] duration-standard ease-mac"
+          style={{ transform: `translateX(${thumb.x}px)`, width: thumb.w }}
+        />
+      )}
       {options.map((option, index) => {
         const selected = option.value === value;
         return (
@@ -106,11 +150,9 @@ export const Segmented = React.forwardRef<HTMLDivElement, SegmentedProps>(functi
             onClick={() => onChange(option.value)}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={cn(
-              "cursor-default select-none whitespace-nowrap rounded-[5px] px-2.5 py-[3px] text-[12px] leading-none transition-colors duration-fast",
+              "relative z-[1] cursor-default select-none whitespace-nowrap rounded-[5px] bg-transparent px-2.5 py-[3px] text-[12px] leading-none transition-colors duration-fast",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              selected
-                ? "bg-card font-510 text-foreground shadow-raised"
-                : "bg-transparent text-muted-foreground",
+              selected ? "font-510 text-foreground" : "text-muted-foreground",
             )}
           >
             {option.label}

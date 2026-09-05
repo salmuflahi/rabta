@@ -213,10 +213,12 @@ export function ActivityPage() {
                   type="button"
                   aria-current={isSelected ? "true" : undefined}
                   onClick={() => selectEvent(e.seq)}
+                  style={{ animationDelay: `${Math.min(index, 12) * 22}ms` }}
                   className={cn(
                     // Neutral selection, as on every other list in this app
                     // — see CapsulesPage for the full note.
                     "flex w-full cursor-default items-center gap-3 rounded-[7px] px-2.5 py-[7px] text-left transition-colors duration-fast ease-standard",
+                    "animate-page-in",
                     isSelected ? "bg-secondary" : "hover:bg-hover",
                   )}
                 >
