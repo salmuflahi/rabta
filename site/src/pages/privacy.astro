@@ -243,31 +243,17 @@ import "../styles/page.css";
     <h2 id="website">This website</h2>
 
     <p>
-      <strong>rabta.build makes one request beyond loading the page:</strong>
-      a single counter ping to our own counter at <code>count.rabta.build</code>,
-      which we run on Cloudflare. It carries the page path, the referring
-      site's hostname (never a full address) and a coarse viewport class:
-      phone, tablet or desktop. There is no tag manager, no advertising or
-      tracking pixel, no hosted-font request, no embedded video player and no
-      chat widget. Fonts, styles, scripts and images are all served from this
-      domain.
+      <strong>rabta.build makes no request beyond loading its own files.</strong>
+      No analytics, no counter, no tag manager, no advertising or tracking
+      pixel, no hosted-font request, no embedded video player, no chat widget.
+      Fonts, styles, scripts, images and the product loops are all served from
+      this domain, and the page's security policy forbids a connection to any
+      other.
     </p>
 
     <ul role="list">
       <li><strong>Cookies: none.</strong> The site sets no cookies and uses no
-        local or session storage. The counter sets nothing either.</li>
-      <li><strong>Nothing that identifies you is stored.</strong> The counter
-        never writes your IP address or user agent. To count a visitor once
-        per day it hashes them together with a random salt that changes at
-        midnight UTC and is then deleted, so a visitor cannot be recognised
-        across days, and the hashes themselves are deleted the next morning.
-        What remains is totals: views and visitors per day, per page, per
-        referring site, per country and per viewport class.</li>
-      <li><strong>Global Privacy Control and Do Not Track are honoured.</strong>
-        If your browser sends either, the ping is not sent at all.</li>
-      <li><strong>The dashboard is private.</strong> Only the maintainer can
-        see the totals. Nothing is shared with a third party and nothing is
-        used for advertising.</li>
+        local or session storage.</li>
       <li><strong>Forms: none.</strong> There is nothing here to sign up for and
         no field that collects personal data.</li>
       <li><strong>Server logs.</strong> This is a static site served by a web

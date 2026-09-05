@@ -10,7 +10,6 @@
 import { initAgents } from "./agents.ts";
 import { initMarks, initMarkReplays } from "./brand.ts";
 import { initCopy } from "./copy.ts";
-import { count } from "./count.ts";
 import { initHome } from "./home.ts";
 import { initMagnetic } from "./magnetic.ts";
 import { initProductMedia } from "./media.ts";
@@ -42,9 +41,6 @@ function boot(): void {
   safely("receipts", () => initReceipts());
   safely("agents", () => initAgents());
   safely("magnetic", () => initMagnetic());
-  safely("count", () => {
-    count();
-  });
 }
 
 if (document.readyState === "loading") {

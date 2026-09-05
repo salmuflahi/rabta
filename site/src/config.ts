@@ -7,13 +7,6 @@
  */
 export const SITE_ORIGIN = "https://rabta.build";
 
-/**
- * Where the one counter ping goes. The Worker lives at this origin; until the
- * zone moves to Cloudflare this is the workers.dev URL, afterwards the custom
- * domain. The CSP's connect-src is derived from it.
- */
-export const COUNT_ORIGIN = "https://count.rabta.build";
-
 /** Flipped to true only after `npm view @rabta/mcp version` resolves. */
 export const MCP_PUBLISHED = false;
 

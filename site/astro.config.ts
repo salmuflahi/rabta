@@ -5,7 +5,6 @@
 // whatever it inlines), so those two directives are never listed here. Adding
 // 'unsafe-inline' anywhere would switch that hashing off; never do.
 import { defineConfig } from "astro/config";
-import { COUNT_ORIGIN } from "./src/config.ts";
 
 export default defineConfig({
   site: "https://rabta.build",
@@ -27,7 +26,7 @@ export default defineConfig({
         "img-src 'self' data:",
         "font-src 'self'",
         "media-src 'self'",
-        `connect-src 'self' ${COUNT_ORIGIN}`,
+        "connect-src 'self'",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'none'",

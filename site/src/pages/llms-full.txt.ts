@@ -37,7 +37,7 @@ Two more tools ask the running app: capture_capsule and restore_capsule. They ne
 
 ## Privacy
 
-The app makes no outbound request on launch or on a timer. Two things in the app can reach the network, each only when you click: the Git menu's Fetch, and the optional GitHub issue features through your own gh CLI. The website makes one request beyond loading the page: a cookieless counter ping to count.rabta.build (run by the maintainer on Cloudflare) carrying the page path, the referring site's hostname and a coarse viewport class; IP address and user agent are never stored, visitors are counted once per day through a salted hash whose salt is discarded daily, and the ping is not sent when Global Privacy Control or Do Not Track is on. Full policy: ${SITE_ORIGIN}/privacy/
+The app makes no outbound request on launch or on a timer. Two things in the app can reach the network, each only when you click: the Git menu's Fetch, and the optional GitHub issue features through your own gh CLI. The website makes no request beyond loading its own files: no analytics, no counter, no cookies, no third party. Full policy: ${SITE_ORIGIN}/privacy/
 
 ## Pages
 

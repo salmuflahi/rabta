@@ -13,7 +13,6 @@ import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { COUNT_ORIGIN } from "../../site/src/config.ts";
 
 const SITE = resolve(dirname(fileURLToPath(import.meta.url)), "../../site/dist");
 
@@ -64,7 +63,7 @@ test("the policy forbids exactly what the site does not use", async () => {
     assert.deepEqual(shape(policyOf(html)), shape(policy), `${route}: its policy differs from the homepage's`);
   }
   // The one request that leaves the origin at runtime: the counter ping.
-  assert.ok(policy.includes(`connect-src 'self' ${COUNT_ORIGIN}`), "connect-src names exactly the counter");
+  assert.ok(policy.includes("connect-src 'self';"), "connect-src is this origin and nothing else");
 
   // Each of these is only safe to forbid because the site genuinely does not
   // rely on it — the two tests below prove that rather than assuming it.

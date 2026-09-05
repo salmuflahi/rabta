@@ -3,4 +3,3 @@ packages:
   - "packages/*"
   - "connectors/*"
   - "site"
-  - "workers/*"
