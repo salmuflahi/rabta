@@ -12,9 +12,8 @@ name: Deploy website
 #      privacy-policy URL the Chrome Web Store and Open VSX listings point at.
 #
 # The build is static: Astro writes plain HTML, one hashed stylesheet bundle
-# per page family and one module script, all served from this origin. The
-# only request that leaves the origin at runtime is the counter ping, and the
-# policy names it.
+# per page family and one module script, all served from this origin. Nothing
+# leaves the origin at runtime, and the privacy page says so.
 
 on:
   push:
