@@ -142,10 +142,10 @@ test("a missing or empty asset is caught, never skipped", () => {
   );
 
   const emptyPoster = sizesFor(videos);
-  emptyPoster.set("hero-return.png", 0);
+  emptyPoster.set("hero-return.jpg", 0);
   assert.ok(
     checkManifest(manifest, probesFor(videos), emptyPoster).some((p) =>
-      /hero-return\.png: is empty/.test(p),
+      /hero-return\.jpg: is empty/.test(p),
     ),
   );
 });

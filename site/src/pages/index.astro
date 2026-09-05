@@ -14,6 +14,7 @@ import "../styles/landing.css";
   mainClass="home"
 >
   <Fragment slot="head">
+    <link rel="preload" as="image" href="/assets/demos/hero-return.jpg" fetchpriority="high" />
     <script type="application/ld+json" is:inline>
 {
   "@context": "https://schema.org",
@@ -91,7 +92,7 @@ import "../styles/landing.css";
             class="window__video"
             width="1280" height="800"
             muted playsinline loop preload="none"
-            poster="/assets/demos/hero-return.png"
+            poster="/assets/demos/hero-return.jpg"
             data-src-desktop="/assets/demos/hero-return-desktop.mp4"
             data-src-mobile="/assets/demos/hero-return-mobile.mp4"
             aria-label="Rabta capturing a task, switching away, and resuming it: the restore sheet draws the mark and reports each tool as restored, waiting or skipped."
@@ -175,9 +176,9 @@ import "../styles/landing.css";
               <span class="window__title" data-moves-title>Rabta — Capsules</span>
             </div>
             <div class="window__stage">
-              <video data-move-shot="0" data-active class="move-shot" width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/move-capture.png" data-src-desktop="/assets/demos/move-capture-desktop.mp4" data-src-mobile="/assets/demos/move-capture-mobile.mp4" aria-label="Capturing a task: the capsule saves the open files, terminals, tabs and branch."></video>
-              <video data-move-shot="1" class="move-shot" width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/move-leave.png" data-src-desktop="/assets/demos/move-leave-desktop.mp4" data-src-mobile="/assets/demos/move-leave-mobile.mp4" aria-label="Leaving a task: another capsule becomes active and the one you left is saved."></video>
-              <video data-move-shot="2" class="move-shot" width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/move-return.png" data-src-desktop="/assets/demos/move-return-desktop.mp4" data-src-mobile="/assets/demos/move-return-mobile.mp4" aria-label="Returning to a task: the restore sheet reports each tool as restored, waiting or skipped."></video>
+              <video data-move-shot="0" data-active class="move-shot" width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/move-capture.jpg" data-src-desktop="/assets/demos/move-capture-desktop.mp4" data-src-mobile="/assets/demos/move-capture-mobile.mp4" aria-label="Capturing a task: the capsule saves the open files, terminals, tabs and branch."></video>
+              <video data-move-shot="1" class="move-shot" width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/move-leave.jpg" data-src-desktop="/assets/demos/move-leave-desktop.mp4" data-src-mobile="/assets/demos/move-leave-mobile.mp4" aria-label="Leaving a task: another capsule becomes active and the one you left is saved."></video>
+              <video data-move-shot="2" class="move-shot" width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/move-return.jpg" data-src-desktop="/assets/demos/move-return-desktop.mp4" data-src-mobile="/assets/demos/move-return-mobile.mp4" aria-label="Returning to a task: the restore sheet reports each tool as restored, waiting or skipped."></video>
             </div>
           </figure>
         </div>
@@ -202,7 +203,7 @@ import "../styles/landing.css";
             <p>Every open file and its order, plus the workspace folder they belong to.</p>
           </div>
           <div class="cell__art" data-product-media="cell-files">
-            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-files.png" data-src-desktop="/assets/demos/cell-files-desktop.mp4" data-src-mobile="/assets/demos/cell-files-mobile.mp4" aria-label="The capsule's files card in the real app, in focus."></video>
+            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-files.jpg" data-src-desktop="/assets/demos/cell-files-desktop.mp4" data-src-mobile="/assets/demos/cell-files-mobile.mp4" aria-label="The capsule's files card in the real app, in focus."></video>
             <button class="cell__play media-play media-play--small" type="button" hidden data-media-play data-label-play="Play" data-label-pause="Pause">Play</button>
           </div>
         </article>
@@ -213,7 +214,7 @@ import "../styles/landing.css";
             <p>Each one's working directory. Never its output.</p>
           </div>
           <div class="cell__art" data-product-media="cell-terminals">
-            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-terminals.png" data-src-desktop="/assets/demos/cell-terminals-desktop.mp4" data-src-mobile="/assets/demos/cell-terminals-mobile.mp4" aria-label="The capsule's terminals, counted in the real app, in focus."></video>
+            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-terminals.jpg" data-src-desktop="/assets/demos/cell-terminals-desktop.mp4" data-src-mobile="/assets/demos/cell-terminals-mobile.mp4" aria-label="The capsule's terminals, counted in the real app, in focus."></video>
             <button class="cell__play media-play media-play--small" type="button" hidden data-media-play data-label-play="Play" data-label-pause="Pause">Play</button>
           </div>
         </article>
@@ -224,7 +225,7 @@ import "../styles/landing.css";
             <p>URLs and titles from the browser you approved. Nothing on the page.</p>
           </div>
           <div class="cell__art" data-product-media="cell-tabs">
-            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-tabs.png" data-src-desktop="/assets/demos/cell-tabs-desktop.mp4" data-src-mobile="/assets/demos/cell-tabs-mobile.mp4" aria-label="The capsule's tabs list in the real app, in focus."></video>
+            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-tabs.jpg" data-src-desktop="/assets/demos/cell-tabs-desktop.mp4" data-src-mobile="/assets/demos/cell-tabs-mobile.mp4" aria-label="The capsule's tabs list in the real app, in focus."></video>
             <button class="cell__play media-play media-play--small" type="button" hidden data-media-play data-label-play="Play" data-label-pause="Pause">Play</button>
           </div>
         </article>
@@ -235,7 +236,7 @@ import "../styles/landing.css";
             <p>Restored first, and never forced. A dirty tree stops the switch and says so.</p>
           </div>
           <div class="cell__art" data-product-media="cell-branch">
-            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-branch.png" data-src-desktop="/assets/demos/cell-branch-desktop.mp4" data-src-mobile="/assets/demos/cell-branch-mobile.mp4" aria-label="The project's branch row in the real app, in focus."></video>
+            <video width="1280" height="800" muted playsinline loop preload="none" poster="/assets/demos/cell-branch.jpg" data-src-desktop="/assets/demos/cell-branch-desktop.mp4" data-src-mobile="/assets/demos/cell-branch-mobile.mp4" aria-label="The project's branch row in the real app, in focus."></video>
             <button class="cell__play media-play media-play--small" type="button" hidden data-media-play data-label-play="Play" data-label-pause="Pause">Play</button>
           </div>
         </article>

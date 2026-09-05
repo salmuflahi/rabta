@@ -45,11 +45,14 @@ function initHero(root: ParentNode, env: HomeEnv): Teardown {
   tl.fromTo(word, { opacity: 0, x: -slide }, { opacity: 1, x: 0, duration: 0.72 }, landed - 0.26);
   /* The claim arrives a word at a time, each rising from behind its own
      baseline; the masks are the .rise lines themselves. */
-  const words = SplitText.create(lines, { type: "words", wordsClass: "w" });
+  const words = SplitText.create(lines, { aria: "none", type: "words", wordsClass: "w" });
   tl.fromTo(words.words, { yPercent: 110 }, { yPercent: 0, duration: 0.9, stagger: 0.08 }, landed - 0.12);
   tl.fromTo([lede, actions], { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, stagger: 0.09 }, landed + 0.24);
+  /* The window is never hidden: its poster is the largest paint on a phone,
+     and a paint that waits for a timeline is a paint that arrives late. It
+     settles into place instead. */
   if (stage) {
-    tl.fromTo(stage, { opacity: 0, y: 40, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 1.1 }, landed + 0.32);
+    tl.fromTo(stage, { y: 40, scale: 0.97 }, { y: 0, scale: 1, duration: 1.1 }, landed + 0.32);
   }
   if (navBrand) {
     tl.to(navBrand, { opacity: 1, duration: 0.5, ease: "power2.out" }, landed + 0.5);

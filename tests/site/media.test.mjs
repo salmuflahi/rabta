@@ -331,6 +331,43 @@ test("the hero source waits for two animation frames", () => {
   cleanup();
 });
 
+test("in a real browser the hero waits for the load event and an idle moment", () => {
+  const page = harness();
+  let loadListener = null;
+  const idle = [];
+  page.env.document = { readyState: "loading" };
+  page.env.addEventListener = (type, listener) => {
+    assert.equal(type, "load");
+    loadListener = listener;
+  };
+  page.env.requestIdleCallback = (callback, options) => {
+    assert.equal(options?.timeout, 1500, "idle has a deadline, so a busy page still gets its video");
+    idle.push(callback);
+  };
+  const cleanup = initProductMedia(page.root, page.env);
+
+  page.runAnimationFrame();
+  page.runAnimationFrame();
+  assert.equal(page.media[0].video.src, "", "nothing before load");
+  assert.ok(loadListener, "waits on the load event");
+  loadListener();
+  assert.equal(page.media[0].video.src, "", "nothing before an idle moment");
+  idle.shift()?.();
+  assert.equal(page.media[0].video.src, "/hero-desktop.mp4");
+  cleanup();
+});
+
+test("a page that has already loaded does not wait for a load event", () => {
+  const page = harness();
+  page.env.document = { readyState: "complete" };
+  page.env.addEventListener = () => assert.fail("no listener once loaded");
+  const cleanup = initProductMedia(page.root, page.env);
+  page.runAnimationFrame();
+  page.runAnimationFrame();
+  assert.equal(page.media[0].video.src, "/hero-desktop.mp4");
+  cleanup();
+});
+
 test("an already-ready offscreen hero attaches but does not autoplay", async () => {
   const page = harness();
   const hero = page.media[0];

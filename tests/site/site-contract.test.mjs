@@ -359,7 +359,7 @@ test("the hero is the mark, the claim, and the real app", async () => {
   assert.equal((hero.match(/class="button/g) ?? []).length, 2, "one primary, one quiet");
   assert.equal((hero.match(/button--primary/g) ?? []).length, 1, "one ember in the hero");
   assert.match(hero, /data-product-media="hero"/);
-  assert.match(hero, /poster="\/assets\/demos\/hero-return\.png"/, "the hero's poster is a frame of its own loop");
+  assert.match(hero, /poster="\/assets\/demos\/hero-return\.jpg"/, "the hero's poster is a frame of its own loop");
   assert.match(hero, /data-src-desktop="\/assets\/demos\/hero-return-desktop\.mp4"/);
   assert.match(hero, /data-src-mobile="\/assets\/demos\/hero-return-mobile\.mp4"/);
   assert.equal((html.match(/<video\b/g) ?? []).length, 8, "eight loops on the page: the hero, three moves, four cells");
@@ -398,7 +398,7 @@ test("the three moves ship as a list and scrub into a sequence", async () => {
   }
   for (const [i, beat] of ["move-capture", "move-leave", "move-return"].entries()) {
     const shot = moves.match(new RegExp(`<video data-move-shot="${i}"[^>]*>`))?.[0] ?? "";
-    assert.match(shot, new RegExp(`poster="/assets/demos/${beat}\\.png"`), `${beat} poster`);
+    assert.match(shot, new RegExp(`poster="/assets/demos/${beat}\\.jpg"`), `${beat} poster`);
     assert.match(shot, new RegExp(`data-src-desktop="/assets/demos/${beat}-desktop\\.mp4"`), `${beat} desktop loop`);
     assert.match(shot, new RegExp(`data-src-mobile="/assets/demos/${beat}-mobile\\.mp4"`), `${beat} mobile loop`);
   }

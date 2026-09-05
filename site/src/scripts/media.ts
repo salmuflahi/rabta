@@ -93,6 +93,10 @@ interface IntersectionEntryLike {
 interface MediaEnv {
   matchMedia(query: string): { matches: boolean };
   navigator?: { connection?: { saveData?: boolean } };
+  /** The page's load state and load event, so the hero can wait its turn. */
+  document?: { readyState: string };
+  addEventListener?(type: "load", listener: () => void, options?: { once?: boolean }): void;
+  requestIdleCallback?(callback: () => void, options?: { timeout?: number }): unknown;
   HTMLMediaElement?: { HAVE_FUTURE_DATA?: number };
   IntersectionObserver: new (
     callback: (entries: IntersectionEntryLike[]) => void,
@@ -314,16 +318,36 @@ export function initProductMedia(
     );
     blocks.forEach((block) => observer?.observe(block));
 
+    /* The hero's file is the heaviest thing on the page after the page
+       itself, so it waits its turn: two frames, so the poster has painted;
+       the load event, if the page is still loading; then an idle moment. On
+       a fast machine that is a few dozen milliseconds. On a slow connection
+       it keeps the poster, the styles and the fonts ahead of a video. */
+    const afterLoad = (fn: () => void) => {
+      if (env.document && env.document.readyState !== "complete" && typeof env.addEventListener === "function") {
+        env.addEventListener("load", fn, { once: true });
+      } else {
+        fn();
+      }
+    };
+    const whenIdle = (fn: () => void) => {
+      if (typeof env.requestIdleCallback === "function") env.requestIdleCallback(fn, { timeout: 1500 });
+      else fn();
+    };
     const hero = blocks.find((block) => block.dataset.productMedia === "hero");
     if (hero) {
       env.requestAnimationFrame(() =>
-        env.requestAnimationFrame(() => {
-          if (!active) return;
-          const video = hero.querySelector("video");
-          if (!video) return;
-          attach(video);
-          playWhenReady(hero, video);
-        }),
+        env.requestAnimationFrame(() =>
+          afterLoad(() =>
+            whenIdle(() => {
+              if (!active) return;
+              const video = hero.querySelector("video");
+              if (!video) return;
+              attach(video);
+              playWhenReady(hero, video);
+            }),
+          ),
+        ),
       );
     }
   }

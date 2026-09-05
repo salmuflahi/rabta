@@ -17,8 +17,10 @@ not have to open all of them to find one.
 | File | What it is |
 |---|---|
 | [SECURITY-AUDIT-2026-08.md](SECURITY-AUDIT-2026-08.md) | Full audit of 0.1.0 — findings, evidence, and what it did *not* cover. True of 0.1.0; re-run each minor release. |
-| [privacy-policy.md](privacy-policy.md) | The policy's source. `website/privacy/` is the published form. |
+| [privacy-policy.md](privacy-policy.md) | The policy's source. `site/src/pages/privacy.astro` is the published form. |
 | [store-listings.md](store-listings.md) | Copy for the Marketplace, Open VSX and Chrome Web Store listings. |
+| [../packages/mcp/README.md](../packages/mcp/README.md) | The MCP server: five read-only tools over the app's database, plus capture and restore through Agent access. |
+| [../workers/count/README.md](../workers/count/README.md) | The visitor counter: what the beacon carries, what the Worker keeps, how to deploy it. |
 
 ## Design
 
@@ -48,13 +50,12 @@ Not reference material. Nothing outside this directory should depend on them.
 
 ## Where things are that are *not* here
 
-- **`marketing` renders and video projects** — `video-editing/`,
-  `video-exports/`, `website/assets/social/`, `website/assets/demos/micro/`.
+- **`marketing` renders and video projects**: `video-editing/`,
+  `video-exports/`, `marketing-videos/social/`, `marketing-videos/*/renders/`.
   All gitignored. Roughly a gigabyte of project files and MP4s that git is the
-  wrong store for. The last two sit under `website/` but are **not** part of the
-  site: `.github/workflows/pages.yml` uploads the entire `website/` directory,
-  so anything committed there is published at rabta.build whether or not a page
-  links it.
+  wrong store for. None of it sits under `site/`: `.github/workflows/pages.yml`
+  builds `site/` with Astro and uploads `site/dist`, so only what a page
+  references, plus everything in `site/public/`, is published at rabta.build.
 - **Built artifacts** — `dist-artifacts/`, gitignored. The DMG, the `.vsix` and
   the Chrome zip.
 - **Signing material** — `/signing/`, gitignored, and it stays that way.

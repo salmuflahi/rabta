@@ -71,7 +71,7 @@ export function initReceipts(root: ParentNode = document, env: MotionEnv = windo
     if (el.textContent === text) return;
     el.textContent = text;
     if (quiet) return;
-    const split = SplitText.create(el, { type: "chars" });
+    const split = SplitText.create(el, { aria: "none", type: "chars" });
     splits.push(split);
     gsap.fromTo(
       split.chars,

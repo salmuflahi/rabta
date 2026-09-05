@@ -134,7 +134,7 @@ rabta.build
 
 ---
 
-## 5. Micro loops (`website/assets/demos/micro/`)
+## 5. Micro loops (`marketing-videos/social/micro/`)
 
 Short silent loops. These work as filler posts between the four main videos.
 One line, one tag set.
@@ -226,7 +226,7 @@ rabta.build
 
 ---
 
-## 7. Carousels (`website/assets/social/carousels/`)
+## 7. Carousels (`marketing-videos/social/carousels/`)
 
 Folders of 1080×1920 PNGs. Post as a **TikTok photo post** or an **Instagram
 carousel**. TikTok requires 4–35 slides; completion rate is what gets ranked, so

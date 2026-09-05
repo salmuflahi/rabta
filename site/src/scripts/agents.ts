@@ -33,7 +33,7 @@ export function initAgents(root: ParentNode = document, env: MotionEnv = window 
     let at = 0.1;
     for (const line of lines) {
       const command = line.dataset.termLine === "cmd";
-      const split = SplitText.create(line, { type: command ? "chars" : "words" });
+      const split = SplitText.create(line, { aria: "none", type: command ? "chars" : "words" });
       splits.push(split);
       const units = command ? split.chars : split.words;
       const step = command ? TYPE.char : TYPE.word;

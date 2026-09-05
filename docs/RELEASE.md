@@ -78,7 +78,7 @@ Repo facts this checklist assumes:
 ### Brand assets
 
 Every icon, favicon and social image in the repo is generated from one vector
-source, `website/assets/brand/rabta-mark.svg`. Nothing brand-related is hand-
+source, `site/public/assets/brand/rabta-mark.svg`. Nothing brand-related is hand-
 edited as a raster. Regenerate after any change to the mark:
 
 ```sh
@@ -88,7 +88,7 @@ python3 scripts/generate-brand-assets.py
 That writes the website favicon set and web-app icons, the Tauri bundle icons
 (`.png`/`.ico`/`.icns`), the Chrome and VS Code connector icons, the `-primary`
 and `-mono` colourways, and the 1200x630 social card (composed from
-`website/assets/brand/og-card.html`, rendered with headless Chrome). Requires
+`site/public/assets/brand/og-card.html`, rendered with headless Chrome). Requires
 macOS `sips` + `iconutil`; no third-party imaging libraries.
 
 The script has no fallback artwork: if the source SVG is missing it exits

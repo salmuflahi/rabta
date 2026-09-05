@@ -24,8 +24,8 @@ const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const manifest = JSON.parse(readFileSync(join(HERE, 'manifest.json'), 'utf8'));
 const { width: W, height: H } = manifest.canvas;
 const OUT = join(ROOT, manifest.output);
-const SHOTS = join(ROOT, 'website/assets/shots/src');
-const DEMOS = join(ROOT, 'website/assets/demos');
+const SHOTS = join(ROOT, 'site/public/assets/shots/src');
+const DEMOS = join(ROOT, 'site/public/assets/demos');
 const WORK = join(HERE, '.work');
 
 const TRANSITION = 0.5; // cross-dissolve seconds between photo-dump slides

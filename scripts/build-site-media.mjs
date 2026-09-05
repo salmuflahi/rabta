@@ -6,7 +6,7 @@
  * Input   marketing-videos/site-demos/<name>/renders/<name>.mp4  (2560x1600, 30fps)
  * Output  site/public/assets/demos/<name>-desktop.mp4   1920x1200, for laptops and 2x phones
  *         site/public/assets/demos/<name>-mobile.mp4     720x450, for narrow viewports on a budget
- *         site/public/assets/demos/<name>.png            the poster, from a frame past the opening veil
+ *         site/public/assets/demos/<name>.jpg            the poster, one frame in, JPEG so the phone paints it fast
  *         site/public/assets/demos/manifest.json         what shipped, probed, for scripts/verify-media.mjs
  *
  * The loops are silent by contract (autoplay would be blocked otherwise), so
@@ -55,15 +55,18 @@ function probe(file) {
   return JSON.parse(out);
 }
 
-function pngSize(file) {
-  const fd = execFileSync("head", ["-c", "24", file]);
-  return { width: fd.readUInt32BE(16), height: fd.readUInt32BE(20) };
+function imageSize(file) {
+  const out = execFileSync("ffprobe", [
+    "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", file,
+  ]).toString().trim();
+  const [width, height] = out.split(",").map(Number);
+  return { width, height };
 }
 
 mkdirSync(OUT, { recursive: true });
 // The previous loops are replaced wholesale; nothing else lives in this folder.
 for (const f of readdirSync(OUT)) {
-  if (/\.(m4v|mp4|png|json)$/.test(f)) rmSync(join(OUT, f));
+  if (/\.(m4v|mp4|png|jpg|json)$/.test(f)) rmSync(join(OUT, f));
 }
 
 const manifest = { schemaVersion: 2, videos: [], posters: [] };
@@ -94,14 +97,16 @@ for (const name of LOOPS) {
       bytes: statSync(join(OUT, file)).size,
       codec: video.codec_name,
       audioStreams: p.streams.filter((s) => s.codec_type === "audio").length,
-      poster: `${name}.png`,
+      poster: `${name}.jpg`,
     });
     console.log(`  ${file.padEnd(28)} ${(statSync(join(OUT, file)).size / 1024).toFixed(0)} KB`);
   }
-  const poster = join(OUT, `${name}.png`);
-  ffmpeg(["-ss", String(POSTER_AT), "-i", src, "-frames:v", "1", "-vf", "scale=1920:1200:flags=lanczos", poster]);
-  const size = pngSize(poster);
-  manifest.posters.push({ file: `${name}.png`, ...size, bytes: statSync(poster).size });
+  // The poster is what paints first, and on a phone it is the largest paint:
+  // a JPEG at 1600 wide is a tenth of the PNG for a dark interface.
+  const poster = join(OUT, `${name}.jpg`);
+  ffmpeg(["-ss", String(POSTER_AT), "-i", src, "-frames:v", "1", "-vf", "scale=1600:1000:flags=lanczos", "-c:v", "mjpeg", "-q:v", "3", poster]);
+  const size = imageSize(poster);
+  manifest.posters.push({ file: `${name}.jpg`, ...size, bytes: statSync(poster).size });
 }
 
 writeFileSync(join(OUT, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");

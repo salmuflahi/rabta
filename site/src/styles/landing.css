@@ -112,8 +112,7 @@
 
   [data-hero="pending"] .rise > span,
   [data-hero="pending"] .hero__lede,
-  [data-hero="pending"] .hero__actions,
-  [data-hero="pending"] .hero__stage {
+  [data-hero="pending"] .hero__actions {
     opacity: 0;
   }
 

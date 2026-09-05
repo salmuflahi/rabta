@@ -1,6 +1,6 @@
 // Generated from Inter 4 (wght 560, opsz 32) by the brand pipeline — see
 // docs/superpowers/specs/2026-09-03-rabta-brand-redesign-design.md §4 and
-// website/assets/brand/lockup.svg. The wordmark ships as outlines so the
+// site/public/assets/brand/lockup.svg. The wordmark ships as outlines so the
 // lockup never depends on a font being installed or loaded.
 //
 // The path is in the font's own units (WORDMARK_UNITS_PER_EM per em), with

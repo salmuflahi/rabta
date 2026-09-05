@@ -11,7 +11,7 @@
       "bytes": 1671899,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "hero-return.png"
+      "poster": "hero-return.jpg"
     },
     {
       "file": "hero-return-mobile.mp4",
@@ -23,7 +23,7 @@
       "bytes": 296105,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "hero-return.png"
+      "poster": "hero-return.jpg"
     },
     {
       "file": "move-capture-desktop.mp4",
@@ -35,7 +35,7 @@
       "bytes": 1124259,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "move-capture.png"
+      "poster": "move-capture.jpg"
     },
     {
       "file": "move-capture-mobile.mp4",
@@ -47,7 +47,7 @@
       "bytes": 243680,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "move-capture.png"
+      "poster": "move-capture.jpg"
     },
     {
       "file": "move-leave-desktop.mp4",
@@ -59,7 +59,7 @@
       "bytes": 814112,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "move-leave.png"
+      "poster": "move-leave.jpg"
     },
     {
       "file": "move-leave-mobile.mp4",
@@ -71,7 +71,7 @@
       "bytes": 156114,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "move-leave.png"
+      "poster": "move-leave.jpg"
     },
     {
       "file": "move-return-desktop.mp4",
@@ -83,7 +83,7 @@
       "bytes": 990486,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "move-return.png"
+      "poster": "move-return.jpg"
     },
     {
       "file": "move-return-mobile.mp4",
@@ -95,7 +95,7 @@
       "bytes": 148529,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "move-return.png"
+      "poster": "move-return.jpg"
     },
     {
       "file": "cell-files-desktop.mp4",
@@ -107,7 +107,7 @@
       "bytes": 444352,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "cell-files.png"
+      "poster": "cell-files.jpg"
     },
     {
       "file": "cell-files-mobile.mp4",
@@ -119,7 +119,7 @@
       "bytes": 59196,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "cell-files.png"
+      "poster": "cell-files.jpg"
     },
     {
       "file": "cell-terminals-desktop.mp4",
@@ -131,7 +131,7 @@
       "bytes": 391092,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "cell-terminals.png"
+      "poster": "cell-terminals.jpg"
     },
     {
       "file": "cell-terminals-mobile.mp4",
@@ -143,7 +143,7 @@
       "bytes": 57226,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "cell-terminals.png"
+      "poster": "cell-terminals.jpg"
     },
     {
       "file": "cell-tabs-desktop.mp4",
@@ -155,7 +155,7 @@
       "bytes": 462884,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "cell-tabs.png"
+      "poster": "cell-tabs.jpg"
     },
     {
       "file": "cell-tabs-mobile.mp4",
@@ -167,7 +167,7 @@
       "bytes": 85151,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "cell-tabs.png"
+      "poster": "cell-tabs.jpg"
     },
     {
       "file": "cell-branch-desktop.mp4",
@@ -179,7 +179,7 @@
       "bytes": 359748,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "cell-branch.png"
+      "poster": "cell-branch.jpg"
     },
     {
       "file": "cell-branch-mobile.mp4",
@@ -191,7 +191,7 @@
       "bytes": 45269,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "cell-branch.png"
+      "poster": "cell-branch.jpg"
     },
     {
       "file": "agents-connect-desktop.mp4",
@@ -203,7 +203,7 @@
       "bytes": 274546,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "agents-connect.png"
+      "poster": "agents-connect.jpg"
     },
     {
       "file": "agents-connect-mobile.mp4",
@@ -215,7 +215,7 @@
       "bytes": 64906,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "agents-connect.png"
+      "poster": "agents-connect.jpg"
     },
     {
       "file": "capsule-anatomy-desktop.mp4",
@@ -227,7 +227,7 @@
       "bytes": 1004048,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "capsule-anatomy.png"
+      "poster": "capsule-anatomy.jpg"
     },
     {
       "file": "capsule-anatomy-mobile.mp4",
@@ -239,69 +239,69 @@
       "bytes": 216316,
       "codec": "h264",
       "audioStreams": 0,
-      "poster": "capsule-anatomy.png"
+      "poster": "capsule-anatomy.jpg"
     }
   ],
   "posters": [
     {
-      "file": "hero-return.png",
-      "width": 1920,
-      "height": 1200,
-      "bytes": 660879
+      "file": "hero-return.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 67824
     },
     {
-      "file": "move-capture.png",
-      "width": 1920,
-      "height": 1200,
-      "bytes": 619479
+      "file": "move-capture.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 100227
     },
     {
-      "file": "move-leave.png",
-      "width": 1920,
-      "height": 1200,
-      "bytes": 627206
+      "file": "move-leave.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 103132
     },
     {
-      "file": "move-return.png",
-      "width": 1920,
-      "height": 1200,
-      "bytes": 620883
+      "file": "move-return.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 101261
     },
     {
-      "file": "cell-files.png",
-      "width": 1920,
-      "height": 1200,
-      "bytes": 433876
+      "file": "cell-files.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 24888
     },
     {
-      "file": "cell-terminals.png",
-      "width": 1920,
-      "height": 1200,
-      "bytes": 354444
+      "file": "cell-terminals.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 34955
     },
     {
-      "file": "cell-tabs.png",
-      "width": 1920,
-      "height": 1200,
-      "bytes": 456548
+      "file": "cell-tabs.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 33525
     },
     {
-      "file": "cell-branch.png",
-      "width": 1920,
-      "height": 1200,
-      "bytes": 345190
+      "file": "cell-branch.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 25080
     },
     {
-      "file": "agents-connect.png",
-      "width": 1920,
-      "height": 1200,
-      "bytes": 157335
+      "file": "agents-connect.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 15714
     },
     {
-      "file": "capsule-anatomy.png",
-      "width": 1920,
-      "height": 1200,
-      "bytes": 552886
+      "file": "capsule-anatomy.jpg",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 52173
     }
   ]
 }

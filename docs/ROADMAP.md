@@ -83,6 +83,14 @@ terminal, or anything pinned, and that rule has to hold in the app, not in the
 connector. *Medium. Needs the connectors published first, or it cannot be
 tested against anything real.*
 
+**Agents that read, capture and restore.** `@rabta/mcp` is built: five
+read-only tools over the app's own database (a briefing an agent can load as
+context, the capsule as data, the recent activity) and two that ask the running
+app to capture or restore, through Agent access, a switch in Settings that
+opens an owner-only socket file and closes it again. The site's `/agents/` page
+describes it. *Ships with the next release; the npm publish and the store
+copy are the remaining steps.*
+
 **Bulk multi-select on capsules.** Archiving or deleting several as one gesture.
 The list already has selection-follows-focus; multi-select changes what "the
 selected capsule" means everywhere downstream, which is the actual cost.

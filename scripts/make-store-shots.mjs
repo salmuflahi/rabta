@@ -8,7 +8,7 @@
  * the app screenshots the website already ships and from the extension's own
  * popup. Nothing here is a pasted picture that has to be remembered about:
  *
- *   - the app shots come from website/assets/shots/, so they change when the
+ *   - the app shots come from site/public/assets/shots/, so they change when the
  *     site's do;
  *   - the popup is the real connectors/chrome/popup.html, rendered live in an
  *     iframe with the chrome.* API stubbed, so it cannot drift from what
@@ -124,7 +124,7 @@ function frameHtml(f) {
     f.art ??
     `<div class="crop"${f.cropH ? ` style="--crop-h: ${f.cropH}px"` : ""}>` +
       `<img style="--shift: ${-Math.round(f.srcY * SCALE)}px" ` +
-      `src="/website/assets/shots/${f.shot}-1600.webp" alt="${f.alt}" /></div>`;
+      `src="/site/public/assets/shots/${f.shot}-1600.webp" alt="${f.alt}" /></div>`;
 
   return page(`<div class="stack">
   <div class="head">
