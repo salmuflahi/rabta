@@ -3,17 +3,17 @@
  * رابطة means the tie. One ember line runs down the homepage, drawn by the
  * reader's own scrolling, touching each chapter on its way: the window, the
  * three moves, the capsule, the receipt, the switch, the terminal. It ends
- * where the mark's leg begins, and the leg draws on from there. The whole
- * page is one stroke.
+ * on the wordmark's baseline, at the foot of its first letter, and the
+ * wordmark arrives as it does. The whole page is one stroke.
  *
  * Markup contract: an <svg data-thread> with one <path data-thread-path> as
  * the first child of <main>, `[data-thread-anchor="bottom|gutter"]` on the
- * elements it visits in page order, and `[data-thread-end]` on the mark it
- * finishes in. The path's geometry is measured from the page, written as
+ * elements it visits in page order, and `[data-thread-end]` on the wordmark
+ * it finishes at. The path's geometry is measured from the page, written as
  * attributes (never styles), and rebuilt when ScrollTrigger refreshes.
  *
  * Without script, or under reduced motion, the CSS shows the finished
- * stroke at rest and the mark complete.
+ * stroke at rest and the wordmark simply there.
  */
 
 import { gsap } from "gsap";
@@ -46,12 +46,17 @@ function anchorPoint(el: HTMLElement, origin: DOMRect): Point {
   return { x: box.left - GUTTER - origin.left, y: box.top + 28 - origin.top };
 }
 
-/** The leg's first point, mapped from mark space into page space. */
-function legStart(leg: SVGPathElement, origin: DOMRect): Point | null {
-  const ctm = leg.getScreenCTM();
-  if (!ctm) return null;
-  const p = leg.getPointAtLength(0).matrixTransform(ctm);
-  return { x: p.x - origin.left, y: p.y - origin.top };
+/** Where the letters stand in the wordmark's 293-unit-tall viewBox: the
+ *  baseline is at 277. */
+const BASELINE = 277 / 293;
+
+/**
+ * Where the thread hands over: the wordmark's left edge, on its baseline,
+ * mapped from the element's box into page space.
+ */
+function markStart(mark: Element, origin: DOMRect): Point {
+  const box = mark.getBoundingClientRect();
+  return { x: box.left - origin.left, y: box.top + box.height * BASELINE - origin.top };
 }
 
 /** Cubic segments with vertical tangents, so the line reads as one stroke. */
@@ -65,8 +70,8 @@ function pathData(points: Point[], end: Point | null): string {
     d += ` C${round(a.x)} ${round(a.y + dy)} ${round(b.x)} ${round(b.y - dy)} ${round(b.x)} ${round(b.y)}`;
   }
   if (end) {
-    /* The last leg arrives into the mark from the left, on the leg's own
-       heading, so the two strokes read as one. */
+    /* The last leg arrives from the left, level with the baseline, so the
+       thread reads as the line the word stands on. */
     const a = points[points.length - 1];
     const dy = (end.y - a.y) * 0.6;
     d += ` C${round(a.x)} ${round(a.y + dy)} ${round(end.x - 140)} ${round(end.y)} ${round(end.x)} ${round(end.y)}`;
@@ -81,21 +86,18 @@ export function initThread(root: Document = document, env: MotionEnv = window as
   if (!svg || !path || !main) return () => {};
   const anchors = [...main.querySelectorAll<HTMLElement>("[data-thread-anchor]")];
   const mark = main.querySelector<SVGSVGElement>("[data-thread-end]");
-  const leg = mark?.querySelector<SVGPathElement>(".leg");
-  const stem = mark?.querySelector<SVGPathElement>(".stem");
-  const bowl = mark?.querySelector<SVGPathElement>(".bowl");
   const wide = env.matchMedia?.("(min-width: 900px)").matches ?? true;
 
   const build = () => {
     const origin = main.getBoundingClientRect();
     svg.setAttribute("viewBox", `0 0 ${round(origin.width)} ${round(origin.height)}`);
     const points = anchors.map((el) => anchorPoint(el, origin));
-    path.setAttribute("d", pathData(points, leg ? legStart(leg, origin) : null));
+    path.setAttribute("d", pathData(points, mark ? markStart(mark, origin) : null));
   };
 
   build();
   if (!wide || reducedMotion(env)) {
-    /* At rest: the stroke is there, quietly, and the mark is complete. */
+    /* At rest: the stroke is there, quietly, and the wordmark with it. */
     svg.dataset.thread = "rest";
     return () => {
       delete svg.dataset.thread;
@@ -119,18 +121,20 @@ export function initThread(root: Document = document, env: MotionEnv = window as
     },
   );
 
-  /* The mark draws itself as the thread arrives: the leg first, from the
-     point the thread hands it, then the stem and the bowl. */
+  /* The wordmark arrives as the thread does: it surfaces and settles from
+     the point the thread hands it, the foot of its first letter, so that
+     corner never moves under the thread's end. */
   let markTl: gsap.core.Timeline | null = null;
-  if (mark && leg && stem && bowl) {
+  if (mark) {
     markTl = gsap.timeline({
       scrollTrigger: { trigger: mark, start: "top 88%", end: "center 52%", scrub: 0.6 },
     });
-    markTl
-      .fromTo(leg, { drawSVG: "0%" }, { drawSVG: "100%", ease: "none", duration: 0.5 }, 0)
-      .fromTo(stem, { drawSVG: "0%" }, { drawSVG: "100%", ease: "none", duration: 0.3 }, 0.45)
-      .fromTo(bowl, { drawSVG: "0%" }, { drawSVG: "100%", ease: "none", duration: 0.35 }, 0.65)
-      .fromTo(mark, { scale: 0.985 }, { scale: 1, ease: "none", duration: 0.3 }, 0.7);
+    markTl.fromTo(
+      mark,
+      { opacity: 0, scale: 0.985 },
+      { opacity: 1, scale: 1, ease: "none", duration: 1, transformOrigin: `0% ${BASELINE * 100}%` },
+      0,
+    );
   }
 
   const onRefresh = () => build();

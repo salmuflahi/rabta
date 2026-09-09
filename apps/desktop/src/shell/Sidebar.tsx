@@ -20,9 +20,9 @@ import {
   TRAFFIC_LIGHT_WRAPPER_INSET_CLASS,
 } from "./titlebar";
 
-/** The lockup — the mark and "abta" as outlines — inlined so `currentColor`
- * inherits the sidebar's paper. The tiled `rabta-mark.svg` stays the Dock
- * icon, where it sits against the desktop and reads properly. */
+/** The approved wordmark as outlines, inlined so `currentColor` inherits
+ * the sidebar's paper. The ember tile in `assets/brand/app-icon.svg` carries
+ * the same wordmark for the Dock icon, where it sits against the desktop. */
 function BrandLockup({ className }: { className?: string }) {
   return <Lockup capHeight={11} className={className} title="Rabta" />;
 }

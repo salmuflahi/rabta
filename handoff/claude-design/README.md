@@ -1,6 +1,6 @@
 # Rabta for Claude Design
 
-Everything Claude Design needs to design a new rabta.build from zero: the prompt, the brand file, the marks, the fonts, ten loops of the real app, app screens, the story documents, the shipped copy of every page, and two reference lists.
+Everything Claude Design needs to design a new rabta.build from zero: the prompt, the brand file, the wordmark, the fonts, ten loops of the real app, app screens, the story documents, the shipped copy of every page, and two reference lists.
 
 ## How to use it
 
@@ -16,7 +16,7 @@ The folder is also committed at `handoff/claude-design/` in github.com/salmuflah
 
 - `PROMPT.md`: the brief, ready to paste.
 - `brand-guidelines.md`: what is fixed, what is open, voice, facts, constraints.
-- `brand/`: the mark in every variant, the lockups, the favicon, the social card.
+- `brand/`: the wordmark in its three colourways (currentColor, ink, paper), the tile, the social card.
 - `fonts/`: Inter (body fallback), Reem Kufi (the Arabic name), Geist Mono, with licences.
 - `product/loops/`: ten desktop loops of the real app (mp4) with their poster frames (jpg).
 - `product/screens/`: the app's screens at 1600 px (webp) and 1024 px (png).

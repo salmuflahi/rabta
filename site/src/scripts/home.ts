@@ -12,7 +12,7 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
-import { drawMark } from "./brand.ts";
+import { revealMark } from "./brand.ts";
 import { DUR, reducedMotion, type MotionEnv, type Teardown } from "./motion.ts";
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
@@ -27,22 +27,19 @@ function initHero(root: ParentNode, env: HomeEnv): Teardown {
   const hero = root.querySelector<HTMLElement>("[data-hero]");
   if (!hero) return () => {};
   const mark = hero.querySelector("[data-hero-mark]");
-  const word = hero.querySelector<HTMLElement>("[data-hero-word]");
   const lines = [...hero.querySelectorAll<HTMLElement>(".rise > span")];
   const lede = hero.querySelector(".hero__lede");
   const actions = hero.querySelector(".hero__actions");
   const stage = hero.querySelector<HTMLElement>("[data-hero-window]");
   const navBrand = root.querySelector<HTMLElement>("[data-nav] .brand");
-  if (!mark || !word || reducedMotion(env)) return () => {};
+  if (!mark || reducedMotion(env)) return () => {};
 
   hero.dataset.hero = "pending";
   if (navBrand) navBrand.style.opacity = "0";
 
   const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
-  const landed = drawMark(tl, mark, 120) / 1000;
-  const slide = parseFloat(getComputedStyle(word).fontSize) * 0.35 || 24;
+  const landed = revealMark(tl, mark, 120) / 1000;
 
-  tl.fromTo(word, { opacity: 0, x: -slide }, { opacity: 1, x: 0, duration: 0.72 }, landed - 0.26);
   /* The claim arrives a word at a time, each rising from behind its own
      baseline; the masks are the .rise lines themselves. */
   const words = SplitText.create(lines, { aria: "none", type: "words", wordsClass: "w" });

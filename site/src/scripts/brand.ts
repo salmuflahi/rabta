@@ -1,25 +1,21 @@
-/* Rabta: the mark, drawn.
+/* Rabta: the wordmark, arriving.
  *
- * An R whose leg is the Arabic ر. Three strokes, drawn in the order the
- * product happens: the stem (you start), the bowl (you capture), the leg
- * (you leave and come back). The choreography lives in mark-draw.ts and is
- * the same numbers the desktop app uses, so the logo draws identically on
- * the page and in the app.
+ * The brand is one word in one colour, so there is nothing to draw stroke by
+ * stroke. The wordmark arrives instead: it rises into place with a fade and
+ * settles on the same spring the app uses. It takes the 1100 ms the timing
+ * module allows (MARK_DRAW.total), so that module and its twin in the app
+ * stay equal.
  *
- * Markup contract: an inline <svg data-mark> holding three <path> elements
- * with classes .stem, .bowl and .leg. The paths are complete at rest; this
- * module only takes over the drawing.
+ * Markup contract: an inline <svg class="mark"> holding the wordmark's one
+ * path, complete at rest; this module only takes over the arrival.
  */
 
 import { gsap } from "gsap";
-import { DrawSVGPlugin } from "gsap/DrawSVGPlugin";
 import { MARK_DRAW } from "./mark-draw.ts";
 import { reducedMotion, type MotionEnv, type Teardown } from "./motion.ts";
 
-gsap.registerPlugin(DrawSVGPlugin);
-
 /**
- * The spring the mark lands on: stiffness 260, damping 18, unit mass, the
+ * The spring the wordmark lands on: stiffness 260, damping 18, unit mass, the
  * same spring the app uses. Sampled as a plain easing function over the
  * 600ms landing, so GSAP can run it without a physics plugin. Underdamped
  * (zeta 0.56): one small overshoot, then rest.
@@ -35,29 +31,34 @@ export function springEase(stiffness: number, damping: number, seconds: number):
 
 export const LANDED = springEase(260, 18, 0.6);
 
+/** How far the wordmark rises from, as a share of its own height. */
+const RISE = 12;
+/** The landing spring's length, in milliseconds. It starts 100 ms before the
+ *  rise ends, so the two read as one movement. */
+const SETTLE = 600;
+
 /**
- * Adds the mark's three strokes to `tl` starting at `at` (milliseconds, like
- * the constants). Returns the time at which the mark has landed, for whatever
- * follows it.
+ * Adds the wordmark's arrival to `tl` starting at `at` (milliseconds, like
+ * the constants): the rise with its fade, then the landing spring. Returns
+ * the time at which the wordmark has landed, for whatever follows it.
  */
-export function drawMark(tl: gsap.core.Timeline, mark: Element, at = 0): number {
-  const stem = mark.querySelector(".stem");
-  const bowl = mark.querySelector(".bowl");
-  const leg = mark.querySelector(".leg");
+export function revealMark(tl: gsap.core.Timeline, mark: Element, at = 0): number {
   const s = at / 1000;
   const sec = (ms: number) => ms / 1000;
-  tl.set([stem, bowl, leg], { drawSVG: "0%" }, s);
-  tl.to(stem, { drawSVG: "100%", duration: sec(MARK_DRAW.stem.duration), ease: "expo.out" }, s + sec(MARK_DRAW.stem.delay));
-  tl.to(bowl, { drawSVG: "100%", duration: sec(MARK_DRAW.bowl.duration), ease: "power4.out" }, s + sec(MARK_DRAW.bowl.delay));
-  tl.to(leg, { drawSVG: "100%", duration: sec(MARK_DRAW.leg.duration), ease: "expo.out" }, s + sec(MARK_DRAW.leg.delay));
-  tl.fromTo(mark, { scale: 0.985 }, { scale: 1, duration: 0.6, ease: LANDED, transformOrigin: "50% 50%" }, s + sec(MARK_DRAW.total - 100));
+  tl.fromTo(
+    mark,
+    { opacity: 0, yPercent: RISE },
+    { opacity: 1, yPercent: 0, duration: sec(MARK_DRAW.total - 100), ease: "expo.out", immediateRender: true },
+    s,
+  );
+  tl.fromTo(mark, { scale: 0.985 }, { scale: 1, duration: sec(SETTLE), ease: LANDED, transformOrigin: "50% 50%" }, s + sec(MARK_DRAW.total - 100));
   return at + MARK_DRAW.total;
 }
 
 /**
- * Every standalone `[data-mark="draw"]` on the page draws itself once, when
- * it first scrolls into view. The hero's mark is composed by home.ts instead,
- * because it leads a longer sequence.
+ * Every standalone `[data-mark="draw"]` on the page arrives once, when it
+ * first scrolls into view. The hero's wordmark is composed by home.ts
+ * instead, because it leads a longer sequence.
  */
 export function initMarks(root: ParentNode = document, env: MotionEnv = window as MotionEnv): Teardown {
   const marks = [...root.querySelectorAll<SVGElement>('[data-mark="draw"]')];
@@ -71,7 +72,7 @@ export function initMarks(root: ParentNode = document, env: MotionEnv = window a
         if (!entry.isIntersecting) return;
         observer.unobserve(entry.target);
         const tl = gsap.timeline();
-        drawMark(tl, entry.target, 0);
+        revealMark(tl, entry.target, 0);
         timelines.push(tl);
       });
     },
@@ -86,8 +87,9 @@ export function initMarks(root: ParentNode = document, env: MotionEnv = window a
 }
 
 /**
- * A mark that replays on demand: the brand page's "draw it again" control,
- * and any `[data-mark-replay]` button that names a mark by `aria-controls`.
+ * A wordmark that arrives again on demand: the brand page's "show it again"
+ * control, and any `[data-mark-replay]` button that names a mark by
+ * `aria-controls`.
  */
 export function initMarkReplays(root: Document = document, env: MotionEnv = window as MotionEnv): Teardown {
   const buttons = [...root.querySelectorAll<HTMLElement>("[data-mark-replay]")];
@@ -97,7 +99,7 @@ export function initMarkReplays(root: Document = document, env: MotionEnv = wind
     const onClick = () => {
       if (!mark) return;
       if (reducedMotion(env)) return;
-      drawMark(gsap.timeline(), mark, 0);
+      revealMark(gsap.timeline(), mark, 0);
     };
     button.addEventListener("click", onClick);
     return () => button.removeEventListener("click", onClick);

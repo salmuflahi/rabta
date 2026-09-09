@@ -1,5 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
+import Wordmark from "../components/Wordmark.astro";
 import "../styles/tokens.css";
 import "../styles/shell.css";
 import "../styles/doc.css";
@@ -11,13 +12,7 @@ import "../styles/page.css";
   mainClass="wrap notfound"
 >
   <div>
-    <svg class="mark" data-mark="draw" viewBox="0 0 100 100" aria-hidden="true">
-      <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
-        <path class="stem" d="M25 22V84" />
-        <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
-        <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
-      </g>
-    </svg>
+    <Wordmark data-mark="draw" />
     <p class="notfound__code">404, not found</p>
     <h1>This page didn't come back.</h1>
     <p>

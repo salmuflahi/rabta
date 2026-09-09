@@ -589,56 +589,8 @@
     max-width: 30ch;
   }
 
-  /* The three strokes, one per column, each drawn on its own mark. */
-  .strokes {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--s4);
-    margin-top: var(--s8);
-  }
-
-  .stroke {
-    padding: var(--s6);
-    border-radius: var(--r-xl);
-    background: var(--bg-alt);
-  }
-
-  .stroke .mark {
-    width: 96px;
-    height: 96px;
-    color: var(--text);
-    overflow: visible;
-  }
-
-  .stroke .mark path {
-    opacity: 0.16;
-  }
-
-  .stroke .mark .lit {
-    opacity: 1;
-  }
-
-  .stroke .mark .leg.lit {
-    stroke: var(--ember);
-  }
-
-  .stroke h3 {
-    margin-top: var(--s5);
-    font-size: var(--fs-h3);
-    font-weight: 560;
-    letter-spacing: var(--track-h3);
-    line-height: 1.2;
-    color: var(--text);
-  }
-
-  .stroke p {
-    margin-top: var(--s2);
-    color: var(--text-mute);
-    font-size: var(--fs-small);
-    line-height: 1.55;
-  }
-
-  /* The specimen: the living mark, large, with a replay control. */
+  /* The specimen: the wordmark, large, on each ground, with a replay
+     control. */
   .specimen {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -661,13 +613,10 @@
   }
 
   .specimen__plate .mark {
-    width: 52%;
+    display: block;
+    width: 72%;
     height: auto;
     overflow: visible;
-  }
-
-  .specimen__plate .mark .leg {
-    stroke: var(--ember);
   }
 
   .specimen__replay {
@@ -687,10 +636,10 @@
     background: var(--paper-2);
   }
 
-  /* Colourways and downloads. */
+  /* Colourways, the tile, the card: one download each. */
   .ways {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--s4);
     margin-top: var(--s7);
   }
@@ -729,8 +678,14 @@
     height: auto;
   }
 
-  .way__plate img.way__lockup {
+  .way__plate img.way__wordmark {
     width: 78%;
+  }
+
+  .way__plate img.way__card {
+    width: 86%;
+    border-radius: var(--r-m);
+    box-shadow: 0 0 0 1px var(--hairline);
   }
 
   .way h3 {
@@ -780,18 +735,13 @@
     color: var(--text-faint);
   }
 
-  /* The lockup construction diagram on /brand/. */
+  /* Clear space and the floor, on /brand/. */
   .construction {
     margin-top: var(--s8);
     padding: var(--s7);
     border-radius: var(--r-xl);
     background: var(--bg-alt);
-  }
-
-  .construction img {
-    width: min(100%, 720px);
-    height: auto;
-    margin-inline: auto;
+    color: var(--text);
   }
 
   .construction p {
@@ -801,6 +751,56 @@
     text-align: center;
     font-size: var(--fs-small);
     color: var(--text-mute);
+  }
+
+  /* The dashed box is the wordmark plus one cap height on every side. The
+     letters stand 265 of the viewBox's 293 units tall, so a cap height is
+     0.9 of the rendered height. */
+  .clear {
+    --wm: clamp(56px, 9vw, 96px);
+    width: fit-content;
+    margin-inline: auto;
+    padding: calc(var(--wm) * 0.9);
+    outline: 1px dashed var(--hairline-strong);
+  }
+
+  .clear .mark {
+    display: block;
+    height: var(--wm);
+    width: auto;
+  }
+
+  /* The smallest either goes: the wordmark at 22px, the tile at 16px. */
+  .floor {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: end;
+    gap: var(--s7);
+    margin-top: var(--s6);
+  }
+
+  .floor__item {
+    display: grid;
+    justify-items: center;
+    gap: var(--s3);
+  }
+
+  .floor__item .mark {
+    display: block;
+    height: 22px;
+    width: auto;
+  }
+
+  .floor__item img {
+    width: 16px;
+    height: 16px;
+  }
+
+  .floor__item span {
+    font-family: var(--mono);
+    font-size: var(--fs-caption);
+    color: var(--text-faint);
   }
 
   /* ---- responsive ------------------------------------------------------------------ */
@@ -820,10 +820,6 @@
     .band--split .band__body {
       grid-template-columns: 1fr;
       gap: var(--s5);
-    }
-
-    .strokes {
-      grid-template-columns: 1fr;
     }
 
     .ways,

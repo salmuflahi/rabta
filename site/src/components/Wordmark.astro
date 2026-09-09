@@ -1,0 +1,36 @@
+---
+/* The wordmark, inlined.
+ *
+ * The brand is one word in one colour: "rabta" in rounded lowercase, as a
+ * single outlined path. This component reads that path from the shipped
+ * asset at build time, so the copies on the page can never drift from the
+ * file a designer downloads. It paints in currentColor: the text colour of
+ * whatever surface it sits on, never the ember.
+ */
+import source from "../../public/assets/brand/wordmark.svg?raw";
+
+interface Props {
+  id?: string;
+  /** A visible specimen names itself; without a label it is decorative. */
+  label?: string;
+  [attr: `data-${string}`]: string | boolean;
+}
+
+const { id, label, ...data } = Astro.props;
+const d = source.match(/\bd="([^"]+)"/)?.[1];
+if (!d) throw new Error("assets/brand/wordmark.svg carries no path");
+---
+<svg
+  class="mark"
+  id={id}
+  viewBox="0 0 961 293"
+  width="961"
+  height="293"
+  focusable="false"
+  role={label ? "img" : undefined}
+  aria-label={label}
+  aria-hidden={label ? undefined : "true"}
+  {...data}
+>
+  <path fill="currentColor" fill-rule="evenodd" d={d} />
+</svg>
