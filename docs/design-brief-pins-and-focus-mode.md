@@ -1,5 +1,9 @@
 # Design brief — pins and focus mode
 
+Historical design brief. Its no-account/no-server assumption is superseded by
+the user's 2026-09-09 decision in `account-policy.md`. Keep its descriptions of
+local capsule behavior; use current DESIGN.md for visual direction.
+
 Paste this into Claude Design. It describes two features that already ship in
 Rabta's code but have no considered UI yet, so the redesign can place them
 properly instead of inheriting where they landed by default.

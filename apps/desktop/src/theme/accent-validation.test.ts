@@ -16,23 +16,23 @@ describe("applyAccent with invalid id", () => {
     }).not.toThrow();
   });
 
-  it("applies the default accent (tangerine) when given an invalid id in light mode", () => {
+  it("applies the default accent (sage) when given an invalid id in light mode", () => {
     applyAccent("not-a-real-accent" as any, "light", root);
-    const expected = ACCENTS.tangerine.light;
+    const expected = ACCENTS.sage.light;
     // Check that the CSS properties were set to the default accent
     expect(root.style.getPropertyValue("--primary")).toBeTruthy();
     // Verify it matches the default by checking against what a valid call would set
     const defaultRoot = document.createElement("div");
-    applyAccent("tangerine", "light", defaultRoot);
+    applyAccent("sage", "light", defaultRoot);
     expect(root.style.getPropertyValue("--primary")).toBe(
       defaultRoot.style.getPropertyValue("--primary")
     );
   });
 
-  it("applies the default accent (tangerine) when given an invalid id in dark mode", () => {
+  it("applies the default accent (sage) when given an invalid id in dark mode", () => {
     applyAccent("not-a-real-accent" as any, "dark", root);
     const defaultRoot = document.createElement("div");
-    applyAccent("tangerine", "dark", defaultRoot);
+    applyAccent("sage", "dark", defaultRoot);
     expect(root.style.getPropertyValue("--primary")).toBe(
       defaultRoot.style.getPropertyValue("--primary")
     );
@@ -42,11 +42,11 @@ describe("applyAccent with invalid id", () => {
     applyAccent("iris", "light", root);
     const expected = ACCENTS.iris.light;
     expect(root.style.getPropertyValue("--primary")).toBeTruthy();
-    // Verify it's not the default by checking it differs from tangerine
-    const tangerineRoot = document.createElement("div");
-    applyAccent("tangerine", "light", tangerineRoot);
+    // Verify it's not the default by checking it differs from sage
+    const sageRoot = document.createElement("div");
+    applyAccent("sage", "light", sageRoot);
     expect(root.style.getPropertyValue("--primary")).not.toBe(
-      tangerineRoot.style.getPropertyValue("--primary")
+      sageRoot.style.getPropertyValue("--primary")
     );
   });
 });

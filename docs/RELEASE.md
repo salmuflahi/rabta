@@ -1,5 +1,24 @@
 # Release & signing checklist
 
+## Current desktop beta publication
+
+The desktop beta workflow builds and publishes the version explicitly recorded in
+`releases/desktop-beta.json` when that manifest is merged to main. Version must
+match the Tauri configuration and the `rabta-desktop` Cargo manifest/lock entry.
+Connector and MCP versions are independent. The read-only build job tests and
+packages the app; a separate publisher can create a GitHub prerelease only after
+checking its exact source commit, beta identity, asset sizes and checksums.
+Published assets are never overwritten. Failed uploads remain drafts.
+
+The beta is named Rabta Beta with its own data directory and is ad hoc signed,
+not notarized. It is not the latest stable release and does not claim full
+Vorssaint parity. See `docs/releases/v0.2.0-beta.1.md` for the delivered scope.
+The signed stable-release and real-Mac acceptance steps below still apply before
+a future stable public release. The old GitHub Pages site deployment is manual;
+the current website is published separately.
+
+## Historical 0.1.0 release checklist
+
 The exact steps to cut a signed, distributable Rabta release. Everything here
 is **packaging/credentials** — none of it changes app code.
 

@@ -24,7 +24,7 @@ never sent to us, to any third party, or to any remote server.
 
 ## What we do NOT do
 
-- No remote servers, no cloud sync, no accounts.
+- This browser connector does not upload workspace data to a remote server. Optional Rabta web accounts are separate and do not change the connector's local pairing or data destination.
 - No analytics, tracking, telemetry, or advertising.
 - No selling, sharing, or transferring of your data to anyone.
 - Nothing is captured until you save a capsule; nothing is read while the

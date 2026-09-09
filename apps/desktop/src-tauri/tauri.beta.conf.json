@@ -1,0 +1,10 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Rabta Beta",
+  "identifier": "com.omnibus.dev.beta",
+  "bundle": {
+    "macOS": {
+      "signingIdentity": "-"
+    }
+  }
+}

@@ -1,0 +1,53 @@
+.rabta-desktop-utilities {
+  --rk-canvas: hsl(var(--background));
+  --rk-ink: hsl(var(--foreground));
+  --rk-surface: hsl(var(--card));
+  --rk-field: hsl(var(--background));
+  --rk-line: hsl(var(--border));
+  --rk-muted: hsl(var(--muted-foreground));
+  --rk-signal: hsl(var(--primary));
+  --rk-on-signal: hsl(var(--primary-foreground));
+  --rk-hover: hsl(var(--secondary));
+  --rk-error: hsl(var(--destructive));
+  --rk-body: var(--rb-font-body), system-ui, sans-serif;
+  --rk-display: var(--rb-font-display), system-ui, sans-serif;
+  --rk-mono: var(--rb-font-mono), ui-monospace, monospace;
+  padding: 22px;
+  max-width: 1360px;
+  margin: 0 auto;
+  width: 100%;
+  overflow-y: auto;
+  min-height: 0;
+}
+.rabta-desktop-utilities .rk-workbench {
+  font-family: inherit;
+  border-radius: 26px;
+}
+.rabta-desktop-utilities .rk-layout {
+  grid-template-columns: 200px minmax(0, 1fr);
+}
+.rabta-desktop-utilities .rk-stage {
+  padding: 25px;
+}
+.rabta-desktop-utilities .rk-browser {
+  /* Bound the catalog only; editors retain the existing outer scroll owner. */
+  max-height: max(360px, calc(100dvh - 280px));
+  align-self: start;
+}
+.rabta-desktop-utilities .rk-tool-header h2 {
+  font-family: var(--rk-display);
+}
+@media (max-width: 850px) {
+  .rabta-desktop-utilities {
+    padding: 14px;
+  }
+  .rabta-desktop-utilities .rk-layout {
+    grid-template-columns: 175px minmax(0, 1fr);
+  }
+  .rabta-desktop-utilities .rk-stage {
+    padding: 19px;
+  }
+  .rabta-desktop-utilities .rk-tool-row {
+    font-size: 13px;
+  }
+}

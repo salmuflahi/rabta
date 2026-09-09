@@ -16,6 +16,10 @@ python3 scripts/optimize-shots.py
 
 ## Posing shots by hand (promo, App Store, social)
 
+From the repository root, `pnpm dev` also opens this sample-data capture rig.
+It does not start the native desktop app; use `pnpm --filter desktop tauri dev`
+for that. The capture entry imports the same Lens styles as the shipped app.
+
 The same rig runs as an ordinary dev server, so you can click around a
 fully-populated Rabta without touching your real data — the fixture in
 `seed.ts` is three projects, six capsules, two connectors and ten events,

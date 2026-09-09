@@ -24,12 +24,12 @@ describe("Swatch", () => {
     expect(screen.getByRole("radiogroup", { name: "Accent" })).toBeInTheDocument();
   });
 
-  it("renders all four accents from ACCENTS", () => {
+  it("renders all five accents from ACCENTS", () => {
     render(
       <Swatch value="tangerine" onChange={() => {}} theme="light" ariaLabel="Accent" />,
     );
     const radios = screen.getAllByRole("radio");
-    expect(radios).toHaveLength(4);
+    expect(radios).toHaveLength(5);
     for (const id of Object.keys(ACCENTS) as AccentId[]) {
       expect(screen.getByRole("radio", { name: ACCENTS[id].label })).toBeInTheDocument();
     }
@@ -95,7 +95,7 @@ describe("Swatch", () => {
     const sky = screen.getByRole("radio", { name: "Sky" });
     sky.focus();
     fireEvent.keyDown(sky, { key: "ArrowRight" });
-    expect(onChange).toHaveBeenCalledWith("tangerine");
+    expect(onChange).toHaveBeenCalledWith("sage");
   });
 
   it("moves selection to the previous option on ArrowLeft, wrapping at the start", () => {
@@ -103,7 +103,7 @@ describe("Swatch", () => {
     render(
       <Swatch value="tangerine" onChange={onChange} theme="light" ariaLabel="Accent" />,
     );
-    const tangerine = screen.getByRole("radio", { name: "Tangerine" });
+    const tangerine = screen.getByRole("radio", { name: "Rabta sage" });
     tangerine.focus();
     fireEvent.keyDown(tangerine, { key: "ArrowLeft" });
     expect(onChange).toHaveBeenCalledWith("sky");
@@ -117,7 +117,7 @@ describe("Swatch", () => {
     const iris = screen.getByRole("radio", { name: "Iris" });
     iris.focus();
     fireEvent.keyDown(iris, { key: "Home" });
-    expect(onChange).toHaveBeenLastCalledWith("tangerine");
+    expect(onChange).toHaveBeenLastCalledWith("sage");
     fireEvent.keyDown(iris, { key: "End" });
     expect(onChange).toHaveBeenLastCalledWith("sky");
   });
@@ -163,7 +163,7 @@ describe("Swatch", () => {
     const radios = screen.getAllByRole("radio");
     const tabIndexes = radios.map((r) => r.getAttribute("tabindex"));
     expect(tabIndexes.filter((t) => t === "0")).toHaveLength(1);
-    expect(tabIndexes.filter((t) => t === "-1")).toHaveLength(3);
+    expect(tabIndexes.filter((t) => t === "-1")).toHaveLength(4);
   });
 
   it("renders 18px circles (whole class tokens)", () => {

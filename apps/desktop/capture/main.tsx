@@ -11,6 +11,7 @@
 // any app module (and therefore `src/store.ts`'s top-level readPrefs) is
 // evaluated. See capture/boot.ts.
 import { POSE } from "./boot";
+import { Companion } from "@/features/companion/Companion";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "@/App";
@@ -22,6 +23,11 @@ import { useStore } from "@/store";
 import { DEMO_TIMELINES, parseCaptureMode, parseCaptureRegion } from "./director";
 import type { DemoAction } from "./director";
 import "@/index.css";
+import "@/fonts.css";
+import "@/vendor/rabta-ui/brand.css";
+import "@/vendor/rabta-ui/lens.css";
+import "@/lens-app.css";
+import "@/context-measure.css";
 
 // --------------------------------------------------------------- direction
 
@@ -150,8 +156,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <IconSprite />
     <ThemeProvider>
       <TooltipProvider delayDuration={200}>
-        <Director />
-        <App />
+        {/companion=true/.test(window.location.hash) ? <div className="companion-capture-stage"><Companion /></div> : <><Director /><App /></>}
         {/* Mounted exactly as src/main.tsx mounts it, so the app's real
             reaction to Capture — the "Saved state" toast — is in the footage.
             Without it the click was invisible: nothing on screen changed. */}

@@ -1,44 +1,15 @@
+// Stable app API; sprite generated from @rabta/ui by sync-rabta-ui.mjs.
 import spriteMarkup from "@/assets/icons/rabta-icons.svg?raw";
 import { cn } from "@/lib/utils";
 
-/**
- * The Console v2 icon sprite (design_handoff_rabta_console/icons/rabta-icons.svg,
- * copied verbatim to src/assets/icons/) — 35 glyphs on a 16×16 grid as
- * `<symbol id="ic-*">`, every fill/stroke `currentColor`. Names below are the
- * symbol ids with their `ic-` prefix stripped.
- *
- * This list is the single source of truth for `IconName` — if the sprite
- * ever gains or loses a glyph, update it here and `icon.test.tsx`'s sprite
- * round-trip test will catch any drift against the shipped asset.
- *
- * WHY `lucide-react` IS STILL A DEPENDENCY. Phase 1 planned to drop it
- * "once the sprite covers every use". It doesn't: 35 glyphs were drawn for
- * the screens in the handoff, and this app has affordances the handoff
- * never drew. Still on lucide, and why:
- *
- *   pin / pin-off        capsule item curation (not in the handoff)
- *   trash                permanent delete
- *   loader               in-flight spinners
- *   refresh              git fetch
- *   arrow-up / -down     ahead/behind counts
- *   git-commit           commit markers
- *   rocket / wrench /    three of the nine user-pickable project icons
- *     blocks             (an allowlisted, tested set — narrowing it would
- *                        silently change what existing projects display)
- *
- * The rule Phase 2 followed: a file migrates only when the sprite covers
- * *every* glyph in it. Half-migrated files read worse than consistent ones
- * — two icon languages in one row is more obvious than an old one. That is
- * why the shared primitives (dialog, menus, select, command, stepper,
- * load-error) are on the sprite and GitLine, RestoreExperience,
- * GitHubSection, CapsuleItems and project-icons are not.
- */
+
 export const ICON_NAMES = [
   "overview",
   "capsule",
   "projects",
   "connectors",
   "activity",
+  "utilities",
   "settings",
   "shield",
   "search",
@@ -71,34 +42,12 @@ export const ICON_NAMES = [
   "circle",
 ] as const;
 
-/**
- * A closed union of every glyph the sprite ships. Passing a literal that
- * isn't one of these fails to compile — the strongest form of "fail loudly"
- * for the common case where the name is known at the call site (this is
- * every call site until Phase 2 wires icons into screens).
- */
+
 export type IconName = (typeof ICON_NAMES)[number];
 
 const ICON_NAME_SET: ReadonlySet<string> = new Set(ICON_NAMES);
 
-/**
- * Injects the sprite's `<symbol>` defs into the document once, so any
- * `<Icon>`'s `<use href="#ic-*">` can resolve. Render this exactly once,
- * at the app root (see main.tsx) — not inside a page or panel, so a screen
- * unmounting can never pull the defs out from under an `<Icon>` still
- * mounted elsewhere.
- *
- * `dangerouslySetInnerHTML` with the raw asset (via Vite's `?raw` import)
- * rather than hand-transcribing 35 `<symbol>`s into JSX keeps this file a
- * faithful mirror of the design handoff's rabta-icons.svg — regenerating
- * the sprite and re-copying the file is the only way to update glyphs,
- * there's no second copy to fall out of sync.
- *
- * Deliberately NOT rendered via `<img src=...>`: an SVG loaded that way is
- * an isolated document where `currentColor` resolves to black, which is
- * exactly the bug this component exists to avoid (see the brand mark in
- * shell/Sidebar.tsx for the same constraint on a single glyph).
- */
+
 export function IconSprite() {
   return (
     <div
@@ -114,22 +63,7 @@ export interface IconProps extends React.SVGAttributes<SVGSVGElement> {
   className?: string;
 }
 
-/**
- * Renders one glyph from the Console v2 sprite as `<svg><use href="#ic-…">`.
- * Colour comes entirely from CSS `color` inheritance (every symbol paints
- * with `currentColor`) — this component sets no fill and no color of its
- * own, so it always follows whatever text colour it's placed in.
- *
- * `name` is typed as the closed `IconName` union, so a typo'd literal is a
- * compile error. The runtime check below exists for the case that escapes
- * that guarantee: a name arriving as a plain string forced past the union
- * (external config, a migrated lucide name, `as IconName`). Without an error
- * boundary in the tree, a thrown error unmounts the whole window. Instead,
- * we log console.error (loud in dev and logs) and render a visible fallback
- * glyph (alert), which surfaces the bug but keeps the UI running — matching
- * how commit 9c4b942 handled a corrupt persisted accent (fail loud, degrade
- * gracefully).
- */
+
 export function Icon({ name, className, ...props }: IconProps) {
   const iconName = ICON_NAME_SET.has(name) ? name : "alert";
   if (!ICON_NAME_SET.has(name)) {

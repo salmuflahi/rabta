@@ -1,20 +1,7 @@
-// The accent choices (Settings › Appearance) and the mechanism that paints
-// them onto the document root.
-//
-// Each accent has a light and a dark variant because the same hue needs
-// different weight to stay legible on each surface — see `applyAccent`
-// below, which is why `ACCENTS[id]` is keyed by theme rather than being one
-// flat colour.
-//
-// Brand redesign (2026-09-03): Tangerine is the ember, the brand's one
-// accent, and stays the default. Iris, Graphite and Sky are the quiet
-// alternatives. Petrol and Sand are retired — a preference that still names
-// either is migrated to Tangerine by `readPrefs` (src/store.ts), which
-// treats any id not in this table as the default.
-
+import { RABTA_BRAND } from "@/vendor/rabta-ui/brand";
 import { contrastRatio } from "./contrast";
 
-export type AccentId = "tangerine" | "iris" | "graphite" | "sky";
+export type AccentId = "sage" | "tangerine" | "iris" | "graphite" | "sky";
 
 /** Accent ids that used to exist. Listed so a test can prove they migrate,
  * and so nobody reintroduces one by accident. */
@@ -34,6 +21,11 @@ export interface AccentVariant {
 }
 
 export const ACCENTS: Record<AccentId, { light: AccentVariant; dark: AccentVariant; label: string }> = {
+  sage: {
+    label: "Rabta sage",
+    light: { base: RABTA_BRAND.light.signal, hover: "#2C4B39", text: RABTA_BRAND.light.signal },
+    dark: { base: RABTA_BRAND.dark.signal, hover: "#CDDCCF", text: RABTA_BRAND.dark.signal },
+  },
   tangerine: {
     label: "Tangerine",
     light: { base: "#FF6B2C", hover: "#F0561A", text: "#C2501B" },
@@ -169,7 +161,7 @@ export function applyAccent(
   theme: "light" | "dark",
   root: HTMLElement = document.documentElement
 ): void {
-  const accentId: AccentId = id in ACCENTS ? id : "tangerine";
+  const accentId: AccentId = id in ACCENTS ? id : "sage";
   const variant = ACCENTS[accentId][theme];
   const primary = hexToHslTriplet(variant.base);
   root.style.setProperty("--primary", primary);

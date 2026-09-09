@@ -11,6 +11,7 @@ declare module "*/tailwind.config.js" {
         fontSize: Record<string, [string, { lineHeight: string; letterSpacing?: string }]>;
         fontFamily: {
           sans: string[];
+          display: string[];
           mono: string[];
         };
         fontWeight: Record<string, string>;

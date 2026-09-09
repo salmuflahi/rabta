@@ -27,8 +27,8 @@ export function LoadError({
       <div className="space-y-1">
         <p className="text-card-title font-semibold text-foreground">Couldn't load {entity}</p>
         <p className="mx-auto max-w-md text-meta leading-relaxed text-muted-foreground">
-          Something went wrong reading your local data. Nothing is lost — your capsules and projects
-          are safe on disk. Try again in a moment.
+          Something went wrong reading your local data. This request did not change it.
+          Try again in a moment.
         </p>
       </div>
       <Button variant="outline" size="sm" onClick={onRetry}>

@@ -99,9 +99,10 @@ describe("Mac type scale", () => {
     expect(String(weights[640])).toBe("640");
   });
 
-  it("uses the system face first, with no bundled webfont", () => {
+  it("uses the same locally bundled body and display fonts as the site", () => {
     const sans = config.theme.extend.fontFamily.sans;
-    expect(sans[0]).toBe("-apple-system");
+    expect(sans[0]).toBe('"Instrument Sans"');
+    expect(config.theme.extend.fontFamily.display[0]).toBe("Inter");
     expect(sans.join(" ")).not.toMatch(/Inter/i);
   });
 

@@ -30,8 +30,10 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "overview", label: "Overview", icon: "overview", shortcut: "⌘1", group: "Workspace" },
   { key: "capsules", label: "Capsules", icon: "capsule", shortcut: "⌘2", group: "Workspace" },
   { key: "projects", label: "Projects", icon: "projects", shortcut: "⌘3", group: "Workspace" },
+  { key: "teams", label: "Teams", icon: "connectors", shortcut: "⌘7", group: "Workspace" },
   { key: "connectors", label: "Connectors", icon: "connectors", shortcut: "⌘4", group: "This Mac" },
   { key: "activity", label: "Activity", icon: "activity", shortcut: "⌘5", group: "This Mac" },
+  { key: "utilities", label: "Utilities", icon: "utilities", shortcut: "⌘6", group: "This Mac" },
 ];
 
 /** Bottom-of-sidebar item, kept separate from NAV_ITEMS since it renders

@@ -1,4 +1,8 @@
-# Living Instrument — design system
+# Rabta design system
+
+The current app design contract is [Lens](../DESIGN.md), with behavior in [UX-CONTRACT.md](../UX-CONTRACT.md). Reusable components are maintained in the separate Rabta Studio repository and copied into the app through `scripts/sync-rabta-ui.mjs`. The cards and build pipeline below describe the historical Living Instrument materials, not the new Lens implementation.
+
+## Historical Living Instrument cards
 
 The brand system behind the desktop app, rabta.build, and the browser
 connector, as a set of cards on claude.ai/design. The system itself is

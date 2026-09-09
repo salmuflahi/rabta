@@ -24,7 +24,7 @@ export const Surface = React.forwardRef<HTMLDivElement, SurfaceProps>(
     <div
       ref={ref}
       className={cn(
-        "rounded-[10px] overflow-hidden",
+        "lens-app-surface rounded-[18px] overflow-hidden",
         variant === "raised" ? "bg-card shadow-raised" : "bg-muted shadow-grouped",
         className,
       )}

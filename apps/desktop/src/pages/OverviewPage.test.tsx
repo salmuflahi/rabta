@@ -76,6 +76,28 @@ function seed({
 }
 
 describe("OverviewPage", () => {
+  it("keeps a failed capsule read distinct from an empty workspace and can retry", async () => {
+    const projects = [projectFixture()];
+    seed({ projects });
+    const original = mockInvoke.getMockImplementation()!;
+    let failed = false;
+    mockInvoke.mockImplementation(async (cmd, args) => {
+      if (cmd === "list_tasks" && !failed) { failed = true; throw new Error("read failed"); }
+      return original(cmd, args);
+    });
+    renderWithProviders(<OverviewPage />);
+    expect(await screen.findByText("Couldn't load your workspace")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing open yet")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("Nothing open yet")).toBeInTheDocument();
+  });
+
+  it("the quick connections action opens the existing connectors view", async () => {
+    seed({ projects: [] });
+    renderWithProviders(<OverviewPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Connections" }));
+    expect(useStore.getState().view).toBe("connectors");
+  });
   it("leads with the date and a one-line glance at this Mac", async () => {
     const now = Date.parse("2026-08-09T16:00:00.000Z");
     const dateNow = vi.spyOn(Date, "now").mockReturnValue(now);
@@ -128,8 +150,7 @@ describe("OverviewPage", () => {
     }
   });
 
-  // "The app has no account and must never greet the user by name." The date
-  // heading is deliberately the most personal thing on the screen.
+  // A desktop without a connected account must not invent a user identity.
   it("never greets the user", async () => {
     seed({ projects: [] });
     const { container } = renderWithProviders(<OverviewPage />);

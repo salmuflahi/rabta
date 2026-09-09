@@ -29,10 +29,11 @@ export default {
         // The system face. SF Pro on macOS, with automatic optical sizing
         // (SF Text below 20px, SF Display above) — which is most of why a
         // window reads as native.
-        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', 'system-ui', 'sans-serif'],
+        sans: ['"Instrument Sans"', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
         // Paths, branch names, URLs, JSON payloads, capability names,
         // keyboard shortcuts and the migration code only — never UI labels.
-        mono: ['ui-monospace', '"SF Mono"', 'Menlo', 'monospace'],
+        mono: ['"Geist Mono"', 'ui-monospace', 'monospace'],
       },
       // Mac type scale, retoned to the Console v2 handoff's Typography
       // table. Names are unchanged from the previous web scale so existing

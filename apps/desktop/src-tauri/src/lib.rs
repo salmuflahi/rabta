@@ -27,6 +27,51 @@ pub mod git;
 pub mod github;
 pub mod migrate;
 pub mod projects;
+pub mod utilities;
+#[path = "utility-windows.rs"]
+mod utility_windows;
+
+/// Companion is an explicit, local window. No screen recording or global monitoring.
+#[tauri::command]
+async fn open_companion(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("companion") {
+        window.show().map_err(|e| e.to_string())?;
+        return window.set_focus().map_err(|e| e.to_string());
+    }
+    let window = tauri::WebviewWindowBuilder::new(
+        &app, "companion", tauri::WebviewUrl::App("index.html#companion".into()),
+    ).title("Rabta Companion").inner_size(380.0, 560.0)
+        .min_inner_size(340.0, 480.0).resizable(true)
+        .decorations(false).always_on_top(true).skip_taskbar(true)
+        .visible(false).build().map_err(|e| e.to_string())?;
+    if let Some(monitor) = window.current_monitor().map_err(|e| e.to_string())? {
+        let scale = monitor.scale_factor();
+        let size = monitor.size();
+        let position = monitor.position();
+        let x = position.x + (size.width as i32 - (404.0 * scale) as i32).max(0);
+        let y = position.y + (size.height as i32 - (640.0 * scale) as i32).max(0);
+        window.set_position(tauri::PhysicalPosition::new(x, y)).map_err(|e| e.to_string())?;
+    }
+    window.show().map_err(|e| e.to_string())?;
+    window.set_focus().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn hide_companion(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("companion") {
+        window.hide().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn show_workspace(app: tauri::AppHandle, task_id: Option<String>) -> Result<(), String> {
+    let window = app.get_webview_window("main").ok_or("Workspace window unavailable")?;
+    window.unminimize().map_err(|e| e.to_string())?;
+    window.show().map_err(|e| e.to_string())?;
+    window.set_focus().map_err(|e| e.to_string())?;
+    app.emit_to("main", "companion-workspace", task_id).map_err(|e| e.to_string())
+}
 
 struct HubHandle(Arc<Hub>);
 pub struct DbHandle(pub Db);
@@ -680,6 +725,7 @@ fn data_dir_for(base: PathBuf, debug: bool) -> PathBuf {
 pub fn run() {
     let _ = env_logger::try_init();
     let app = tauri::Builder::default()
+        .manage(utilities::UtilityState::default())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             let data_dir = data_dir_for(app.path().app_data_dir()?, cfg!(debug_assertions));
@@ -772,6 +818,30 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            open_companion,
+            hide_companion,
+            show_workspace,
+            utilities::utility_status,
+            utilities::utility_keep_awake,
+            utilities::utility_stop_awake,
+            utilities::utility_sound_status,
+            utilities::utility_set_sound,
+            utilities::utility_system_info,
+            utilities::utility_capture,
+            utilities::utility_live_metrics,
+            utilities::utility_clipboard_history,
+            utilities::utility_clipboard_configure,
+            utilities::utility_clipboard_action,
+            utilities::utility_audio_devices,
+            utilities::utility_audio_switch,
+            utilities::utility_screen_ocr,
+            utilities::utility_export_file,
+
+            utility_windows::utility_list_windows,
+            utility_windows::utility_window_action,
+            utility_windows::utility_place_window,
+            utilities::utility_window_apps,
+            utilities::utility_arrange_window,
             seed_demo_data,
             connectors,
             send_command,
@@ -834,6 +904,7 @@ pub fn run() {
             event,
             tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
         ) {
+            handle.state::<utilities::UtilityState>().stop();
             let capsules = handle.state::<CapsulesHandle>().0.clone();
             if let Err(error) = tauri::async_runtime::block_on(capsules.flush_session()) {
                 log::warn!("final session flush failed: {error}");
