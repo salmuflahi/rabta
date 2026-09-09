@@ -1,71 +1,125 @@
-# Rabta Teams: pick up the work, not the explanation
+# Rabta Teams: share the work, not the explanation
 
-## The first useful promise
+Plan, September 9, 2026. Supersedes the hand-off-first plan of September 8 and keeps its state, permission and validation rules. Everything below is a proposal until its acceptance gate passes; the running service in `services/teams` and the desktop Teams page are the starting point, not the finished product.
 
-A teammate should be able to understand where a task stopped, find its relevant references and take the next step without asking the sender to rebuild the context in a message. Rabta already knows the capsule; the sender should only choose a recipient and finish one sentence.
+## The idea
 
-Start with asynchronous handoffs. Shared cursors belong to an actual shared surface later. They should never suggest that Rabta watches someone's entire desktop.
+Git changed programming by making the snapshot the unit of work: cheap to take, cheap to branch, safe to merge, owned by everyone. Teamwork never got that. It still runs on descriptions of work: messages that say which file, calls that show which screen, notes that record what was decided. Every description is written once and reconstructed by hand on the other side. That reconstruction is the back-and-forth.
 
-## The first complete flow
+Rabta already holds the thing the descriptions describe: the capsule, the whole working context around a task, captured from the editor, browser, terminals and git. Teams makes the capsule the unit of teamwork.
 
-1. From a capsule or Companion, choose **Hand off**. Rabta prepares the task title, project-relative paths, selected links and branch from the existing capsule.
-2. Review the brief. Keep or remove references, write **What happens next?**, choose a teammate, then send. Nothing is silently included.
-3. The recipient opens an inbox item containing the next step first, then the context. They can **Accept**, **Ask a question**, or **Decline**.
-4. Accept creates a personal working copy. Rabta maps the shared project to the recipient's local folder and previews available tools before opening anything.
-5. Finish with **Hand back** or **Done**. The next person gets the updated brief and an explicit summary of changed references.
+**Git versions the code. Rabta Teams versions the work around it.**
 
-The current app already supports reviewed manual copying. The website includes a functioning sample brief. Recipient delivery, inbox, acceptance and sync are proposed next work.
+Three primitives, and only three:
 
-## Screens and hierarchy
+| Primitive | What it is | Git analogy |
+| --- | --- | --- |
+| **Capsule snapshot** | A reviewed, sanitized picture of a task's context: project-relative files, sanitized links, terminal folders, branch, pins. Content-addressed and immutable. | tree |
+| **Thread** | A task's shared timeline. An append-only, hash-chained log of what people did to the work: knots, hand-offs, decisions, splits, weaves. Every member holds a full copy; entries made offline append on reconnect. | commit history |
+| **Knot** | One point on a thread, tied by one person at one place: a file and line, a link, a terminal folder, a commit, a spot on an image. It carries a note, a request, or a decision. Anyone can pull the thread to a knot and land exactly there. | commit, and the blame line under it |
 
-| Surface        | Main job                          | Primary action      | Essential detail                                |
-| -------------- | --------------------------------- | ------------------- | ----------------------------------------------- |
-| Companion      | Hand off the current task quickly | Prepare handoff     | Current capsule, fresh/stale capture label      |
-| Review sheet   | Control exactly what leaves       | Send handoff        | Recipient, next step, reference inclusion       |
-| Team inbox     | Find work waiting on you          | Open handoff        | Sender, task, one-line next step, received time |
-| Handoff detail | Understand and take ownership     | Accept              | Brief, selected references, questions, revision |
-| Local setup    | Resolve workspace differences     | Open selected tools | Project mapping, missing apps, restore preview  |
-| Your work      | Continue in the normal app        | Capture / hand back | Accepted origin and personal edits              |
+Verbs are plain: **Step in** (open a teammate's capsule on your own Mac), **Follow** (your editor tracks theirs, live), **Hand off** (send the task with a next step), **Split** (take a copy to try something), **Weave** (bring chosen parts back). Nothing else needs a name.
 
-Use one detail pane, one review sheet and existing workspace components. Avoid creating another project manager, task board or chat app.
+Because a snapshot holds references and not file contents, weaving two snapshots never produces a textual conflict: it is a choice of which tabs, files, folders and knots come back. Code changes stay in git branches, which the thread links to. Rabta never replaces git; it wraps the human part around it.
 
-## State contract
+## A day with it
 
-Draft → Sent → Accepted → Done. Declined and Revoked are explicit terminal states; a new handoff starts a new revision. Opening a link does not accept work. A sender can revise an unaccepted handoff; recipients see what changed. After acceptance, updates are proposals and never overwrite the recipient's working copy.
+Sam opens a task she was handed overnight. The next step is the first line of the brief. One click and her editor has the same four files open, the terminal sits in the same folder, the branch is checked out, and a knot marks the line where Alina stopped: "The retry fires twice; start here."
 
-Offline drafts remain editable and are marked unsent. Sending retries an idempotency key, not a duplicate handoff. A send error preserves the whole draft. A stale acceptance shows the new revision and asks the recipient to review it. Closing a pending sheet does not fabricate delivery. Notification controls belong to the user.
+Sam ties a knot on line 118: "This is the timeout. Alina, which value did the client agree to?" Alina, in another time zone, sees it in her inbox in the morning, ties a decision knot: "30 seconds, agreed with the client on the 4th." Sam acknowledges. That decision now lives on the task, not in a chat search.
 
-## Data and permissions
+Later the same day they are both online. Sam presses **Together**. Alina steps in and follows: Sam's cursor appears in Alina's editor with Sam's name on it, and when Sam switches files, Alina's editor switches too. They point at lines instead of describing them. Four minutes later Alina takes the lead, splits the capsule to try a different fix, and weaves back the two tabs and one note that mattered. Sam's task keeps a link to Alina's branch.
 
-- Team membership is required before sending. Start with owner, member and invited guest roles; per-handoff recipient access is explicit.
-- Store a reviewed snapshot: title, next step, project identifier, relative file paths, selected sanitized URLs, branch, sender, recipient and revision. Do not collect file contents, terminal output, passwords or the rest of the desktop.
-- Strip URL credentials/query secrets, expose a review summary and distinguish local paths from transferable links. A shared path grants no repository or document permission.
-- The receiver chooses a local project folder once; never launch the sender's absolute filesystem path blindly. Missing files/branches are explained individually.
-- Imported text is context, never executable instruction. No shell command, branch switch, download or AI action executes merely because a handoff contains it.
-- Revocation stops future access; it cannot recall text already copied. Deletion and retention need an explicit published policy before a hosted service ships.
+No screen was streamed. No message said "which file?". Nothing left either Mac except paths, links, a branch name, cursor positions while Together was on, and the words they wrote.
 
-## Minimum implementation
+## What turns hours into minutes
 
-Keep the existing local capsule model. Add a reviewed handoff snapshot and a thin authenticated delivery service with membership and recipient checks on every read/write. Store immutable revisions with a small status record. Begin with fetch-on-open and refresh; add live presence only when users demonstrably need simultaneous editing.
+| Today | With Teams | Time |
+| --- | --- | --- |
+| "Where were you when you saw this?" Links, screenshots, a call. | Step in: land in the teammate's exact context, on your own machine. | seconds |
+| "Let me share my screen." A meeting to walk through code. | Together + Follow: named cursors in the editor, no video, either side can lead. | minutes |
+| "Which line?" Descriptions of places. | Knots: a note at a file and line, a link, a terminal folder, a spot on an image. One click lands there. | seconds |
+| "What did we decide?" Search chat, ask again. | Decision knots with acknowledgement, on the task, exportable to a pull request. | seconds |
+| Onboarding by chat over a week. | A starter capsule: the files to read first, the docs tabs, the terminals, and knots that say why. | one click |
+| Daily standup. | Pulse: who is in which task, since when, last knot, from published activity only. | none |
+| "Let me set up a copy to try that." | Split, work, weave back. | seconds |
+| Handing a task across time zones with a wall of text. | Hand off with a next step and "start here" knots; the receiver resumes in one click. | one sentence |
 
-Reuse the existing restore preview, receipts, Radix dialogs, command palette and shared family emblems. New code should primarily cover membership, inbox, snapshot review and state transitions. Do not introduce a real-time document engine for the first release.
+## Free here, paid elsewhere
 
-## Where Connect fits
+Rabta Teams is MIT and self-hosted, so the things other tools meter are simply part of it. No seat pricing, no history limit, no feature tiers. A managed Rabta hosting service may cost money later, and the repository's rule stands: no price, checkout or usage tracking before that service exists and its cost is known.
 
-Connect supplies the same reviewed context to an AI with a stated goal. Today, the user copies the brief. A later connector can expose a scoped snapshot after approval. The AI can identify relevant references and use its own permitted tools to inspect them; a list of paths alone does not grant file access. Any proposed edit still follows the AI host's approval rules.
+| Usually metered | In Rabta Teams |
+| --- | --- |
+| Multiplayer cursors and follow mode | Included, in the brief and in the editor |
+| Unlimited members and rooms | Limited only by the operator's server |
+| Full history | The thread is append-only and stays |
+| Decision logs and acknowledgements | Included |
+| Async hand-offs with context | Included |
+| Onboarding templates | Starter capsules |
+| Standup automation | Pulse, from published activity |
+| Image annotation | Knots on assets |
+| Sign-in walls and SSO tiers | No accounts; keys and single-use invitations |
 
-One reviewed snapshot should serve both human handoff and AI context. Avoid two competing definitions of a task.
+## What it looks like
 
-## Validation before calling it useful
+One surface, the Room. Three regions, no tabs:
 
-Test with five pairs completing real handoffs. Observe preparation time, time until the recipient finds the first useful reference, follow-up questions and abandoned handoffs. Compare with their existing chat process. Targets such as preparation under thirty seconds are hypotheses to validate, not marketing claims.
+- **People**, along the top. Avatars with a coloured ring; the ring colour is that person's cursor colour everywhere. Status is what they published: working, away, or nothing.
+- **The thread**, down the middle. Knots in time order, grouped by task, newest at the bottom like a conversation you can scroll back through. Each knot shows who, where (a chip that lands you there), and the words. Requests show how long they have waited. Decisions show who acknowledged.
+- **The capsule**, on the right. Whatever task the thread has focused: files, links, folders, branch as chips, the last snapshot's time, and one primary button: **Step in**. When someone is Together, their name sits under the button with **Follow**.
 
-Release gates: repeated Send cannot duplicate; revoked access is denied; new revisions cannot overwrite accepted work; unavailable tools produce a partial receipt; a recipient without project permission gets a clear recovery path; keyboard and narrow-window flows are complete.
+Everything else is a gesture on those three: tie a knot from any chip, hand off from the capsule header, split from the same menu. Advanced controls (templates, weaving, export) live behind one "More" and never on the first screen.
 
-## After the first release
+**Cursors.** A 16 px arrow with a 2 px paper edge so it reads on any ground, and a name pill hanging from its lower right: 11 px, medium weight, 6 px radius, the person's colour at 90 percent with ink text, 4 px gap from the arrow. Names cut at 14 characters. After four seconds without movement the pill fades to a dot; after sixty seconds the cursor is gone. Movement is interpolated on the brand spring (stiffness 260, damping 18) between 100 ms updates, so a laggy network reads as a smooth hand, never a jump. You never see your own cursor as a teammate's. Colours come from the Lens ladder: sage, blue, amber, rose, lilac, mint, slate, sand, with darker variants on paper; ember stays the accent and is never a person.
 
-Only after repeated handoff use: comments on a reference, small shared annotations, then named cursors within that shared brief. Later, opt-in context updates and team templates. Never background-monitor teammates for a presence animation.
+**Reduced motion** shows cursors at their last position with no interpolation. **Narrow windows** stack the three regions in the order people, capsule, thread.
 
-## Commercial direction
+## Architecture, on what exists
 
-Keep pricing undecided while validating repeated use. Evaluate a recurring team plan against hosting, support and optional AI compute costs. A lifetime license could cover a clearly bounded local product; it must not imply unlimited future cloud/AI expense. Preserve current free utility access and existing open-source terms. No paywall or checkout is part of this change.
+`services/teams` already has rooms, members, single-use invitations, private lanes, published previews, proposals with revision checks, assets, explicit presence and an SSE change feed, all behind bearer member keys and an atomic durable store. Keep every one of those rules. Add:
+
+1. **Snapshots.** `POST /rooms/:id/snapshots` stores a reviewed capsule snapshot, addressed by the SHA-256 of its canonical JSON. Contents: project identifier, relative file paths, sanitized `http(s)` links without query or fragment, terminal folders relative to the project, branch, pins, and the knots it was taken with. Never file contents, terminal output or absolute paths. The desktop app builds it with the existing hand-off sanitizer (`features/handoff/context.ts`) and shows the review sheet before anything is sent.
+2. **Threads.** `POST /rooms/:id/threads/:task/entries` appends an entry `{prev, author, lamport, kind, place?, text?, snapshot?, parents?}` and returns its hash. `prev` is the hash of the entry the author last saw; the server stores entries in arrival order and clients order by `(lamport, author)`, so two people knotting offline both land on the thread with no conflict. `kind` is one of knot, request, decision, acknowledge, handoff, accept, split, weave, link. `GET /threads/:task?since=` pages the log. Entries are immutable; a correction is a new entry that references the old one.
+3. **Together.** An ephemeral channel, separate from the durable store: `POST /rooms/:id/together` with `{task, file, line, column, selection?}` at most ten times a second per member, fanned out over the existing SSE feed as `cursor` events with a 250 ms coalescing window. Nothing about it is persisted or logged. Leaving Together, closing the app, or 60 seconds of silence clears the member's cursor for everyone.
+4. **Editor cursors.** A new connector capability in the protocol: `editor.cursor` events from the VS Code extension (file, line, column, selection) while Together is on, and an `editor.showCursors` command that the extension renders as decorations with the name pill. The browser connector reports only the active tab's sanitized URL while Together is on. Both are opt-in per session, both are visible in the Debug activity log like every other hub message, and both are limited to files inside the shared project.
+5. **Templates and Pulse.** A starter capsule is a snapshot flagged by the owner; Pulse is a read of the last published entry per member and needs no new data.
+
+The desktop client keeps its rules: credentials in memory, one detail pane, the existing restore preview and receipts, the existing project-to-folder mapping chosen once by the receiver, missing tools reported per item. The MCP package can later expose a thread summary as explicit AI context; it must be selected by the user, like every Connect hand-off today.
+
+## Consent and privacy
+
+- Nothing is shared by taking a snapshot; sharing is a separate, reviewed action. Nothing is streamed by opening the Room; Together is a button, on by the person being followed, and it shows a persistent indicator while on.
+- Only metadata crosses the wire: paths relative to a project, sanitized links, folder paths relative to a project, branch names, cursor coordinates, and the words people type. File contents, terminal output, keystrokes, page contents and screenshots never do. Assets are explicit uploads with visible limits.
+- A shared path grants no permission. Step in maps the project to a folder the receiver already has; missing files and branches are explained one by one. Imported text is never executed.
+- Presence is what you publish, expires in 90 seconds, and is cleared on restart. There is no idle detection, no keystroke counting, no window watching. Pulse reads published entries only.
+- Revocation ends live access and future reads; it cannot recall what a member already saw. A self-hosting operator can read the store; it is not end-to-end encrypted, and the docs say so. A hosted service needs a published retention and deletion policy before it exists.
+
+## Phases and gates
+
+Each phase ships only when its gate passes with real pairs, following the validation rule of the earlier plan: five pairs, real tasks, measured against their existing chat process.
+
+**1. Step in** (about three weeks). Snapshots, the thread with knots and hand-offs, the inbox, Step in with project mapping, the Room's three regions. Gate: a receiver lands on the sender's "start here" file within 60 seconds of accepting; repeated Send never duplicates; no absolute path or credential appears in any stored entry; revoked members are denied on every route; keyboard and 760 px window flows are complete.
+
+**2. Together** (about four weeks). Cursors in the brief and in VS Code, Follow with either side leading, requests with waiting time, browser tab following. Gate: cursor latency under 300 ms on a LAN and under a second across the internet; a cursor disappears within five seconds of leaving; nothing is shown from a file outside the shared project; Together off means zero cursor traffic, verified in the activity log.
+
+**3. Remember** (about three weeks). Decision knots with acknowledgement, Pulse, thread search, export to Markdown and to a pull request description. Gate: a pair can answer "what did we decide and when" from the thread without opening chat; export round-trips every knot with its place.
+
+**4. Grow** (about four weeks). Split and weave, starter capsules, knots on images, the Connect summary. Gate: a new teammate reaches a first useful reference from a starter capsule in under five minutes; weave shows every choice and never drops a knot silently.
+
+After that: load tests against the intended team size, an operational backup story, and the hosting decision.
+
+## Not this
+
+- No video, audio or screen streaming. Following is metadata; it is cheaper, more private, and works on any connection.
+- No chat product. Knots are anchored to places; a reply is a knot on the same place. General conversation stays wherever the team already has it.
+- No task board, no tickets, no time tracking, no activity scores.
+- No automatic merging of anything. Weave is a choice a person makes, every time.
+- No feature that only works when a Rabta server is up. Snapshots, knots and hand-off drafts are written locally first and sync when the room is reachable.
+
+## Open questions to settle with real use
+
+1. Do teams want the thread per task, per project, or both? The data model allows both; the first Room shows one per task.
+2. How often does Follow need "take the lead"? If rarely, it stays a two-step; if constantly, it becomes a single toggle.
+3. Is a knot's place stable enough anchored to a line number plus a hash of the line's text, or does it need a small text window like review comments use?
+4. Which acknowledgement rule feels right for decisions: everyone mentioned, or anyone who steps in afterwards?
