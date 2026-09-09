@@ -50,13 +50,15 @@ function SettingRow({
 }) {
   const Title = htmlFor ? "label" : "p";
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-6 border-b-[0.5px] border-border py-3 last:border-b-0">
+    <div className="settings-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-6 border-b-[0.5px] border-border py-3 last:border-b-0">
       <div className="min-w-0">
         <Title htmlFor={htmlFor} className="block text-body text-foreground">
           {title}
         </Title>
         {description && (
-          <p className="mt-0.5 text-meta leading-[1.45] text-tertiary-foreground">{description}</p>
+          <p className="mt-0.5 text-meta leading-[1.45] text-tertiary-foreground">
+            {description}
+          </p>
         )}
       </div>
       <div className="flex items-center justify-self-end">{children}</div>
@@ -67,11 +69,21 @@ function SettingRow({
 /** The grouped card every section's rows live in — 10px radius, hairline
  * ring, 16px horizontal padding, rows divided by their own bottom edges. */
 function SettingCard({ children }: { children: React.ReactNode }) {
-  return <div className="mt-4 rounded-[10px] bg-card px-4 shadow-raised">{children}</div>;
+  return (
+    <div className="mt-4 rounded-[10px] bg-card px-4 shadow-raised">
+      {children}
+    </div>
+  );
 }
 
 /** A push button in a settings row — 24px, secondary, hairline. */
-function RowButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+function RowButton({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <Button
       variant="secondary"
@@ -96,6 +108,14 @@ function GeneralSection() {
   const resumeOnLaunch = useStore((s) => s.prefs.resumeOnLaunch);
   const setPref = useStore((s) => s.setPref);
   const [version, setVersion] = useState("");
+  const [openingAccount, setOpeningAccount] = useState(false);
+  async function openAccount() {
+    if (openingAccount) return;
+    setOpeningAccount(true);
+    try { await invoke("open_url", { url: "https://rabta.build/account" }); }
+    catch (error) { toastErr(error); }
+    finally { setOpeningAccount(false); }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -110,9 +130,32 @@ function GeneralSection() {
   }, []);
 
   return (
+    <>
+      <section aria-labelledby="desktop-account-title" className="mt-4 rounded-[16px] border-[0.5px] border-border bg-card p-5 shadow-raised">
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-[14px] border-[0.5px] border-border bg-secondary text-secondary-foreground" aria-hidden="true">
+            <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8ZM4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2M8 21h8" /></svg>
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 id="desktop-account-title" className="text-body font-medium text-foreground">Your Rabta account</h3>
+            <p className="mt-1 text-meta leading-relaxed text-tertiary-foreground">Your profile and favorite web tools, together.</p>
+          </div>
+          <Button type="button" variant="secondary" size="sm" className="min-h-9 rounded-full px-4" disabled={openingAccount} onClick={() => void openAccount()}>
+            {openingAccount ? "Opening browser…" : "Manage account"}
+            <Icon name="chevron-right" className="size-3.5" />
+          </Button>
+        </div>
+        <p className="mt-4 border-t-[0.5px] border-border pt-3 text-meta leading-relaxed text-tertiary-foreground" role="status">Opens rabta.build in your browser. Desktop sign-in and workspace sync are not connected yet.</p>
+      </section>
     <SettingCard>
-      <SettingRow title="Open to" description="The section Rabta shows when it starts.">
-        <Select value={landingPage} onValueChange={(v) => setPref("landingPage", v as NavKey)}>
+      <SettingRow
+        title="Open to"
+        description="The section Rabta shows when it starts."
+      >
+        <Select
+          value={landingPage}
+          onValueChange={(v) => setPref("landingPage", v as NavKey)}
+        >
           <SelectTrigger className="h-6 w-40 rounded-md border-[0.5px] text-sub">
             <SelectValue />
           </SelectTrigger>
@@ -142,6 +185,7 @@ function GeneralSection() {
         <RowValue>{version ? `Rabta ${version}` : "Rabta"}</RowValue>
       </SettingRow>
     </SettingCard>
+    </>
   );
 }
 
@@ -155,7 +199,10 @@ function AppearanceSection() {
 
   return (
     <SettingCard>
-      <SettingRow title="Theme" description="Follow the system, or lock to light or dark.">
+      <SettingRow
+        title="Theme"
+        description="Follow the system, or lock to light or dark."
+      >
         <Segmented
           ariaLabel="Theme"
           value={theme}
@@ -183,7 +230,11 @@ function AppearanceSection() {
         description="The footer strip reporting connectors and last activity."
         htmlFor="statusbar"
       >
-        <SwitchMac id="statusbar" checked={statusbar} onCheckedChange={(v) => setPref("statusbar", v)} />
+        <SwitchMac
+          id="statusbar"
+          checked={statusbar}
+          onCheckedChange={(v) => setPref("statusbar", v)}
+        />
       </SettingRow>
       <SettingRow
         title="Motion"
@@ -244,7 +295,11 @@ function CapsulesSection() {
         description="Resuming a task will put away what it does not want. Everything is saved to the outgoing task first, and a terminal that is running something is never closed."
         htmlFor="focus-mode"
       >
-        <SwitchMac id="focus-mode" checked={focusMode} onCheckedChange={(v) => setPref("focusMode", v)} />
+        <SwitchMac
+          id="focus-mode"
+          checked={focusMode}
+          onCheckedChange={(v) => setPref("focusMode", v)}
+        />
       </SettingRow>
     </SettingCard>
   );
@@ -265,7 +320,9 @@ function ConnectorsSection() {
             : "No tools are connected yet."
         }
       >
-        <RowButton onClick={() => setView("connectors")}>Open Connectors</RowButton>
+        <RowButton onClick={() => setView("connectors")}>
+          Open Connectors
+        </RowButton>
       </SettingRow>
     </SettingCard>
   );
@@ -286,8 +343,8 @@ function PrivacySection() {
   return (
     <>
       <p className="mt-4 text-sub leading-[1.55] text-muted-foreground">
-        Rabta runs entirely on your Mac. There's no cloud account and no telemetry — nothing you
-        work on ever leaves your device.
+        Rabta runs entirely on your Mac. There's no cloud account and no
+        telemetry — nothing you work on ever leaves your device.
       </p>
       <SettingCard>
         <SettingRow
@@ -331,8 +388,8 @@ function MigrateSection() {
   return (
     <>
       <p className="mt-4 text-sub leading-[1.55] text-muted-foreground">
-        Move your capsules, projects and preferences to another Mac as one encrypted file. Sending
-        copies — nothing is removed from this Mac.
+        Move your capsules, projects and preferences to another Mac as one
+        encrypted file. Sending copies — nothing is removed from this Mac.
       </p>
       <SettingCard>
         <SettingRow
@@ -388,7 +445,10 @@ function DeveloperSection() {
       {developerMode && (
         <div className="mt-6 flex flex-col gap-4">
           <div>
-            <p id={consoleId} className="text-card-title font-590 text-foreground">
+            <p
+              id={consoleId}
+              className="text-card-title font-590 text-foreground"
+            >
               Command console
             </p>
             <p className="mt-0.5 text-meta text-muted-foreground">
@@ -399,7 +459,9 @@ function DeveloperSection() {
           {import.meta.env.DEV && (
             <div className="flex flex-col gap-4 border-t-[0.5px] border-border pt-5">
               <div>
-                <p className="text-card-title font-590 text-foreground">Restore Experience preview</p>
+                <p className="text-card-title font-590 text-foreground">
+                  Restore Experience preview
+                </p>
                 <p className="mt-0.5 text-meta text-muted-foreground">
                   Scripted previews of the restore sheet. Dev builds only.
                 </p>
@@ -407,7 +469,9 @@ function DeveloperSection() {
               <RestoreExperiencePlayground />
 
               <div className="border-t-[0.5px] border-border pt-5">
-                <p className="text-card-title font-590 text-foreground">Demo fixture</p>
+                <p className="text-card-title font-590 text-foreground">
+                  Demo fixture
+                </p>
                 <p className="mt-0.5 text-meta text-muted-foreground">
                   Populate an empty database for screenshots. Dev builds only.
                 </p>
@@ -429,7 +493,8 @@ interface AgentAccessStatus {
 }
 
 /** The one line that connects Claude Code to the read-only MCP server. */
-export const AGENT_INSTALL_COMMAND = "claude mcp add rabta -- npx -y @rabta/mcp";
+export const AGENT_INSTALL_COMMAND =
+  "claude mcp add rabta -- npx -y @rabta/mcp";
 
 function isAgentStatus(value: unknown): value is AgentAccessStatus {
   return (
@@ -482,9 +547,10 @@ function AgentsSection() {
   return (
     <>
       <p className="mt-4 text-sub leading-[1.55] text-muted-foreground">
-        An agent on this Mac can already read your capsules through the Rabta MCP server. Agent
-        access adds the other half, capture and restore, through a socket file in the data folder
-        that only your user can open. Nothing here listens on a network port.
+        An agent on this Mac can already read your capsules through the Rabta
+        MCP server. Agent access adds the other half, capture and restore,
+        through a socket file in the data folder that only your user can open.
+        Nothing here listens on a network port.
       </p>
       <SettingCard>
         <SettingRow
@@ -498,10 +564,16 @@ function AgentsSection() {
             onCheckedChange={(v) => void toggle(v)}
           />
         </SettingRow>
-        <SettingRow title="Socket" description={status?.socketPath ?? "Not available in this build."}>
+        <SettingRow
+          title="Socket"
+          description={status?.socketPath ?? "Not available in this build."}
+        >
           <RowValue>{status?.enabled ? "Listening" : "Closed"}</RowValue>
         </SettingRow>
-        <SettingRow title="Connect Claude Code" description={AGENT_INSTALL_COMMAND}>
+        <SettingRow
+          title="Connect Claude Code"
+          description={AGENT_INSTALL_COMMAND}
+        >
           <RowButton onClick={() => void copyInstall()}>Copy command</RowButton>
         </SettingRow>
       </SettingCard>
@@ -540,10 +612,11 @@ export function SettingsPage() {
 
   // Tolerates a stale id — the persisted section can name one that no
   // longer exists (Migrate will arrive and other sections may be renamed).
-  const active = SETTINGS_SECTIONS.find((s) => s.id === section) ?? SETTINGS_SECTIONS[0];
+  const active =
+    SETTINGS_SECTIONS.find((s) => s.id === section) ?? SETTINGS_SECTIONS[0];
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-[216px_minmax(0,1fr)] overflow-hidden">
+    <div className="lens-settings grid h-full min-h-0 grid-cols-[216px_minmax(0,1fr)] overflow-hidden">
       <div
         data-settings-sections
         role="tablist"
@@ -581,7 +654,9 @@ export function SettingsPage() {
         <div className="mx-auto max-w-[640px] px-8 pb-11 pt-[30px]">
           {/* The Toolbar owns the view's <h1>; this names the section
               within it, at the handoff's 22/640 screen-title size. */}
-          <h2 className="text-title font-640 text-foreground">{active.title}</h2>
+          <h2 className="text-title font-640 text-foreground">
+            {active.title}
+          </h2>
           {RENDERERS[active.id]?.()}
         </div>
       </div>

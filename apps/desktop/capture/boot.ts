@@ -24,14 +24,17 @@ import { NOW_MS } from "./seed";
 // Pinned before anything can capture it, so every relative label
 // ("8m ago", "1h 30m ago") is identical on every run.
 const RealDate = Date;
+const webPreview = import.meta.env.MODE === "web-preview";
+const bootTime = performance.now();
+const previewNow = () => NOW_MS + (webPreview ? performance.now() - bootTime : 0);
 class FrozenDate extends RealDate {
   constructor(...args: ConstructorParameters<typeof Date>) {
     // `new Date()` with no arguments yields the pinned instant; every other
     // form behaves normally so parsing seed timestamps still works.
-    super(...(args.length === 0 ? [NOW_MS] : args));
+    super(...(args.length === 0 ? [previewNow()] : args));
   }
   static now() {
-    return NOW_MS;
+    return previewNow();
   }
 }
 globalThis.Date = FrozenDate as DateConstructor;
@@ -46,12 +49,13 @@ globalThis.Date = FrozenDate as DateConstructor;
 export const POSE = parsePose(window.location.hash);
 
 try {
-  localStorage.clear();
+  // The published preview shares the website origin: never clear its storage.
+  if (!webPreview) localStorage.clear();
   localStorage.setItem(
     "rabta.prefs",
     JSON.stringify({
       theme: POSE.theme,
-      accent: POSE.accent,
+      accent: webPreview || /accent=sage/.test(window.location.hash) ? "sage" : POSE.accent,
       motion: "system",
       rememberSidebar: true,
       landingPage: "overview",

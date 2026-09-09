@@ -1,0 +1,17 @@
+{
+  "package": "@rabta/ui",
+  "version": "0.5.0",
+  "source": "Rabta Studio / packages/rabta-ui/src",
+  "files": {
+    "brand.ts": "b30805dac72af91f38e9dbb31b05c174acc6dd175f9face3451c2305d8d97ee3",
+    "brand.css": "08005c377b7082db73472c440855d986d6e17bb522c17c318666d909a1dc8294",
+    "glyphs.tsx": "b323e20f448985fa07c4e06613e8199b88b1fa74fca45dddf3d0c95df26c25e6",
+    "lens.tsx": "f2a04be87e7dcb9b0ae07f6ebb71758efe995ec7e92c7174abd34f45ac071232",
+    "lens.css": "fbae6eeb1b0de5e262148f86fe3deb37229442f229c7bf2e153f734f1fc57652",
+    "surface.tsx": "3aeb0cd6901756681bb2ce20e49ff0f0a632f2d09233d2f00d634471c8eb0d60",
+    "config.ts": "1ec34246d45ac52ba5c6456cca077f9648c477d7c013afed2c1a2337784385be",
+    "activity.ts": "b2f71171260b1d427acef24b18da59e08389898ae00bc828d0c01901e96201ed",
+    "icons.tsx": "58e8fe0c8baa6bdc855da7d5c0de03c1271b68739ca690748dc804fe54486b96",
+    "LICENSE": "0039e5c7d1a76eacf2457239da4e2494a40d46eb6423498d825baf7efb94ba39"
+  }
+}

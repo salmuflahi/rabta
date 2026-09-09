@@ -1,4 +1,7 @@
+import { ContextHandoff } from "@/features/handoff/ContextHandoff";
 import { invoke } from "@tauri-apps/api/core";
+import { LensPanel } from "@/vendor/rabta-ui/lens";
+import { RestoreReadiness } from "@/components/RestoreReadiness";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -128,7 +131,7 @@ function insideCards(resources: TaskResource[], connectedKinds: Set<string>): In
 
 function CapsulesSkeleton() {
   return (
-    <div className="grid h-full min-h-0 grid-cols-[296px_minmax(0,1fr)] overflow-hidden">
+    <div className="lens-capsules grid h-full min-h-0 grid-cols-[296px_minmax(0,1fr)] overflow-hidden">
       <div className="flex min-h-0 flex-col gap-2 border-r-[0.5px] border-border p-3">
         {[0, 1, 2, 3, 4].map((i) => (
           <Skeleton key={i} className="h-9 w-full" />
@@ -516,6 +519,7 @@ export function CapsulesPage() {
       <Dialog open={renameTarget !== null} onOpenChange={(open) => !open && setRenameTarget(null)}>
         <DialogContent className="sm:max-w-sm">
           <form
+            noValidate
             onSubmit={(event) => {
               event.preventDefault();
               if (renameTarget && renameTitle.trim()) void renameTask(renameTarget.id, renameTitle);
@@ -670,9 +674,10 @@ export function CapsulesPage() {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") void addCapsule();
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) void addCapsule();
             }}
             placeholder="New capsule"
+            aria-label="New capsule title"
             className="h-7 flex-1 text-body"
             disabled={projects.length === 0}
           />
@@ -691,7 +696,7 @@ export function CapsulesPage() {
       {/* --- Detail --- */}
       <aside data-capsule-detail aria-label="Details" className="min-h-0 overflow-y-auto">
         {!selected ? (
-          <div className="mx-auto max-w-[720px] px-8 pb-10 pt-[30px]">
+          <div className="lens-capsule-detail-inner mx-auto max-w-[720px] px-8 pb-10 pt-[30px]">
             <p className="text-card-title font-590 text-foreground">No capsule selected</p>
             <p className="mt-1 text-sub text-muted-foreground">
               {projects.length === 0
@@ -705,7 +710,7 @@ export function CapsulesPage() {
             )}
           </div>
         ) : (
-          <div className="mx-auto max-w-[720px] px-8 pb-10 pt-[30px]">
+          <div className="lens-capsule-detail-inner mx-auto max-w-[720px] px-8 pb-10 pt-[30px]">
             <div className="flex items-center gap-2">
               {selected.status === "done" ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-ok-soft px-[9px] py-[3px] text-meta font-590 text-ok">
@@ -729,7 +734,7 @@ export function CapsulesPage() {
                 that <h1>. This is the selected item within it, so it takes
                 the size and the heading level below it rather than
                 competing for the document's top heading. */}
-            <h2 className="mt-2.5 text-title font-640 text-foreground">{selected.title}</h2>
+            <h2 className="lens-capsule-title mt-2.5 text-title font-640 text-foreground">{selected.title}</h2>
             <p className="mt-1.5 text-sub text-muted-foreground">
               {selectedProject?.name ?? "Unknown project"}
               {capsuleBranch(selectedResources) && (
@@ -744,7 +749,8 @@ export function CapsulesPage() {
                 : "never captured"}
             </p>
 
-            <div className="mt-4 flex items-center gap-2">
+            <div className="lens-capsule-actions mt-4 flex items-center gap-2">
+              <ContextHandoff key={selected.id} task={selected} project={projects.find(p => p.id === selected.projectId)} resources={resources[selected.id] ?? []} />
               {hasState && (
                 <Button
                   variant="primary"
@@ -810,28 +816,27 @@ export function CapsulesPage() {
             {hasState ? (
               <>
                 <GroupHeading className="mt-7">What's inside</GroupHeading>
-                <div className="mt-2 grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2.5">
+                <LensPanel className="lens-capsule-context">
+                <RestoreReadiness tools={insideCards(selectedResources, connectedKinds).map(card => ({id:card.kind,label:card.name,detail:card.when,ready:card.live}))} />
+                <div className="lens-inside-grid">
                   {insideCards(selectedResources, connectedKinds).map((card) => (
                     <div
                       key={card.kind}
                       data-inside-card={card.kind}
-                      className="rounded-[10px] bg-card p-[13px] shadow-raised"
+                      className="lens-inside-row"
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="lens-inside-label">
                         <Icon name={card.icon} className="size-4 text-muted-foreground" />
-                        <span
-                          aria-hidden
-                          className={cn("size-[7px] rounded-full", card.live ? "bg-ok" : "bg-warn")}
-                        />
+                        <span>{card.name}</span>
+                        <strong>{card.count}</strong>
                       </div>
-                      <p className="mt-2.5 text-card-title font-590 text-foreground">{card.count}</p>
-                      <p className="mt-0.5 text-sub text-muted-foreground">{card.name}</p>
                       <p className={cn("mt-[7px] text-label", card.live ? "text-ok" : "text-warn")}>
                         {card.when}
                       </p>
                     </div>
                   ))}
                 </div>
+                </LensPanel>
 
                 {/* Per-item pin curation ("always open this"). Not in the
                     handoff, but a real shipped feature — it lives under the

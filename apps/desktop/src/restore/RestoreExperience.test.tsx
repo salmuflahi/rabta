@@ -14,7 +14,7 @@ const TOOLS: StartOptions["tools"] = [
 ];
 
 function stubMatchMedia(matches: boolean) {
-  window.matchMedia = vi.fn().mockReturnValue({ matches }) as unknown as typeof window.matchMedia;
+  window.matchMedia = vi.fn().mockReturnValue({ matches, addEventListener: vi.fn(), removeEventListener: vi.fn() }) as unknown as typeof window.matchMedia;
 }
 
 /** Advances fake timers in small steps (flushing microtasks between each via

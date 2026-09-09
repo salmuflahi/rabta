@@ -1,0 +1,590 @@
+/* Lens: shared product primitives. Standalone import is intentionally light. */
+.r-lens {
+  --lens-tint: var(--r-accent, #b4d5df);
+  --lens-ink: var(--r-fg, #eff5f5);
+  --lens-muted: var(--r-muted, #afc1c6);
+  --lens-ground: var(--r-bg, #17282e);
+  --lens-line: color-mix(in srgb, var(--lens-ink) 17%, transparent);
+  --lens-radius: var(--r-radius, 28px);
+  --lens-ease: var(--r-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  color: var(--lens-ink);
+  font-family: var(--r-font-body, inherit);
+  box-sizing: border-box;
+}
+.r-lens * {
+  box-sizing: border-box;
+}
+.r-lens-panel {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--lens-line);
+  border-radius: var(--lens-radius);
+  padding: 28px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--lens-tint) 14%, transparent),
+      transparent 55%
+    ),
+    color-mix(in srgb, var(--lens-ground) 89%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--lens-ink) 12%, transparent),
+    0 20px 55px #00000012;
+  backdrop-filter: blur(24px) saturate(1.15);
+}
+.r-lens-panel[data-tone="sage"] {
+  --lens-tint: #bdd2a7;
+}
+.r-lens-panel[data-tone="rose"] {
+  --lens-tint: #d3b9c9;
+}
+.r-lens-panel[data-tone="neutral"] {
+  --lens-tint: var(--lens-ink);
+}
+.r-lens-panel:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  background: radial-gradient(
+    ellipse at 92% 4%,
+    color-mix(in srgb, var(--lens-tint) 12%, transparent),
+    transparent 58%
+  );
+}
+.r-context-arc {
+  width: 100%;
+  position: relative;
+}
+.r-context-arc svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+.r-arc-track {
+  stroke: var(--lens-line);
+  fill: none;
+  stroke-width: 0.7;
+}
+.r-arc-tick {
+  stroke: var(--lens-muted);
+  stroke-width: 0.7;
+  opacity: 0.5;
+}
+.r-arc-light {
+  fill: none;
+  stroke: var(--lens-tint);
+  stroke-width: 1.5;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.r-context-arc[data-active="true"] .r-arc-light {
+  animation: r-lens-arrive min(var(--r-duration, 800ms), 1200ms)
+    var(--lens-ease) both;
+}
+.r-arc-node > circle:first-child {
+  fill: var(--lens-ground);
+  stroke: var(--lens-muted);
+  stroke-width: 1;
+}
+.r-arc-node.is-ready > circle:first-child {
+  stroke: var(--lens-tint);
+}
+.r-arc-node > circle:last-child {
+  fill: var(--lens-muted);
+}
+.r-arc-node.is-ready > circle:last-child {
+  fill: var(--lens-tint);
+}
+.r-arc-core {
+  fill: var(--lens-ink);
+}
+.r-arc-check {
+  fill: none;
+  stroke: var(--lens-ground);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.r-arc-caption {
+  text-align: center;
+  font-size: 14px;
+  margin: -2px 0 20px;
+}
+.r-arc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.r-arc-legend li {
+  display: grid;
+  grid-template-columns: 7px 1fr;
+  align-items: center;
+  gap: 5px 7px;
+  font-size: 13px;
+}
+.r-arc-legend li > i {
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--lens-muted);
+  border-radius: 50%;
+}
+.r-arc-legend li[data-ready="true"] > i {
+  background: var(--lens-tint);
+  border-color: var(--lens-tint);
+}
+.r-arc-legend small {
+  grid-column: 2;
+  color: var(--lens-muted);
+  font-size: 12px;
+}
+.r-action-bridge {
+  display: flex;
+  align-items: center;
+  position: relative;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+.r-action-bridge > button {
+  appearance: none;
+  position: relative;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 100px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 14px 24px;
+  background: var(--lens-ink);
+  color: var(--lens-ground);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    transform 220ms var(--lens-ease),
+    box-shadow 220ms var(--lens-ease);
+}
+.r-action-bridge > button > span:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.r-action-bridge > button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 24px #0002;
+}
+.r-action-bridge > button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+.r-action-bridge > button:focus-visible,
+.r-quiet-dock > button:focus-visible {
+  outline: 2px solid var(--lens-tint);
+  outline-offset: 4px;
+}
+.r-action-bridge > button:disabled,
+.r-quiet-dock > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.r-bridge-side {
+  position: relative;
+  flex: 0 0 65px;
+  min-height: 65px;
+  background: var(--lens-ink);
+  color: var(--lens-ground);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.r-bridge-side b {
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1;
+}
+.r-bridge-side small {
+  font-size: 11px;
+}
+.r-bridge-side:after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 13px;
+  background: var(--lens-ink);
+  right: -8px;
+  border-radius: 50%;
+}
+.r-bridge-side:last-child:after {
+  left: -8px;
+  right: auto;
+}
+.r-bridge-busy {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.r-bridge-busy i {
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: r-lens-spin 900ms linear infinite;
+}
+.r-quiet-dock {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid var(--lens-line);
+  border-radius: 100px;
+  background: color-mix(in srgb, var(--lens-ground) 92%, transparent);
+  box-shadow:
+    inset 0 1px 0 #ffffff14,
+    0 12px 30px #0002;
+  backdrop-filter: blur(22px);
+  width: max-content;
+  max-width: 100%;
+}
+.r-quiet-dock > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 100px;
+  padding: 0 16px;
+  background: transparent;
+  color: var(--lens-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 200ms,
+    color 200ms,
+    transform 250ms var(--lens-ease);
+}
+.r-quiet-dock > button:first-child {
+  background: var(--lens-ink);
+  color: var(--lens-ground);
+}
+.r-quiet-dock > button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--lens-ink) 14%, transparent);
+  color: var(--lens-ink);
+  transform: translateY(-2px);
+}
+.r-quiet-dock > button:first-child:hover:not(:disabled) {
+  background: var(--lens-tint);
+  color: var(--lens-ground);
+}
+.r-quiet-dock > button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.r-dot-text {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  fill: currentColor;
+}
+.r-dot-fallback {
+  font-family: var(--r-font-mono, monospace);
+  font-weight: 400;
+}
+.r-orbit-threads {
+  width: 100%;
+  color: var(--lens-tint);
+}
+.r-orbit-threads svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+.r-orbit-line {
+  stroke-width: 1;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+.r-orbit-anchor {
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.r-orbit-threads[data-active="true"] .r-orbit-line {
+  animation: r-lens-orbit min(var(--r-duration, 800ms), 1200ms) var(--lens-ease)
+    both;
+  animation-delay: calc(var(--r-orbit-i) * 40ms);
+}
+.r-context-rail {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 10px;
+}
+.r-context-rail:before {
+  content: "";
+  position: absolute;
+  top: 15px;
+  bottom: 30px;
+  left: 13px;
+  width: 1px;
+  background: var(--lens-line);
+}
+.r-context-rail li {
+  display: flex;
+  position: relative;
+  gap: 20px;
+  padding: 16px 0;
+}
+.r-context-rail li > i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lens-tint);
+  margin-top: 7px;
+  box-shadow: 0 0 0 5px var(--lens-ground);
+  flex-shrink: 0;
+}
+.r-context-rail strong {
+  font-size: 15px;
+  font-weight: 400;
+  display: block;
+}
+.r-context-rail span {
+  font-size: 13px;
+  color: var(--lens-muted);
+  display: block;
+  margin-top: 6px;
+}
+.r-lens-study {
+  position: relative;
+  min-height: 440px;
+  padding: 44px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background:
+    radial-gradient(
+      ellipse at 5% 10%,
+      color-mix(in srgb, var(--r-accent) 17%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at 100% 100%,
+      color-mix(in srgb, var(--r-accent) 9%, transparent),
+      transparent 55%
+    );
+}
+.r-lens-study > .r-lens-panel {
+  width: min(100%, 390px);
+  border-radius: var(--r-radius);
+}
+.r-lens-study h3 {
+  font-family: var(--r-font);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin: 14px 0 10px;
+}
+.r-lens-study p {
+  font-size: 14px;
+  color: var(--r-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+.r-lens-card-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: var(--r-muted);
+}
+.r-lens-study .r-context-arc {
+  margin: 4px 0 24px;
+}
+.r-lens-study > .r-dot-text {
+  max-width: 420px;
+}
+.r-lens-eyebrow {
+  font-family: var(--r-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--r-muted);
+}
+.r-lens-study .r-action-bridge {
+  margin-top: 24px;
+}
+.r-lens-study .r-orbit-threads {
+  max-height: 240px;
+}
+.r-lens-study .r-orbit-threads svg {
+  max-height: 240px;
+}
+.r-lens-demo-feedback {
+  font-size: 11px;
+  color: var(--r-muted);
+  line-height: 1.4;
+  text-align: center;
+  min-height: 16px;
+}
+.r-lens-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 520px;
+}
+.r-lens-split > .r-lens-panel {
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.r-lens-split h3 {
+  font-size: 24px;
+}
+.r-lens-study[data-compact="true"] {
+  min-height: 260px;
+  padding: 20px;
+  gap: 12px;
+}
+.r-lens-study[data-compact="true"] .r-lens-panel {
+  padding: 18px;
+}
+.r-lens-study[data-compact="true"] h3 {
+  font-size: 22px;
+}
+.r-lens-study[data-compact="true"] .r-context-arc svg {
+  max-height: 125px;
+}
+.r-lens-study[data-compact="true"] .r-arc-legend {
+  display: none;
+}
+.r-lens-study[data-compact="true"] .r-quiet-dock > button {
+  padding: 0 9px;
+}
+.r-lens-study[data-compact="true"] .r-quiet-dock > button span {
+  display: none;
+}
+.r-lens-study[data-compact="true"] .r-orbit-threads svg {
+  max-height: 155px;
+}
+.r-lens-study[data-compact="true"] .r-lens-split > .r-lens-panel {
+  min-height: 185px;
+  padding: 12px;
+}
+.r-lens-study[data-compact="true"] .r-lens-split p {
+  font-size: 12px;
+}
+@keyframes r-lens-arrive {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes r-lens-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes r-lens-orbit {
+  from {
+    opacity: 0.2;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 480px) {
+  .r-lens-study {
+    padding: 30px 20px;
+  }
+  .r-lens-panel {
+    padding: 22px;
+  }
+  .r-bridge-side {
+    flex-basis: 55px;
+    min-height: 55px;
+  }
+  .r-action-bridge > button {
+    padding: 14px 16px;
+  }
+  .r-quiet-dock > button {
+    padding: 0 12px;
+  }
+  .r-lens-split {
+    grid-template-columns: 1fr;
+  }
+  .r-lens-study[data-compact="true"] .r-lens-split {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+/* User/OS motion preferences override all specimen transitions and host hover states. */
+@media (prefers-reduced-motion: reduce) {
+  .r-lens *,
+  .r-lens *:before,
+  .r-lens *:after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+[data-motion="off"] .r-lens *,
+[data-motion="reduced"] .r-lens * {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .r-lens-panel,
+  .r-quiet-dock {
+    backdrop-filter: none;
+    background: var(--lens-ground);
+  }
+}
+@media (forced-colors: active) {
+  .r-lens-panel[data-tone] {
+    --lens-tint: Highlight;
+  }
+  .r-lens {
+    --lens-ink: CanvasText;
+    --lens-muted: CanvasText;
+    --lens-ground: Canvas;
+    --lens-tint: Highlight;
+    --lens-line: CanvasText;
+  }
+  .r-lens-panel,
+  .r-quiet-dock,
+  .r-action-bridge > button,
+  .r-bridge-side {
+    border: 1px solid CanvasText;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  .r-arc-track,
+  .r-arc-tick {
+    opacity: 1;
+    stroke: CanvasText;
+  }
+}

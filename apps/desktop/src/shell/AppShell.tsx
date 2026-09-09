@@ -1,10 +1,11 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, type CSSProperties, type ReactNode } from "react";
 import { useStore } from "@/store";
 import { Sidebar } from "./Sidebar";
 import { SidebarToggle } from "./SidebarToggle";
 import { StatusBar } from "./StatusBar";
 import { Toolbar } from "./Toolbar";
 import { SIDEBAR_EXPANDED_WIDTH_PX } from "./titlebar";
+import { NAV_ITEMS, SETTINGS_ITEM } from "./nav";
 
 // One source of truth for the sidebar/main boundary. The first grid track is a
 // single `--sidebar-width` custom property (216px — see
@@ -30,6 +31,12 @@ import { SIDEBAR_EXPANDED_WIDTH_PX } from "./titlebar";
 export function AppShell({ children }: { children: ReactNode }) {
   const collapsed = useStore((s) => s.sidebarCollapsed);
   const view = useStore((s) => s.view);
+  useEffect(() => {
+    const label =
+      [...NAV_ITEMS, SETTINGS_ITEM].find((item) => item.key === view)?.label ??
+      "Workspace";
+    document.title = `${label} — Rabta`;
+  }, [view]);
 
   const shellStyle = {
     gridTemplateColumns: "var(--sidebar-width) minmax(0, 1fr)",
@@ -43,7 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     // too, not just under the toolbar. The outer flex-col here reproduces
     // that: the grid stays the sidebar/main split, StatusBar sits below it
     // at the full shell width.
-    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+    <div className="rabta-lens-app flex h-full min-h-0 flex-col overflow-hidden">
       {/* Skip link — the first focusable element in the whole shell, ahead of
           the sidebar. Visually hidden until it receives focus (sr-only /
           focus:not-sr-only) so it costs sighted mouse users nothing, but a
@@ -62,7 +69,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           boundary — one continuous vertical edge, no separate title-bar backing.
           `overflow-hidden` + `min-h-0` on every region keep the shell fixed and
           scroll only the workspace, so the sidebar never moves under the lights. */}
-      <div className="sidebar-track relative grid min-h-0 flex-1 overflow-hidden" style={shellStyle}>
+      <div
+        className="sidebar-track relative grid min-h-0 flex-1 overflow-hidden"
+        style={shellStyle}
+      >
         <Sidebar />
 
         {/* The sidebar toggle is drawn once, here, pinned over the top-left
@@ -79,13 +89,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             the non-scrolling column so it stays put; the main region is
             transparent over it. Tuned faint (card tone at low alpha) and
             theme-safe — reads on ivory and petrol alike. */}
-        <div
-          className="flex min-h-0 min-w-0 flex-col overflow-hidden"
-          style={{
-            background:
-              "radial-gradient(120% 55% at 50% 0%, hsl(var(--card) / 0.55), transparent 60%), hsl(var(--background))",
-          }}
-        >
+        <div className="lens-workspace flex min-h-0 min-w-0 flex-col overflow-hidden">
           <Toolbar />
           {/* The pane is a fixed, non-scrolling box; the screen inside it
               owns its own scrolling. That's a Phase 2 change, and it's what
@@ -98,7 +102,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               -1 keeps it out of the normal tab sequence (it's not itself a
               control) while still letting the browser focus it as the
               destination of an in-page `#main` navigation. */}
-          <main id="main" tabIndex={-1} className="min-h-0 flex-1 overflow-hidden">
+          <main
+            id="main"
+            tabIndex={-1}
+            className="min-h-0 flex-1 overflow-hidden"
+          >
             <div key={view} className="h-full min-h-0 animate-page-in">
               {children}
             </div>

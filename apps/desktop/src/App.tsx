@@ -13,6 +13,7 @@ import { ConnectorsPage } from "./pages/ConnectorsPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { UtilitiesPage } from "./pages/UtilitiesPage";
 import { AppShell } from "./shell/AppShell";
 import { MigrateSheet } from "./features/migrate/MigrateSheet";
 import { PairingSheet } from "./features/pairing/PairingSheet";
@@ -40,6 +41,8 @@ function CurrentPage({ view }: { view: NavKey }) {
       return <ActivityPage />;
     case "settings":
       return <SettingsPage />;
+    case "utilities":
+      return <UtilitiesPage />;
     default: {
       // NavKey is a closed union — every view is handled above. This keeps
       // the switch exhaustive so a new view can't silently render nothing.
@@ -50,6 +53,14 @@ function CurrentPage({ view }: { view: NavKey }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    const ready = listen<string | null>("companion-workspace", ({ payload }) => {
+      const store = useStore.getState();
+      store.setView(payload ? "capsules" : "overview");
+      if (payload) store.selectCapsule(payload);
+    });
+    return () => { void ready.then(off => off()).catch(() => {}); };
+  }, []);
   const append = useStore((s) => s.append);
   const setConnectors = useStore((s) => s.setConnectors);
   const setConnectorsAndLogLoaded = useStore((s) => s.setConnectorsAndLogLoaded);
@@ -222,13 +233,13 @@ export default function App() {
         return;
       }
 
-      // ⌘1–5 jump to the primary views; ⌘, opens Settings. Global chrome
+      // ⌘1–6 jump to the primary views; ⌘, opens Settings. Global chrome
       // navigation (matches the tooltips on the nav rows), so it fires before
       // the input guard too — a bare digit isn't something you'd type into a
       // field with ⌘ held.
-      if (key >= "1" && key <= "5") {
+      if (key >= "1" && key <= "6") {
         e.preventDefault();
-        const order: NavKey[] = ["overview", "capsules", "projects", "connectors", "activity"];
+        const order: NavKey[] = ["overview", "capsules", "projects", "connectors", "activity", "utilities"];
         setView(order[Number(key) - 1]);
         return;
       }

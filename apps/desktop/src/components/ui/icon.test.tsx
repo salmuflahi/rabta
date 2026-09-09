@@ -94,8 +94,8 @@ describe("Icon", () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it("ICON_NAMES lists exactly the 35 symbols the handoff sprite ships", () => {
-    expect(ICON_NAMES).toHaveLength(35);
+  it("ICON_NAMES lists the canonical symbols in the handoff sprite", () => {
+    expect(ICON_NAMES).toContain("utilities");
     const idsInSprite = [...spriteSource.matchAll(/<symbol id="ic-([a-z-]+)"/g)].map((m) => m[1]);
     expect([...ICON_NAMES].sort()).toEqual([...idsInSprite].sort());
   });

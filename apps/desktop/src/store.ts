@@ -82,6 +82,7 @@ export const NAV_KEYS = [
   "projects",
   "connectors",
   "activity",
+  "utilities",
   "settings",
 ] as const;
 
@@ -117,7 +118,7 @@ export interface Prefs {
 const PREFS_KEY = "rabta.prefs";
 export const DEFAULT_PREFS: Prefs = {
   theme: "system",
-  accent: "tangerine",
+  accent: "sage",
   motion: "system",
   rememberSidebar: true,
   landingPage: "capsules",
@@ -440,6 +441,7 @@ function selectionFor(s: Store, view: NavKey): Location["selection"] {
       return s.selectedEventSeq;
     case "settings":
       return s.settingsSection;
+    case "utilities":
     case "overview":
       return null;
     default: {
@@ -467,6 +469,7 @@ function applyLocation(loc: Location): Partial<Store> {
       // the other three selections — a location recorded before a section
       // existed, or with a null selection, must still land somewhere valid.
       return { view: loc.view, settingsSection: (loc.selection as string) ?? "general" };
+    case "utilities":
     case "overview":
       return { view: loc.view };
     default: {

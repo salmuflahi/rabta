@@ -6,7 +6,7 @@ import {
   Plug,
   Sun,
   Terminal,
-} from "lucide-react";
+} from "@/vendor/rabta-ui/glyphs";
 
 import { useTheme } from "@/components/theme-provider";
 import { toast } from "@/components/ui/sonner";

@@ -1,10 +1,16 @@
+import { FamilyLauncher } from "@/features/companion/FamilyLauncher";
 import { Icon } from "@/components/ui/icon";
 import { Kbd } from "@/components/ui/kbd";
 import { EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useStore, type NavKey } from "@/store";
 import { NAV_ITEMS, SETTINGS_ITEM } from "./nav";
-import { CHROME_INSET_PX, SIDEBAR_MOTION_MS, TOOLBAR_HEIGHT_CLASS, chromeLeadWidthPx } from "./titlebar";
+import {
+  CHROME_INSET_PX,
+  SIDEBAR_MOTION_MS,
+  TOOLBAR_HEIGHT_CLASS,
+  chromeLeadWidthPx,
+} from "./titlebar";
 
 /** Visible entry point to the ⌘K command palette. Without it the palette is
  * discoverable only by devs who already know the shortcut — so this both
@@ -19,7 +25,7 @@ function SearchTrigger() {
       type="button"
       onClick={toggleCommandOpen}
       aria-label="Search or jump to anything (Command K)"
-      className="flex h-6 w-[196px] shrink-0 items-center gap-1.5 rounded-md border-[0.5px] border-border bg-field px-[7px] text-meta text-muted-foreground transition-colors duration-fast ease-standard hover:border-tertiary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="app-toolbar-search flex h-6 w-[196px] shrink-0 items-center gap-1.5 rounded-md border-[0.5px] border-border bg-field px-[7px] text-meta text-muted-foreground transition-colors duration-fast ease-standard hover:border-tertiary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <Icon name="search" className="size-[13px] shrink-0" />
       <span className="min-w-0 flex-1 truncate text-left">Search</span>
@@ -52,7 +58,7 @@ function ContextualAction({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-6 shrink-0 items-center gap-[5px] rounded-md pl-2 pr-2.5 text-meta font-510 transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "app-toolbar-action inline-flex h-6 shrink-0 items-center gap-[5px] rounded-md pl-2 pr-2.5 text-meta font-510 transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         demoted
           ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
           : "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -84,7 +90,8 @@ function HistoryChevrons() {
   const goForward = useStore((s) => s.goForward);
 
   const back = historyIndex > 0 ? history[historyIndex - 1] : undefined;
-  const forward = historyIndex < history.length - 1 ? history[historyIndex + 1] : undefined;
+  const forward =
+    historyIndex < history.length - 1 ? history[historyIndex + 1] : undefined;
 
   const label = (dir: "Back" | "Forward", loc: { view: NavKey } | undefined) =>
     loc
@@ -152,7 +159,9 @@ function HistoryChevrons() {
  * means. Connectors has no equivalent store request — connectors self-pair,
  * and there is no manual-add flow anywhere in the app for this button to
  * trigger — so it renders nothing, same as Activity and Settings. */
-function useContextualAction(view: NavKey): { label: string; onClick: () => void } | null {
+function useContextualAction(
+  view: NavKey,
+): { label: string; onClick: () => void } | null {
   const setView = useStore((s) => s.setView);
   const requestNewTask = useStore((s) => s.requestNewTask);
   const requestNewProject = useStore((s) => s.requestNewProject);
@@ -171,6 +180,7 @@ function useContextualAction(view: NavKey): { label: string; onClick: () => void
       return { label: "Add project", onClick: requestNewProject };
     case "connectors":
     case "activity":
+    case "utilities":
     case "settings":
       return null;
     default: {
@@ -198,7 +208,8 @@ export function Toolbar() {
   // would render a heading with no accessible name; NAV_ITEMS[0] is always
   // present, so it's used as a known-good label instead.
   const title =
-    [...NAV_ITEMS, SETTINGS_ITEM].find((item) => item.key === view)?.label ?? NAV_ITEMS[0].label;
+    [...NAV_ITEMS, SETTINGS_ITEM].find((item) => item.key === view)?.label ??
+    NAV_ITEMS[0].label;
 
   const action = useContextualAction(view);
   // Compared against `view`, not read as a bare flag: a claim is only current
@@ -210,7 +221,7 @@ export function Toolbar() {
       data-tauri-drag-region
       className={cn(
         TOOLBAR_HEIGHT_CLASS,
-        "flex shrink-0 items-center gap-2 border-b-[0.5px] border-border pr-3",
+        "app-toolbar flex shrink-0 items-center gap-2 border-b-[0.5px] border-border pr-3",
         // 85% rather than a flat `bg-background`, so the backdrop-filter on the
         // next line has something to show through. It shipped opaque, which
         // meant the blur composited a result that was then completely covered:
@@ -246,16 +257,19 @@ export function Toolbar() {
       // header is a `gap-2` flex row: a zero-width spacer would still push
       // everything after it 8px right.
       style={{
-        paddingLeft: CHROME_INSET_PX + (sidebarCollapsed ? chromeLeadWidthPx(fullscreen) : 0),
+        paddingLeft:
+          CHROME_INSET_PX +
+          (sidebarCollapsed ? chromeLeadWidthPx(fullscreen) : 0),
         transition: `padding-left ${SIDEBAR_MOTION_MS}ms ${EASE.mac}`,
       }}
     >
       <HistoryChevrons />
-      <h1 className="ml-1.5 truncate text-body font-semibold tracking-[-0.005em] text-foreground">
+      <h1 className="ml-1.5 min-w-0 truncate text-body font-semibold tracking-[-0.005em] text-foreground">
         {title}
       </h1>
       <div className="flex-1" />
       <SearchTrigger />
+      <FamilyLauncher />
       {action && (
         // Keyed by view, so a swap between two views that happen to share a
         // label (Overview and Capsules both show "New capsule") still

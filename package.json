@@ -3,6 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.34.5",
   "scripts": {
+    "dev": "cd apps/desktop && node node_modules/vite/bin/vite.js --config capture/vite.config.ts",
     "test": "pnpm -r --if-present test && pnpm test:site",
     "build:site": "pnpm --filter @rabta/site build",
     "check:site": "pnpm --filter @rabta/site check",

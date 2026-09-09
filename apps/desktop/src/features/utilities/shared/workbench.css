@@ -1,0 +1,671 @@
+/* Shared layout. Each host maps rk-* to its established semantic tokens. */
+.rk-workbench {
+  color: var(--rk-ink);
+  background: var(--rk-canvas);
+  border: 1px solid var(--rk-line);
+  border-radius: 20px;
+  font: 400 15px/1.6 var(--rk-body);
+  overflow: clip;
+  isolation: isolate;
+}
+.rk-workbench * {
+  box-sizing: border-box;
+}
+.rk-workbench [hidden] {
+  display: none !important;
+}
+.rk-workbench h2,
+.rk-workbench h3,
+.rk-workbench p {
+  margin: 0;
+}
+.rk-workbench button {
+  cursor: pointer;
+}
+.rk-workbench button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.rk-workbench :is(button, input, textarea):focus-visible {
+  outline: 2px solid var(--rk-signal);
+  outline-offset: 3px;
+}
+.rk-command {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 22px;
+  border-bottom: 1px solid var(--rk-line);
+  background: var(--rk-surface);
+}
+.rk-command > svg {
+  flex: none;
+  color: var(--rk-muted);
+}
+.rk-command input {
+  font: 400 16px var(--rk-body);
+  border: 0;
+  box-shadow: none;
+  background: none;
+  min-width: 0;
+  height: 44px;
+  color: var(--rk-ink);
+  padding: 0;
+  flex: 1;
+}
+.rk-command input:focus-visible {
+  outline: 0;
+}
+.rk-command:focus-within {
+  box-shadow: inset 0 -2px var(--rk-signal);
+}
+.rk-command-count {
+  font: 12px var(--rk-mono);
+  color: var(--rk-muted);
+  white-space: nowrap;
+}
+.rk-layout {
+  display: grid;
+  grid-template-columns: 238px minmax(0, 1fr);
+  min-height: 640px;
+}
+.rk-browser {
+  padding: 20px 12px;
+  border-right: 1px solid var(--rk-line);
+  background: var(--rk-surface);
+  max-height: 920px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.rk-group + .rk-group {
+  margin-top: 25px;
+}
+.rk-group > p {
+  padding: 0 12px 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font: 11px/1.4 var(--rk-mono);
+  color: var(--rk-muted);
+}
+.rk-tool-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: 43px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--rk-muted);
+  font: 400 14px/1.35 var(--rk-body);
+  text-align: left;
+  transition:
+    background 0.18s,
+    color 0.18s;
+}
+.rk-tool-row span {
+  flex: 1;
+  min-width: 0;
+}
+.rk-tool-row > svg {
+  flex: none;
+}
+.rk-tool-row:hover {
+  background: var(--rk-hover);
+  color: var(--rk-ink);
+}
+.rk-tool-row.is-selected {
+  background: var(--rk-hover);
+  color: var(--rk-ink);
+}
+.rk-tool-row.is-selected > svg:first-child {
+  color: var(--rk-signal);
+}
+.rk-stage {
+  padding: 34px clamp(20px, 3vw, 42px) 38px;
+  min-width: 0;
+}
+.rk-tool-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 30px;
+}
+.rk-eyebrow {
+  font: 11px/1.4 var(--rk-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--rk-signal);
+}
+.rk-tool-header h2 {
+  font: 400 clamp(26px, 3vw, 38px) / 1.15 var(--rk-display);
+  letter-spacing: -0.035em;
+  margin: 10px 0 13px;
+}
+.rk-tool-header p {
+  color: var(--rk-muted);
+  max-width: 47ch;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.rk-stage button,
+.rk-command button {
+  font: 500 13px/1.35 var(--rk-body);
+  border: 1px solid var(--rk-line);
+  border-radius: 9px;
+  background: var(--rk-surface);
+  color: var(--rk-ink);
+  min-height: 38px;
+  padding: 8px 13px;
+  box-shadow: none;
+  transition:
+    background 0.18s,
+    transform 0.18s;
+  white-space: normal;
+}
+.rk-stage button:hover,
+.rk-command button:hover {
+  background: var(--rk-hover);
+}
+.rk-stage button:active {
+  transform: translateY(1px);
+}
+.rk-stage button.rk-primary {
+  background: var(--rk-signal);
+  color: var(--rk-on-signal);
+  border-color: transparent;
+  min-width: 150px;
+}
+.rk-stage button.rk-primary:hover {
+  filter: brightness(0.93);
+}
+.rk-stage button.rk-pin {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: none;
+}
+.rk-pin[aria-pressed="true"] {
+  color: var(--rk-signal);
+  background: var(--rk-hover) !important;
+}
+.rk-pin[aria-pressed="true"] svg {
+  fill: var(--rk-signal);
+  fill-opacity: 0.18;
+}
+.rk-field {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 18px;
+  min-width: 0;
+}
+.rk-field label {
+  font-size: 14px;
+  color: var(--rk-ink);
+}
+.rk-field :is(input, textarea, button[role="combobox"]) {
+  font: 400 14px/1.6 var(--rk-mono);
+  color: var(--rk-ink);
+  background: var(--rk-field);
+  border: 1px solid var(--rk-line);
+  border-radius: 10px;
+  padding: 11px 13px;
+  box-shadow: none;
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  min-height: 44px;
+}
+.rk-field input[type="file"] {
+  font-family: var(--rk-body);
+  white-space: normal;
+  overflow: hidden;
+}
+.rk-workbench .rk-field textarea {
+  resize: none;
+  min-height: 160px;
+  line-height: 1.8;
+  field-sizing: fixed;
+  max-height: 620px;
+}
+.rk-field input::placeholder,
+.rk-field textarea::placeholder {
+  color: var(--rk-muted);
+  opacity: 0.75;
+}
+.rk-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.rk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 0;
+}
+.rk-inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.rk-meta {
+  font: 12px/1.5 var(--rk-mono);
+  color: var(--rk-muted);
+}
+.rk-status {
+  min-height: 24px;
+  font: 13px/1.6 var(--rk-body);
+  color: var(--rk-muted);
+  margin: 8px 0 !important;
+  overflow-wrap: anywhere;
+}
+.rk-error {
+  color: var(--rk-error);
+}
+.rk-note {
+  font: 13px/1.7 var(--rk-body);
+  color: var(--rk-muted);
+  margin: 17px 0 0 !important;
+  overflow-wrap: anywhere;
+}
+.rk-output {
+  padding: 20px;
+  border: 1px solid var(--rk-line);
+  border-radius: 12px;
+  background: var(--rk-surface);
+  margin-top: 18px;
+  min-width: 0;
+}
+.rk-output-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.rk-output-top > span {
+  font: 11px var(--rk-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--rk-muted);
+}
+.rk-output pre {
+  font: 14px/1.85 var(--rk-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 400px;
+  overflow-y: auto;
+  min-height: 70px;
+  margin: 0;
+}
+.rk-output .rk-status {
+  min-height: 0;
+  margin-bottom: 0 !important;
+}
+.rk-output input {
+  max-width: 100%;
+  min-width: 0;
+  flex: 1;
+  font: 14px var(--rk-mono);
+  background: var(--rk-field);
+  border: 1px solid var(--rk-line);
+  padding: 12px;
+  color: var(--rk-ink);
+}
+.rk-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.rk-check input {
+  accent-color: var(--rk-signal);
+  width: 17px;
+  height: 17px;
+}
+.rk-color-preview {
+  min-height: 185px;
+  border: 1px solid var(--rk-line);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 25px;
+  gap: 10px;
+}
+.rk-color-preview > span {
+  font: 450 66px/1 var(--rk-display);
+  letter-spacing: -0.06em;
+}
+.rk-contrast {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin: 22px 0;
+  font-size: 13px;
+  color: var(--rk-muted);
+}
+.rk-contrast > strong {
+  font: 400 34px var(--rk-mono);
+  color: var(--rk-ink);
+}
+.rk-empty {
+  padding: 30px 14px;
+  color: var(--rk-muted);
+  font-size: 14px;
+}
+.rk-empty button {
+  margin-top: 14px;
+}
+.rk-shelf {
+  display: grid;
+  gap: 14px;
+  margin-top: 25px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 2px;
+}
+.rk-shelf article {
+  background: var(--rk-surface);
+  padding: 18px;
+  border: 1px solid var(--rk-line);
+  border-radius: 10px;
+  min-width: 0;
+}
+.rk-shelf h3 {
+  font: 500 15px/1.5 var(--rk-body);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.rk-shelf pre {
+  font: 13px/1.7 var(--rk-mono);
+  white-space: pre-wrap;
+  max-height: 100px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  margin: 10px 0 16px;
+  color: var(--rk-muted);
+}
+.rk-timer-face {
+  width: 245px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  position: relative;
+  margin: 10px auto 32px;
+}
+.rk-timer-face > svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  fill: none;
+  stroke: var(--rk-line);
+  stroke-width: 1.4;
+}
+.rk-timer-face .rk-timer-arc {
+  stroke: var(--rk-signal);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s linear;
+}
+.rk-timer-face > div {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.rk-timer-face strong {
+  font: 400 49px/1 var(--rk-mono);
+  letter-spacing: -0.07em;
+  font-variant-numeric: tabular-nums;
+}
+.rk-timer-face span {
+  font-size: 12px;
+  color: var(--rk-muted);
+}
+.rk-rename-preview {
+  max-height: 290px;
+  overflow: auto;
+  border: 1px solid var(--rk-line);
+  border-radius: 10px;
+}
+.rk-rename-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 12px/1.5 var(--rk-mono);
+  table-layout: fixed;
+}
+.rk-rename-preview :is(th, td) {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--rk-line);
+  overflow-wrap: anywhere;
+}
+.rk-rename-preview th {
+  color: var(--rk-muted);
+  font-weight: 400;
+  background: var(--rk-surface);
+}
+.rk-rename-preview caption {
+  text-align: left;
+  padding: 12px;
+  font-family: var(--rk-body);
+  color: var(--rk-muted);
+}
+.rk-conflict {
+  border: 1px solid var(--rk-signal);
+  border-radius: 10px;
+  padding: 15px;
+  font-size: 14px;
+}
+.rk-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 15px 22px;
+  border-top: 1px solid var(--rk-line);
+  font: 11px var(--rk-mono);
+  color: var(--rk-muted);
+}
+.rk-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.rk-native-stack {
+  display: grid;
+  gap: 22px;
+}
+.rk-native-panel {
+  padding: 20px;
+  background: var(--rk-surface);
+  border: 1px solid var(--rk-line);
+  border-radius: 12px;
+}
+.rk-native-panel h3 {
+  font: 500 17px/1.3 var(--rk-body);
+  letter-spacing: -0.015em;
+  margin-bottom: 9px;
+}
+.rk-native-panel .rk-native-description {
+  font: 14px/1.6 var(--rk-body);
+  color: var(--rk-muted);
+  margin-bottom: 16px;
+}
+.rk-native-panel dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  font: 13px/1.65 var(--rk-mono);
+}
+.rk-native-panel dt {
+  color: var(--rk-muted);
+}
+.rk-native-panel dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.rk-window-choices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+.rk-window-choices button {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.rk-window-choices svg {
+  width: 50px;
+  height: 34px;
+  color: var(--rk-signal);
+}
+@media (max-width: 760px) {
+  .rk-layout {
+    grid-template-columns: 190px minmax(0, 1fr);
+  }
+  .rk-stage {
+    padding: 24px 20px;
+  }
+  .rk-browser {
+    padding: 18px 8px;
+  }
+  .rk-tool-row {
+    font-size: 13px;
+    padding: 10px 8px;
+    gap: 9px;
+  }
+  .rk-columns {
+    gap: 12px;
+  }
+  .rk-command-count {
+    display: none;
+  }
+}
+@media (max-width: 580px) {
+  .rk-layout {
+    display: block;
+    min-height: 0;
+  }
+  .rk-browser {
+    display: flex;
+    gap: 18px;
+    max-height: 190px;
+    border-right: 0;
+    border-bottom: 1px solid var(--rk-line);
+    padding: 15px;
+    overflow: auto;
+  }
+  .rk-group {
+    flex: 0 0 190px;
+    margin: 0 !important;
+  }
+  .rk-group > p {
+    padding-left: 8px;
+  }
+  .rk-tool-row {
+    font-size: 14px;
+    min-height: 42px;
+  }
+  .rk-stage {
+    padding: 27px 19px;
+  }
+  .rk-tool-header {
+    margin-bottom: 25px;
+  }
+  .rk-tool-header h2 {
+    font-size: 30px;
+  }
+  .rk-columns {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .rk-command {
+    padding: 12px 17px;
+  }
+  .rk-workbench {
+    border-radius: 15px;
+  }
+  .rk-output {
+    padding: 15px;
+  }
+  .rk-foot {
+    font-size: 10px;
+    padding: 14px 17px;
+  }
+  .rk-contrast {
+    gap: 20px;
+  }
+  .rk-contrast > strong {
+    font-size: 29px;
+  }
+  .rk-output-top {
+    flex-wrap: wrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rk-workbench * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+@media (forced-colors: active) {
+  .rk-workbench {
+    border-color: CanvasText;
+  }
+  .rk-tool-row.is-selected {
+    outline: 1px solid Highlight;
+  }
+  .rk-stage button.rk-primary {
+    border: 1px solid ButtonText;
+  }
+  .rk-timer-face .rk-timer-arc {
+    stroke: Highlight;
+  }
+}
+
+/* A single picker keeps small screens focused on the actual tool. */
+.rk-mobile-picker {
+  display: none;
+}
+@media (max-width: 580px) {
+  .rk-browser {
+    display: none;
+  }
+  .rk-mobile-picker {
+    display: grid;
+    gap: 10px;
+    padding: 18px;
+    border-bottom: 1px solid var(--rk-line);
+    background: var(--rk-surface);
+  }
+  .rk-mobile-picker label {
+    font: 12px var(--rk-body);
+    color: var(--rk-muted);
+  }
+  .rk-mobile-picker button {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--rk-line);
+    background: var(--rk-field);
+    color: var(--rk-ink);
+  }
+}

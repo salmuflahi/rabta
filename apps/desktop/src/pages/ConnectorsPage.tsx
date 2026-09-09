@@ -229,8 +229,8 @@ function ConnectorDetail({ connector }: { connector: ConnectorRow }) {
       <p className="mt-1.5 text-sub text-muted-foreground">
         {/* Colour is never the only signal: the dot carries the glance, this
             line carries the meaning. "approved by you" is the literal truth
-            of how pairing works here — there is no account and no server
-            that could have approved it instead. */}
+            of local connector pairing. A web account never grants connector
+            permission on this Mac. */}
         {connector.connected
           ? `Connected ${relativeTime(connector.connectedSince)} · approved by you`
           : `Offline · last seen ${relativeTime(connector.connectedSince)}`}
@@ -406,7 +406,7 @@ export function ConnectorsPage() {
               <p className="text-card-title font-590 text-foreground">No connectors yet</p>
               <p className="mt-1 max-w-[440px] text-sub leading-[1.55] text-muted-foreground">
                 Connect your editor and browser so Rabta can capture and restore a task's workspace.
-                Each pairs automatically the first time it runs — no accounts, no keys.
+                Pair your tools on this Mac. Browser connections require your approval in Rabta.
               </p>
               <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <ConnectHowTo

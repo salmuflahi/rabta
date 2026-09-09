@@ -64,6 +64,7 @@ export function ProjectDialogs({
             </DialogDescription>
           </DialogHeader>
           <form
+            noValidate
             onSubmit={(event) => {
               event.preventDefault();
               if (!renameProject || renameDisabled) return;

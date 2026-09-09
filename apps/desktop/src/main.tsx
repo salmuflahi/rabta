@@ -1,3 +1,4 @@
+import { Companion } from "@/features/companion/Companion";
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
@@ -6,6 +7,11 @@ import { IconSprite } from "@/components/ui/icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import "./index.css";
+import "@/fonts.css";
+import "@/vendor/rabta-ui/brand.css";
+import "./vendor/rabta-ui/lens.css";
+import "./lens-app.css";
+import "./context-measure.css";
 
 const isGallery = import.meta.env.DEV && window.location.hash === "#gallery";
 const Gallery = isGallery
@@ -27,7 +33,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Gallery />
           </Suspense>
         ) : (
-          <App />
+          window.location.hash === "#companion" ? <Companion /> : <App />
         )}
         <Toaster />
       </TooltipProvider>

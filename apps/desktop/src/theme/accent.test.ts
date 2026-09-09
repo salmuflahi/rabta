@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ACCENTS, RETIRED_ACCENTS, applyAccent, type AccentId } from "./accent";
 
-const IDS: AccentId[] = ["tangerine", "iris", "graphite", "sky"];
+const IDS: AccentId[] = ["sage", "tangerine", "iris", "graphite", "sky"];
 
 describe("ACCENTS table", () => {
   it.each(IDS)("resolves %s in both themes", (id) => {
@@ -21,7 +21,7 @@ describe("ACCENTS table", () => {
     }
   });
 
-  it("offers exactly the four accents the redesign kept", () => {
+  it("offers the shared brand accent and four personal alternatives", () => {
     expect(Object.keys(ACCENTS).sort()).toEqual([...IDS].sort());
   });
 
@@ -126,7 +126,7 @@ describe("applyAccent", () => {
       const root = freshRoot();
       const expected = freshRoot();
       expect(() => applyAccent(retired as unknown as AccentId, "light", root)).not.toThrow();
-      applyAccent("tangerine", "light", expected);
+      applyAccent("sage", "light", expected);
       expect(root.style.getPropertyValue("--primary")).toBe(expected.style.getPropertyValue("--primary"));
     }
   });

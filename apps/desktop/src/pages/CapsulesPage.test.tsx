@@ -76,7 +76,7 @@ const FAKE_RESOURCE: TaskResource = {
  * CapsulesPage <-> useRestore wiring, not the animation. */
 function stubReducedMotion(): () => void {
   const original = window.matchMedia;
-  window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia;
+  window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }) as unknown as typeof window.matchMedia;
   return () => {
     if (original) window.matchMedia = original;
     // @ts-expect-error - test cleanup restoring an absent global

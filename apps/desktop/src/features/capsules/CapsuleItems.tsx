@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Pin, PinOff, X } from "lucide-react";
+import { Pin, PinOff, X } from "@/vendor/rabta-ui/glyphs";
 import { Button } from "@/components/ui/button";
 import { Row } from "@/components/ui/row";
 import { Section } from "@/components/ui/section";

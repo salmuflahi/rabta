@@ -9,7 +9,7 @@ import {
   Terminal,
   Wrench,
   type LucideProps,
-} from "lucide-react";
+} from "@/vendor/rabta-ui/glyphs";
 import type { ComponentType } from "react";
 import type { ProjectIconKey } from "@/store";
 

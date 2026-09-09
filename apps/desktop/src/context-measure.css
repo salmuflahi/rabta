@@ -1,0 +1,49 @@
+/* Shared geometry from the website; native app semantic tokens stay canonical. */
+.context-measure {
+  --ink: hsl(var(--foreground));
+  --slate: hsl(var(--muted-foreground));
+  --signal: hsl(var(--accent-text));
+  --line: hsl(var(--border));
+  --amber: var(--rb-amber);
+  --display: var(--rb-font-display), sans-serif;
+  --body: var(--rb-font-body), sans-serif;
+  --mono: var(--rb-font-mono), monospace;
+}
+.context-measure { margin: 0; color: var(--ink); }
+.context-measure svg { display: block; width: min(100%, 360px); height: auto; margin: 0 auto; overflow: visible; }
+.measure-track { stroke: var(--line); stroke-width: 1; }
+.measure-tick { stroke: currentColor; stroke-width: 2.5; }
+.measure-group-0 { color: var(--signal); }
+.measure-group-1 { color: var(--rb-blue); }
+.measure-group-2 { color: var(--ink); }
+.measure-group-3 { color: var(--amber); }
+.measure-total { fill: var(--ink); font: 350 62px var(--display); letter-spacing: -.06em; }
+.measure-label { fill: var(--slate); font: 12px var(--body); }
+.context-measure > figcaption { text-align: center; color: var(--slate); font: 10px/1.5 var(--mono); margin-top: -5px; }
+.context-measure > ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 25px; padding: 20px 0 0; list-style: none; margin: 0; }
+.context-measure li { display: flex; gap: 7px; align-items: baseline; }
+.context-measure li > i { width: 5px; height: 5px; background: currentColor; border-radius: 50%; flex-shrink: 0; }
+.context-measure li strong { color: var(--ink); font: 500 12px/1.5 var(--body); }
+.context-measure li span { display: block; font: 10px/1.6 var(--body); color: var(--slate); }
+.context-measure.is-compact svg { width: 260px; }
+.context-measure.is-compact > ul { gap: 8px 18px; padding-top: 12px; }
+.approved-wordmark { width: 108px; height: auto; flex-shrink: 0; }
+.app-brand-lockup .approved-wordmark { width: 4.5em; height: auto; }
+.companion-brand .approved-wordmark { width: 80px; height: auto; color: hsl(var(--foreground)); }
+.companion-body .context-measure { margin: -8px auto 20px; }
+.companion-body .context-measure.is-compact svg { max-height: 140px; }
+.companion-body .context-measure > figcaption { font-size: 9px; }
+.companion-body .context-measure > ul { gap: 8px 17px; }
+.companion-body .context-measure li strong { font-size: 11px; }
+.companion-window > header button:hover { background: hsl(var(--muted)); }
+.companion-window > header button:focus-visible, .companion-return:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+.restore-readiness { width: min(100%, 310px); margin: 0 auto; text-align: center; }
+.restore-readiness svg { width: 100%; height: auto; }
+.restore-readiness path { fill: none; stroke-width: 9; stroke-linecap: round; }
+.restore-readiness .is-ready { stroke: hsl(var(--accent-text)); }
+.restore-readiness .is-offline { stroke: hsl(var(--muted-foreground)); stroke-dasharray: 2 7; }
+.readiness-total { font: 400 48px var(--rb-font-display), sans-serif; fill: hsl(var(--foreground)); }
+.readiness-total tspan { font-size: 22px; fill: hsl(var(--muted-foreground)); }
+.readiness-label { font: 12px var(--rb-font-body), sans-serif; fill: hsl(var(--muted-foreground)); }
+.restore-readiness figcaption { color: hsl(var(--muted-foreground)); font-size: 11px; line-height: 1.6; margin-bottom: 18px; }
+@media (forced-colors: active) { .measure-tick,.restore-readiness .is-ready,.restore-readiness .is-offline { stroke: CanvasText; }.measure-total,.measure-label,.readiness-total,.readiness-total tspan,.readiness-label { fill: CanvasText; } }

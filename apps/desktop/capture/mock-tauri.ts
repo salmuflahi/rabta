@@ -61,6 +61,22 @@ const LATENCY_MS = 0;
 type Args = Record<string, unknown> | undefined;
 
 function handle(cmd: string, args: Args): unknown {
+  if (import.meta.env.MODE === "web-preview") {
+    if (cmd === "open_companion" || cmd === "show_workspace" || cmd === "hide_companion") {
+      window.location.hash = cmd === "open_companion" ? "capture=overview&companion=true&accent=sage" : "capture=capsules&accent=sage";
+      window.location.reload();
+      return null;
+    }
+    if (cmd === "open_url") {
+      const url = new URL(String(args?.url ?? ""));
+      if (url.protocol !== "https:" && url.protocol !== "mailto:") throw new Error("This link is available in the desktop app.");
+      window.open(url.href, "_blank", "noopener,noreferrer");
+      return null;
+    }
+    if (["open", "reveal_in_finder", "delete_project", "delete_task", "archive_project", "create_project", "create_task", "duplicate_task", "start_issue_task", "approve_pairing", "deny_pairing", "migrate_export", "migrate_apply"].includes(cmd)) {
+      throw new Error("This is a sample workspace. Use the Mac app to connect tools or change your real workspace.");
+    }
+  }
   switch (cmd) {
     // ------------------------------------------------------------- migrate
     //

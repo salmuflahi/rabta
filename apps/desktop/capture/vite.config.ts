@@ -15,11 +15,18 @@ const mock = fileURLToPath(new URL("./mock-tauri.ts", import.meta.url));
 
 export default defineConfig({
   root: fileURLToPath(new URL(".", import.meta.url)),
+  publicDir: fileURLToPath(new URL("../public", import.meta.url)),
   plugins: [react()],
   clearScreen: false,
   // HMR off: its WebSocket never closes, so Chrome's --virtual-time-budget
   // would wait on it forever and the capture would hang instead of settling.
-  server: { port: 5199, strictPort: true, hmr: false },
+  server: {
+    host: "0.0.0.0",
+    allowedHosts: ["terminal.local"],
+    port: 5199,
+    strictPort: true,
+    hmr: false,
+  },
   // Pinned explicitly: moving `root` into capture/ would otherwise leave
   // PostCSS/Tailwind resolution dependent on where the command was run from,
   // which is exactly the kind of ambient state a capture rig must not have.

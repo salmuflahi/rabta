@@ -129,9 +129,9 @@ describe("sidebar chrome", () => {
   it("inlines the mark so it inherits the sidebar's colour", () => {
     const { container } = renderWithProviders(<Sidebar />);
     expect(container.querySelector("img[alt='Rabta']")).toBeNull();
-    const svg = container.querySelector("svg[data-brand-mark]");
+    const svg = container.querySelector(".app-brand-lockup svg");
     expect(svg).not.toBeNull();
-    expect(svg!.getAttribute("aria-label")).toBe("Rabta");
+    expect(container.querySelector(".app-brand-lockup")?.getAttribute("aria-label")).toBe("Rabta");
     // currentColor is the whole point — a hardcoded fill would defeat it.
     expect(svg!.innerHTML).toMatch(/currentColor/);
     expect(svg!.innerHTML).not.toMatch(/#102526/);

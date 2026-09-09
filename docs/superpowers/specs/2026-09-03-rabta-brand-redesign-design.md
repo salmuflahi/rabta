@@ -1,5 +1,7 @@
 # Rabta, the brand: site and app redesign
 
+**Visual supersession, 2026-09-07:** the user's new references replace this document's palette, material, layout and motion restrictions for the current redesign. See the root `DESIGN.md` and `UX-CONTRACT.md`. This archived spec remains useful for product history; it is not the current visual authority.
+
 **Status:** design spec, 2026-09-03. Written to be built from, and to double as the brand's own "why" document. The `/brand/` page on the site is this document in public.
 
 **Supersedes:** the Living Instrument site system (`docs/site-design-plan.md`, petrol, the fold, the receipt), the Console v2 app palette, and every earlier mark. None of it carries forward. This is a new identity built around the one thing that already worked in the marketing videos: the `r`.

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Loader2, RefreshCw, Search } from "lucide-react";
+import { Loader2, RefreshCw, Search } from "@/vendor/rabta-ui/glyphs";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

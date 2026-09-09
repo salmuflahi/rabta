@@ -1,4 +1,4 @@
-import { Check, Circle, GitBranch, Globe, Minus, TriangleAlert, Code2, Terminal as TerminalIcon, Box } from "lucide-react";
+import { Check, Circle, GitBranch, Globe, Minus, TriangleAlert, Code2, Terminal as TerminalIcon, Box } from "@/vendor/rabta-ui/glyphs";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Mark } from "@/components/brand/Mark";

@@ -100,8 +100,9 @@ structurally unable to read page contents.
 
 ## Privacy
 
-Everything runs locally: no accounts, no cloud, no telemetry. Connectors talk
-only to the Rabta app on `127.0.0.1`. Full policy:
+Workspace capture and restore remain local. Connectors talk only to the Rabta
+app on `127.0.0.1`. Optional web accounts save a chosen profile and tool list;
+they do not upload workspace data or grant connector permissions. Full policy:
 <https://rabta.build/privacy/>.
 
 ## Distribution status

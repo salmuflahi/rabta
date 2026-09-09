@@ -109,7 +109,7 @@ describe("SettingsPage live preferences", () => {
   it("wires Accent to the pref", () => {
     renderWithProviders(<SettingsPage />);
     const swatch = detail().getByRole("radiogroup", { name: "Accent colour" });
-    fireEvent.click(within(swatch).getAllByRole("radio")[1]);
+    fireEvent.click(within(swatch).getByRole("radio", {name: "Iris"}));
     expect(useStore.getState().prefs.accent).not.toBe("tangerine");
   });
 

@@ -1,10 +1,21 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import markUrl from "@/assets/brand/rabta-mark.svg";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActionBridge,
+  DotText,
+  LensPanel,
+  OrbitThreads,
+  QuietDock,
+} from "@/vendor/rabta-ui/lens";
 import { Icon } from "@/components/ui/icon";
+import { ContextMeasure } from "@/components/ContextMeasure";
 import { LoadError } from "@/components/ui/load-error";
 import { Skeleton } from "@/components/ui/skeleton";
-import { capsuleBranch, capsuleChips, capsuleSavedAt } from "@/lib/capsuleFacts";
+import {
+  capsuleBranch,
+  capsuleChips,
+  capsuleSavedAt,
+} from "@/lib/capsuleFacts";
 import { describeEvent, relativeTime } from "@/lib/humanize";
 import { useOwnsViewAccent } from "@/shell/viewAccent";
 import { useStore, type Project, type Task, type TaskResource } from "@/store";
@@ -24,19 +35,25 @@ interface CapsuleFacts {
  * rather than hand-assembled so it reads correctly outside en-GB; the
  * handoff's example is the shape, not the string.
  *
- * The app has no account and must never greet the user by name. The date is
- * deliberately the most personal thing on this screen. */
+ * This desktop screen has no connected identity yet; use the date until
+ * a real Rabta account session is available. Do not invent a profile. */
 function formatToday(now: Date): string {
-  return new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" }).format(
-    now,
-  );
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(now);
 }
 
 /** "2 apps connected · 4 capsules open · last capture 12m ago" — the whole
  * state of this Mac in one line. Clauses that have nothing true to say are
  * dropped rather than padded with zeroes: a Mac with no capture yet says so
  * by not mentioning capture. */
-function glanceLine(connected: number, open: number, lastCapture: string | null): string {
+function glanceLine(
+  connected: number,
+  open: number,
+  lastCapture: string | null,
+): string {
   const parts = [
     `${connected} ${connected === 1 ? "app" : "apps"} connected`,
     `${open} ${open === 1 ? "capsule" : "capsules"} open`,
@@ -47,7 +64,7 @@ function glanceLine(connected: number, open: number, lastCapture: string | null)
 
 /** Section heading above each grouped list — 12/600, secondary. */
 function GroupHeading({ children }: { children: React.ReactNode }) {
-  return <p className="mt-[26px] pl-0.5 text-sub font-semibold text-muted-foreground">{children}</p>;
+  return <h2 className="lens-group-title">{children}</h2>;
 }
 
 /** The grouped-surface list container the handoff uses for "Also open" and
@@ -55,7 +72,7 @@ function GroupHeading({ children }: { children: React.ReactNode }) {
  * clipped by the container's own radius. */
 function GroupedList({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-[7px] overflow-hidden rounded-[10px] bg-card shadow-raised">
+    <div className="lens-group-list mt-[7px] overflow-hidden bg-card shadow-raised">
       <div className="divide-y-[0.5px] divide-border">{children}</div>
     </div>
   );
@@ -63,10 +80,13 @@ function GroupedList({ children }: { children: React.ReactNode }) {
 
 function OverviewSkeleton() {
   return (
-    <div className="mx-auto h-full max-w-[660px] overflow-y-auto px-8 pb-11 pt-10">
+    <div className="lens-overview h-full min-h-0 overflow-y-auto">
+      <span className="sr-only" role="status">Loading your workspace</span>
+      <div className="lens-overview-inner">
       <Skeleton className="h-7 w-56" />
-      <Skeleton className="mt-3 h-4 w-80" />
-      <div className="mt-[26px] rounded-[10px] bg-card p-[18px] shadow-raised">
+      <Skeleton className="mb-8 mt-3 h-4 w-full max-w-80" />
+      <div className="lens-overview-grid">
+      <div className="min-h-[440px] rounded-[26px] bg-card p-7 shadow-raised">
         <div className="flex items-start gap-3.5">
           <Skeleton className="size-[38px] shrink-0 rounded-[9px]" />
           <div className="min-w-0 flex-1 space-y-2">
@@ -75,6 +95,8 @@ function OverviewSkeleton() {
           </div>
           <Skeleton className="h-7 w-24 shrink-0 rounded-[7px]" />
         </div>
+      </div>
+      <Skeleton className="min-h-[380px] w-full rounded-[26px]" />
       </div>
       {[0, 1].map((i) => (
         <div key={i}>
@@ -86,6 +108,7 @@ function OverviewSkeleton() {
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }
@@ -111,34 +134,51 @@ export function OverviewPage() {
   const selectCapsule = useStore((s) => s.selectCapsule);
 
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [resources, setResources] = useState<Record<string, TaskResource[]>>({});
+  const [resources, setResources] = useState<Record<string, TaskResource[]>>(
+    {},
+  );
   // Pre-first-load window only: true until the initial list_projects fetch
   // settles, then stays false.
   const [loading, setLoading] = useState(true);
   // A failed load is distinct from an empty workspace — see LoadError.
   const [loadError, setLoadError] = useState(false);
+  const [contextState, setContextState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const projectRequest = useRef(0);
 
   const loadProjects = useCallback(() => {
+    const request = ++projectRequest.current;
     setLoading(true);
     setLoadError(false);
+    setContextState("loading");
     invoke<Project[]>("list_projects")
       .then((p) => {
-        setProjects(p);
+        if (request !== projectRequest.current) return;
+        setProjects([...p]);
         setLoadError(false);
       })
       .catch((e) => {
+        if (request !== projectRequest.current) return;
         console.error("list_projects failed:", e);
         setLoadError(true);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (request === projectRequest.current) setLoading(false);
+      });
   }, [setProjects]);
 
   useEffect(() => {
     loadProjects();
+    return () => {
+      projectRequest.current += 1;
+    };
   }, [loadProjects]);
 
   useEffect(() => {
-    invoke<string | null>("active_task").then(setActiveTaskId).catch(() => {});
+    invoke<string | null>("active_task")
+      .then(setActiveTaskId)
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -150,30 +190,47 @@ export function OverviewPage() {
     if (projects.length === 0) {
       setTasks([]);
       setResources({});
+      setContextState("ready");
       return;
     }
     let cancelled = false;
-    Promise.all(projects.map((p) => invoke<Task[]>("list_tasks", { projectId: p.id })))
+    setContextState("loading");
+    Promise.all(
+      projects.map((p) => invoke<Task[]>("list_tasks", { projectId: p.id })),
+    )
       .then(async (lists) => {
         const all = lists.flat();
         if (cancelled) return;
-        setTasks(all);
         const pairs = await Promise.all(
           all.map(
             async (t) =>
-              [t.id, await invoke<TaskResource[]>("task_resources", { taskId: t.id })] as const,
+              [
+                t.id,
+                await invoke<TaskResource[]>("task_resources", {
+                  taskId: t.id,
+                }),
+              ] as const,
           ),
         );
-        if (!cancelled) setResources(Object.fromEntries(pairs));
+        if (!cancelled) {
+          setTasks(all);
+          setResources(Object.fromEntries(pairs));
+          setContextState("ready");
+        }
       })
-      .catch((e) => console.error("loading capsules failed:", e));
+      .catch((e) => {
+        if (cancelled) return;
+        console.error("loading capsules failed:", e);
+        setContextState("error");
+      });
     return () => {
       cancelled = true;
     };
   }, [projects]);
 
   const projectName = useCallback(
-    (id: string) => projects.find((p) => p.id === id)?.name ?? "Unknown project",
+    (id: string) =>
+      projects.find((p) => p.id === id)?.name ?? "Unknown project",
     [projects],
   );
 
@@ -196,7 +253,9 @@ export function OverviewPage() {
     return facts.sort((a, b) => {
       if (a.task.id === activeTaskId) return -1;
       if (b.task.id === activeTaskId) return 1;
-      return (Date.parse(b.savedAt ?? "") || 0) - (Date.parse(a.savedAt ?? "") || 0);
+      return (
+        (Date.parse(b.savedAt ?? "") || 0) - (Date.parse(a.savedAt ?? "") || 0)
+      );
     });
   }, [tasks, resources, projectName, activeTaskId]);
 
@@ -210,11 +269,13 @@ export function OverviewPage() {
   // undefined until the fetch lands anyway, but stated rather than relied on:
   // the rule is uniform across the three claiming pages, and a future default
   // or optimistic hero would otherwise blank the screen's accent mid-load.
-  useOwnsViewAccent(!loading && Boolean(hero));
+  useOwnsViewAccent(!loading && contextState === "ready" && Boolean(hero));
   const alsoOpen = openCapsules.slice(1, 4);
   const connectedCount = connectors.filter((c) => c.connected).length;
   const lastCapture = useMemo(() => {
-    const stamps = openCapsules.map((c) => c.savedAt).filter((s): s is string => Boolean(s));
+    const stamps = openCapsules
+      .map((c) => c.savedAt)
+      .filter((s): s is string => Boolean(s));
     return stamps.length ? relativeTime(stamps[0]) : null;
   }, [openCapsules]);
   const recent = [...log].slice(-5).reverse();
@@ -230,131 +291,203 @@ export function OverviewPage() {
     setView("capsules");
   }
 
-  if (loading) return <OverviewSkeleton />;
-  if (loadError) return <LoadError onRetry={loadProjects} />;
+  if (loadError || contextState === "error")
+    return <LoadError onRetry={loadProjects} />;
+  if (loading || contextState === "loading") return <OverviewSkeleton />;
 
   return (
     // The shell's pane no longer scrolls (AppShell.tsx) — each screen owns
     // its own scroller. Overview's is one 660px reading column, centred:
     // the handoff's Overview is not a dashboard grid, everything on it is
     // one thing wide.
-    <div className="h-full min-h-0 overflow-y-auto">
-      <div className="mx-auto max-w-[660px] px-8 pb-11 pt-10">
-      <h1 className="text-display font-640 text-foreground">{formatToday(new Date())}</h1>
-      <p className="mt-[7px] text-sub text-muted-foreground">
-        {glanceLine(connectedCount, openCapsules.length, lastCapture)}
-      </p>
+    <div className="lens-overview h-full min-h-0 overflow-y-auto">
+      <div className="lens-overview-inner">
+        <header className="lens-overview-heading">
+          <div>
+            <h1 className="text-display font-640 text-foreground">
+              {formatToday(new Date())}
+            </h1>
+            <p className="mt-[7px] text-sub text-muted-foreground">
+              {glanceLine(connectedCount, openCapsules.length, lastCapture)}
+            </p>
+          </div>
+          <QuietDock
+            label="Quick navigation"
+            items={[
+              { id: "capsules", label: "Capsules", icon: "capsule" },
+              { id: "connectors", label: "Connections", icon: "link" },
+              { id: "activity", label: "Activity", icon: "timeline" },
+            ]}
+            onAction={(id) =>
+              setView(id as "capsules" | "connectors" | "activity")
+            }
+          />
+        </header>
 
-      {hero ? (
-        <section
-          aria-label="Pick up where you left off"
-          className="mt-[26px] rounded-[10px] bg-card p-[18px] shadow-raised"
-        >
-          <div className="flex items-start gap-3.5">
-            <img src={markUrl} alt="" width={38} height={38} className="shrink-0 rounded-[9px]" />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                {/* The "this is the live one" mark. Legitimately the accent
-                    colour, but it is not an action, so it opts out of the
-                    one-accent budget the Resume button spends. */}
-                <span
-                  data-accent-mark
-                  aria-hidden
-                  className="size-[7px] shrink-0 rounded-full bg-primary"
+        <div className="lens-overview-grid">
+          {hero ? (
+            <section
+              aria-label="Pick up where you left off"
+              className="lens-resume-section"
+            >
+              <LensPanel className="lens-resume-card">
+                <div className="lens-panel-eyebrow">
+                  <span>
+                    {hero.task.id === activeTaskId && (
+                      <i
+                        data-accent-mark
+                        aria-hidden="true"
+                        className="mr-2 inline-block size-1.5 rounded-full bg-primary"
+                      />
+                    )}
+                    Pick up where you left off
+                  </span>
+                  <Icon name="capsule" className="size-4" />
+                </div>
+                <h2 className="lens-task-title">{hero.task.title}</h2>
+                <p className="lens-task-meta">
+                  {hero.projectName}
+                  {hero.branch && (
+                    <>
+                      {" · "}
+                      <span className="font-mono text-meta">{hero.branch}</span>
+                    </>
+                  )}
+                  {" · "}
+                  {hero.savedAt
+                    ? `saved ${relativeTime(hero.savedAt)}`
+                    : "never captured"}
+                </p>
+                <div className="lens-resume-context">
+                  <ContextMeasure
+                    items={capsuleChips(hero.resources).map((chip) => ({
+                      id: chip.key,
+                      label: chip.label,
+                      count: chip.count,
+                    }))}
+                  />
+                </div>
+                <ActionBridge
+                  onClick={() => resume(hero.task.id)}
+                  left={<Icon name="capsule" className="size-5" />}
+                  right={<Icon name="play" className="size-4" />}
+                >
+                  Resume
+                </ActionBridge>
+              </LensPanel>
+            </section>
+          ) : (
+            <section
+              aria-label="Pick up where you left off"
+              className="lens-empty-capsule"
+            >
+              <LensPanel>
+                <OrbitThreads label="Your workspace, gathered around a task" />
+                <Icon
+                  name="capsule"
+                  className="mx-auto size-5 text-tertiary-foreground"
                 />
-                <p className="truncate text-card-title font-590 text-foreground">{hero.task.title}</p>
-              </div>
-              <p className="mt-1 text-meta text-muted-foreground">
-                {hero.projectName}
-                {hero.branch && (
-                  <>
-                    {" · "}
-                    <span className="font-mono text-meta">{hero.branch}</span>
-                  </>
-                )}
-                {" · "}
-                {hero.savedAt ? `saved ${relativeTime(hero.savedAt)}` : "never captured"}
-              </p>
+                <p className="mt-2 text-card-title font-590 text-foreground">
+                  Nothing open yet
+                </p>
+                <p className="mt-1 text-meta text-muted-foreground">
+                  Start a capsule and Rabta keeps your files, tabs and branch
+                  together.
+                </p>
+              </LensPanel>
+            </section>
+          )}
+
+          <LensPanel tone="sage" className="lens-connections-card">
+            <div className="lens-panel-eyebrow">
+              <span>This Mac</span>
+              <Icon name="shield" className="size-4" />
             </div>
+            <DotText text="IN REACH" className="lens-in-reach" />
+            <p className="lens-connections-intro">
+              The tools around your work.
+            </p>
+            <ul className="lens-tool-list">
+              {connectors.slice(0, 4).map((connector) => (
+                <li key={connector.id}>
+                  <span>{connector.name}</span>
+                  <small data-connected={connector.connected}>
+                    {connector.connected ? "Connected" : "Disconnected"}
+                  </small>
+                </li>
+              ))}
+            </ul>
+            {connectors.length === 0 && (
+              <p className="lens-connection-empty">
+                Connect your editor or browser to bring its context into Rabta.
+              </p>
+            )}
             <button
               type="button"
-              onClick={() => resume(hero.task.id)}
-              className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[7px] bg-primary px-3.5 text-body font-510 text-primary-foreground transition-colors duration-fast ease-standard hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+              className="lens-text-action"
+              onClick={() => setView("connectors")}
             >
-              <Icon name="play" className="size-[11px]" />
-              Resume
+              Manage connections{" "}
+              <Icon name="chevron-right" className="size-4" />
             </button>
-          </div>
-          {/* Indented 52px to clear the 38px mark plus its gap, so the chips
-              line up under the title rather than under the icon. */}
-          <div className="mt-3.5 flex flex-wrap gap-1.5 pl-[52px]">
-            {capsuleChips(hero.resources).map((chip) => (
-              <span
-                key={chip.key}
-                data-capsule-chip={chip.key}
-                className="inline-flex items-center gap-1.5 rounded-[7px] bg-secondary px-[9px] py-[5px] text-meta text-muted-foreground"
-              >
-                <Icon name={chip.icon} className="size-3 shrink-0" />
-                {chip.label}
-              </span>
-            ))}
-          </div>
-        </section>
-      ) : (
-        <section
-          aria-label="Pick up where you left off"
-          className="mt-[26px] rounded-[10px] border border-dashed border-border bg-card/40 px-[18px] py-7 text-center"
-        >
-          <Icon name="capsule" className="mx-auto size-5 text-tertiary-foreground" />
-          <p className="mt-2 text-card-title font-590 text-foreground">Nothing open yet</p>
-          <p className="mt-1 text-meta text-muted-foreground">
-            Start a capsule and Rabta keeps your files, tabs and branch together.
-          </p>
-        </section>
-      )}
+            <span className="lens-local-note">
+              Everything stays on this Mac.
+            </span>
+          </LensPanel>
+        </div>
 
-      {alsoOpen.length > 0 && (
-        <>
-          <GroupHeading>Also open</GroupHeading>
-          <GroupedList>
-            {alsoOpen.map((c, i) => (
-              <button
-                key={c.task.id}
-                type="button"
-                onClick={() => openInCapsules(c.task.id)}
-                style={{ animationDelay: `${Math.min(i, 12) * 22}ms` }}
-                className="animate-page-in flex w-full cursor-default items-center gap-3 px-4 py-2.5 text-left transition-colors duration-fast ease-standard hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-              >
-                <span className="min-w-0 flex-1 truncate text-body text-foreground">{c.task.title}</span>
-                {c.branch && (
-                  <span className="shrink-0 font-mono text-[11px] text-tertiary-foreground">{c.branch}</span>
-                )}
-                <span className="w-[78px] shrink-0 text-right text-meta text-tertiary-foreground">
-                  {c.savedAt ? relativeTime(c.savedAt) : "—"}
-                </span>
-              </button>
-            ))}
-          </GroupedList>
-        </>
-      )}
+        <div className="lens-overview-lists">
+          {alsoOpen.length > 0 && (
+            <>
+              <GroupHeading>Also open</GroupHeading>
+              <GroupedList>
+                {alsoOpen.map((c, i) => (
+                  <button
+                    key={c.task.id}
+                    type="button"
+                    onClick={() => openInCapsules(c.task.id)}
+                    style={{ animationDelay: `${Math.min(i, 12) * 22}ms` }}
+                    className="animate-page-in flex w-full cursor-default items-center gap-3 px-4 py-2.5 text-left transition-colors duration-fast ease-standard hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-body text-foreground">
+                      {c.task.title}
+                    </span>
+                    {c.branch && (
+                      <span className="shrink-0 font-mono text-[11px] text-tertiary-foreground">
+                        {c.branch}
+                      </span>
+                    )}
+                    <span className="w-[78px] shrink-0 text-right text-meta text-tertiary-foreground">
+                      {c.savedAt ? relativeTime(c.savedAt) : "—"}
+                    </span>
+                  </button>
+                ))}
+              </GroupedList>
+            </>
+          )}
 
-      {recent.length > 0 && (
-        <>
-          <GroupHeading>Recent</GroupHeading>
-          <GroupedList>
-            {recent.map((e, i) => (
-              <div key={e.seq} style={{ animationDelay: `${Math.min(i, 12) * 22}ms` }} className="animate-page-in flex items-center gap-3 px-4 py-2.5">
-                <span className="min-w-0 flex-1 truncate text-body text-foreground">
-                  {describeEvent(e, resolveName).sentence}
-                </span>
-                <span className="shrink-0 text-meta text-tertiary-foreground">
-                  {relativeTime(e.at)}
-                </span>
-              </div>
-            ))}
-          </GroupedList>
-        </>
-      )}
+          {recent.length > 0 && (
+            <>
+              <GroupHeading>Recent</GroupHeading>
+              <GroupedList>
+                {recent.map((e, i) => (
+                  <div
+                    key={e.seq}
+                    style={{ animationDelay: `${Math.min(i, 12) * 22}ms` }}
+                    className="animate-page-in flex items-center gap-3 px-4 py-2.5"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-body text-foreground">
+                      {describeEvent(e, resolveName).sentence}
+                    </span>
+                    <span className="shrink-0 text-meta text-tertiary-foreground">
+                      {relativeTime(e.at)}
+                    </span>
+                  </div>
+                ))}
+              </GroupedList>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
