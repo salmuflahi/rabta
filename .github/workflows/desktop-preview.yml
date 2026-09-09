@@ -14,6 +14,10 @@ on:
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - '.github/workflows/desktop-preview.yml'
+      - '.github/workflows/desktop-release.yml'
+      - 'releases/desktop-beta.json'
+      - 'scripts/publish-desktop-beta.mjs'
+      - 'tests/scripts/publish-desktop-beta.test.mjs'
   workflow_dispatch:
 
 # Preview artifacts only. No signing secrets, release publishing or deployment.
@@ -46,6 +50,8 @@ jobs:
           rustup default stable
       - name: Test native window calculations
         run: node --test apps/desktop/src-tauri/tests/*.node.mjs
+      - name: Test release publication safeguards
+        run: node --test tests/scripts/publish-desktop-beta.test.mjs
       - name: Test collaboration service
         run: node --test services/teams/*.test.mjs
       - name: Verify AI utility source
