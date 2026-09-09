@@ -30,7 +30,9 @@
   padding: 25px;
 }
 .rabta-desktop-utilities .rk-browser {
-  max-height: none;
+  /* Bound the catalog only; editors retain the existing outer scroll owner. */
+  max-height: max(360px, calc(100dvh - 280px));
+  align-self: start;
 }
 .rabta-desktop-utilities .rk-tool-header h2 {
   font-family: var(--rk-display);

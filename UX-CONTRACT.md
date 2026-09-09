@@ -80,3 +80,24 @@ Authority: `docs/account-policy.md` supersedes the old blanket no-account constr
 All native actions use allowlisted commands and validated arguments. No shell evaluation. No automatic Accessibility or screen-recording permission grants. Async jobs expose pending/result/error states. Native permission UI and geometry require an actual Mac check.
 
 Use existing host UI primitives and semantic tokens. Labels pair with fields. Menus support keyboard and Escape through Radix. Small layouts reflow without document overflow. Reduced-motion and forced-colors modes are supported. Automated core tests cover corrupt formats, injection-shaped strings, Unicode, ZIP integrity and conversion correctness.
+
+## Expanded tools and Teams
+
+Authority: the September 9 user request, `docs/product-direction.md`, and `docs/teams-service.md`. Earlier statements limiting Teams to manual copying or utilities to the website are superseded for the new preview. This does not expand the original stable release's capabilities.
+
+| Capability | Canonical owner | State and recovery |
+| --- | --- | --- |
+| Mode and tool selection | shared workbench and modes catalog | Mode preference on this device; all tools remain accessible, search can be cleared |
+| Select/listbox | desktop Radix Select through utility/creative adapters | Authored popup, labelled trigger, keyboard and Escape behavior |
+| Typed schedule/date | content-planner fields | Explicit IANA timezone, typed date/time, invalid and ambiguous values explained; calendar export is a reminder |
+| Tool export | lib/export-file.ts | Native Save panel, validated filename/size, explicit cancellation, error retains output |
+| Image/media files | features/creative | Explicit picker, bounded decode, cancel stale jobs, originals preserved; unsupported codecs explained |
+| Team connection | features/teams and Teams service | HTTPS remote or loopback HTTP; masked room/member credentials, no tokens in URL/log/browser storage; manual reconnect uses saved key |
+| Team edits | private draft with revision | Preserve unsaved editor across navigation; reject stale saves, visible retry/review |
+| Share preview | explicit publish or opt-in live share | Published snapshots only, real members/status, withdrawal and failure recovery |
+| Proposals | recipient review then apply | Expected revision required at both steps; private target work cannot be overwritten by another member |
+| Shared assets | authenticated upload/read/delete | Explicit upload only, type/size limits; deletion permission and confirmation |
+| Clipboard history | native UtilityState | Off initially, explicit start, app exclusions, bounded retention, pause/clear; memory-only, stops on exit |
+| AI utilities | MCP explicit-input transforms | Same generated utility core; no clipboard/files/network/native access granted by a transform |
+
+All new views retain shared global scrollbar, toast, Radix dialog, form and Surface owners. Team credentials and private drafts are never put in route titles. OS save dialogs are intentionally platform-owned; browser alert/confirm/prompt remain prohibited. Native permission requests remain user-controlled.

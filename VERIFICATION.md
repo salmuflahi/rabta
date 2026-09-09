@@ -1,5 +1,31 @@
 # Lens redesign verification
 
+## Expanded desktop toolkit and Teams — September 9, 2026
+
+- Full desktop suite: 847 tests passed after final integration. TypeScript and
+  Vite production build passed, including image and media worker bundles.
+- Native window calculation/targeting tests: 12 passed. Teams service HTTP/SSE
+  tests: 14 passed. The desktop Teams client also exercised the real local
+  service, including reviewed proposal application.
+- MCP TypeScript passed and all 29 server tests passed. The full local MCP run
+  is limited by EPERM on Unix socket creation; Mac CI runs the entire suite.
+  Utility source synchronization passed.
+- Website build and all 24 route/component tests passed. Utility routes now
+  render download-oriented details, with no image, SVG, media or utility editor
+  mounted there. The published site distinguishes the existing stable download
+  from the expanded desktop preview.
+- Strict UI audit: 43 full-repository findings, including seven authored Select
+  ownership false positives and 36 existing gallery/legacy findings. Scoped
+  creative, Teams and new native surfaces had no findings. This is not a clean
+  full-repository accessibility audit.
+- This environment has no Rust/macOS compiler or native runtime. The updated
+  Apple Silicon CI is the compilation, Rust-test and preview packaging gate.
+  Actual Mac permission denial/revocation, codecs, multi-display operation,
+  clipboard exclusions and final visual acceptance remain on-device checks.
+- Teams requires self-hosted HTTPS for remote participants. No managed service,
+  arbitrary app-window streaming, automatic social posting or signed public
+  release is claimed. The 57-feature reference remains partially implemented.
+
 ## Combined desktop app — September 9, 2026
 
 The integration merges the Lens/family redesign through `b90def9` with the

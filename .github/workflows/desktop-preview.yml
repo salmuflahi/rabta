@@ -6,6 +6,8 @@ on:
     paths:
       - 'apps/desktop/**'
       - 'crates/**'
+      - 'services/teams/**'
+      - 'packages/mcp/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'package.json'
@@ -42,6 +44,14 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal --target aarch64-apple-darwin
           rustup default stable
+      - name: Test native window calculations
+        run: node --test apps/desktop/src-tauri/tests/*.node.mjs
+      - name: Test collaboration service
+        run: node --test services/teams/*.test.mjs
+      - name: Verify AI utility source
+        run: node scripts/sync-mcp-utilities.mjs --check
+      - name: Build and test AI tools
+        run: pnpm --dir packages/mcp build && pnpm --dir packages/mcp test
       - name: Test desktop behavior
         run: pnpm --dir apps/desktop test
       - name: Typecheck and build frontend

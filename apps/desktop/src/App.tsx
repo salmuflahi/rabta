@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LiveRegion } from "./components/ui/live-region";
 import { announce } from "./lib/announce";
 import { saveCapsule } from "./lib/capsule";
@@ -14,6 +14,7 @@ import { OverviewPage } from "./pages/OverviewPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { UtilitiesPage } from "./pages/UtilitiesPage";
+import { TeamsPage } from "./pages/TeamsPage";
 import { AppShell } from "./shell/AppShell";
 import { MigrateSheet } from "./features/migrate/MigrateSheet";
 import { PairingSheet } from "./features/pairing/PairingSheet";
@@ -43,6 +44,9 @@ function CurrentPage({ view }: { view: NavKey }) {
       return <SettingsPage />;
     case "utilities":
       return <UtilitiesPage />;
+    case "teams":
+      // The Teams session stays mounted below so navigation preserves drafts.
+      return null;
     default: {
       // NavKey is a closed union — every view is handled above. This keeps
       // the switch exhaustive so a new view can't silently render nothing.
@@ -66,6 +70,8 @@ export default function App() {
   const setConnectorsAndLogLoaded = useStore((s) => s.setConnectorsAndLogLoaded);
   const preload = useStore((s) => s.preload);
   const view = useStore((s) => s.view);
+  const [teamsOpened, setTeamsOpened] = useState(view === "teams");
+  useEffect(() => { if (view === "teams") setTeamsOpened(true); }, [view]);
   const setView = useStore((s) => s.setView);
   const activeTaskId = useStore((s) => s.activeTaskId);
   const requestResume = useStore((s) => s.requestResume);
@@ -237,9 +243,9 @@ export default function App() {
       // navigation (matches the tooltips on the nav rows), so it fires before
       // the input guard too — a bare digit isn't something you'd type into a
       // field with ⌘ held.
-      if (key >= "1" && key <= "6") {
+      if (key >= "1" && key <= "7") {
         e.preventDefault();
-        const order: NavKey[] = ["overview", "capsules", "projects", "connectors", "activity", "utilities"];
+        const order: NavKey[] = ["overview", "capsules", "projects", "connectors", "activity", "utilities", "teams"];
         setView(order[Number(key) - 1]);
         return;
       }
@@ -333,9 +339,14 @@ export default function App() {
           {/* Keyed on the view so a switch remounts the wrapper and the
               view settles in rather than snapping; reduced motion makes it
               instant through the global rule in index.css. */}
-          <div key={view} className="h-full min-h-0 animate-view-in">
+          <div key={view} hidden={view === "teams"} className="h-full min-h-0 animate-view-in">
             <CurrentPage view={view} />
           </div>
+          {(teamsOpened || view === "teams") && (
+            <div hidden={view !== "teams"} className="h-full min-h-0">
+              <TeamsPage />
+            </div>
+          )}
         </AppShell>
       </div>
       <CommandPalette />

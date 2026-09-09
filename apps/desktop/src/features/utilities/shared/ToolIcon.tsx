@@ -1,5 +1,9 @@
 import type { ToolIconName } from "./catalog";
 const paths: Record<ToolIconName, string> = {
+  image: "M3 4h18v16H3z M3 17l6-6 5 5 3-3 4 4 M16 7h1",
+  diff: "M5 3h14v18H5z M8 8h8 M8 15h8 M12 12v6",
+  study: "M3 4h7l2 2 2-2h7v15h-7l-2 2-2-2H3z M12 6v15 M6 8h3 M15 8h3",
+  calendar: "M3 5h18v16H3z M7 3v4 M17 3v4 M3 10h18 M7 14h2 M14 14h2 M7 17h2",
   note: "M6 3h9l4 4v14H6z M15 3v5h4 M9 12h7 M9 16h5",
   snippet: "M8 3h11v14 M5 7h10v14H5z M8 11h4 M8 15h4",
   clipboard: "M9 5H6v16h12V5h-3 M9 3h6v4H9z M9 12h6 M9 16h4",

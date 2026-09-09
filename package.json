@@ -9,6 +9,8 @@
     "check:site": "pnpm --filter @rabta/site check",
     "test:site": "pnpm build:site && node --test tests/site/*.test.mjs",
     "verify:media": "node scripts/verify-media.mjs",
-    "build": "pnpm -r --if-present build"
+    "build": "pnpm -r --if-present build",
+    "test:teams": "node --test services/teams/*.test.mjs",
+    "teams": "node services/teams/server.mjs"
   }
 }

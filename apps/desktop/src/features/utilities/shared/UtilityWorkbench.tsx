@@ -1,17 +1,23 @@
 "use client";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
-  createContext,
-  useContext,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ComponentType,
-  type ButtonHTMLAttributes,
-  type InputHTMLAttributes,
-  type TextareaHTMLAttributes,
-  type ReactNode,
-} from "react";
+  UIContext,
+  MemoryContext,
+  useUI,
+  message,
+  useFileExport,
+  useDraft,
+  SelectField,
+  InputField,
+  TextField,
+  Status,
+  Output,
+  type UtilityUI,
+} from "./controls";
+export { download } from "./controls";
+export type { UtilityUI, SelectProps } from "./controls";
+import { AdvancedTool } from "./AdvancedTools";
+import { MODES, modeTools, type UtilityMode } from "./modes";
 import { TOOLS, type ToolId } from "./catalog";
 import { ToolIcon } from "./ToolIcon";
 import {
@@ -35,180 +41,6 @@ import {
   zipFiles,
 } from "./core";
 
-export type SelectProps = {
-  id: string;
-  label: string;
-  value: string;
-  options: readonly string[];
-  onChange: (value: string) => void;
-};
-export type UtilityUI = {
-  Button: ComponentType<ButtonHTMLAttributes<HTMLButtonElement>>;
-  Input: ComponentType<InputHTMLAttributes<HTMLInputElement>>;
-  Textarea: ComponentType<TextareaHTMLAttributes<HTMLTextAreaElement>>;
-  Select: ComponentType<SelectProps>;
-};
-const UIContext = createContext<UtilityUI | null>(null);
-function useUI() {
-  const ui = useContext(UIContext);
-  if (!ui) throw new Error("Utility UI adapter is missing");
-  return ui;
-}
-function message(e: unknown) {
-  return e instanceof Error ? e.message : String(e);
-}
-export function download(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob),
-    a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-const MemoryContext = createContext<Map<string, string> | null>(null);
-function useDraft(key: string, initial = "") {
-  const memory = useContext(MemoryContext)!;
-  const [value, rawSet] = useState(() => memory.get(key) ?? initial);
-  return [
-    value,
-    (next: string) => {
-      memory.set(key, next);
-      rawSet(next);
-    },
-  ] as const;
-}
-function SelectField(props: Omit<SelectProps, "id">) {
-  const { Select } = useUI(),
-    id = useId();
-  return (
-    <div className="rk-field">
-      <label htmlFor={id}>{props.label}</label>
-      <Select {...props} id={id} />
-    </div>
-  );
-}
-function InputField({
-  label,
-  ...props
-}: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
-  const { Input } = useUI(),
-    id = useId();
-  return (
-    <div className="rk-field">
-      <label htmlFor={id}>{label}</label>
-      <Input {...props} id={id} />
-    </div>
-  );
-}
-function TextField({
-  label,
-  ...props
-}: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
-  const { Textarea } = useUI(),
-    id = useId();
-  return (
-    <div className="rk-field">
-      <label htmlFor={id}>{label}</label>
-      <Textarea
-        {...props}
-        id={id}
-        className={"rk-textarea resize-none " + (props.className ?? "")}
-        maxLength={props.maxLength ?? TEXT_LIMIT}
-      />
-    </div>
-  );
-}
-function Status({ error, children }: { error?: boolean; children: ReactNode }) {
-  return (
-    <p
-      className={`rk-status ${error ? "rk-error" : ""}`}
-      role={error ? "alert" : "status"}
-    >
-      {children}
-    </p>
-  );
-}
-function Output({
-  value,
-  filename = "rabta-result.txt",
-  secret = false,
-}: {
-  value: string;
-  filename?: string;
-  secret?: boolean;
-}) {
-  const { Button, Input } = useUI(),
-    [copied, setCopied] = useState(""),
-    [show, setShow] = useState(false);
-  useEffect(() => {
-    setCopied("");
-    setShow(false);
-  }, [value]);
-  return (
-    <div className="rk-output">
-      <div className="rk-output-top">
-        <span>Result</span>
-        <div className="rk-inline">
-          <Button
-            type="button"
-            disabled={!value}
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(value);
-                setCopied("Copied.");
-              } catch {
-                setCopied(
-                  "Clipboard unavailable. Select the result and copy it manually.",
-                );
-              }
-            }}
-          >
-            Copy
-          </Button>
-          {!secret && (
-            <Button
-              type="button"
-              disabled={!value}
-              onClick={() =>
-                download(
-                  new Blob([value], { type: "text/plain;charset=utf-8" }),
-                  filename,
-                )
-              }
-            >
-              Download
-            </Button>
-          )}
-        </div>
-      </div>
-      {secret ? (
-        <div className="rk-inline">
-          <Input
-            aria-label="Generated password"
-            type={show ? "text" : "password"}
-            value={value}
-            readOnly
-            autoComplete="off"
-          />
-          <Button
-            type="button"
-            aria-pressed={show}
-            onClick={() => setShow(!show)}
-          >
-            {show ? "Hide" : "Show"}
-          </Button>
-        </div>
-      ) : (
-        <pre tabIndex={0} aria-label="Result">
-          {value || "Your result will appear here."}
-        </pre>
-      )}
-      <Status>{copied}</Status>
-    </div>
-  );
-}
 function Transformer({ id }: { id: ToolId }) {
   const { Button } = useUI(),
     [input, setInput] = useDraft(id),
@@ -753,6 +585,7 @@ function ColorLab() {
 
 type LocalDoc = { text: string; version: string };
 function Scratchpad() {
+  const { exportFile, exporting, exportFeedback } = useFileExport();
   const { Button } = useUI(),
     [text, setText] = useState(""),
     [status, setStatus] = useState(""),
@@ -903,9 +736,10 @@ function Scratchpad() {
       <div className="rk-actions">
         <Button
           type="button"
-          disabled={!text}
+          disabled={!text || exporting}
+          aria-busy={exporting}
           onClick={() =>
-            download(
+            exportFile(
               new Blob([text], { type: "text/markdown;charset=utf-8" }),
               "rabta-note.md",
             )
@@ -913,6 +747,7 @@ function Scratchpad() {
         >
           Download note
         </Button>
+        {exportFeedback}
         <Button
           type="button"
           disabled={!text}
@@ -1307,6 +1142,7 @@ function FocusTimer() {
   );
 }
 function BatchRename() {
+  const { exportFile, exporting, exportFeedback } = useFileExport();
   const { Button, Input } = useUI(),
     [files, setFiles] = useState<File[]>([]),
     [prefix, setPrefix] = useState("rabta"),
@@ -1448,15 +1284,13 @@ function BatchRename() {
                 setStatus(`Preparing ${i + 1} of ${files.length}…`);
               }
               if (current !== job.current) return;
-              download(
+              await exportFile(
                 new Blob([zipFiles(entries) as BlobPart], {
                   type: "application/zip",
                 }),
                 "rabta-renamed.zip",
               );
-              setStatus(
-                "ZIP prepared. Your browser will save the renamed copies.",
-              );
+              if (current === job.current) setStatus("");
             } catch (e) {
               setError(message(e));
             } finally {
@@ -1466,7 +1300,7 @@ function BatchRename() {
         >
           {busy ? "Preparing ZIP…" : "Download renamed ZIP"}
         </Button>
-        {busy && (
+        {busy && !exporting && (
           <Button
             type="button"
             onClick={() => {
@@ -1479,6 +1313,7 @@ function BatchRename() {
           </Button>
         )}
       </div>
+      {exportFeedback}
       <Status error={!!(error || validation)}>
         {error || validation || status}
       </Status>
@@ -1508,6 +1343,11 @@ function ToolContent({ id }: { id: ToolId }) {
       return <ColorLab />;
     case "rename":
       return <BatchRename />;
+    case "diff":
+    case "timestamp":
+    case "study":
+    case "planner":
+      return <AdvancedTool id={id} />;
     default:
       return <Transformer id={id} />;
   }
@@ -1517,22 +1357,29 @@ export function UtilityWorkbench({
   initialTool = "scratchpad",
   onToolChange,
   nativeTools,
+  renderTool,
 }: {
   ui: UtilityUI;
   initialTool?: ToolId;
   onToolChange?: (id: ToolId) => void;
   nativeTools?: ReactNode;
+  renderTool?: (id: ToolId) => ReactNode;
 }) {
   const [selected, setSelected] = useState<ToolId | "mac">(initialTool),
     [query, setQuery] = useState(""),
     [favorites, setFavorites] = useState<string[]>([]),
     [favoriteError, setFavoriteError] = useState(""),
+    [mode, setMode] = useState<UtilityMode>("Everyday"),
+    [modeError, setModeError] = useState(""),
     [visited, setVisited] = useState<ToolId[]>([initialTool]);
   const inputId = useId(),
     memory = useRef(new Map<string, string>()),
     { Input, Button, Select } = ui;
   useEffect(() => {
     try {
+      const savedMode = localStorage.getItem("rabta.utility.mode");
+      if (MODES.includes(savedMode as UtilityMode))
+        setMode(savedMode as UtilityMode);
       const saved = JSON.parse(
         localStorage.getItem("rabta.utility.favorites") ?? "[]",
       );
@@ -1601,6 +1448,29 @@ export function UtilityWorkbench({
             )}
             <span className="rk-command-count">{TOOLS.length} tools</span>
           </div>
+          <div className="rk-mode-strip">
+            <label htmlFor={`${inputId}-mode`}>Your mode</label>
+            <Select
+              id={`${inputId}-mode`}
+              label="Your mode"
+              value={mode}
+              options={MODES}
+              onChange={(value) => {
+                if (!MODES.includes(value as UtilityMode)) return;
+                setMode(value as UtilityMode);
+                try {
+                  localStorage.setItem("rabta.utility.mode", value);
+                  setModeError("");
+                } catch {
+                  setModeError(
+                    "Mode will last for this visit. It could not be saved.",
+                  );
+                }
+              }}
+            />
+            <span>Recommendations change. All tools stay available.</span>
+          </div>
+          {modeError && <Status error>{modeError}</Status>}
           <div className="rk-mobile-picker">
             {shown.length > 0 || nativeTools ? (
               <>
@@ -1635,38 +1505,44 @@ export function UtilityWorkbench({
           </div>
           <div className="rk-layout">
             <nav className="rk-browser" aria-label="Utilities">
-              {["Favorites", "Everyday", "Creative", "Developer"].map(
-                (group) => {
-                  const list =
-                    group === "Favorites"
-                      ? shown.filter((t) => favorites.includes(t.id))
-                      : shown.filter((t) => t.category === group);
-                  return (
-                    list.length > 0 && (
-                      <div className="rk-group" key={group}>
-                        <p>{group}</p>
-                        {list.map((t) => (
-                          <button
-                            key={t.id}
-                            type="button"
-                            className={`rk-tool-row ${selected === t.id ? "is-selected" : ""}`}
-                            aria-current={
-                              selected === t.id ? "page" : undefined
-                            }
-                            onClick={() => select(t.id)}
-                          >
-                            <ToolIcon name={t.icon} size={20} />
-                            <span>{t.name}</span>
-                            {selected === t.id && (
-                              <ToolIcon name="arrow" size={16} />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )
-                  );
-                },
-              )}
+              {["Favorites", `${mode} picks`, "All tools"].map((group) => {
+                const list =
+                  group === "Favorites"
+                    ? shown.filter((t) => favorites.includes(t.id))
+                    : group === "All tools"
+                      ? shown.filter(
+                          (t) =>
+                            !favorites.includes(t.id) &&
+                            !modeTools(mode).some((r) => r.id === t.id),
+                        )
+                      : modeTools(mode).filter(
+                          (t) =>
+                            shown.some((s) => s.id === t.id) &&
+                            !favorites.includes(t.id),
+                        );
+                return (
+                  list.length > 0 && (
+                    <div className="rk-group" key={group}>
+                      <p>{group}</p>
+                      {list.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          className={`rk-tool-row ${selected === t.id ? "is-selected" : ""}`}
+                          aria-current={selected === t.id ? "page" : undefined}
+                          onClick={() => select(t.id)}
+                        >
+                          <ToolIcon name={t.icon} size={20} />
+                          <span>{t.name}</span>
+                          {selected === t.id && (
+                            <ToolIcon name="arrow" size={16} />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )
+                );
+              })}
               {shown.length === 0 && (
                 <div className="rk-empty">
                   <p>No tools match “{query}”.</p>
@@ -1721,7 +1597,15 @@ export function UtilityWorkbench({
               {favoriteError && <Status error>{favoriteError}</Status>}
               {visited.map((id) => (
                 <div key={id} hidden={selected !== id}>
-                  <ToolContent id={id} />
+                  {id.startsWith("creative-") ? (
+                    (renderTool?.(id) ?? (
+                      <p className="rk-note">
+                        Open this tool in the Rabta desktop app.
+                      </p>
+                    ))
+                  ) : (
+                    <ToolContent id={id} />
+                  )}
                 </div>
               ))}
               {selected === "mac" && nativeTools}

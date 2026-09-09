@@ -103,3 +103,11 @@ The merged app includes the approved Lens redesign and the utility workbench. It
 ### Verification
 
 See `UX-CONTRACT.md` and `docs/rabta-suite.md`. The user's September 2026 decision removes the blanket no-account rule; `docs/account-policy.md` owns the replacement. Basic tools remain local while real accounts progressively support deliberately saved work. Mac actions are real native commands and need macOS verification before a signed release.
+
+## Desktop toolkit and Teams — September 9 expansion
+
+User-authorized evolution: utilities belong in the app, with Everyday, Developer, Creator and Student recommendations inside one search/rail. The existing shared fonts, semantic HSL palette and Lens geometry remain canonical. Creative processors inherit desktop Button/Input/Textarea/Select/Progress owners through `features/creative/ui.tsx`; native exports use the operating system Save panel.
+
+Teams uses the same shell with one working area beside explicitly published previews. Session state remains mounted when navigating away, preserving private drafts and the active connection. No decorative presence indicators, synthetic teammates, app-window streaming or automatic sharing. Server responses own status.
+
+Reconcile drift: old notes describing GitHub as blocked and Mac preview as unbuilt are historical. PR #4's initial Apple Silicon preview build passed; subsequent toolkit changes require a new passing run. Website-hosted tools are retired under the current instruction. Team text collaboration supersedes the earlier manual-handoff-only scope; see `docs/product-direction.md` and `docs/teams-service.md` for precise boundaries.

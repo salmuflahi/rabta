@@ -2,7 +2,7 @@
 
 An MCP server that lets an AI agent read the task capsules Rabta has saved on this Mac. A capsule is everything Rabta captured when you were last on a task: the files that were open in your editor and which one was active, the terminals and their working directories, the browser tabs, the git branch, and anything you pinned. With this server connected, an agent can ask which tasks exist, read one capsule as JSON, or load a short Markdown briefing into its context before it starts work, so it begins from where you actually left off instead of from a cold repository.
 
-This is phase M1, the read-only half. Nothing here captures, restores, edits or deletes anything; it opens Rabta's local database read-only and answers questions about it. Capture and restore through an agent arrive later, through an opt-in socket to the running app, and will appear as separate tools.
+Capsule queries open Rabta's local database read-only. Capture and restore are separate tools that require opt-in Agent access in the running app. The development source also includes eight local utility tools for explicitly supplied inputs.
 
 ## Requirements
 
@@ -47,10 +47,10 @@ Capsules are also exposed as resources at `rabta://capsules/{task_id}` (JSON, th
 
 ## Security model
 
-- Read-only. The database is opened with SQLite's read-only flag and the server contains no write path. Every tool is annotated `readOnlyHint: true`.
+- Read-only queries. The database is opened with SQLite's read-only flag. Capsule query and utility tools declare `readOnlyHint: true`; capture and restore explicitly declare write behavior.
 - Local only. The server opens one file, `omnibus.db` in Rabta's Application Support folder, and talks to the agent over stdio. It makes no network requests, and nothing leaves the Mac unless the agent you connected it to sends it somewhere.
 - No secrets. The `connectors` table's pairing tokens are never selected.
-- Capture and restore are not part of this server. They arrive later through an opt-in socket to the running Rabta app, where the app stays in control of what an agent may change.
+- Capture and restore use an opt-in local socket to the running Rabta app, where the app stays in control of those operations. Restore can change the active workspace and is annotated as destructive.
 
 ## Configuration
 
@@ -95,3 +95,13 @@ where the switch is, and never fail silently. The protocol is newline-delimited
 JSON over the socket: an `auth` line with the secret, then one request per
 line. `src/ipc.ts` is the client; `apps/desktop/src-tauri/src/agent_ipc.rs`
 is the server.
+
+## Local utility tools
+
+The development package also exposes `calculate`, `clean_links`, `transform_text`,
+`convert_data`, `encode_decode`, `convert_units`, `list_unit_conversions`, and
+`color_contrast`. These use the same algorithms as the desktop toolbox and only
+process inputs the AI explicitly supplies. They do not read files or clipboard,
+contact a service, or run native actions. Run `node scripts/sync-mcp-utilities.mjs
+--check` from the repository root to verify source parity. This source update does
+not publish a new npm release.

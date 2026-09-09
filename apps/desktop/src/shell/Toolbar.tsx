@@ -181,6 +181,7 @@ function useContextualAction(
     case "connectors":
     case "activity":
     case "utilities":
+    case "teams":
     case "settings":
       return null;
     default: {

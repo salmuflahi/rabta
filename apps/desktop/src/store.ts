@@ -83,6 +83,7 @@ export const NAV_KEYS = [
   "connectors",
   "activity",
   "utilities",
+  "teams",
   "settings",
 ] as const;
 
@@ -442,6 +443,7 @@ function selectionFor(s: Store, view: NavKey): Location["selection"] {
     case "settings":
       return s.settingsSection;
     case "utilities":
+    case "teams":
     case "overview":
       return null;
     default: {
@@ -470,6 +472,7 @@ function applyLocation(loc: Location): Partial<Store> {
       // existed, or with a null selection, must still land somewhere valid.
       return { view: loc.view, settingsSection: (loc.selection as string) ?? "general" };
     case "utilities":
+    case "teams":
     case "overview":
       return { view: loc.view };
     default: {

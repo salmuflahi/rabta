@@ -669,3 +669,126 @@
     color: var(--rk-ink);
   }
 }
+
+/* One tool rail, with a mode preference rather than a second navigation shell. */
+.rk-mode-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--rk-line);
+  background: var(--rk-surface);
+  font-size: 13px;
+}
+.rk-mode-strip > button[role="combobox"] {
+  width: 155px;
+}
+.rk-mode-strip > span {
+  color: var(--rk-muted);
+}
+.rk-diff {
+  max-height: 480px;
+  overflow: auto;
+  border: 1px solid var(--rk-line);
+  border-radius: 12px;
+  margin: 18px 0;
+  background: var(--rk-field);
+  font: 12px/1.8 var(--rk-mono);
+}
+.rk-diff > div {
+  display: flex;
+  gap: 12px;
+  padding: 2px 12px;
+}
+.rk-diff > div > span {
+  flex: 0 0 16px;
+  user-select: none;
+}
+.rk-diff code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.rk-diff-add {
+  background: color-mix(in srgb, var(--rk-signal) 12%, transparent);
+}
+.rk-diff-remove {
+  background: color-mix(in srgb, var(--rk-error) 8%, transparent);
+}
+.rk-diff-remove > span {
+  color: var(--rk-error);
+}
+.rk-study-card {
+  padding: 28px;
+  border: 1px solid var(--rk-line);
+  border-radius: 18px;
+  background: var(--rk-surface);
+  display: grid;
+  gap: 20px;
+  overflow-wrap: anywhere;
+}
+.rk-study-card h3 {
+  font: 500 22px/1.5 var(--rk-display);
+}
+.rk-study-card > button {
+  justify-self: start;
+}
+.rk-study-answer {
+  border-top: 1px solid var(--rk-line);
+  padding-top: 18px;
+}
+.rk-study-card summary {
+  cursor: pointer;
+  color: var(--rk-muted);
+}
+.rk-study-card summary:focus-visible {
+  outline: 2px solid var(--rk-signal);
+  outline-offset: 3px;
+}
+.rk-study-card details > p {
+  padding-top: 12px;
+  font-size: 13px;
+}
+.rk-quiz-options {
+  display: grid;
+  gap: 10px;
+}
+.rk-quiz-options button {
+  text-align: left;
+  justify-content: flex-start;
+}
+.rk-quiz-options button[aria-pressed="true"] {
+  border-color: var(--rk-signal);
+  background: var(--rk-hover);
+  opacity: 1;
+}
+.rk-planner-disclosure {
+  margin-top: 0 !important;
+  margin-bottom: 24px !important;
+}
+.rk-plan-heading {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--rk-line);
+}
+.rk-plan-heading h3 {
+  font-size: 15px;
+}
+@media (max-width: 580px) {
+  .rk-mode-strip {
+    padding: 12px 17px;
+  }
+  .rk-mode-strip > span {
+    flex-basis: 100%;
+  }
+  .rk-study-card {
+    padding: 20px;
+  }
+}
+@media (forced-colors: active) {
+  .rk-diff-add,
+  .rk-diff-remove {
+    border-block-end: 1px solid CanvasText;
+  }
+}

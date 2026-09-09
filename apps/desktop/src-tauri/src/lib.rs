@@ -28,6 +28,8 @@ pub mod github;
 pub mod migrate;
 pub mod projects;
 pub mod utilities;
+#[path = "utility-windows.rs"]
+mod utility_windows;
 
 /// Companion is an explicit, local window. No screen recording or global monitoring.
 #[tauri::command]
@@ -826,6 +828,18 @@ pub fn run() {
             utilities::utility_set_sound,
             utilities::utility_system_info,
             utilities::utility_capture,
+            utilities::utility_live_metrics,
+            utilities::utility_clipboard_history,
+            utilities::utility_clipboard_configure,
+            utilities::utility_clipboard_action,
+            utilities::utility_audio_devices,
+            utilities::utility_audio_switch,
+            utilities::utility_screen_ocr,
+            utilities::utility_export_file,
+
+            utility_windows::utility_list_windows,
+            utility_windows::utility_window_action,
+            utility_windows::utility_place_window,
             utilities::utility_window_apps,
             utilities::utility_arrange_window,
             seed_demo_data,

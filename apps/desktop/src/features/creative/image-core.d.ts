@@ -1,0 +1,11 @@
+export const MAX_BYTES: number;
+export const MAX_INPUT_PIXELS: number;
+export const MAX_SIDE: number;
+export const TYPES: Readonly<Record<"png" | "jpeg" | "webp" | "bmp", string>>;
+export function imageHeader(bytes: Uint8Array): { width: number; height: number; type: "png" | "jpeg" | "webp" | "gif" | "bmp" };
+export function outputSize(width: number, height: number): { width: number; height: number };
+export function removeEdgeBackground(data: Uint8ClampedArray, width: number, height: number, hex: string, tolerance: number): number;
+export function exportName(name: string, tool: string, format: string): string;
+export function cropRegion(x: number, y: number, width: number, height: number, sourceWidth: number, sourceHeight: number): { x: number; y: number; width: number; height: number };
+export function extractPalette(data: Uint8ClampedArray, limit?: number): Array<{ hex: string; pixels: number }>;
+export function encodeBmp(data: Uint8ClampedArray, width: number, height: number): Blob;

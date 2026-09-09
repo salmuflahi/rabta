@@ -66,11 +66,11 @@ export function FamilyLauncher() {
           </span>
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() => useStore.getState().setView("capsules")}
+          onSelect={() => useStore.getState().setView("teams")}
         >
           <FamilyEmblem product="teams" size={24} />
           <span>
-            Teams<small>Prepare a handoff from a capsule</small>
+            Teams<small>Work together in separate spaces</small>
           </span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

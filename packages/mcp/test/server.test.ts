@@ -13,8 +13,9 @@ import { FIXTURE, buildFixtureDb } from "./fixture-db.ts";
 
 const GOLDEN = fileURLToPath(new URL("./fixtures/briefing.golden.md", import.meta.url));
 const READ_TOOLS = ["capsule_briefing", "list_capsules", "list_projects", "read_capsule", "recent_activity"];
+const UTILITY_TOOLS = ["calculate", "clean_links", "transform_text", "convert_data", "encode_decode", "convert_units", "list_unit_conversions", "color_contrast"];
 const WRITE_TOOLS = ["capture_capsule", "restore_capsule"];
-const TOOL_NAMES = [...READ_TOOLS, ...WRITE_TOOLS].sort();
+const TOOL_NAMES = [...READ_TOOLS, ...WRITE_TOOLS, ...UTILITY_TOOLS].sort();
 
 let client: Client;
 let db: ReturnType<typeof buildFixtureDb>;
@@ -52,13 +53,13 @@ afterAll(async () => {
 });
 
 describe("tool surface", () => {
-  it("exposes five read-only tools and two writes, with titles, descriptions and described parameters", async () => {
+  it("exposes capsule and utility tools with truthful annotations and described parameters", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(TOOL_NAMES);
     for (const tool of tools) {
       expect(tool.title, tool.name).toBeTruthy();
       expect(tool.description, tool.name).toBeTruthy();
-      if (READ_TOOLS.includes(tool.name)) {
+      if ((READ_TOOLS.includes(tool.name) || UTILITY_TOOLS.includes(tool.name))) {
         expect(tool.annotations, tool.name).toMatchObject({
           readOnlyHint: true,
           destructiveHint: false,
@@ -395,5 +396,20 @@ describe("schema version", () => {
       expect(warnIfNewerSchema(db)).toBe(5);
     });
     expect(chunks).toEqual([]);
+  });
+});
+
+
+describe("shared local utilities", () => {
+  it("calculates without executing code and preserves conversion semantics", async () => {
+    expect(text(await call("calculate", { expression: "2 * (3 + 4)" }))).toBe("14");
+    expect((await call("calculate", { expression: "process.exit()" })).isError).toBe(true);
+    expect(text(await call("convert_units", { value: 32, category: "Temperature", from: "Fahrenheit", to: "Celsius" }))).toBe("0");
+    expect((await call("convert_units", { value: -300, category: "Temperature", from: "Celsius", to: "Kelvin" })).isError).toBe(true);
+  });
+  it("processes explicit inputs and does not follow supplied URLs", async () => {
+    expect(JSON.parse(text(await call("clean_links", { links: "https://example.com/a?utm_source=ad&keep=yes" })))).toEqual({ text: "https://example.com/a?keep=yes", removed: 1 });
+    expect(text(await call("convert_data", { text: 'name,value\n"a,b",2', action: "CSV to JSON" }))).toContain("a,b");
+    expect((await call("convert_data", { text: "{broken", action: "Format JSON" })).isError).toBe(true);
   });
 });

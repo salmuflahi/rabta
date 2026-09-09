@@ -5,15 +5,24 @@ use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::State;
 
+#[path = "utility-native.rs"]
+mod native;
+#[path = "utility-clipboard.rs"]
+mod clipboard;
+#[path = "utility-metrics.rs"]
+mod metrics;
+pub use clipboard::{Settings as ClipboardSettings, Snapshot as ClipboardSnapshot};
+
 #[derive(Default)]
-pub struct UtilityState(Mutex<AwakeSession>);
+pub struct UtilityState { awake: Mutex<AwakeSession>, clipboard: clipboard::SharedHistory, metrics: Mutex<metrics::Sampler> }
 #[derive(Default)]
 struct AwakeSession { child: Option<Child>, until: Option<u64>, display: bool }
 impl AwakeSession {
     fn stop(&mut self) { if let Some(mut child)=self.child.take(){let _=child.kill();let _=child.wait();} self.until=None; }
 }
 impl Drop for AwakeSession { fn drop(&mut self){self.stop();} }
-impl UtilityState { pub fn stop(&self){if let Ok(mut s)=self.0.lock(){s.stop();}} }
+impl UtilityState { pub fn stop(&self){if let Ok(mut s)=self.awake.lock(){s.stop();} clipboard::stop(&self.clipboard);} }
+impl Drop for UtilityState { fn drop(&mut self) { self.stop(); } }
 #[derive(Serialize)]
 #[serde(rename_all="camelCase")]
 pub struct UtilityStatus { platform:&'static str, awake_until:Option<u64>, keep_display:bool }
@@ -21,20 +30,20 @@ fn mac_only()->Result<(),String>{if cfg!(target_os="macos"){Ok(())}else{Err("Thi
 fn now()->u64{SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()}
 #[tauri::command]
 pub fn utility_status(state:State<'_,UtilityState>)->Result<UtilityStatus,String>{
-    let mut s=state.0.lock().map_err(|_|"Utility state is unavailable.")?;
+    let mut s=state.awake.lock().map_err(|_|"Utility state is unavailable.")?;
     if let Some(child)=s.child.as_mut(){if child.try_wait().map_err(|e|e.to_string())?.is_some(){s.child=None;s.until=None;}}
     Ok(UtilityStatus{platform:std::env::consts::OS,awake_until:s.until,keep_display:s.display})
 }
 #[tauri::command]
 pub fn utility_keep_awake(state:State<'_,UtilityState>,minutes:u32,keep_display:bool)->Result<(),String>{
     mac_only()?;if !(1..=720).contains(&minutes){return Err("Choose 1–720 minutes.".into());}
-    let mut s=state.0.lock().map_err(|_|"Utility state is unavailable.")?;
+    let mut s=state.awake.lock().map_err(|_|"Utility state is unavailable.")?;
     let mut command=Command::new("/usr/bin/caffeinate");command.args(["-i","-t",&(minutes*60).to_string()]);if keep_display{command.arg("-d");}
     let child=command.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().map_err(|e|format!("Could not keep this Mac awake: {e}"))?;
     s.stop();s.child=Some(child);s.until=Some(now()+u64::from(minutes)*60);s.display=keep_display;Ok(())
 }
 #[tauri::command]
-pub fn utility_stop_awake(state:State<'_,UtilityState>)->Result<(),String>{state.0.lock().map_err(|_|"Utility state is unavailable.")?.stop();Ok(())}
+pub fn utility_stop_awake(state:State<'_,UtilityState>)->Result<(),String>{state.awake.lock().map_err(|_|"Utility state is unavailable.")?.stop();Ok(())}
 
 async fn output(program:&str,args:&[&str],seconds:u64)->Result<String,String>{
     mac_only()?;
@@ -106,3 +115,61 @@ pub async fn utility_arrange_window(app:String,layout:String,gap:u32,restore:Opt
     let value=output("/usr/bin/osascript",&["-l","JavaScript","-e",WINDOW_SCRIPT,&request],20).await?;
     serde_json::from_str(&value).map_err(|_|"macOS did not return a window placement.".into())
 }
+
+#[tauri::command]
+pub async fn utility_live_metrics(state: State<'_, UtilityState>) -> Result<serde_json::Value, String> {
+    let value = tauri::async_runtime::spawn_blocking(|| native::call("metrics", serde_json::json!({}))).await.map_err(|_| "The monitor stopped unexpectedly.")??;
+    state.metrics.lock().map_err(|_| "System monitor is unavailable.".to_string()).map(|mut sampler| sampler.sample(value))
+}
+#[tauri::command]
+pub fn utility_clipboard_history(state: State<'_, UtilityState>) -> Result<ClipboardSnapshot, String> { clipboard::read(&state.clipboard) }
+#[tauri::command]
+pub fn utility_clipboard_configure(state: State<'_, UtilityState>, settings: ClipboardSettings, update_preferences: Option<bool>) -> Result<ClipboardSnapshot, String> { clipboard::configure(&state.clipboard, settings, update_preferences.unwrap_or(false)) }
+#[tauri::command]
+pub fn utility_clipboard_action(state: State<'_, UtilityState>, action: String, id: Option<String>) -> Result<ClipboardSnapshot, String> { clipboard::change(&state.clipboard, &action, id.as_deref()) }
+#[tauri::command]
+pub async fn utility_audio_devices() -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(|| native::call("audioDevices", serde_json::json!({}))).await.map_err(|_| "Could not read audio devices.")?
+}
+#[tauri::command]
+pub async fn utility_audio_switch(device_id: u32) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || native::call("audioSwitch", serde_json::json!({"deviceId": device_id}))).await.map_err(|_| "Could not change audio output.")?
+}
+#[tauri::command]
+pub async fn utility_export_file(filename: String, base64: String) -> Result<serde_json::Value, String> {
+    if filename.is_empty() || filename.len() > 240 || filename == "." || filename == ".." || filename.chars().any(|c| c.is_control() || matches!(c, '/' | '\\' | ':')) { return Err("Choose a valid export filename.".into()); }
+    if base64.len() > 140_000_000 { return Err("This export exceeds the 100 MiB limit. Export a smaller selection.".into()); }
+    tauri::async_runtime::spawn_blocking(move || native::call("exportFile", serde_json::json!({"filename": filename, "base64": base64}))).await.map_err(|_| "The export stopped unexpectedly.")?
+}
+
+/// Captures only an area selected now. Private temporary files are removed after
+/// recognition, cancellation, timeout completion, and errors; no arbitrary path.
+#[tauri::command]
+pub async fn utility_screen_ocr() -> Result<Option<serde_json::Value>, String> {
+    mac_only()?;
+    let temporary = TemporaryCapture::new()?;
+    let path = temporary.0.join("selection.png");
+    let path_text = path.to_str().ok_or("Capture path is unavailable.")?.to_string();
+    let result = output("/usr/sbin/screencapture", &["-i", "-x", "-t", "png", &path_text], 180).await;
+    if !path.exists() { return match result { Ok(_) => Ok(None), Err(message) if message.trim() == "macOS could not complete this action." || message.contains("User cancelled") => Ok(None), Err(error) => Err(error) }; }
+    result?;
+    let task = tauri::async_runtime::spawn_blocking(move || {
+        let _temporary = temporary;
+        native::call("ocr", serde_json::json!({"path": path_text}))
+    });
+    tokio::time::timeout(Duration::from_secs(90), task).await.map_err(|_| "Text recognition took too long. Try a smaller area.")?.map_err(|_| "Text recognition stopped unexpectedly.".to_string())?.map(Some)
+}
+struct TemporaryCapture(std::path::PathBuf);
+impl TemporaryCapture {
+    fn new() -> Result<Self, String> {
+        let path = std::env::temp_dir().join(format!("rabta-ocr-{}", uuid::Uuid::new_v4()));
+        #[cfg(unix)] {
+            use std::os::unix::fs::DirBuilderExt;
+            std::fs::DirBuilder::new().mode(0o700).create(&path).map_err(|e| format!("Could not prepare text capture: {e}"))?;
+        }
+        #[cfg(not(unix))]
+        std::fs::create_dir(&path).map_err(|e| format!("Could not prepare text capture: {e}"))?;
+        Ok(Self(path))
+    }
+}
+impl Drop for TemporaryCapture { fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); } }

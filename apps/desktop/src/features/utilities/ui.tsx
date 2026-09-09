@@ -1,3 +1,4 @@
+import { exportBlob } from "@/lib/export-file";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +30,7 @@ function UtilitySelect({ id, label, value, options, onChange }: SelectProps) {
   );
 }
 export const utilityUI: UtilityUI = {
+  exportFile: exportBlob,
   Button,
   Input,
   Textarea,

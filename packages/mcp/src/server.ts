@@ -4,6 +4,7 @@ import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mc
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { registerUtilityTools } from "./utility-tools.js";
 import { renderBriefing } from "./briefing.js";
 import { RabtaReader } from "./db.js";
 import type { TaskStatusFilter } from "./db.js";
@@ -18,7 +19,7 @@ const pkg = require("../package.json") as { version: string };
 export const SERVER_NAME = "rabta";
 export const SERVER_VERSION: string = pkg.version;
 
-/** Every tool in this server reads a local file and changes nothing. */
+/** Annotations for capsule queries; capture/restore declare their own write behavior. */
 const READ_ONLY = {
   readOnlyHint: true,
   destructiveHint: false,
@@ -328,5 +329,6 @@ export function buildServer(db: DatabaseSync, options: ServerOptions = {}): McpS
     },
   );
 
+  registerUtilityTools(server);
   return server;
 }
