@@ -26,9 +26,15 @@ public release or an update to the existing download on the website.
 
 The current source contains 28 desktop tools with Everyday, Developer, Creator
 and Student recommendations. Native additions include opt-in text clipboard
-history, window controls, screen OCR, audio device switching, live metrics and
-native exports. Their presence does not mean all 57 reference features have
-reached parity; see `native-suite-parity.md` for the remaining scope.
+history, window controls, screen OCR, audio device switching, live metrics
+with GPU load, native exports, an opt-in keyboard and mouse filter (wheel
+inversion, debounce, Cmd+Q protection, plain paste, mouse buttons,
+focus-follows-pointer, snippet expansion, cleaning mode), processes, a quick
+launcher, an uninstaller, a disk-image installer, a cleaner, Homebrew and
+update checks, screen recording, camera preview, auto-quit and the Music
+block. Each asks for its macOS permission on first use and does nothing until
+enabled. Their presence does not mean all 57 reference features have reached
+parity; see `native-suite-parity.md` for the remaining scope.
 
 Teams is a self-hosted preview. Start the service using `teams-service.md`, then
 connect from the Teams page. Each member has a private lane, can explicitly

@@ -1,5 +1,28 @@
 # Lens redesign verification
 
+## Native toolkit, second batch, and the wordmark — September 9, 2026
+
+- Rust: `cargo check` and `cargo test --lib` for the desktop crate run on this
+  Linux host after installing the GTK/WebKit development packages; 55 unit
+  tests pass. `cargo check --target aarch64-apple-darwin` cannot run here
+  because a Tauri dependency compiles Objective-C; `build.rs` now states that a
+  macOS target on a non-Mac host does not compile the native service.
+- Desktop frontend: 862 tests in 78 files pass, including 14 new native
+  toolkit panel tests; TypeScript and the Vite production build pass.
+- Website: 75 tests pass after the wordmark switch, `astro check` reports no
+  issues, and the built home, brand, 404 and why pages were screenshotted with
+  headless Chromium (reduced motion for the home hero, whose GSAP intro does
+  not advance under a virtual-time capture). The nav, hero, brand specimens,
+  tile and 404 all render the wordmark; no page contains the retired R.
+- Brand: every icon, favicon, connector icon, `.icns`, `.ico` and the social
+  card were regenerated from `wordmark.svg` by the new Node generator on
+  Linux; the outputs were inspected at 512, 32 and 1200×630.
+- Not verified here: the Objective-C compile and link, Accessibility, Input
+  Monitoring, Camera and Screen Recording prompts, event-tap behaviour on real
+  hardware, `hdiutil`, Homebrew and `screencapture` interaction, the Info.plist
+  merge in the bundle, and signed distribution. These stay Mac CI and
+  on-device gates.
+
 ## Expanded desktop toolkit and Teams — September 9, 2026
 
 - Full desktop suite: 847 tests passed after final integration. TypeScript and

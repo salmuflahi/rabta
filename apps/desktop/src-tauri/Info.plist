@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Merged into the app bundle by Tauri. Each string is shown by macOS the
+	     first time the matching permission is requested; every request is
+	     started by an explicit action in the Utilities panel. -->
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Rabta arranges and focuses windows through System Events only when you choose a window in Utilities.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Rabta shows a live preview from the camera you select in Utilities. Nothing is recorded or uploaded.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Rabta records microphone audio only during a screen recording you start with audio enabled.</string>
+	<key>NSSystemAdministrationUsageDescription</key>
+	<string>Rabta never requests administrator access.</string>
+</dict>
+</plist>
