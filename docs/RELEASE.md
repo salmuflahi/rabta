@@ -30,16 +30,23 @@ Microsoft VS Code Marketplace.
 **The connectors have moved ahead of the app, to 0.2.0.** The desktop app
 itself is still v0.1.0 — 0.2.0 is a connector-only bump for focus mode's
 reconcile step (`tabs.close` / `editor.closeFile` / `terminal.dispose`).
-Neither store has this version yet: both listings below are still serving
-0.1.x until someone runs the publish steps in §2/§3 for 0.2.0. It also raises
-`engines.vscode` — see §3.
+Both editor listings carry 0.2.0; the Chrome Web Store still serves 0.1.1 until
+someone runs the publish steps in §2 for 0.2.0. It also raises `engines.vscode`
+— see §3.
+
+**The editor extension is now 0.3.0 in source** (September 10, 2026): Rabta
+Teams' Together, which reports the cursor's file and line to a room only while
+the person has it on, draws teammates' cursors, and reveals the leader's file on
+Follow. It declares a new `together` capability, which the desktop's
+Connectors screen describes. Neither editor store has 0.3.0 yet; the Chrome
+extension is unchanged at 0.2.0.
 
 | Channel | State |
 |---|---|
 | macOS DMG | ✅ Signed (Developer ID `86M2X6MUA3`), notarized, stapled, hosted |
-| Open VSX (Cursor / VSCodium / Windsurf) | ✅ Published — `rabta-connect.rabta-vscode` 0.2.0, namespace verified |
+| Open VSX (Cursor / VSCodium / Windsurf) | ✅ Published — `rabta-connect.rabta-vscode` 0.2.0, namespace verified; 0.3.0 pending upload |
 | Chrome Web Store | ✅ Live — [Rabta Connector](https://chromewebstore.google.com/detail/rabta-connector/aaombpafbhjkoinppogieaclijddlebo) 0.1.1; 0.2.0 packaged, awaiting upload |
-| VS Code Marketplace (Microsoft) | ✅ Published — `rabta-connect.rabta-vscode` 0.2.0, publisher verified |
+| VS Code Marketplace (Microsoft) | ✅ Published — `rabta-connect.rabta-vscode` 0.2.0, publisher verified; 0.3.0 pending upload |
 | Trader / account verification (Google) | ⏳ Pending |
 
 **Public downloads**

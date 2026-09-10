@@ -2,7 +2,7 @@
 
 ## Rabta Teams: the Room, threads and Together — September 10, 2026
 
-- Service: `node --test services/teams/` passes 26 tests against real HTTP
+- Service: `pnpm test:teams` passes 26 tests against real HTTP
   servers and temporary durable directories, including snapshot reference
   validation, hash-chained thread appends with idempotency across a restart,
   the inbox, Together broadcast, expiry on the 60-second timer, revocation,

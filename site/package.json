@@ -11,11 +11,11 @@
     "check": "astro check"
   },
   "dependencies": {
-    "astro": "^7.3.1",
+    "astro": "^7.3.2",
     "gsap": "^3.15.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.3"
   }
 }

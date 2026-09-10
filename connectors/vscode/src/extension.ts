@@ -150,7 +150,7 @@ export function activate(context: vscode.ExtensionContext): void {
     {
       name: "vscode",
       kind: "vscode",
-      capabilities: ["workspace", "editor", "terminal"],
+      capabilities: ["workspace", "editor", "terminal", "together"],
       version: context.extension.packageJSON.version as string,
     },
     (c) => {

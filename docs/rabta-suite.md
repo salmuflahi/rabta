@@ -10,7 +10,7 @@ Rabta should grow as a suite whose products stand on their own and hand work to 
 | Studio    | Edit, convert, inspect and prepare assets; everyday utilities in the same place | Utilities are free and local in this release; no subscription or AI promise implied |
 | Companion | Fast access to the task and relevant tools from a compact overlay               | Existing app companion remains; new utility-to-overlay handoffs are proposed        |
 | Connect   | Share chosen workspace context with other apps and AI                           | Scope must be visible; do not imply file contents or unrestricted computer access   |
-| Team      | Coordinate a shared outcome with collaborators                                  | Discovery only; no invented real-time collaboration capability                      |
+| Team      | Coordinate a shared outcome with collaborators                                  | Self-hosted service and the Room (threads, hand-offs, Step in, opt-in Together cursors); see `rabta-teams-plan.md` for status |
 
 Market means merchandise and stays deferred. Do not create a second Studio/Creative product or five separate onboarding flows. Pricing and subscription choices remain undecided.
 

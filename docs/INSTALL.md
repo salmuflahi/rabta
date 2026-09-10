@@ -9,7 +9,7 @@ browser/editor you want to connect.
 |---|---|---|
 | `Rabta_0.1.0_aarch64.dmg` | the desktop app (macOS, Apple Silicon) | [Download](https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg) |
 | Rabta Connector (editor) | VS Code / Cursor extension | [Open VSX](https://open-vsx.org/extension/rabta-connect/rabta-vscode) |
-| Rabta Connector (browser) | Chrome extension | Pending Chrome Web Store review |
+| Rabta Connector (browser) | Chrome extension | [Chrome Web Store](https://chromewebstore.google.com/detail/rabta-connector/aaombpafbhjkoinppogieaclijddlebo) |
 
 > To rebuild all three from source for this machine's architecture:
 > `./scripts/package.sh` → `dist-artifacts/`. This is only needed for
@@ -61,12 +61,16 @@ and Windsurf install from Open VSX directly; in those editors just search for
 cursor --install-extension rabta-connect.rabta-vscode
 ```
 
-For stock **VS Code** (Microsoft Marketplace), Rabta Connector is **not yet
-published** there — install the same `.vsix` manually for now:
+For stock **VS Code**, the same extension is published on the Microsoft
+Marketplace as `rabta-connect.rabta-vscode`:
 
 ```sh
-code --install-extension dist-artifacts/rabta-vscode-0.1.0.vsix
+code --install-extension rabta-connect.rabta-vscode
 ```
+
+To run a build newer than the stores carry (for example the Rabta Teams
+Together feature in 0.3.0), install the packaged `.vsix` from
+`./scripts/package.sh` instead: `code --install-extension dist-artifacts/rabta-vscode-<version>.vsix`.
 
 Reload the window. On the next start it activates automatically, reads the hub's
 per-run secret from the discovery file, and appears as a `vscode` connector in
@@ -75,14 +79,14 @@ isn't running.
 
 ## 3. Chrome connector
 
-The **Rabta Connector** Chrome extension is **pending Chrome Web Store review**
-(item "Rabta Connector", extension id `aaombpafbhjkoinppogieaclijddlebo`). Once
-approved it will install from the Web Store like any other extension.
+Install **Rabta Connector** from the Chrome Web Store:
+<https://chromewebstore.google.com/detail/rabta-connector/aaombpafbhjkoinppogieaclijddlebo>.
 
-Until it's approved, load it unpacked from the built folder:
+To run a build newer than the Store carries, load it unpacked from the built
+folder instead:
 
-1. Unzip `rabta-chrome-0.1.0.zip` somewhere stable (the extension loads from
-   this folder, so don't delete it).
+1. Unzip `rabta-chrome-<version>.zip` from `dist-artifacts/` somewhere stable
+   (the extension loads from this folder, so don't delete it).
 2. `chrome://extensions` → enable **Developer mode** (top-right) → **Load
    unpacked** → select the unzipped `rabta-chrome` folder.
 3. With Rabta running, the extension sends a pairing request → an
@@ -110,8 +114,9 @@ they do not upload workspace data or grant connector permissions. Full policy:
 | Channel | State |
 |---|---|
 | macOS DMG | **Signed, notarized, hosted** — [download](https://github.com/salmuflahi/rabta/releases/download/v0.1.0/Rabta_0.1.0_aarch64.dmg) |
-| Open VSX (Cursor / VSCodium / Windsurf) | **Published** — `rabta-connect.rabta-vscode` 0.1.0 |
-| Chrome Web Store | Pending review (`aaombpafbhjkoinppogieaclijddlebo`) |
-| VS Code Marketplace (Microsoft) | Not yet published |
+| Open VSX (Cursor / VSCodium / Windsurf) | **Published** — `rabta-connect.rabta-vscode` 0.2.0; 0.3.0 (Rabta Teams Together) is in source, not yet uploaded |
+| VS Code Marketplace (Microsoft) | **Published** — `rabta-connect.rabta-vscode` 0.2.0; 0.3.0 not yet uploaded |
+| Chrome Web Store | **Live** — 0.1.1; 0.2.0 packaged, awaiting upload |
+| Desktop beta (`Rabta Beta`, ad hoc signed) | Published by the beta workflow from `releases/desktop-beta.json`; see `RELEASE.md` |
 
 See [`docs/RELEASE.md`](./RELEASE.md) for the full release/signing checklist.

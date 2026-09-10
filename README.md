@@ -107,8 +107,8 @@ cargo build                        # hub + desktop shell (compiles bundled SQLit
 pnpm --filter desktop tauri dev
 
 # build the connectors you want to use:
-pnpm --filter omnibus-vscode build     # → connectors/vscode/dist/extension.js
-pnpm --filter omnibus-chrome build      # → connectors/chrome/dist/
+pnpm --filter rabta-vscode build       # → connectors/vscode/dist/extension.js
+pnpm --filter rabta-chrome build        # → connectors/chrome/dist/
 ```
 
 Load a connector into its editor/browser:
@@ -119,7 +119,7 @@ cursor --extensionDevelopmentPath="$PWD/connectors/vscode" <repo>
 
 # Chrome — isolated profile so your main browser is untouched:
 open -na "Google Chrome" --args \
-  --user-data-dir="$HOME/omnibus-chrome" \
+  --user-data-dir="$HOME/rabta-chrome" \
   --load-extension="$PWD/connectors/chrome" <urls…>
 ```
 
