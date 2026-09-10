@@ -11,6 +11,11 @@
  *  - VS Code / Cursor (`connectors/vscode/src/state.ts`) capture the first
  *    workspace folder, open *file paths*, the active file path, terminal
  *    name + cwd + busy flag, and which open files are dirty. No contents.
+ *    With Rabta Teams' Together switched on (`together` capability), the
+ *    same extension also reports the active file's workspace-relative path
+ *    and cursor line/column (`connectors/vscode/src/state.ts`,
+ *    `cursorEvent`), and draws teammates' cursors. Off by default; nothing
+ *    is sent until the person turns it on in a room.
  *
  * If a connector's capture ever widens, these strings have to widen with
  * it. That is the point of keeping them in one module instead of inline in
@@ -53,6 +58,7 @@ const CAPABILITY_USE: Record<string, string> = {
   editor: "Reads the paths of open files and which one is focused",
   terminal: "Reads terminal names and working directories",
   tabs: "Reads open tab addresses on capture, and reopens them on restore",
+  together: "Shares your cursor's file and line with a Teams room, only while Together is on",
 };
 
 /** One row per declared capability for the "What it does" table. An
@@ -107,7 +113,7 @@ export function capabilityFacts(capabilities: string[]): CapabilityFact[] {
  */
 export function capabilitiesForKind(kind: string): string[] {
   if (kind === "chrome") return ["tabs"];
-  if (kind === "vscode" || kind === "cursor") return ["workspace", "editor", "terminal"];
+  if (kind === "vscode" || kind === "cursor") return ["workspace", "editor", "terminal", "together"];
   if (kind === "fake") return ["workspace", "editor"];
   return [];
 }
@@ -117,6 +123,7 @@ const CAN_SEE: Record<string, string[]> = {
   editor: ["The paths of your open files", "Which file has unsaved changes"],
   terminal: ["Terminal names and working directories"],
   tabs: ["The addresses and titles of open tabs"],
+  together: ["Your cursor's file and line, while Together is on in a Teams room"],
 };
 
 /** The "Can see" column — derived from the capabilities the connector
@@ -138,6 +145,7 @@ const NEVER_SEES_BY_CAPABILITY: Record<string, string[]> = {
   editor: ["The contents of your files"],
   terminal: ["Terminal output or command history"],
   tabs: ["Page contents, form data or cookies", "Incognito tabs, or anything that isn't http(s)"],
+  together: ["Your cursor when Together is off, or the text around it"],
 };
 
 /** The "Never sees" column. Deliberately concrete: "never your files" is

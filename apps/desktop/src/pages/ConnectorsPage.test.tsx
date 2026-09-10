@@ -123,6 +123,17 @@ describe("ConnectorsPage permissions", () => {
     expect(detail().getByText("Passwords, tokens or keychain items")).toBeInTheDocument();
   });
 
+  // The editor extension declares `together` for Rabta Teams. The screen has
+  // to say what that reads and, just as concretely, what it does not.
+  it("describes the Together capability the editor extension declares", () => {
+    seed({ connectors: [connector({ capabilities: ["workspace", "editor", "terminal", "together"] })] });
+    renderWithProviders(<ConnectorsPage />);
+    expect(detail().getByText("together")).toBeInTheDocument();
+    expect(detail().getByText(/only while Together is on/)).toBeInTheDocument();
+    expect(detail().getByText("Your cursor's file and line, while Together is on in a Teams room")).toBeInTheDocument();
+    expect(detail().getByText("Your cursor when Together is off, or the text around it")).toBeInTheDocument();
+  });
+
   it("lists every declared capability with what it is for", () => {
     seed({ connectors: [connector({ capabilities: ["workspace", "editor"] })] });
     renderWithProviders(<ConnectorsPage />);
