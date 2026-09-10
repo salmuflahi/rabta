@@ -1,5 +1,30 @@
 # Lens redesign verification
 
+## Rabta Teams: the Room, threads and Together — September 10, 2026
+
+- Service: `node --test services/teams/` passes 26 tests against real HTTP
+  servers and temporary durable directories, including snapshot reference
+  validation, hash-chained thread appends with idempotency across a restart,
+  the inbox, Together broadcast, expiry on the 60-second timer, revocation,
+  and the separate 15-per-second cursor budget.
+- Rust: `cargo test -p rabta-desktop --lib` passes 58 tests on this Linux
+  host, three of them for the Step-in import: references resolve under the
+  chosen project or home only, absolute paths and parent segments are refused
+  with reasons, and the produced resources match the shapes restore reads.
+- Desktop frontend: 874 tests in 81 files pass, including the Room (inbox
+  Step in through `import_task_snapshot` and the normal `activate_task`,
+  acknowledging a decision, tying a knot with the active capsule attached as
+  project-relative references, handing off with a service-safe thread id,
+  named cursors that disappear with their owner, Together off by default),
+  the thread helpers and the snapshot builder; TypeScript and the Vite
+  production build pass. The workspace tests make no network requests.
+- VS Code connector: TypeScript, 24 tests and the esbuild bundle pass; the
+  cursor event is project-relative, one-based, null outside the folder, and
+  peer cursors are capped at 32 with validated colours.
+- Not verified here: two real Macs in one room, cursor latency, the VS Code
+  decorations on screen, focus-mode restore of an imported capsule, and the
+  real-pair gates in `docs/rabta-teams-plan.md`.
+
 ## Native toolkit, second batch, and the wordmark — September 9, 2026
 
 - Rust: `cargo check` and `cargo test --lib` for the desktop crate run on this

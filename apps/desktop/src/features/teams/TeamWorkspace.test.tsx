@@ -18,7 +18,7 @@ beforeEach(() => {
     me: { id: "me", displayName: "Sammy", role: "owner" },
     members: [{ id: "me", displayName: "Sammy", role: "owner", status: "offline", lastSeenAt: null }, { id: "other", displayName: "Test teammate", role: "member", status: "working", lastSeenAt: "2026-09-09T12:00:00Z" }],
     lanes: [{ memberId: "me", revision: 0, title: "My work", content: "", updatedAt: "2026-09-09T12:00:00Z", publishedAt: null, private: true }, { memberId: "other", revision: 2, title: "Draft launch copy", content: "A visible published idea", updatedAt: "2026-09-09T12:00:00Z", publishedAt: "2026-09-09T12:00:00Z", private: false }],
-    proposals: [], assets: [], revision: 3,
+    proposals: [], assets: [], threads: [], inbox: [], together: [], revision: 3,
   };
   request.mockImplementation(async (_endpoint, path, _key, options = {}) => {
     const body = options.body as Record<string, unknown> | undefined;

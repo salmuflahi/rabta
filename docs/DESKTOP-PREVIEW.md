@@ -39,7 +39,7 @@ parity; see `native-suite-parity.md` for the remaining scope.
 Teams is a self-hosted preview. Start the service using `teams-service.md`, then
 connect from the Teams page. Each member has a private lane, can explicitly
 share a live text preview or selected file, and reviews proposed changes before
-applying them. It does not mirror other Mac applications. Remote teammates need
+applying them. The Room above the lanes carries the thread of a task: knots, requests and decisions tied to places, hand-offs that a teammate steps into as a capsule on their own Mac, and, only while Together is on, named cursors over the Room and in VS Code. It does not mirror other Mac applications. Remote teammates need
 a reachable HTTPS service; no managed Rabta server is included.
 
 The content planner creates calendar reminders, not automatic social posts.

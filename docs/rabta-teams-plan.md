@@ -117,6 +117,15 @@ After that: load tests against the intended team size, an operational backup sto
 - No automatic merging of anything. Weave is a choice a person makes, every time.
 - No feature that only works when a Rabta server is up. Snapshots, knots and hand-off drafts are written locally first and sync when the room is reachable.
 
+## Status — September 10, 2026
+
+Phase 1 and the parts of phases 2 and 3 that need no new consent are in the source, verified on Linux with the service's real HTTP server, the desktop test suite, the Rust unit tests and the connector tests. Real-pair gates, cursor latency and everything that needs a Mac stay open.
+
+- **Service**: content-addressed snapshots, append-only hash-chained threads with Lamport ordering and per-kind rules, the inbox, and the ephemeral Together channel with its own rate budget and 60-second expiry. See `teams-service.md`.
+- **Desktop**: the Room sits at the top of the Teams page: People (colour rings, presence, Leading badge, Follow), Thread (thread chips, inbox with Step in and Decline, entries with places, acknowledge, the composer for knots, requests, decisions and hand-offs with "attach my current capsule") and Capsule (the latest snapshot, its places, project mapping and Step in). Step in imports the snapshot as a local task under the chosen project through a Rust command that refuses absolute paths and parent segments, then opens it through the normal restore with its receipt, and records `accept` on the hand-off. Threads export as Markdown. Named cursors move on the brand spring over the Room.
+- **VS Code connector**: with Together on, the editor reports its cursor project-relative at most ten times a second; teammates' cursors are drawn with their name and colour; Follow reveals the leader's file and line. Together off means no cursor traffic and no decorations.
+- **Not built yet**: browser tab following, Pulse, thread search, export to a pull request, Split and weave in the interface (the service accepts them), starter capsules, knots on images, local-first drafting while the room is unreachable, and the hosting decision.
+
 ## Open questions to settle with real use
 
 1. Do teams want the thread per task, per project, or both? The data model allows both; the first Room shows one per task.

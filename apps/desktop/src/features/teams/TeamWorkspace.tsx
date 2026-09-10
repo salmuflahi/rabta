@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { FamilyEmblem } from "@/components/brand/FamilyEmblem";
 import { roomPath, teamRequest, TeamRequestError, type TeamLane, type TeamMember, type TeamProposal } from "./client";
 import { ConnectionForm, SecretInput } from "./ConnectionForm";
+import { Room } from "./Room";
 import { TeamAssets } from "./TeamAssets";
 import { useTeamRoom } from "./useTeamRoom";
 
@@ -164,7 +165,7 @@ export function TeamWorkspace() {
     </header>
     {connectionError && <div className="teams-banner" role="alert"><p>{connectionError} {state ? "Showing the last received work." : "Check the workspace host."}</p><Button onClick={room.reconnect}>Reconnect</Button></div>}
     {!state ? <Surface className="teams-loading"><p role="status">{connectionState === "connecting" ? "Loading your team’s workspace…" : "Your workspace could not be loaded."}</p></Surface> : <>
-      <section aria-label="Workspace members" className="teams-members">{state.members.slice(0, 100).map(member => <div className="teams-member" key={member.id}><span className="teams-avatar" aria-hidden="true">{member.displayName.slice(0, 2).toLocaleUpperCase()}</span><span><strong>{member.displayName}{member.id === state.me.id ? " (you)" : ""}</strong><small>{member.status === "working" ? "Working" : member.status === "away" ? "Away" : "Presence not active"}{connectionState !== "live" ? " · last received" : ""}</small></span>{state.me.role === "owner" && member.id !== state.me.id && <Button variant="ghost" size="sm" aria-label={`Remove ${member.displayName}`} onClick={() => setRemoving(member)}>Remove</Button>}</div>)}</section>
+      <Room connection={connection} state={state} live={connectionState === "live"} cursors={room.cursors} threadVersion={room.threadVersion} refresh={room.refresh} onRemoveMember={setRemoving} />
       <div className="teams-work-grid">
         <Surface variant="raised" className="teams-own-lane"><div className="teams-section-heading"><div><span className="teams-eyebrow">Your lane</span><h2>Make space for your next idea.</h2></div><span className="teams-count">Revision {own?.revision ?? 0}</span></div>
           <p className="teams-muted">Only you edit this draft. Teammates see the preview you publish.</p>
