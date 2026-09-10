@@ -4,6 +4,7 @@ import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 import { readFile, rename, mkdir, open, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { LIMITS, RuleError, digest, entryHash, inboxFor, validateCursor, validateEntry, validateSnapshot, validateTaskId } from './threads.mjs';
 
 const MAX_BODY = 2_850_000;
 const MAX_ASSET = 2 * 1024 * 1024;
@@ -31,7 +32,7 @@ const publicMember = member => ({ id: member.id, displayName: member.displayName
 const publicLane = (lane, isPrivate) => ({ ...lane, private: isPrivate });
 
 /** A single-process, durable service. Never exposes native actions or reads clients' files. */
-export async function createTeamsService({ dataDir, bootstrapKey, host = '127.0.0.1', port = 47831, allowedOrigins = ['tauri://localhost', 'http://tauri.localhost', 'https://tauri.localhost'], tls, rateLimit = 600 } = {}) {
+export async function createTeamsService({ dataDir, bootstrapKey, host = '127.0.0.1', port = 47831, allowedOrigins = ['tauri://localhost', 'http://tauri.localhost', 'https://tauri.localhost'], tls, rateLimit = 600, cursorTtl = LIMITS.cursorTtlMs } = {}) {
   if (typeof bootstrapKey !== 'string' || bootstrapKey.length < 32) throw new Error('Set RABTA_TEAMS_BOOTSTRAP_KEY to a random secret of at least 32 characters.');
   if (!LOOPBACK.has(host) && !tls) throw new Error('Non-loopback listeners require a TLS certificate and private key.');
   if (!dataDir) throw new Error('A private data directory is required.');
@@ -46,11 +47,18 @@ export async function createTeamsService({ dataDir, bootstrapKey, host = '127.0.
     try { state = JSON.parse(await readFile(dataPath, 'utf8')); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
     if (state.version !== 1 || !state.rooms || typeof state.rooms !== 'object' || Array.isArray(state.rooms)) throw new Error('Unsupported or invalid Teams state file.');
+    // Rooms written before snapshots and threads existed gain empty collections.
+    for (const room of Object.values(state.rooms)) { room.snapshots ??= {}; room.threads ??= {}; }
   } catch (error) { await lock.close(); await unlink(lockPath); throw error; }
   const origins = new Set(allowedOrigins);
   const streams = new Map();
   const presence = new Map();
   const rates = new Map();
+  // Together is ephemeral by design: cursors live in memory, expire after a
+  // minute of silence, and are never written to the store or the log.
+  const together = new Map();
+  const cursorRates = new Map();
+  const cursorTimers = new Map();
   let serial = Promise.resolve();
   let stopped = false;
 
@@ -107,9 +115,20 @@ export async function createTeamsService({ dataDir, bootstrapKey, host = '127.0.
     return { room, member };
   }
   function owner(member) { if (member.role !== 'owner') fail(403, 'owner_required', 'Only the room owner can manage membership.'); }
+  function publicCursor(key) {
+    const cursor = together.get(key);
+    return cursor ? { memberId: key.split(':')[1], task: cursor.task, pointer: cursor.pointer, editor: cursor.editor, leading: cursor.leading, following: cursor.following, at: cursor.at } : null;
+  }
+  function threadSummary(thread) {
+    const last = thread.entries[thread.entries.length - 1];
+    return { id: thread.id, title: thread.title, entries: thread.entries.length, lamport: thread.lamport, updatedAt: thread.updatedAt, createdAt: thread.createdAt, lastKind: last?.kind ?? null, lastAuthor: last?.author ?? null, lastSnapshot: [...thread.entries].reverse().find(entry => entry.snapshot)?.snapshot ?? null, authors: [...new Set(thread.entries.map(entry => entry.author))] };
+  }
   function roomState(room, member) {
     return {
       room: { id: room.id, name: room.name, createdAt: room.createdAt }, me: publicMember(member), revision: room.revision,
+      threads: Object.values(room.threads).map(threadSummary).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+      inbox: inboxFor(room.threads, member.id),
+      together: [...together.keys()].filter(key => key.startsWith(`${room.id}:`) && !room.members[key.split(':')[1]]?.revokedAt).map(publicCursor),
       members: Object.values(room.members).filter(m => !m.revokedAt).map(m => {
         const seen = presence.get(`${room.id}:${m.id}`);
         return { ...publicMember(m), status: seen && Date.now() - Date.parse(seen.lastSeenAt) < 90_000 ? seen.status : 'offline', lastSeenAt: seen?.lastSeenAt || null };
@@ -163,8 +182,8 @@ export async function createTeamsService({ dataDir, bootstrapKey, host = '127.0.
       if (req.method === 'OPTIONS') {
         res.writeHead(204, { 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS', 'Access-Control-Allow-Headers': 'Authorization,Content-Type', 'Access-Control-Max-Age': '600' }); res.end(); return;
       }
-      checkRate(req);
       const url = new URL(req.url, 'http://localhost');
+      if (!/\/together$/.test(url.pathname)) checkRate(req);
       if (url.search) fail(400, 'query_not_supported', 'Do not send keys or other data in the URL.');
       if (req.method === 'GET' && url.pathname === '/health') { send(res, 200, { status: 'ok', service: 'rabta-teams', version: 1 }); return; }
       if (req.method === 'POST' && url.pathname === '/v1/rooms') {
@@ -180,7 +199,7 @@ export async function createTeamsService({ dataDir, bootstrapKey, host = '127.0.
             }
           }
           if (Object.keys(next.rooms).length >= 100) fail(409, 'room_limit', 'The server room limit was reached.');
-          const roomId = id(); const room = { id: roomId, name, createdAt: stamp(), revision: 0, members: {}, lanes: {}, proposals: {}, assets: {}, invitations: {}, idempotency: {} };
+          const roomId = id(); const room = { id: roomId, name, createdAt: stamp(), revision: 0, members: {}, lanes: {}, proposals: {}, assets: {}, invitations: {}, idempotency: {}, snapshots: {}, threads: {} };
           next.rooms[roomId] = room;
           const value = makeMember(next, room, displayName, 'owner', setup?.memberKey);
           if (setup) room.creationRequest = { requestKeyHash: setup.requestKeyHash, fingerprint, memberId: value.memberId };
@@ -234,16 +253,87 @@ export async function createTeamsService({ dataDir, bootstrapKey, host = '127.0.
         const value = { status: input.status, lastSeenAt: stamp() }; presence.set(`${roomId}:${member.id}`, value);
         broadcast(roomId, 'presence', { memberId: member.id, ...value }); send(res, 200, value); return;
       }
+      if (req.method === 'POST' && endpoint === 'together') {
+        const input = await body(req);
+        const cursor = validateCursor(input, { isActiveMember: candidate => !!room.members[candidate] && !room.members[candidate].revokedAt });
+        authenticate(req, roomId);
+        const now = Date.now(); const rateKey = `${roomId}:${member.id}`;
+        let rate = cursorRates.get(rateKey);
+        if (!rate || now - rate.startedAt >= 1000) { rate = { startedAt: now, count: 0 }; cursorRates.set(rateKey, rate); }
+        if (++rate.count > LIMITS.cursorRatePerSecond) fail(429, 'cursor_rate_limit', 'Send cursor updates at most fifteen times a second.');
+        const key = `${roomId}:${member.id}`;
+        clearTimeout(cursorTimers.get(key));
+        if (!cursor.active) {
+          if (together.delete(key)) broadcast(roomId, 'cursor', { memberId: member.id, gone: true });
+          cursorTimers.delete(key); send(res, 200, { active: false }); return;
+        }
+        const previous = together.get(key);
+        const value = { task: cursor.task ?? previous?.task ?? null, pointer: cursor.pointer ?? (cursor.pointer === null && input.pointer === null ? null : previous?.pointer ?? null), editor: cursor.editor ?? (input.editor === null ? null : previous?.editor ?? null), leading: cursor.leading, following: cursor.following, at: stamp() };
+        together.set(key, value);
+        const expiry = setTimeout(() => { if (together.delete(key)) broadcast(roomId, 'cursor', { memberId: member.id, gone: true }); cursorTimers.delete(key); }, cursorTtl);
+        expiry.unref(); cursorTimers.set(key, expiry);
+        broadcast(roomId, 'cursor', publicCursor(key));
+        send(res, 200, publicCursor(key)); return;
+      }
+      if (req.method === 'GET' && /^snapshots\/[a-f0-9]{64}$/.test(endpoint)) {
+        const snapshot = room.snapshots[endpoint.split('/')[1]]; if (!snapshot) fail(404, 'not_found', 'This snapshot is not in the room.');
+        send(res, 200, snapshot); return;
+      }
+      if (req.method === 'GET' && /^threads\/[A-Za-z0-9._-]{1,80}$/.test(endpoint)) {
+        const thread = room.threads[endpoint.split('/')[1]]; if (!thread) fail(404, 'not_found', 'This thread has no entries yet.');
+        send(res, 200, { thread: threadSummary(thread), entries: thread.entries }); return;
+      }
       if (req.method === 'GET' && /^assets\/[a-f0-9]{24}$/.test(endpoint)) {
         const asset = room.assets[endpoint.split('/')[1]]; if (!asset) fail(404, 'not_found', 'The asset is unavailable.');
         res.writeHead(200, { 'Content-Type': asset.mimeType, 'Content-Length': asset.size, 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(asset.name)}` }); res.end(Buffer.from(asset.contentBase64, 'base64')); return;
       }
       const input = ['POST', 'PUT'].includes(req.method) ? await body(req) : {};
       let revokedMemberId;
+      let threadEvent;
+      let created = false;
       const result = await transaction(next => {
         const { room: current, member: actor } = authenticate(req, roomId, next);
         let value;
-        if (req.method === 'PUT' && endpoint === 'lane') {
+        if (req.method === 'POST' && endpoint === 'snapshots') {
+          const snapshot = validateSnapshot(input.snapshot);
+          const key = digest(snapshot);
+          if (current.snapshots[key]) return { unchanged: true, value: current.snapshots[key] };
+          if (Object.keys(current.snapshots).length >= LIMITS.snapshotsPerRoom) fail(409, 'snapshot_limit', 'This room reached its snapshot limit.');
+          created = true;
+          value = current.snapshots[key] = { hash: key, author: actor.id, createdAt: stamp(), snapshot };
+        } else if (req.method === 'POST' && /^threads\/[A-Za-z0-9._-]{1,80}\/entries$/.test(endpoint)) {
+          const taskId = validateTaskId(endpoint.split('/')[1]);
+          const requestKey = text(input.idempotencyKey, 'Idempotency key', 128);
+          const keyId = `${actor.id}:entry:${hash(requestKey)}`;
+          const previous = current.idempotency[keyId];
+          const fingerprint = hash(JSON.stringify({ taskId, kind: input.kind, text: input.text ?? null, place: input.place ?? null, snapshot: input.snapshot ?? null, target: input.target ?? null, to: input.to ?? null, parents: input.parents ?? null }));
+          if (previous) {
+            if (previous.fingerprint !== fingerprint) fail(409, 'idempotency_conflict', 'This request key was already used for a different entry.');
+            const thread = current.threads[taskId]; const existing = thread?.entries.find(entry => entry.hash === previous.entryHash);
+            if (existing) return { unchanged: true, value: { entry: existing, thread: threadSummary(thread) } };
+          }
+          let thread = current.threads[taskId];
+          if (!thread) {
+            if (Object.keys(current.threads).length >= LIMITS.threadsPerRoom) fail(409, 'thread_limit', 'This room reached its thread limit.');
+            const title = (typeof input.title === 'string' ? text(input.title, 'Task title', 160, { empty: true }).trim() : '') || (typeof input.snapshot === 'string' && current.snapshots[input.snapshot]?.snapshot.title) || taskId;
+            thread = current.threads[taskId] = { id: taskId, title, createdAt: stamp(), updatedAt: stamp(), lamport: 0, entries: [] };
+          } else if (typeof input.title === 'string' && input.title.trim()) thread.title = text(input.title, 'Task title', 160).trim();
+          if (thread.entries.length >= LIMITS.entriesPerThread) fail(409, 'entry_limit', 'This thread is full. Start a new task for the next chapter.');
+          const validated = validateEntry(input, {
+            actorId: actor.id, entries: thread.entries,
+            hasSnapshot: candidate => Object.hasOwn(current.snapshots, candidate),
+            isActiveMember: candidate => Object.hasOwn(current.members, candidate) && !current.members[candidate].revokedAt,
+            findEntry: candidate => thread.entries.find(entry => entry.hash === candidate) ?? null,
+          });
+          thread.lamport = Math.max(thread.lamport, validated.lamport) + 1;
+          const entry = { ...validated, lamport: thread.lamport, task: taskId, author: actor.id, seq: thread.entries.length + 1, createdAt: stamp() };
+          entry.hash = entryHash(entry);
+          thread.entries.push(entry); thread.updatedAt = entry.createdAt;
+          current.idempotency[keyId] = { fingerprint, entryHash: entry.hash };
+          created = true;
+          threadEvent = { task: taskId, seq: entry.seq, kind: entry.kind, author: actor.id, hash: entry.hash };
+          value = { entry, thread: threadSummary(thread) };
+        } else if (req.method === 'PUT' && endpoint === 'lane') {
           const lane = current.lanes[actor.id].draft;
           revision(input.expectedRevision, lane.revision);
           const title = text(input.title, 'Title', 160); const content = text(input.content, 'Content', 100_000, { empty: true });
@@ -328,11 +418,14 @@ export async function createTeamsService({ dataDir, bootstrapKey, host = '127.0.
       if (revokedMemberId) {
         for (const stream of streams.get(roomId) || []) if (stream.memberId === revokedMemberId) { stream.res.write('event: revoked\ndata: {}\n\n'); stream.res.end(); }
         presence.delete(`${roomId}:${revokedMemberId}`);
+        const key = `${roomId}:${revokedMemberId}`; clearTimeout(cursorTimers.get(key)); cursorTimers.delete(key);
+        if (together.delete(key)) broadcast(roomId, 'cursor', { memberId: revokedMemberId, gone: true });
       }
-      send(res, req.method === 'POST' && ['invitations', 'proposals', 'assets'].includes(endpoint) ? 201 : 200, result);
+      if (threadEvent) broadcast(roomId, 'thread', threadEvent);
+      send(res, created || (req.method === 'POST' && ['invitations', 'proposals', 'assets'].includes(endpoint)) ? 201 : 200, result);
     } catch (error) {
       if (res.headersSent) { res.end(); return; }
-      if (error instanceof ApiError) send(res, error.status, { error: { code: error.code, message: error.message, ...(error.details ? { details: error.details } : {}) } });
+      if (error instanceof ApiError || error instanceof RuleError) send(res, error.status, { error: { code: error.code, message: error.message, ...(error.details ? { details: error.details } : {}) } });
       else send(res, 500, { error: { code: 'server_error', message: 'The server could not save this change. Your local draft is safe to retry.' } });
     }
   }
@@ -342,6 +435,8 @@ export async function createTeamsService({ dataDir, bootstrapKey, host = '127.0.
   async function stop() {
     if (stopped) return; stopped = true; clearInterval(sweep);
     for (const active of streams.values()) for (const stream of active) stream.res.end();
+    for (const timer of cursorTimers.values()) clearTimeout(timer);
+    cursorTimers.clear(); together.clear();
     await serial;
     await new Promise(resolve => server.close(resolve));
     server.closeAllConnections();

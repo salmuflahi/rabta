@@ -27,6 +27,7 @@ pub mod git;
 pub mod github;
 pub mod migrate;
 pub mod projects;
+pub mod teams;
 pub mod utilities;
 #[path = "utility-windows.rs"]
 mod utility_windows;
@@ -926,7 +927,8 @@ pub fn run() {
             migrate::migrate_export,
             migrate::migrate_inspect,
             migrate::migrate_apply,
-            migrate::migrate_preferences
+            migrate::migrate_preferences,
+            teams::import_task_snapshot
         ])
         .build(tauri::generate_context!())
         .expect("error while building Rabta");
