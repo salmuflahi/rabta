@@ -351,14 +351,11 @@
   }
 
   .notfound .mark {
-    width: 72px;
-    height: 72px;
+    display: block;
+    width: 168px;
+    height: auto;
     margin-bottom: var(--s6);
     color: var(--text);
     overflow: visible;
-  }
-
-  .notfound .mark .leg {
-    stroke: var(--ember);
   }
 }

@@ -15,6 +15,11 @@ and works in **VS Code** and **Cursor**.
 - **No sign-in.** It authenticates with a per-run secret the Rabta app writes
   to a local file; nothing you do leaves your machine.
 - Nothing is captured until you save a capsule in Rabta.
+- **Together is off by default.** When you turn it on in a Rabta Teams room,
+  the extension reports your cursor's file (relative to the workspace folder),
+  line and column to the Rabta app at most ten times a second, and draws your
+  teammates' cursors with their names. Turning it off stops both at once. File
+  contents are never sent.
 
 ## Requirements
 

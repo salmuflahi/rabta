@@ -37,14 +37,14 @@ Reference: https://github.com/vorssaint/vorssaint-utils (reviewed 2026-09-09). T
 | Area in reference               | Current Rabta addition                                             | Work remaining                                                                                          |
 | ------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
 | Scratchpad, snippets, clipboard | Local notes, reusable snippets, manual text shelf                  | Background clipboard history, retention controls, hotkey expansion, file shelf                          |
-| Quick tools                     | Links, calculator, colors, conversions, focus, batch rename        | OCR, global picker, radial menus and richer cross-app command actions                                   |
-| Keep awake                      | Finite native caffeinate session, stop and cleanup                 | Scheduling / task-bound sessions after real Mac validation                                              |
+| Quick tools                     | Links, calculator, colors, conversions, focus, batch rename, quick launcher, snippet expansion | Global picker, radial menus, global hotkeys and richer cross-app command actions                     |
+| Keep awake                      | Timed, manual and app-bound caffeinate sessions, stop and cleanup  | Power-source and lock-pause behaviour after real Mac validation                                         |
 | Windows                         | Explicit halves/corners/center/maximize on primary display; undo   | Multi-display geometry, edge dragging, app switcher, Dock previews, shortcuts, close/quit protection    |
-| Audio                           | System output volume/mute and software input level                 | Per-app mixer/routing, devices, hardware mic behavior, music launch suppression                         |
-| System                          | On-demand OS, CPU model, RAM capacity, battery and storage         | Live CPU/GPU/network, fan control, temperatures, configurable alerts                                    |
-| Capture                         | Interactive native PNG capture                                     | Editor handoff, screen recorder/editor, camera preview, OCR                                             |
-| Files                           | Batch export without mutating originals; existing media conversion | Finder cut/paste, DMG installation, cleaner/uninstaller, update tools, Homebrew manager                 |
-| Input / displays                | No implementation in this change                                   | Mouse/key remapping, scroll controls, debounce, DDC brightness, Bluetooth sleep behavior, cleaning mode |
+| Audio                           | System output volume/mute, software input level, output device switching, Music block | Per-app mixer/routing, hardware mic behavior                                                 |
+| System                          | Live CPU/GPU/memory/network/disk/battery, processes, cleaner, Homebrew, update checks, uninstaller | Fan control, temperatures, configurable alerts                                    |
+| Capture                         | Interactive native PNG capture, screen text/barcodes, screen recording, camera preview | Editor handoff, recorder pause/annotation, frozen or scrolling capture                    |
+| Files                           | Batch export without mutating originals; media conversion; DMG installation; cleaner; uninstaller | Finder cut/paste and rename shortcuts, the shelf                                    |
+| Input / displays                | Opt-in event filter: wheel inversion, debounce, Cmd+Q protection, plain paste, mouse buttons, focus-follows-pointer, cleaning mode | Smooth scrolling, acceleration, modifier remapping, three-finger click, DDC brightness, Bluetooth sleep behavior |
 
 Prioritize a polished capture-to-Studio handoff, searchable tool shortcuts and a consent-based clipboard shelf. Per-app audio, Dock integration and hardware control are distinct native projects, not superficial UI cards.
 

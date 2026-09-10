@@ -390,13 +390,16 @@
     color: var(--text);
   }
 
+  /* The wordmark is 961 by 293, so 20px tall is about 66px wide: the
+     same footprint the nav has always given the brand. */
   .brand img,
   .brand svg {
-    height: 22px;
+    display: block;
+    height: 20px;
     width: auto;
   }
 
-  /* The lockup ships in both colourways and a surface shows the one that
+  /* The wordmark ships in both colourways and a surface shows the one that
      reads on it: paper on ink by default, ink on a `.paper` surface. */
   .brand__ink,
   .paper .brand__paper {
@@ -735,7 +738,7 @@
 }
 
 /* ---- page transitions --------------------------------------------------------
-   Pages are separate documents. The browser carries the lockup from one to
+   Pages are separate documents. The browser carries the wordmark from one to
    the next and dips the rest through ink for a beat, so a click reads as a
    turn of the page rather than a reload. No script is involved. */
 @layer state {

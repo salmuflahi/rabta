@@ -21,12 +21,12 @@ Rabta — Overview
 Your editor, your terminal, your browser and git each remember their
 own piece of a task. None of them remembers the arrangement. Rabta
 is the bond between them, so a task can be put down and picked up
-whole. The mark says the same thing in one glyph: an R whose leg is
-the Arabic ر. The brand page has the whole story.
+whole. The name is the whole identity: written once, in one colour,
+never drawn as a symbol. The brand page has the files.
 Rabta
-The Latin R. The stem and the bowl: you start, you capture.
+The name in running text, in the same face as everything else on the site.
 رابطة
-The Arabic ر, drawn as the leg: you leave, and you come back.
+The name in its own alphabet: a bond, a tie. Set in Reem Kufi, for the name only.
 ## Three things that do not bend.
 01
 ### Local-first, structurally

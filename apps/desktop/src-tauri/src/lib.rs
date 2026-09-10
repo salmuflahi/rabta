@@ -27,6 +27,7 @@ pub mod git;
 pub mod github;
 pub mod migrate;
 pub mod projects;
+pub mod teams;
 pub mod utilities;
 #[path = "utility-windows.rs"]
 mod utility_windows;
@@ -836,6 +837,38 @@ pub fn run() {
             utilities::utility_audio_switch,
             utilities::utility_screen_ocr,
             utilities::utility_export_file,
+            utilities::utility_input_status,
+            utilities::utility_input_configure,
+            utilities::utility_input_request_access,
+            utilities::utility_input_stop,
+            utilities::utility_displays,
+            utilities::utility_camera_devices,
+            utilities::utility_camera_start,
+            utilities::utility_camera_stop,
+            utilities::apps::utility_processes,
+            utilities::apps::utility_end_process,
+            utilities::apps::utility_installed_apps,
+            utilities::apps::utility_launch_app,
+            utilities::apps::utility_app_related_files,
+            utilities::apps::utility_uninstall_app,
+            utilities::apps::utility_choose_file,
+            utilities::apps::utility_disk_image_open,
+            utilities::apps::utility_disk_image_install,
+            utilities::apps::utility_disk_image_eject,
+            utilities::apps::utility_check_updates,
+            utilities::apps::utility_open_software_update,
+            utilities::brew::utility_brew_status,
+            utilities::brew::utility_brew_list,
+            utilities::brew::utility_brew_outdated,
+            utilities::brew::utility_brew_search,
+            utilities::brew::utility_brew_action,
+            utilities::cleaner::utility_cleaner_scan,
+            utilities::cleaner::utility_cleaner_remove,
+            utilities::recorder::utility_recorder_status,
+            utilities::recorder::utility_recorder_start,
+            utilities::recorder::utility_recorder_stop,
+            utilities::watchers::utility_watchers_status,
+            utilities::watchers::utility_watchers_configure,
 
             utility_windows::utility_list_windows,
             utility_windows::utility_window_action,
@@ -894,7 +927,8 @@ pub fn run() {
             migrate::migrate_export,
             migrate::migrate_inspect,
             migrate::migrate_apply,
-            migrate::migrate_preferences
+            migrate::migrate_preferences,
+            teams::import_task_snapshot
         ])
         .build(tauri::generate_context!())
         .expect("error while building Rabta");

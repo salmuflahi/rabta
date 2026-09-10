@@ -227,3 +227,17 @@ The first round shipped the brand. The second round, after review against Raylig
 - **Routes.** Eleven: `/capsules/` (how it works) and `/agents/` (the MCP server) join the nine. The nav is Why, Product, Capsules, Agents, Setup, FAQ, plus Download; Changelog, Contact and Brand live in the compact menu and the footer. `/roadmap/` is titled "Where this goes."
 - **No counting.** A first-party visitor counter was built and then dropped the same day, on the owner's call: the site makes no request beyond its own files, and the privacy page's promise stays the simple one.
 - **Agents.** `packages/mcp` is a read-only MCP server over the app's database. Capture and restore from an agent are planned, through an opt-in local socket in the app, and the site says so as roadmap.
+
+---
+
+## Amendment, 9 September 2026: the R mark is retired
+
+The three-stroke R of §1.2 (the stem, the bowl, and the leg that was a ر) is retired, along with the lockups built from it and the "R that is also a ر" story. Where this amendment and the sections above disagree, this amendment wins.
+
+- **The wordmark is the only identity.** The brand is the word rabta: five rounded lowercase letters as one outlined path (viewBox 0 0 961 293), filled with one colour, the text colour of the surface it sits on. There is no symbol beside it and no lockup; the word is the mark. Files: `wordmark.svg` (currentColor), `wordmark-ink.svg`, `wordmark-paper.svg`.
+- **The tile carries it.** The favicon, the app icon and every avatar are the ink wordmark at 80 percent width on the ember squircle (`favicon.svg`, the icon PNGs). The tile is the one place the ember and the letters share a frame, and there the letters stay ink. The ember is never on the letters.
+- **Clear space and the floor.** One cap height of clear space on every side. The wordmark is never set below 22 px tall; the tile never below 16 px.
+- **Never.** Outline it, rotate it, stretch it, put it in a circle, add a shadow, or set the name in a typeface instead of the path.
+- **Motion.** There is nothing to draw stroke by stroke. The wordmark arrives: a rise with a fade, then the landing spring, over the same 1100 ms the mark took, so the timing constants on the site and in the app stay equal. The homepage thread now ends on the wordmark's baseline, at the foot of its first letter, instead of handing over to a leg. Under reduced motion the wordmark is simply there.
+- **The name section stays.** Rabta is رابطة, a bond, a link; that is about the name, not the mark, and /why/ and /brand/ keep saying it. The Arabic name is set in Reem Kufi as a signature under the wordmark, for the name only.
+- **The site.** /brand/ is now the wordmark page: the two colourways as live specimens, the tile, clear space and the floor, the never list, the palette, the motion note, and downloads for the three SVGs, the tile, the 512 icon and the social card. No page mentions the R.

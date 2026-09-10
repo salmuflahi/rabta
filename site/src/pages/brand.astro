@@ -1,5 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
+import Wordmark from "../components/Wordmark.astro";
 import "../styles/tokens.css";
 import "../styles/shell.css";
 import "../styles/doc.css";
@@ -7,90 +8,42 @@ import "../styles/page.css";
 ---
 <Base
   title={"Brand · Rabta"}
-  description={"The Rabta mark: an R whose leg is the Arabic ر of رابطة. Where it comes from, how it moves, the colours it lives in, and the files to use it."}
+  description={"The Rabta wordmark: one outlined path in one colour. Its two colourways, the tile, clear space and the smallest it goes, the rules, and the files to use it."}
   route="/brand/"
-  ogTitle={"The Rabta mark"}
-  ogDescription={"An R that is also a ر. The mark, its three strokes, its colours, and the files to use it."}
+  ogTitle={"The Rabta wordmark"}
+  ogDescription={"One word, one path, one colour. The wordmark, its two colourways, the tile, and the files to use it."}
 >
   <div class="wrap page-head">
     <p class="page-head__label">Brand</p>
-    <h1>An R that is also a ر.</h1>
+    <h1>The word is the mark.</h1>
     <p class="lede">
-      Two alphabets, one glyph, three strokes. This page is the mark: where
-      it comes from, how it moves, the colours it lives in, and the files to
-      use it.
+      Rabta has no symbol. It is written: five rounded lowercase letters as one
+      outlined path, in one colour. This page is the wordmark: the two grounds
+      it sits on, the tile, the rules, and the files to use it.
     </p>
   </div>
 
-  <!-- The living mark. Each plate draws itself when it scrolls into view and
-       again on request. -->
-  <section class="band" aria-labelledby="mark-title">
+  <!-- The wordmark, live. Each plate brings it in when it scrolls into view
+       and again on request. -->
+  <section class="band" aria-labelledby="wordmark-title">
     <div class="band__inner">
       <div class="band__body">
-        <h2 id="mark-title">Three strokes, in the order the product happens.</h2>
+        <h2 id="wordmark-title">One path, one colour.</h2>
         <p>
-          The stem: you start a task, and something comes down to rest. The
-          bowl: you capture, and the loop closes around what is open. The leg:
-          you leave, and you come back. That third stroke is the Arabic ر of
-          رابطة, and it is the one that gets the colour.
+          The wordmark is a single outlined path, so it never depends on a font
+          being installed and never changes shape between machines. It takes
+          the text colour of whatever it sits on: ink on paper, paper on ink.
+          The ember is never on the letters.
         </p>
 
         <div class="specimen">
           <div class="specimen__plate">
-            <svg class="mark" id="specimen-ink" data-mark="draw" viewBox="0 0 100 100" role="img" aria-label="The Rabta mark on ink">
-              <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
-                <path class="stem" d="M25 22V84" />
-                <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
-                <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
-              </g>
-            </svg>
-            <button class="button button--small specimen__replay" type="button" data-mark-replay aria-controls="specimen-ink">Draw it again</button>
+            <Wordmark id="specimen-ink" data-mark="draw" label="The Rabta wordmark, paper on ink" />
+            <button class="button button--small specimen__replay" type="button" data-mark-replay aria-controls="specimen-ink">Show it again</button>
           </div>
           <div class="specimen__plate specimen__plate--paper paper">
-            <svg class="mark" id="specimen-paper" data-mark="draw" viewBox="0 0 100 100" role="img" aria-label="The Rabta mark on paper">
-              <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
-                <path class="stem" d="M25 22V84" />
-                <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
-                <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
-              </g>
-            </svg>
-            <button class="button button--small specimen__replay" type="button" data-mark-replay aria-controls="specimen-paper">Draw it again</button>
-          </div>
-        </div>
-
-        <div class="strokes">
-          <div class="stroke" data-reveal>
-            <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
-              <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
-                <path class="stem lit" d="M25 22V84" />
-                <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
-                <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
-              </g>
-            </svg>
-            <h3>The stem</h3>
-            <p>You start. A task is a name for the thing you are doing, and something comes down to rest.</p>
-          </div>
-          <div class="stroke" data-reveal data-reveal-delay="80">
-            <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
-              <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
-                <path class="stem" d="M25 22V84" />
-                <path class="bowl lit" d="M25 28H46a16 16 0 0 1 0 32H25" />
-                <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
-              </g>
-            </svg>
-            <h3>The bowl</h3>
-            <p>You capture. The loop closes around the files, the terminals, the tabs and the branch.</p>
-          </div>
-          <div class="stroke" data-reveal data-reveal-delay="160">
-            <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
-              <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
-                <path class="stem" d="M25 22V84" />
-                <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
-                <path class="leg lit" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
-              </g>
-            </svg>
-            <h3>The leg</h3>
-            <p>You leave, and you come back. The stroke goes out and returns. This is the ر, and this is the brand.</p>
+            <Wordmark id="specimen-paper" data-mark="draw" label="The Rabta wordmark, ink on paper" />
+            <button class="button button--small specimen__replay" type="button" data-mark-replay aria-controls="specimen-paper">Show it again</button>
           </div>
         </div>
       </div>
@@ -104,16 +57,17 @@ import "../styles/page.css";
         <p>
           The product is exactly that. Your tools each remember their own piece
           of a task; Rabta is the bond between them. The name is pronounced
-          RAHB-tah, and it is written in the two alphabets the mark carries.
+          RAHB-tah. In running text it is a word like any other; the wordmark
+          is for the places the brand signs its name.
         </p>
         <div class="name" aria-hidden="true">
           <div>
             <p class="name__word">Rabta</p>
-            <p>Set in Inter, weight 560, the face of everything else on this site.</p>
+            <p>In running text: Inter, weight 560, the face of everything else on this site. This is the name in type, not the wordmark.</p>
           </div>
           <div>
             <p class="name__word name__word--arabic">رابطة</p>
-            <p>The ر is the second letter, and it is the leg of the mark. Set in Reem Kufi, a geometric Kufi whose strokes share the mark's logic.</p>
+            <p>The name in its own alphabet, set in Reem Kufi, for the name only. It sits under the wordmark as a signature, never as decoration.</p>
           </div>
         </div>
         <p class="mono muted foot-note">
@@ -126,57 +80,105 @@ import "../styles/page.css";
     </div>
   </section>
 
-  <section class="band" aria-labelledby="lockup-title">
+  <section class="band" aria-labelledby="ways-title">
     <div class="band__inner">
       <div class="band__body">
-        <h2 id="lockup-title">The mark, then the rest of the word.</h2>
+        <h2 id="ways-title">Ink on paper, paper on ink, and the tile.</h2>
         <p>
-          The R's stem is scaled to Inter's cap height, so the mark and the
-          letters after it share a cap line. The wordmark ships as outlines and
-          never depends on a font being installed. Clear space around the
-          lockup is one stem-width; the smallest it should ever be set is 22px
-          tall, and the tile should never go below 16px.
+          Two colourways and nothing in between: ink on a paper surface, paper
+          on an ink surface. Inlined, the wordmark takes the text colour on its
+          own. The tile is the ink wordmark on an ember squircle, for the Dock,
+          the favicon and any avatar: the one place the ember and the letters
+          share a frame, and even there the letters stay ink.
         </p>
-        <div class="construction" data-reveal>
-          <img src="/assets/brand/lockup.svg" width="2945" height="1213" alt="The Rabta lockup: the mark followed by the letters a, b, t, a, with the leg of the R in ember orange." />
-          <p>Never outline the mark, rotate it, put it in a circle, add a shadow, or draw the leg in anything but the ember or the mark's own colour.</p>
+        <div class="ways">
+          <div class="way" data-reveal>
+            <div class="way__plate way__plate--paper"><img class="way__wordmark" src="/assets/brand/wordmark-ink.svg" width="961" height="293" alt="" /></div>
+            <h3>Ink on paper</h3>
+            <a class="link link--arrow" href="/assets/brand/wordmark-ink.svg" download>Download SVG</a>
+          </div>
+          <div class="way" data-reveal data-reveal-delay="60">
+            <div class="way__plate way__plate--ink"><img class="way__wordmark" src="/assets/brand/wordmark-paper.svg" width="961" height="293" alt="" /></div>
+            <h3>Paper on ink</h3>
+            <a class="link link--arrow" href="/assets/brand/wordmark-paper.svg" download>Download SVG</a>
+          </div>
+          <div class="way" data-reveal data-reveal-delay="120">
+            <div class="way__plate way__plate--paper"><img class="way__wordmark" src="/assets/brand/wordmark.svg" width="961" height="293" alt="" /></div>
+            <h3>One colour, yours</h3>
+            <a class="link link--arrow" href="/assets/brand/wordmark.svg" download>Download SVG, currentColor</a>
+          </div>
+          <div class="way" data-reveal data-reveal-delay="180">
+            <div class="way__plate way__plate--paper"><img src="/assets/brand/favicon.svg" width="100" height="100" alt="" /></div>
+            <h3>The tile</h3>
+            <a class="link link--arrow" href="/assets/brand/favicon.svg" download>Download SVG</a>
+          </div>
+          <div class="way" data-reveal data-reveal-delay="240">
+            <div class="way__plate way__plate--paper"><img src="/assets/brand/icon-512.png" width="512" height="512" alt="" /></div>
+            <h3>The tile at 512</h3>
+            <a class="link link--arrow" href="/assets/brand/icon-512.png" download>Download PNG</a>
+          </div>
+          <div class="way" data-reveal data-reveal-delay="300">
+            <div class="way__plate way__plate--ink"><img class="way__card" src="/assets/brand/og-cover.png" width="1200" height="630" alt="" /></div>
+            <h3>The social card</h3>
+            <a class="link link--arrow" href="/assets/brand/og-cover.png" download>Download PNG</a>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="band" aria-labelledby="ways-title">
+  <section class="band" aria-labelledby="space-title">
     <div class="band__inner">
       <div class="band__body">
-        <h2 id="ways-title">Paper, ink, and the tile.</h2>
+        <h2 id="space-title">Clear space, and the smallest it goes.</h2>
         <p>
-          Two-tone is the default on paper and on ink: the stem and bowl in the
-          text colour, the leg in the ember. The tile is the mark in ink on an
-          ember squircle, for the Dock, the favicon and any avatar. Mono is for
-          the places two colours are not available.
+          Keep one cap height of clear space on every side: the height of the
+          b, from its top to the baseline. Nothing else sits inside that box.
+          Never set the wordmark below 22px tall, and never the tile below
+          16px. Under those, write the name.
         </p>
-        <div class="ways">
-          <div class="way" data-reveal>
-            <div class="way__plate way__plate--paper"><img class="way__lockup" src="/assets/brand/lockup.svg" width="2945" height="1213" alt="" /></div>
-            <h3>Lockup on paper</h3>
-            <a class="link link--arrow" href="/assets/brand/lockup.svg" download>Download SVG</a>
-          </div>
-          <div class="way" data-reveal data-reveal-delay="60">
-            <div class="way__plate way__plate--ink"><img class="way__lockup" src="/assets/brand/lockup-paper.svg" width="2945" height="1213" alt="" /></div>
-            <h3>Lockup on ink</h3>
-            <a class="link link--arrow" href="/assets/brand/lockup-paper.svg" download>Download SVG</a>
-          </div>
-          <div class="way" data-reveal data-reveal-delay="120">
-            <div class="way__plate way__plate--paper"><img src="/assets/brand/rabta-mark.svg" width="100" height="100" alt="" /></div>
-            <h3>The tile</h3>
-            <a class="link link--arrow" href="/assets/brand/icon-512.png" download>Download PNG</a>
-          </div>
-          <div class="way" data-reveal data-reveal-delay="180">
-            <div class="way__plate way__plate--paper"><img src="/assets/brand/rabta-mark-primary.svg" width="100" height="100" alt="" /></div>
-            <h3>The mark alone</h3>
-            <a class="link link--arrow" href="/assets/brand/mark.svg" download>Download SVG</a>
+        <div class="construction" data-reveal>
+          <div class="clear" aria-hidden="true"><Wordmark /></div>
+          <p>The dashed line is the clear space: the wordmark, plus one cap height on every side.</p>
+          <div class="floor" aria-hidden="true">
+            <div class="floor__item"><Wordmark /><span>22px, the floor</span></div>
+            <div class="floor__item"><img src="/assets/brand/favicon.svg" width="16" height="16" alt="" /><span>16px, the tile's floor</span></div>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="never-title">
+    <div class="band__inner">
+      <div class="band__body">
+        <h2 id="never-title">Never.</h2>
+        <dl class="denials">
+          <div data-reveal>
+            <dt>Outline it</dt>
+            <dd>The letters are filled shapes. A stroke around them is a different, thinner word.</dd>
+          </div>
+          <div data-reveal data-reveal-delay="60">
+            <dt>Rotate it</dt>
+            <dd>It reads on a baseline, and only there.</dd>
+          </div>
+          <div data-reveal data-reveal-delay="120">
+            <dt>Stretch it</dt>
+            <dd>Scale both axes together, always. The proportions are the wordmark.</dd>
+          </div>
+          <div data-reveal data-reveal-delay="180">
+            <dt>Put it in a circle</dt>
+            <dd>The tile is a squircle, and the tile is the only container it has.</dd>
+          </div>
+          <div data-reveal data-reveal-delay="240">
+            <dt>Add a shadow</dt>
+            <dd>Or a glow, a gradient, or a second colour. It is flat, in one colour, on a flat surface.</dd>
+          </div>
+          <div data-reveal data-reveal-delay="300">
+            <dt>Set the name in a typeface instead</dt>
+            <dd>Where the wordmark belongs, use the path. Type is for the name in running text.</dd>
+          </div>
+        </dl>
       </div>
     </div>
   </section>
@@ -188,7 +190,8 @@ import "../styles/page.css";
         <p>
           Both worlds are neutral with a cool cast, so a screenshot of the dark
           app sits naturally on the light site. The ember is spent once per
-          view: on the primary action, or on the live thing, never both.
+          view: on the primary action, or on the live thing, never both, and
+          never on the wordmark.
         </p>
         <div class="swatches">
           <div class="swatch" data-reveal><div class="swatch__color swatch__color--paper-0"></div><div class="swatch__meta"><b>Paper</b><span>#FFFFFF</span></div></div>
@@ -207,14 +210,14 @@ import "../styles/page.css";
   <section class="band band--close" aria-labelledby="motion-title">
     <div class="band__inner">
       <div class="band__body">
-        <h2 id="motion-title">Everything that comes back moves the way the leg does.</h2>
+        <h2 id="motion-title">Everything that comes back settles the same way.</h2>
         <p>
           One settling curve for anything that comes to rest, and one spring
-          for the moment something lands. The mark draws itself in just over a
-          second, stem first, leg last. A window returns by rising into place;
-          a headline rises from behind its own baseline; a restore completes
-          with the ember. Under reduced motion, all of it collapses to a fade,
-          and the mark is simply there.
+          for the moment something lands. The wordmark arrives in just over a
+          second: it rises into place and settles on the spring. A window
+          returns by rising into place; a headline rises from behind its own
+          baseline; a restore completes with the ember. Under reduced motion,
+          all of it collapses to a fade, and the wordmark is simply there.
         </p>
       </div>
     </div>

@@ -1,12 +1,12 @@
 # Rabta website, from zero
 
-Attached: `brand-guidelines.md`, the source of truth for everything it covers, and the folder `rabta-claude-design`: the marks, the fonts, ten product loops of the real app, app screens, the story documents, the shipped copy of every page, and two reference lists. Read all of it before you design anything.
+Attached: `brand-guidelines.md`, the source of truth for everything it covers, and the folder `rabta-claude-design`: the wordmark, the fonts, ten product loops of the real app, app screens, the story documents, the shipped copy of every page, and two reference lists. Read all of it before you design anything.
 
 ## The job
 
 Design the public website for Rabta, rabta.build. Rabta is a free Mac app that writes down where you were in a task (the files, the terminals, the browser tabs, the git branch) so you can leave, and later return to all of it in one move. Local only, no account, no server, honest receipts, and a way for AI agents to read the same memory.
 
-The current site at rabta.build is the thing to beat. Do not look like it. Not its layout, its section order, its nav, its cards, its hero with a window in it, its bento. Start from a blank page. What carries over: the mark, the name in Latin and Arabic (Rabta, رابطة), ember as the accent, the facts, and one line: "Leave the task. Return to all of it."
+The current site at rabta.build is the thing to beat. Do not look like it. Not its layout, its section order, its nav, its cards, its hero with a window in it, its bento. Start from a blank page. What carries over: the wordmark (one path, one colour, never redrawn), the name in Latin and Arabic (Rabta, رابطة), ember as the accent, the facts, and one line: "Leave the task. Return to all of it."
 
 Audience: developers on macOS who work in an editor, several terminals, a browser and git at once, who get interrupted all day, who distrust software that phones home, and who can tell craft from decoration in half a second. Second audience: people running Claude Code, Cursor or Codex who want the agent to know what they were doing. They read fast and hate being sold to.
 
@@ -16,7 +16,7 @@ The page has one job. The visitor feels the cost of an interruption, feels the r
 
 Write the homepage as a scroll-driven film in chapters. Each chapter pins to the viewport and plays as the visitor scrolls. Hard cuts between chapters, no crossfades. The type is the set and the product footage is the cast. Nothing is decorative.
 
-0. Cold open, once per session. Black. The mark draws itself: stem, then bowl, then the leg in ember. رابطة appears under it in Reem Kufi, then the Latin name. Two seconds, skippable, never repeated in the session.
+0. Cold open, once per session. Black. The wordmark arrives: it rises into place in paper on the black and settles. رابطة appears under it in Reem Kufi. Two seconds, skippable, never repeated in the session. The ember is never on the letters.
 1. Late. A working desk built from real app footage and type: an editor with files open, three terminals, a wall of tabs, a branch called feat/connector-reconnect. One line types itself in huge display type: "You were in the middle of something." A notification slides in from the corner. The visitor scrolls and the desk freezes.
 2. The scatter. As the scroll continues the desk comes apart: tabs fly off frame, terminal panes tilt away and blur, the branch name unspools letter by letter into nothing. Copy: "Then you left." Then: "Tomorrow the tabs are gone, the terminals are somewhere else, and the branch is a guess." Do not invent a statistic here. The feeling is the argument.
 3. The capsule. Reverse it. Four kinds of pointer (files, terminals, tabs, branch) gather from the edges into one object at the centre. Show it with real depth, four planes stacked in space; the loop capsule-anatomy is the reference. Copy: "Rabta writes down where you were. Four pointers. One file. Your disk."
@@ -27,7 +27,7 @@ Write the homepage as a scroll-driven film in chapters. Each chapter pins to the
 8. Agents. A terminal card. The command `claude mcp add rabta -- npx -y @rabta/mcp` types itself, then the briefing in story/agent-briefing-example.md types out at reading speed. Copy: "Your agent starts where you left off." Status line: ships with the next release. Never claim it is published.
 9. Local. Where it lives: one file under Application Support. No server, no account, no telemetry, no network. Make this physical: the data folder as an object, a request counter that stays at zero, or a map with no lines leaving the machine. Choose one.
 10. Where this goes. The roadmap from story/ROADMAP.md as a line that draws itself through three states: Shipping, Planned, Later.
-11. Download. Free. 5.5 MB. macOS 11 or later, Apple silicon. MIT licence. The mark, huge, half off the edge of the screen. One button.
+11. Download. Free. 5.5 MB. macOS 11 or later, Apple silicon. MIT licence. The wordmark, huge, half off the edge of the screen. One button.
 
 Between chapters the works-with row appears once, as a marquee: VS Code, Cursor, Zed, Ghostty, iTerm2, Terminal, Warp, Chrome, Arc, Firefox.
 
@@ -41,10 +41,10 @@ Inner pages, with their copy in copy/: Why (an essay with kinetic pull quotes), 
 - Buttons: magnetic within 24 px of the cursor. On hover the label slides up and its twin slides in from below. Press scales to 0.97. Every button has loading and done states, and done draws a tick.
 - Cards: tilt toward the cursor up to 6 degrees, a spotlight border that follows the pointer, content with slight parallax inside.
 - Loops: autoplay when in view, hover scrubs, click opens a cinema view with the receipt beside it. The poster is the first frame, never a device mockup.
-- Page transitions: the mark travels. On a click the mark scales up and covers the page, and the next page reveals under it, 400 ms.
+- Page transitions: the wordmark travels. On a click the wordmark scales up and covers the page, and the next page reveals under it, 400 ms.
 - Nav: a floating pill that shrinks on scroll, a sliding indicator under the active link, a menu that opens as a staggered list with the current chapter named.
 - Numbers count up when they arrive. Lists stagger. Images reveal through a mask. Marquee once, for the works-with row only.
-- Ambient: film grain on dark chapters at two to three percent, light that follows the scroll in the night chapters, ember bloom on the mark.
+- Ambient: film grain on dark chapters at two to three percent, light that follows the scroll in the night chapters, ember bloom behind the wordmark, never on its letters.
 - Timing: entrances 500 to 900 ms with an expo-out ease, exits faster than entrances, hovers 120 to 180 ms. Each pinned chapter is worth 2.8 to 4.7 seconds of scroll. Camera moves commit: pushes of 1.7x or more, never a lone 1.05 to 1.2x ease-in-out zoom.
 - Reduced motion: every element has a static end state, loops show their posters, the cold open is skipped, and the cursor is the system cursor.
 

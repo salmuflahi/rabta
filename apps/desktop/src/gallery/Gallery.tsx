@@ -10,7 +10,7 @@ import {
 
 import { useTheme } from "@/components/theme-provider";
 import { toast } from "@/components/ui/sonner";
-import markUrl from "@/assets/brand/rabta-mark.svg";
+import appIconUrl from "@/assets/brand/app-icon.svg";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -123,7 +123,7 @@ export function Gallery() {
       <header className="flex items-center justify-between mb-16">
         <div className="flex items-center gap-3">
           <img
-            src={markUrl}
+            src={appIconUrl}
             alt="Rabta"
             className="h-7 w-7 rounded-[8px]"
           />

@@ -1,6 +1,6 @@
 <!-- Shipped copy of / on rabta.build, 2026-09-05. Facts here are true; reuse them, do not invent new ones. -->
 
-abta
+(the wordmark)
 # Leave the task. Return to all of it.
 Every file, terminal, tab and branch around a task, captured on your Mac and restored when you return. With a receipt.
 Download for macOS

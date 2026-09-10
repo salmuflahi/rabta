@@ -34,6 +34,64 @@ export interface TeamAsset {
   ownerId: string;
   createdAt: string;
 }
+/** A reviewed, sanitized picture of a task: references only, never contents. */
+export interface TeamSnapshot {
+  title: string;
+  project: { id: string; name: string };
+  files: string[];
+  links: string[];
+  folders: string[];
+  pins: string[];
+  branch: string | null;
+  activeFile: string | null;
+  note: string;
+}
+export interface StoredSnapshot { hash: string; author: string; createdAt: string; snapshot: TeamSnapshot }
+export type EntryKind = "knot" | "request" | "decision" | "acknowledge" | "handoff" | "accept" | "decline" | "split" | "weave" | "link";
+export type TeamPlace =
+  | { type: "file"; path: string; line?: number; column?: number; label?: string }
+  | { type: "folder"; path: string; label?: string }
+  | { type: "link"; url: string; label?: string }
+  | { type: "commit"; sha: string; label?: string }
+  | { type: "image"; assetId: string; x: number; y: number; label?: string };
+export interface TeamEntry {
+  hash: string;
+  seq: number;
+  task: string;
+  author: string;
+  lamport: number;
+  kind: EntryKind;
+  text: string;
+  place: TeamPlace | null;
+  snapshot: string | null;
+  target: string | null;
+  to: string | null;
+  parents: string[];
+  prev: string | null;
+  createdAt: string;
+}
+export interface TeamThreadSummary {
+  id: string;
+  title: string;
+  entries: number;
+  lamport: number;
+  updatedAt: string;
+  createdAt: string;
+  lastKind: EntryKind | null;
+  lastAuthor: string | null;
+  lastSnapshot: string | null;
+  authors: string[];
+}
+export interface TeamInboxItem extends TeamEntry { title: string }
+export interface TeamCursor {
+  memberId: string;
+  task: string | null;
+  pointer: { x: number; y: number } | null;
+  editor: { path: string; line: number; column: number; selection?: { line: number; column: number } } | null;
+  leading: boolean;
+  following: string | null;
+  at: string;
+}
 export interface TeamState {
   room: { id: string; name: string; createdAt: string };
   me: Pick<TeamMember, "id" | "displayName" | "role">;
@@ -41,8 +99,12 @@ export interface TeamState {
   lanes: TeamLane[];
   proposals: TeamProposal[];
   assets: TeamAsset[];
+  threads: TeamThreadSummary[];
+  inbox: TeamInboxItem[];
+  together: TeamCursor[];
   revision: number;
 }
+export type TeamLiveEvent = { kind: "cursor"; cursor: TeamCursor | { memberId: string; gone: true } } | { kind: "thread"; task: string; seq: number; entryKind: EntryKind; author: string };
 export interface TeamCredentials {
   roomId: string;
   memberId: string;
@@ -107,9 +169,11 @@ export function roomPath(connection: TeamConnection, suffix: string): string {
   return `/v1/rooms/${encodeURIComponent(connection.roomId)}${suffix}`;
 }
 
-/** Fetch streams support bearer auth, unlike EventSource's URL-only constructor. */
+/** Fetch streams support bearer auth, unlike EventSource's URL-only constructor.
+ * `onLive` receives the ephemeral events (cursors, thread appends) that carry
+ * their own payload; everything else asks the caller to refresh state. */
 export async function watchTeam(connection: TeamConnection, signal: AbortSignal,
-  onChange: () => void): Promise<void> {
+  onChange: () => void, onLive?: (event: TeamLiveEvent) => void): Promise<void> {
   const controller = new AbortController();
   const cancel = () => controller.abort();
   signal.addEventListener("abort", cancel, { once: true });
@@ -139,6 +203,14 @@ export async function watchTeam(connection: TeamConnection, signal: AbortSignal,
         buffer = buffer.slice(boundary + 2);
         if (/^event: ?revoked$/m.test(message)) throw new TeamRequestError(401, "membership_revoked", "Your workspace access ended. Ask the owner for a new invitation.");
         if (/^event: ?(change|presence|ready)$/m.test(message)) onChange();
+        const live = /^event: ?(cursor|thread)$/m.exec(message)?.[1];
+        if (live && onLive) {
+          try {
+            const data = JSON.parse(/^data: ?(.+)$/m.exec(message)?.[1] ?? "null") as Record<string, unknown> | null;
+            if (data && live === "cursor") onLive({ kind: "cursor", cursor: data as unknown as TeamCursor });
+            if (data && live === "thread") onLive({ kind: "thread", task: String(data.task), seq: Number(data.seq), entryKind: data.kind as EntryKind, author: String(data.author) });
+          } catch { /* A malformed live frame never breaks the stream; state refresh still catches up. */ }
+        }
       }
       if (buffer.length > 65_536) throw new Error("The workspace sent an invalid update. Reconnect to try again.");
     }
@@ -162,4 +234,23 @@ export async function prepareTeamAsset(file: File) {
   let binary = "";
   for (let offset = 0; offset < bytes.length; offset += 8192) binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
   return { name: file.name, mimeType, contentBase64: btoa(binary) };
+}
+
+/** Stores a snapshot and returns its content hash. The same snapshot is the same hash. */
+export function storeSnapshot(connection: TeamConnection, snapshot: TeamSnapshot): Promise<StoredSnapshot> {
+  return teamRequest<StoredSnapshot>(connection.endpoint, roomPath(connection, "/snapshots"), connection.memberKey, { method: "POST", body: { snapshot } });
+}
+export function readThread(connection: TeamConnection, task: string, signal?: AbortSignal): Promise<{ thread: TeamThreadSummary; entries: TeamEntry[] }> {
+  return teamRequest(connection.endpoint, roomPath(connection, `/threads/${encodeURIComponent(task)}`), connection.memberKey, { signal });
+}
+export interface NewEntry { kind: EntryKind; text?: string; place?: TeamPlace | null; snapshot?: string | null; target?: string | null; to?: string | null; parents?: string[]; prev?: string | null; lamport: number; title?: string; idempotencyKey: string }
+export function appendEntry(connection: TeamConnection, task: string, entry: NewEntry): Promise<{ entry: TeamEntry; thread: TeamThreadSummary }> {
+  return teamRequest(connection.endpoint, roomPath(connection, `/threads/${encodeURIComponent(task)}/entries`), connection.memberKey, { method: "POST", body: entry });
+}
+export interface CursorUpdate { active: boolean; task?: string | null; pointer?: { x: number; y: number } | null; editor?: TeamCursor["editor"]; leading?: boolean; following?: string | null }
+export function sendCursor(connection: TeamConnection, update: CursorUpdate, signal?: AbortSignal): Promise<TeamCursor | { active: false }> {
+  return teamRequest(connection.endpoint, roomPath(connection, "/together"), connection.memberKey, { method: "POST", body: update, signal });
+}
+export function readSnapshot(connection: TeamConnection, hash: string, signal?: AbortSignal): Promise<StoredSnapshot> {
+  return teamRequest<StoredSnapshot>(connection.endpoint, roomPath(connection, `/snapshots/${encodeURIComponent(hash)}`), connection.memberKey, { signal });
 }

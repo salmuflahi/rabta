@@ -23,7 +23,7 @@ Use this file as the source of truth for every decision it covers. Where it says
 
 | Fixed | Open |
 | --- | --- |
-| The mark, its three strokes and its draw order | The ground colour and material, per direction |
+| The wordmark: one path, one colour, never redrawn | The ground colour and material, per direction |
 | The name in Latin and Arabic | The display typeface (never Inter) |
 | Ember as the single accent | The radius scale, chosen once |
 | The facts, the vocabulary and the voice | Layout, composition, imagery made from the product |
@@ -31,23 +31,23 @@ Use this file as the source of truth for every decision it covers. Where it says
 
 ## The name
 
-Rabta (رابطة) is Arabic for a bond, a tie, the thing that holds two ends together. Say RAB-ta. Write Rabta in Latin type in running text. The Arabic name appears as a signature under the mark, set in Reem Kufi, never stretched, never transliterated inside the Arabic, never used as decoration elsewhere.
+Rabta (رابطة) is Arabic for a bond, a tie, the thing that holds two ends together. Say RAB-ta. Write Rabta in Latin type in running text. The Arabic name appears as a signature under the wordmark, set in Reem Kufi, never stretched, never transliterated inside the Arabic, never used as decoration elsewhere.
 
-## The mark
+## The wordmark
 
-The Reh-leg R: a Latin R whose leg is the Arabic letter ر. Three strokes: stem, bowl, leg.
+There is no symbol. The brand is the word rabta: five rounded lowercase letters as one outlined path (viewBox 0 0 961 293), filled with one colour, the text colour of the surface it sits on. The ember is never on the letters.
 
-Files in brand/: `mark.svg` (single colour, currentColor), `rabta-mark-primary.svg` (text colour with an ember leg), `rabta-mark-mono.svg`, `rabta-mark-paper.svg`, `lockup.svg`, `lockup-mono.svg`, `lockup-paper.svg`, `favicon.svg`, `og-cover.png`.
+Files in brand/: `wordmark.svg` (currentColor, for inlining), `wordmark-ink.svg` (#0A0B0E, for paper surfaces), `wordmark-paper.svg` (#F5F5F7, for ink surfaces), `favicon.svg` (the tile: the ink wordmark at 80 percent width on an ember squircle), `og-cover.png` (the social card).
 
 Rules:
-- When animated, it draws stem, bowl, leg: stem 420 ms from 0, bowl 560 ms from 180 ms, leg 640 ms from 560 ms.
-- The leg is the only stroke that may be ember. The rest is the text colour.
-- Clear space equal to the stem height on all sides. Minimum 20 px tall.
-- Never outlined, skewed, gradient-filled, shadowed, or redrawn. Never on petrol or purple.
+- One colour, the text colour of the surface: ink on paper, paper on ink. The tile is the only place the ember and the letters share a frame, and there the letters stay ink.
+- When animated, it arrives rather than draws: it rises into place with a fade over 1000 ms and settles on the spring; whatever follows it starts at 1100 ms. Under reduced motion it is simply there.
+- Clear space equal to one cap height on all sides. Never below 22 px tall; the tile never below 16 px. Under those, write the name in type.
+- Never outlined, rotated, stretched, put in a circle, shadowed, gradient-filled, or set in a typeface instead of the path. Never on petrol or purple.
 
 ## Colour
 
-Ember is the brand and the only accent: one ember element per view (a button, the leg of the mark, a drawn line, a live indicator). Deep ember is for pressed and for hover on ember.
+Ember is the brand and the only accent: one ember element per view (a button, a drawn line, a live indicator). It is never on the letters of the wordmark. Deep ember is for pressed and for hover on ember.
 
 Everything else is one neutral ladder. The ink and paper stacks above are what the app uses. The site's ground may be a filmic dark with light in it, graphite, or black and white, depending on the direction. If a new neutral is introduced it must be one ladder at one temperature, never warm and cool greys together.
 
@@ -72,7 +72,7 @@ An 8 px rhythm. One radius scale chosen per direction and written down (for exam
 - Brand ease: cubic-bezier(0.16, 1, 0.3, 1). Expo-out for entrances, expo-in for pushes, linear for drifts.
 - Durations: hover 120 ms, state 240 ms, reveal 480 ms, ceremony 900 ms.
 - Spring: stiffness 260, damping 18.
-- The mark draws with the timings above.
+- The wordmark arrives over 1100 ms: the rise, then the spring above.
 - Exits are faster than entrances.
 - Reduced motion: static end states, posters instead of loops, no cold open, the system cursor.
 

@@ -112,3 +112,59 @@ export function fileClosePlan(
   if (tabs.some((t) => t.isDirty)) return { close: false, reason: "unsaved changes" };
   return { close: true };
 }
+
+// ---------------------------------------------------------------------------
+// Together: editor cursors shared through Rabta Teams
+// ---------------------------------------------------------------------------
+
+/** The relative path of `path` inside `folder`, or null when it is outside. */
+export function relativeToFolder(path: string | null, folder: string | null): string | null {
+  if (!path || !folder) return null;
+  const base = folder.endsWith("/") ? folder : `${folder}/`;
+  return path.startsWith(base) && path.length > base.length ? path.slice(base.length) : null;
+}
+
+export interface CursorInput {
+  path: string | null;
+  folder: string | null;
+  /** 1-based, as people read them. */
+  line: number;
+  column: number;
+  selectionLine?: number;
+  selectionColumn?: number;
+}
+/** The `editor.cursor` event: project-relative, or null for anything outside
+ *  the workspace folder, so nothing outside the shared project is reported. */
+export function cursorEvent(input: CursorInput): { path: string; line: number; column: number; selection?: { line: number; column: number } } | null {
+  const path = relativeToFolder(input.path, input.folder);
+  if (!path) return null;
+  const whole = (value: number) => (Number.isInteger(value) && value >= 1 ? value : 1);
+  const event: { path: string; line: number; column: number; selection?: { line: number; column: number } } = { path, line: whole(input.line), column: whole(input.column) };
+  if (input.selectionLine !== undefined && input.selectionColumn !== undefined && (input.selectionLine !== input.line || input.selectionColumn !== input.column)) {
+    event.selection = { line: whole(input.selectionLine), column: whole(input.selectionColumn) };
+  }
+  return event;
+}
+
+export interface PeerCursor {
+  id: string;
+  name: string;
+  color: string;
+  /** Absolute local path, already mapped by the desktop app. */
+  path: string;
+  line: number;
+  column: number;
+}
+/** Accepts only well-formed peers with a safe colour; the rest are dropped. */
+export function peerCursors(value: unknown): PeerCursor[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item): PeerCursor[] => {
+    if (!item || typeof item !== "object") return [];
+    const peer = item as Record<string, unknown>;
+    if (typeof peer.id !== "string" || !peer.id || typeof peer.name !== "string" || typeof peer.path !== "string" || !peer.path.startsWith("/")) return [];
+    if (typeof peer.color !== "string" || !/^#[0-9a-fA-F]{6}$/.test(peer.color)) return [];
+    const line = typeof peer.line === "number" && Number.isInteger(peer.line) && peer.line >= 1 ? peer.line : 1;
+    const column = typeof peer.column === "number" && Number.isInteger(peer.column) && peer.column >= 1 ? peer.column : 1;
+    return [{ id: peer.id, name: peer.name.slice(0, 14) || "Teammate", color: peer.color, path: peer.path, line, column }];
+  }).slice(0, 32);
+}

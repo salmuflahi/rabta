@@ -1,5 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
+import Wordmark from "../components/Wordmark.astro";
 import { MCP_PUBLISHED, RELEASE } from "../config.ts";
 import "../styles/tokens.css";
 import "../styles/shell.css";
@@ -37,27 +38,20 @@ import "../styles/landing.css";
 
   <!-- ==== the thread =======================================================
        One ember line, drawn by the reader's scrolling, that ties the chapters
-       together and ends as the leg of the mark. Geometry is measured by
+       together and ends on the wordmark's baseline. Geometry is measured by
        scripts/thread.ts; at rest the stroke is simply there. -->
   <svg class="thread" data-thread aria-hidden="true" focusable="false" preserveAspectRatio="none" viewBox="0 0 1000 1000">
     <path data-thread-path d="M0 0" />
   </svg>
 
   <!-- ==== hero =============================================================
-       The mark draws itself, the word arrives beside it, and the claim rises
-       under both, a word at a time. Then the real app, in a window that rests
-       leaned into the frame and settles flat as you scroll. -->
+       The wordmark arrives, and the claim rises under it, a word at a time.
+       Then the real app, in a window that rests leaned into the frame and
+       settles flat as you scroll. -->
   <section class="hero" id="top" aria-labelledby="hero-title" data-hero>
     <div class="rail hero__inner">
       <div class="hero__lockup" aria-hidden="true">
-        <svg class="mark" data-hero-mark viewBox="0 0 100 100" focusable="false">
-          <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
-            <path class="stem" d="M25 22V84" />
-            <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
-            <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
-          </g>
-        </svg>
-        <span class="hero__word" data-hero-word>abta</span>
+        <Wordmark data-hero-mark />
       </div>
 
       <h1 class="display hero__title" id="hero-title">
@@ -95,7 +89,7 @@ import "../styles/landing.css";
             poster="/assets/demos/hero-return.jpg"
             data-src-desktop="/assets/demos/hero-return-desktop.mp4"
             data-src-mobile="/assets/demos/hero-return-mobile.mp4"
-            aria-label="Rabta capturing a task, switching away, and resuming it: the restore sheet draws the mark and reports each tool as restored, waiting or skipped."
+            aria-label="Rabta capturing a task, switching away, and resuming it: the restore sheet reports each tool as restored, waiting or skipped."
           ></video>
           <button class="media-play" type="button" hidden data-media-play data-label-play="Play demo" data-label-pause="Pause demo">Play demo</button>
           <div class="media-track" hidden data-media-track aria-hidden="true"><span></span></div>
@@ -370,8 +364,8 @@ import "../styles/landing.css";
   </section>
 
   <!-- ==== the night chapter ===============================================
-       Local-first, stated flat. The thread ends in the mark, and the mark's
-       ember is the only light. -->
+       Local-first, stated flat. The thread ends on the wordmark, and the
+       ember glow is the only light. -->
   <section class="local" id="local" aria-labelledby="local-title">
     <div class="local__glow" aria-hidden="true"></div>
     <div class="rail local__grid">
@@ -385,13 +379,7 @@ import "../styles/landing.css";
         <p class="local__more"><a class="link link--arrow" href="/privacy/">Read the full privacy policy</a></p>
       </div>
       <div class="local__mark" aria-hidden="true">
-        <svg class="mark" data-mark="thread" data-thread-end viewBox="0 0 100 100" focusable="false">
-          <g transform="translate(4.5,-5)" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round">
-            <path class="stem" d="M25 22V84" />
-            <path class="bowl" d="M25 28H46a16 16 0 0 1 0 32H25" />
-            <path class="leg" d="M44 60c14 4 22 10 22 16 0 5-6 8-13 6" />
-          </g>
-        </svg>
+        <Wordmark data-mark="thread" data-thread-end />
       </div>
     </div>
     <div class="rail local__ledger">

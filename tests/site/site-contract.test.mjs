@@ -122,10 +122,12 @@ test("no stylesheet or page introduces a colour the brand does not own", async (
   }
 });
 
-test("the mark's geometry is the brand source, wherever it is inlined", async () => {
-  const source = await readFile(resolve(SITE, "assets/brand/mark.svg"), "utf8");
-  const strokes = [...source.matchAll(/\bd="([^"]+)"/g)].map((m) => m[1]);
-  assert.equal(strokes.length, 3, "mark.svg carries three strokes");
+test("the wordmark's geometry is the brand source, wherever it is inlined", async () => {
+  const source = await readFile(resolve(SITE, "assets/brand/wordmark.svg"), "utf8");
+  const paths = [...source.matchAll(/\bd="([^"]+)"/g)].map((m) => m[1]);
+  assert.equal(paths.length, 1, "wordmark.svg is one outlined path");
+  assert.match(source, /viewBox="0 0 961 293"/, "the wordmark's frame");
+  assert.match(source, /fill="currentColor"/, "the source takes the surface's text colour");
 
   let inlined = 0;
   for (const route of routes) {
@@ -133,20 +135,40 @@ test("the mark's geometry is the brand source, wherever it is inlined", async ()
     for (const [svg] of html.matchAll(/<svg class="mark"[\s\S]*?<\/svg>/g)) {
       inlined += 1;
       const d = [...svg.matchAll(/\bd="([^"]+)"/g)].map((m) => m[1]);
-      assert.deepEqual(d, strokes, `${route}: an inline mark drifted from mark.svg`);
-      assert.match(svg, /class="stem/, `${route}: stem`);
-      assert.match(svg, /class="bowl/, `${route}: bowl`);
-      assert.match(svg, /class="leg/, `${route}: leg`);
+      assert.deepEqual(d, paths, `${route}: an inline wordmark drifted from wordmark.svg`);
+      assert.match(svg, /viewBox="0 0 961 293"/, `${route}: the wordmark's frame`);
+      assert.match(svg, /fill="currentColor"/, `${route}: one colour, the surface's`);
+      assert.doesNotMatch(svg, /class="(?:stem|bowl|leg)\b|stroke=/, `${route}: a stroke of the retired mark`);
     }
   }
-  assert.ok(inlined >= 5, `the mark is inlined on the pages that draw it (${inlined})`);
+  assert.ok(inlined >= 5, `the wordmark is inlined on the pages that show it (${inlined})`);
 
-  // The tile and the lockups are generated from the same geometry.
-  const tile = await readFile(resolve(SITE, "assets/brand/rabta-mark.svg"), "utf8");
-  for (const d of strokes) assert.ok(tile.includes(d), "the tile carries the mark's strokes");
-  for (const file of ["lockup.svg", "lockup-paper.svg", "lockup-mono.svg"]) {
-    const lockup = await readFile(resolve(SITE, `assets/brand/${file}`), "utf8");
-    for (const d of strokes) assert.ok(lockup.includes(d), `${file} carries the mark's strokes`);
+  // The colourways and the tile are the same path, filled.
+  for (const [file, fill] of [
+    ["wordmark-ink.svg", "#0A0B0E"],
+    ["wordmark-paper.svg", "#F5F5F7"],
+    ["favicon.svg", "#0A0B0E"],
+  ]) {
+    const variant = await readFile(resolve(SITE, `assets/brand/${file}`), "utf8");
+    assert.ok(variant.includes(paths[0]), `${file} carries the wordmark's path`);
+    assert.ok(variant.includes(`fill="${fill}"`), `${file} is filled ${fill}`);
+  }
+  const tile = await readFile(resolve(SITE, "assets/brand/favicon.svg"), "utf8");
+  assert.ok(tile.includes("#FF6B2C"), "the tile is the ember squircle, with the ink wordmark on it");
+});
+
+test("the retired R mark is on no built page and no shipped asset", async () => {
+  // The three-stroke mark's stem. If any inline SVG, comment or script in the
+  // build carries it, the R is back.
+  const files = (await readdir(SITE, { recursive: true })).filter((f) => /\.(?:html|svg|js|css)$/.test(f));
+  assert.ok(files.length >= routes.length, `the build has ${files.length} files`);
+  for (const file of files) {
+    const text = await readFile(resolve(SITE, file), "utf8");
+    assert.doesNotMatch(text, /M25 22V84/, `${file}: the retired mark's stem`);
+    assert.doesNotMatch(text, /An R that is also|Reh-leg/, `${file}: the retired mark's story`);
+  }
+  for (const gone of ["mark.svg", "rabta-mark.svg", "rabta-mark-primary.svg", "lockup.svg", "lockup-paper.svg", "lockup-mono.svg"]) {
+    await assert.rejects(access(resolve(SITE, `assets/brand/${gone}`)), `${gone} still ships`);
   }
 });
 
@@ -199,15 +221,18 @@ test("every route wears the same shell", async () => {
     assert.match(html, /<footer class="foot">/, route);
     assert.match(html, /class="rail foot__grid"/, route);
 
-    // The lockup, in both colourways, in the nav and the footer.
+    // The wordmark, in both colourways, in the nav and the footer.
     const nav = html.match(/<header class="nav"[\s\S]*?<\/header>/)?.[0] ?? "";
-    assert.match(nav, /class="brand__ink" src="\/assets\/brand\/lockup\.svg"/, `${route}: nav lockup`);
-    assert.match(nav, /class="brand__paper" src="\/assets\/brand\/lockup-paper\.svg"/, `${route}: nav lockup, paper`);
+    assert.match(nav, /class="brand__ink" src="\/assets\/brand\/wordmark-ink\.svg"/, `${route}: nav wordmark, ink`);
+    assert.match(nav, /class="brand__paper" src="\/assets\/brand\/wordmark-paper\.svg"/, `${route}: nav wordmark, paper`);
+    assert.doesNotMatch(html, /lockup(?:-paper|-mono)?\.svg|rabta-mark|\/mark\.svg/, `${route}: a retired brand file`);
     assert.equal((nav.match(/class="nav__links"[\s\S]*?<\/nav>/)?.[0].match(/<a /g) ?? []).length, 6, `${route}: six links`);
     assert.match(nav, /nav__download/, `${route}: the download button`);
     assert.match(nav, /<details class="nav__menu">/, `${route}: the compact menu`);
 
     const footer = html.match(/<footer\b[\s\S]*?<\/footer>/)?.[0] ?? "";
+    assert.match(footer, /class="brand__ink" src="\/assets\/brand\/wordmark-ink\.svg"/, `${route}: footer wordmark, ink`);
+    assert.match(footer, /class="brand__paper" src="\/assets\/brand\/wordmark-paper\.svg"/, `${route}: footer wordmark, paper`);
     for (const link of [
       '"/setup/"',
       '"/privacy/"',
@@ -350,11 +375,11 @@ test("homepage has the approved narrative", async () => {
   }
 });
 
-test("the hero is the mark, the claim, and the real app", async () => {
+test("the hero is the wordmark, the claim, and the real app", async () => {
   const html = await readRoute("/");
   const hero = html.match(/<section class="hero"[\s\S]*?<\/section>/)?.[0] ?? "";
-  assert.match(hero, /data-hero-mark/);
-  assert.match(hero, /data-hero-word>abta</, "the word arrives beside the mark");
+  assert.match(hero, /<svg class="mark"[^>]*data-hero-mark/, "the wordmark leads the hero");
+  assert.doesNotMatch(hero, /data-hero-word|hero__word/, "the whole word is the wordmark now");
   assert.equal((hero.match(/class="rise"/g) ?? []).length, 2, "two lines rise");
   assert.equal((hero.match(/class="button/g) ?? []).length, 2, "one primary, one quiet");
   assert.equal((hero.match(/button--primary/g) ?? []).length, 1, "one ember in the hero");
@@ -429,12 +454,12 @@ test("the focus switch ships in the state that makes its section legible", async
   assert.ok(html.includes("focus mode on"));
 });
 
-test("the night chapter states the guarantees and draws the mark", async () => {
+test("the night chapter states the guarantees and lands the wordmark", async () => {
   const html = await readRoute("/");
   const night = html.match(/<section class="local"[\s\S]*?<\/section>/)?.[0] ?? "";
   assert.ok(night, "the chapter exists");
-  assert.match(night, /data-mark="thread"/, "the mark finishes the thread");
-  assert.match(night, /data-thread-end/);
+  assert.match(night, /data-mark="thread"/, "the wordmark finishes the thread");
+  assert.match(night, /<svg class="mark"[^>]*data-thread-end/, "the thread ends on the wordmark");
   assert.equal((night.match(/<h3>/g) ?? []).length, 4, "four guarantees");
   assert.match(night, /href="\/privacy\/"/);
 });
@@ -457,7 +482,7 @@ test("the marquee names only apps a connector actually speaks to", async () => {
 test("the inner pages are laid out, not just typeset", async () => {
   const shaped = {
     "/why/": { bands: 4, cards: 3, headline: "The code is saved." },
-    "/brand/": { bands: 6, headline: "An R that is also a ر." },
+    "/brand/": { bands: 7, headline: "The word is the mark." },
     "/faq/": { bands: 4, groups: 4, headline: "The questions the docs answer sideways." },
     "/roadmap/": { bands: 3, cards: 10, headline: "Where this goes." },
     "/agents/": { bands: 4, cards: 4, headline: "Your agent starts where you left off." },
@@ -484,16 +509,25 @@ test("the inner pages are laid out, not just typeset", async () => {
   }
 });
 
-test("the brand page draws the mark, explains it, and hands out the files", async () => {
+test("the brand page shows the wordmark, sets its rules, and hands out the files", async () => {
   const html = await readRoute("/brand/");
   assert.equal((html.match(/data-mark="draw"/g) ?? []).length, 2, "two living specimens");
-  for (const [, id] of html.matchAll(/data-mark-replay aria-controls="([^"]+)"/g)) {
-    assert.match(html, new RegExp(`id="${id}"`), `replay control points at ${id}`);
+  const replays = [...html.matchAll(/data-mark-replay aria-controls="([^"]+)"/g)].map((m) => m[1]);
+  assert.equal(replays.length, 2, "a replay control per specimen");
+  for (const id of replays) {
+    assert.match(html, new RegExp(`<svg class="mark" id="${id}"[^>]*data-mark="draw"`), `replay control points at a specimen, ${id}`);
   }
-  assert.equal((html.match(/class="stroke"/g) ?? []).length, 3, "three strokes explained");
+  assert.doesNotMatch(html, /class="stroke"|class="strokes"/, "the stroke explainer is gone");
   assert.match(html, /class="name__word name__word--arabic">رابطة</);
-  for (const file of ["lockup.svg", "lockup-paper.svg", "icon-512.png", "mark.svg"]) {
-    assert.match(html, new RegExp(`href="/assets/brand/${file.replace(".", "\\.")}" download`), `${file} download`);
+  assert.match(html, /<img[^>]*src="\/assets\/brand\/favicon\.svg"/, "the tile is shown");
+  for (const rule of ["one cap height", "below 22px", "16px"]) {
+    assert.ok(html.includes(rule), `the rules name ${rule}`);
+  }
+  for (const rule of ["Outline it", "Rotate it", "Stretch it", "Put it in a circle", "Add a shadow", "Set the name in a typeface instead"]) {
+    assert.ok(html.includes(`<dt>${rule}</dt>`), `never: ${rule}`);
+  }
+  for (const file of ["wordmark-ink.svg", "wordmark-paper.svg", "wordmark.svg", "favicon.svg", "icon-512.png", "og-cover.png"]) {
+    assert.match(html, new RegExp(`href="/assets/brand/${file.replace(/\./g, "\\.")}" download`), `${file} download`);
     await access(resolve(SITE, `assets/brand/${file}`));
   }
   assert.equal((html.match(/class="swatch"/g) ?? []).length, 8, "eight swatches");
@@ -520,7 +554,7 @@ test("no page styles itself with a class no stylesheet it loads defines", async 
     return stylesheets.get(file);
   };
   // Hooks rather than styling: JS targets, or names used only as a state.
-  const behavioural = new Set(["visually-hidden", "lit", "stem", "bowl"]);
+  const behavioural = new Set(["visually-hidden"]);
   for (const route of routes) {
     const html = await readRoute(route);
     const links = [...html.matchAll(/<link rel="stylesheet" href="\/([^"]+)"/g)].map((m) => m[1]);
@@ -578,7 +612,7 @@ test("the social card and the link preview say the same thing", async () => {
   assert.ok(ogTitle, "homepage declares an og:title");
   assert.equal(headline, ogTitle);
   assert.ok(card.includes("Workspace memory for macOS"));
-  assert.match(card, /src="lockup(?:-paper)?\.svg"/, "the card carries the lockup");
+  assert.match(card, /src="wordmark-paper\.svg"/, "the card carries the paper wordmark");
   for (const value of hexLiterals(card)) {
     assert.ok(PALETTE.has(value), `og-card: unapproved colour ${value}`);
   }

@@ -97,22 +97,26 @@ Repo facts this checklist assumes:
 ### Brand assets
 
 Every icon, favicon and social image in the repo is generated from one vector
-source, `site/public/assets/brand/rabta-mark.svg`. Nothing brand-related is hand-
-edited as a raster. Regenerate after any change to the mark:
+source, `site/public/assets/brand/wordmark.svg`: the approved outlined Rabta
+wordmark, the same path as `apps/desktop/src/components/brand/ApprovedWordmark.tsx`.
+The retired R mark and its lockups are gone; nothing brand-related is
+hand-edited as a raster. Regenerate after any change to the wordmark:
 
 ```sh
-python3 scripts/generate-brand-assets.py
+node scripts/generate-brand-assets.mjs
 ```
 
-That writes the website favicon set and web-app icons, the Tauri bundle icons
-(`.png`/`.ico`/`.icns`), the Chrome and VS Code connector icons, the `-primary`
-and `-mono` colourways, and the 1200x630 social card (composed from
-`site/public/assets/brand/og-card.html`, rendered with headless Chrome). Requires
-macOS `sips` + `iconutil`; no third-party imaging libraries.
+That writes the ink and paper colourways, the ember tile (`favicon.svg`,
+`apps/desktop/src/assets/brand/app-icon.svg`), the website favicon set and
+web-app icons, the Tauri bundle icons (`.png`/`.ico`/`.icns`), the Chrome and
+VS Code connector icons, the handoff copies, and the 1200x630 social card
+(composed from `site/public/assets/brand/og-card.html`). Rasterising uses any
+Chrome-family browser (`RABTA_CHROME`, a Playwright browsers directory, the
+macOS application paths, or PATH); `.icns` and `.ico` are packed by the script
+itself, so it runs the same on macOS, Linux and CI.
 
 The script has no fallback artwork: if the source SVG is missing it exits
-rather than drawing anything, so it cannot resurrect the pre-0.1.0 navy/sky
-circular icon that the deleted `scripts/make-icon.py` produced.
+rather than drawing anything, so it cannot resurrect an earlier icon.
 
 ### Website screenshots
 

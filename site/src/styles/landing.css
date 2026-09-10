@@ -3,7 +3,7 @@
  * Ten chapters, tied by one ember thread: a centred hero over a Mac window
  * that rests leaned into the frame, one marquee, a pinned three-beat
  * sequence, a bento, the receipt ledger, a split with the one stateful
- * control, a terminal, the night chapter where the thread becomes the mark,
+ * control, a terminal, the night chapter where the thread lands on the wordmark,
  * the roadmap's three rows, and a closing statement. The CSP forbids inline
  * styles, so every state is a class or a data attribute, and every animated
  * thing has a finished state that ships without script.
@@ -55,33 +55,22 @@
     text-align: center;
   }
 
-  /* The lockup at brand scale: the mark, then "abta" arriving beside it.
-     Sized from one number so the mark and the word keep their ratio. */
+  /* The wordmark at brand scale. One number sizes it, so the hero keeps its
+     proportion to the claim beneath it at every width; the wordmark is 961
+     by 293, so its height sets its width. */
   .hero__lockup {
     --lockup: clamp(44px, 5.2vw, 76px);
     display: inline-flex;
     align-items: center;
-    gap: calc(var(--lockup) * 0.12);
     height: calc(var(--lockup) * 1.3);
     color: var(--text);
   }
 
   .hero__lockup .mark {
-    width: calc(var(--lockup) * 1.3);
-    height: calc(var(--lockup) * 1.3);
+    display: block;
+    height: var(--lockup);
+    width: auto;
     overflow: visible;
-  }
-
-  .hero__word {
-    font-size: var(--lockup);
-    font-weight: 560;
-    line-height: 1;
-    letter-spacing: -0.02em;
-    padding-bottom: calc(var(--lockup) * 0.05);
-  }
-
-  .mark .leg {
-    stroke: var(--ember);
   }
 
   .hero__title {
@@ -116,7 +105,7 @@
     opacity: 0;
   }
 
-  [data-hero="pending"] .hero__word {
+  [data-hero="pending"] .hero__lockup .mark {
     opacity: 0;
   }
 
@@ -937,16 +926,17 @@
     max-width: 44ch;
   }
 
-  /* The mark sits on the left, where the thread arrives from the gutter and
-     hands over to the leg; the copy reads beside it. */
+  /* The wordmark sits on the left, where the thread arrives from the gutter
+     and lands on its baseline; the copy reads beside it. */
   .local__mark {
     order: -1;
     justify-self: start;
-    width: min(320px, 60%);
+    width: min(420px, 80%);
     color: var(--text);
   }
 
   .local__mark .mark {
+    display: block;
     width: 100%;
     height: auto;
     overflow: visible;
@@ -1100,7 +1090,7 @@
 
     .local__mark {
       justify-self: start;
-      width: 160px;
+      width: 220px;
     }
 
     .next__grid {

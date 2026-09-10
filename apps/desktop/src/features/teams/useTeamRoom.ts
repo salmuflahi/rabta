@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { roomPath, teamRequest, TeamRequestError, watchTeam, type TeamConnection, type TeamState } from "./client";
+import { roomPath, teamRequest, TeamRequestError, watchTeam, type TeamConnection, type TeamCursor, type TeamLiveEvent, type TeamState } from "./client";
 
 // Deliberately process-memory only: navigation retains the connection, quitting does not.
 let rememberedConnection: TeamConnection | null = null;
@@ -11,9 +11,24 @@ export function useTeamRoom() {
   const [connectionState, setConnectionState] = useState<"connecting" | "live" | "offline" | "expired">("connecting");
   const [connectionError, setConnectionError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  // Together cursors arrive on the live stream and are seeded from state.
+  const [cursors, setCursors] = useState<Record<string, TeamCursor>>({});
+  // Bumped on every thread append so open threads refetch their entries.
+  const [threadVersion, setThreadVersion] = useState(0);
+  const [lastThreadEvent, setLastThreadEvent] = useState<{ task: string; seq: number } | null>(null);
   const generation = useRef(0);
   const acceptState = useCallback((next: TeamState) => {
     setState(previous => !previous || previous.room.id !== next.room.id || next.revision >= previous.revision ? next : previous);
+    setCursors(Object.fromEntries((next.together ?? []).map(cursor => [cursor.memberId, cursor])));
+  }, []);
+  const onLive = useCallback((event: TeamLiveEvent) => {
+    if (event.kind === "cursor") {
+      setCursors(current => {
+        const next = { ...current };
+        if ("gone" in event.cursor) delete next[event.cursor.memberId]; else next[event.cursor.memberId] = event.cursor;
+        return next;
+      });
+    } else { setThreadVersion(value => value + 1); setLastThreadEvent({ task: event.task, seq: event.seq }); }
   }, []);
   const refresh = useCallback(async () => {
     if (!connection) return;
@@ -61,7 +76,7 @@ export function useTeamRoom() {
         await watchTeam(connection, controller.signal, () => {
           streamReady = true;
           void read();
-        });
+        }, onLive);
       } catch (error) {
         streamReady = false;
         report(error);
@@ -71,7 +86,7 @@ export function useTeamRoom() {
     };
     void start();
     return () => { generation.current++; controller.abort(); clearTimeout(retryTimer); };
-  }, [connection, attempt, acceptState]);
+  }, [connection, attempt, acceptState, onLive]);
 
   function connect(next: TeamConnection) {
     rememberedConnection = next;
@@ -84,7 +99,8 @@ export function useTeamRoom() {
     generation.current++;
     setConnection(null);
     setState(null);
+    setCursors({});
   }
-  return { connection, state, connectionState, connectionError, connect, disconnect, refresh, acceptState,
+  return { connection, state, connectionState, connectionError, connect, disconnect, refresh, acceptState, cursors, threadVersion, lastThreadEvent,
     reconnect: () => setAttempt(value => value + 1) };
 }

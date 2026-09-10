@@ -26,14 +26,20 @@ public release or an update to the existing download on the website.
 
 The current source contains 28 desktop tools with Everyday, Developer, Creator
 and Student recommendations. Native additions include opt-in text clipboard
-history, window controls, screen OCR, audio device switching, live metrics and
-native exports. Their presence does not mean all 57 reference features have
-reached parity; see `native-suite-parity.md` for the remaining scope.
+history, window controls, screen OCR, audio device switching, live metrics
+with GPU load, native exports, an opt-in keyboard and mouse filter (wheel
+inversion, debounce, Cmd+Q protection, plain paste, mouse buttons,
+focus-follows-pointer, snippet expansion, cleaning mode), processes, a quick
+launcher, an uninstaller, a disk-image installer, a cleaner, Homebrew and
+update checks, screen recording, camera preview, auto-quit and the Music
+block. Each asks for its macOS permission on first use and does nothing until
+enabled. Their presence does not mean all 57 reference features have reached
+parity; see `native-suite-parity.md` for the remaining scope.
 
 Teams is a self-hosted preview. Start the service using `teams-service.md`, then
 connect from the Teams page. Each member has a private lane, can explicitly
 share a live text preview or selected file, and reviews proposed changes before
-applying them. It does not mirror other Mac applications. Remote teammates need
+applying them. The Room above the lanes carries the thread of a task: knots, requests and decisions tied to places, hand-offs that a teammate steps into as a capsule on their own Mac, and, only while Together is on, named cursors over the Room and in VS Code. It does not mirror other Mac applications. Remote teammates need
 a reachable HTTPS service; no managed Rabta server is included.
 
 The content planner creates calendar reminders, not automatic social posts.

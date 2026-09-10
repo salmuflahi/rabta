@@ -121,9 +121,9 @@ describe("Sidebar collapse", () => {
 });
 
 describe("sidebar chrome", () => {
-  // The tiled mark is petrol on a petrol sidebar — invisible. Chrome uses
-  // an INLINE monochrome mark, not an <img>: rabta-mark-mono.svg is filled
-  // with currentColor, and an SVG loaded through <img src> is an isolated
+  // The tiled icon is ember on the sidebar — wrong there. Chrome uses the
+  // INLINE outlined wordmark, not an <img>: the wordmark is filled with
+  // currentColor, and an SVG loaded through <img src> is an isolated
   // document where currentColor resolves to black. Inlining is what makes
   // the fill inherit the sidebar's ivory.
   it("inlines the mark so it inherits the sidebar's colour", () => {

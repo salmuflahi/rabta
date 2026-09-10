@@ -10,7 +10,7 @@ Calm, focus, and immediate access to the things around a task. Frosted mist and 
 
 | Role | Owner | Use |
 | --- | --- | --- |
-| Shared colors, fonts, mark and geometry | Rabta Studio `packages/rabta-ui/src/brand.ts` | `sync-rabta-ui.mjs` generates the app HSL adapter and copies the original source; light and dark |
+| Shared colors, fonts and geometry | Rabta Studio `packages/rabta-ui/src/brand.ts` | `sync-rabta-ui.mjs` generates the app HSL adapter and copies the original source; light and dark |
 | User accent preference | `apps/desktop/src/theme/accent.ts` | Existing preferences and contrast resolution remain compatible |
 | Shared material, arc, joined action, dock, dot lettering | Rabta Studio `packages/rabta-ui/src/lens.tsx` and `lens.css` | Canonical upstream; lean vendored source below |
 | App adaptation | `apps/desktop/src/lens-app.css` | Maps semantic app tokens to `--r-*`; owns app density and layout |
@@ -61,6 +61,10 @@ Companion is a separate native always-on-top window, opened explicitly from the 
 Connect and Teams share one context-handoff dialog, owned by Radix Dialog and the existing Button/Textarea primitives. It previews a bounded allowlist of file paths, web URLs, terminal directories and branch names. URL queries, fragments and credentials are stripped; file content and terminal output are excluded. User-selected categories and optional next-step text are copied only on request. Clipboard rejection leaves selected text for manual copy. No cloud team sync, accounts or AI inference is claimed.
 
 Runtime tests cover behavior and contrast. Full repo strict audit retains existing unrelated gallery/settings/test-fixture findings; do not call the whole project audit clean. New controls are audited through canonical Radix owners. Browser captures use actual React UI and clearly labeled sample connector data. Native app upload is blocked by GitHub integration 403, and the preview build workflow has not run.
+
+## Brand — September 9, 2026
+
+The R mark is retired everywhere. The approved outlined wordmark is the whole identity: the sidebar and Companion keep `ApprovedWordmark`; the Dock icon, favicon, connector icons and social card are regenerated from `site/public/assets/brand/wordmark.svg` (the same path) by `scripts/generate-brand-assets.mjs`, which packs `.icns` and `.ico` itself and rasterises with any Chrome-family browser, so the pipeline runs on Linux and CI as well as a Mac. `apps/desktop/src/assets/brand/app-icon.svg` is the ember tile with the ink wordmark; the R mark SVGs and the unused `wordmark.ts` outlines were deleted. The vendored `vendor/rabta-ui/brand.ts` no longer carries the retired `mark` geometry; the next upstream sync must drop it there too or the sync will bring it back. Restore's small `Mark` keeps the Workspace return-loop, which was never the R.
 
 ## Purpose-led update — September 8
 

@@ -5,12 +5,18 @@ import { Input } from "@/components/ui/input";
 import { SwitchMac } from "@/components/ui/switch-mac";
 import { utilityUI } from "./ui";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { NativeConfirmation, sizeText, useNativeAction } from "./native-shared";
+import { AppBehaviors, CameraPreview, Cleaner, DiskImageInstaller, HomebrewPanel, InputService, ProcessManager, QuickLauncher, ScreenRecorder, Uninstaller, UpdateChecker } from "./MacToolkit";
 type Status = {
   platform: string;
   awakeUntil: number | null;
   keepDisplay: boolean;
+  awakeMode: string | null;
+  awakeWatching: number | null;
+  awakeActive: boolean;
 };
+type RunningProcess = { pid: number; name: string; app: boolean; protected: boolean };
+const AWAKE_MODES = ["For a number of minutes", "Until I stop it", "While an app runs"];
 type Sound = { volume: number; inputVolume: number; muted: boolean };
 type SystemInfo = {
   macos: string;
@@ -26,6 +32,9 @@ export function MacControls() {
     [feedback, setFeedback] = useState<Record<string, string>>({}),
     [errors, setErrors] = useState<Record<string, string>>({});
   const [minutes, setMinutes] = useState("60"),
+    [awakeMode, setAwakeMode] = useState(AWAKE_MODES[0]),
+    [processes, setProcesses] = useState<RunningProcess[]>([]),
+    [watched, setWatched] = useState(""),
     [display, setDisplay] = useState(false),
     [sound, setSound] = useState<Sound | null>(null),
     [volume, setVolume] = useState("50"),
@@ -119,20 +128,58 @@ export function MacControls() {
       <section className="rk-native-panel" aria-labelledby="awake-title">
         <h3 id="awake-title">Keep awake</h3>
         <p className="rk-native-description">
-          Let a download or long-running task finish. Stops automatically when
-          the timer ends or Rabta quits.
+          Let a download or long-running task finish. Stops when the timer
+          ends, when the watched app quits, when you stop it, or when Rabta
+          quits.
         </p>
         <div className="rk-field">
-          <label htmlFor="awake-duration">Minutes · 1–720</label>
-          <Input
-            id="awake-duration"
-            type="number"
-            min={1}
-            max={720}
-            value={minutes}
-            onChange={(e) => setMinutes(e.target.value)}
+          <label htmlFor="awake-mode">Keep awake</label>
+          <utilityUI.Select
+            id="awake-mode"
+            label="Keep awake"
+            value={awakeMode}
+            options={AWAKE_MODES}
+            onChange={(mode) => {
+              setAwakeMode(mode);
+              if (mode === AWAKE_MODES[2] && !processes.length)
+                void invoke<RunningProcess[]>("utility_processes")
+                  .then((list) => {
+                    const apps = list.filter((item) => item.app && !item.protected);
+                    setProcesses(apps);
+                    if (apps[0]) setWatched(`${apps[0].name} (${apps[0].pid})`);
+                  })
+                  .catch((e) => setErrors((s) => ({ ...s, awake: String(e) })));
+            }}
           />
         </div>
+        {awakeMode === AWAKE_MODES[0] && (
+          <div className="rk-field">
+            <label htmlFor="awake-duration">Minutes · 1–720</label>
+            <Input
+              id="awake-duration"
+              type="number"
+              min={1}
+              max={720}
+              value={minutes}
+              onChange={(e) => setMinutes(e.target.value)}
+            />
+          </div>
+        )}
+        {awakeMode === AWAKE_MODES[2] && (
+          <div className="rk-field">
+            <label htmlFor="awake-process">Running app</label>
+            <utilityUI.Select
+              id="awake-process"
+              label="Running app"
+              value={watched}
+              options={processes.map((item) => `${item.name} (${item.pid})`)}
+              onChange={setWatched}
+            />
+            <p className="rk-note">
+              The Mac stays awake until this app quits.
+            </p>
+          </div>
+        )}
         <div className="rk-inline">
           <SwitchMac
             id="awake-display"
@@ -145,16 +192,25 @@ export function MacControls() {
           <Button
             disabled={
               !!busy ||
-              !Number.isInteger(Number(minutes)) ||
-              Number(minutes) < 1 ||
-              Number(minutes) > 720
+              (awakeMode === AWAKE_MODES[0] &&
+                (!Number.isInteger(Number(minutes)) ||
+                  Number(minutes) < 1 ||
+                  Number(minutes) > 720)) ||
+              (awakeMode === AWAKE_MODES[2] && !watched)
             }
             className="rk-primary"
             onClick={() =>
               void perform<void>(
                 "awake",
                 "utility_keep_awake",
-                { minutes: Number(minutes), keepDisplay: display },
+                {
+                  minutes: awakeMode === AWAKE_MODES[0] ? Number(minutes) : 0,
+                  keepDisplay: display,
+                  untilProcess:
+                    awakeMode === AWAKE_MODES[2]
+                      ? Number(watched.match(/\((\d+)\)$/)?.[1] ?? 0)
+                      : null,
+                },
                 () => {
                   void invoke<Status>("utility_status")
                     .then(setStatus)
@@ -166,15 +222,15 @@ export function MacControls() {
           >
             {busy === "awake"
               ? "Updating…"
-              : status.awakeUntil
-                ? "Replace timer"
+              : status.awakeActive
+                ? "Replace session"
                 : "Keep awake"}
           </Button>
           <Button
-            disabled={!!busy || !status.awakeUntil}
+            disabled={!!busy || !status.awakeActive}
             onClick={() =>
               void perform<void>("awake", "utility_stop_awake", {}, () => {
-                setStatus({ ...status, awakeUntil: null });
+                setStatus({ ...status, awakeUntil: null, awakeActive: false, awakeMode: null, awakeWatching: null });
                 return "Normal sleep restored.";
               })
             }
@@ -182,25 +238,35 @@ export function MacControls() {
             Stop
           </Button>
         </div>
-        {status.awakeUntil && (
+        {status.awakeActive && (
           <p className="rk-note">
-            Active until{" "}
-            {new Date(status.awakeUntil * 1000).toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-            .{" "}
+            {status.awakeUntil
+              ? `Active until ${new Date(status.awakeUntil * 1000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}.`
+              : status.awakeWatching
+                ? `Active while process ${status.awakeWatching} runs.`
+                : "Active until you stop it."}{" "}
             {status.keepDisplay ? "Display stays awake." : "Display may sleep."}{" "}
             Closing the lid still follows macOS sleep behavior.
           </p>
         )}
         {result("awake")}
       </section>
+      <InputService />
       <NativeWindowTools />
+      <QuickLauncher />
+      <AppBehaviors />
       <ClipboardHistory />
+      <ProcessManager />
       <NativeAudioDevices />
       <ScreenTextCapture />
+      <ScreenRecorder />
+      <CameraPreview />
       <NativeSystemMonitor />
+      <Cleaner />
+      <Uninstaller />
+      <DiskImageInstaller />
+      <HomebrewPanel />
+      <UpdateChecker />
       <section className="rk-native-panel" aria-labelledby="sound-title">
         <h3 id="sound-title">Sound controls</h3>
         <p className="rk-native-description">
@@ -409,27 +475,6 @@ export function MacControls() {
   );
 }
 
-function useNativeAction() {
-  const [busy, setBusy] = useState(false), [error, setError] = useState(""), [notice, setNotice] = useState("");
-  const pending = useRef(false), mounted = useRef(true);
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  const run = async <T,>(command: string, args: Record<string, unknown>, done: (value: T) => string) => {
-    if (pending.current) return;
-    pending.current = true; setBusy(true); setError(""); setNotice("");
-    try { const data = await invoke<T>(command, args); if (mounted.current) setNotice(done(data)); }
-    catch (error) { if (mounted.current) setError(String(error)); }
-    finally { pending.current = false; if (mounted.current) setBusy(false); }
-  };
-  return { busy, run, feedback: <p className={`rk-status ${error ? "rk-error" : ""}`} role={error ? "alert" : "status"}>{error || notice}</p> };
-}
-function NativeConfirmation({ title, description, action, confirm, close }: { title: string; description: string; action: string; confirm: () => void; close: () => void }) {
-  const cancel = useRef<HTMLButtonElement>(null);
-  const opener = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
-  return <Dialog open onOpenChange={(open) => { if (!open) close(); }}><DialogContent onOpenAutoFocus={(event) => { event.preventDefault(); cancel.current?.focus(); }} onCloseAutoFocus={(event) => { event.preventDefault(); opener.current?.focus(); }}>
-    <DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription>
-    <div className="rk-actions"><Button ref={cancel} onClick={close}>Cancel</Button><Button onClick={() => { close(); confirm(); }}>{action}</Button></div>
-  </DialogContent></Dialog>;
-}
 type ClipboardEntry = { id: string; text: string; frontmostApp: string; capturedAt: number; pinned: boolean };
 type ClipboardSettings = { enabled: boolean; paused: boolean; retentionHours: number; excludedApps: string[] };
 type ClipboardSnapshot = { settings: ClipboardSettings; entries: ClipboardEntry[]; error: string | null };
@@ -509,8 +554,7 @@ export function ScreenTextCapture() {
     {data && <><div className="rk-field"><label htmlFor="ocr-text">Recognized text · select to copy</label><Textarea id="ocr-text" rows={8} className="resize-none" readOnly value={data.text} /></div>{data.codes.length > 0 && <div className="rk-field"><label htmlFor="ocr-codes">Recognized barcode contents · select to copy</label><Textarea id="ocr-codes" rows={4} className="resize-none" readOnly value={data.codes.join("\n")} /><p className="rk-note">Barcode contents are shown as text. Links never open automatically.</p></div>}</>}{action.feedback}
   </section>;
 }
-type LiveMetrics = { cpuPercent: number | null; memoryTotal?: number; memoryUsed?: number; memoryCompressed?: number; swapUsed?: number; diskTotal?: number; diskAvailable?: number; battery?: { percent: number | null; charging: boolean; powerSource: string; minutesRemaining: number | null }; interfaces: { name: string; receivePerSecond: number | null; sendPerSecond: number | null }[] };
-const sizeText = (bytes: number | null | undefined) => bytes == null ? "Unavailable" : bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(1)} GiB` : bytes >= 1024 ** 2 ? `${(bytes / 1024 ** 2).toFixed(1)} MiB` : `${(bytes / 1024).toFixed(1)} KiB`;
+type LiveMetrics = { cpuPercent: number | null; memoryTotal?: number; memoryUsed?: number; memoryCompressed?: number; swapUsed?: number; diskTotal?: number; diskAvailable?: number; battery?: { percent: number | null; charging: boolean; powerSource: string; minutesRemaining: number | null }; interfaces: { name: string; receivePerSecond: number | null; sendPerSecond: number | null }[]; gpus?: { name: string; utilization: number | null; renderer: number | null; tiler: number | null; memoryUsed: number | null }[] };
 export function NativeSystemMonitor() {
   const [live, setLive] = useState(false), [data, setData] = useState<LiveMetrics | null>(null), [error, setError] = useState(""), [samples, setSamples] = useState<number[]>([]);
   useEffect(() => {
@@ -525,11 +569,11 @@ export function NativeSystemMonitor() {
     void refresh(); const timer = setInterval(() => void refresh(), 2000);
     return () => { cancelled = true; clearInterval(timer); };
   }, [live]);
-  return <section className="rk-native-panel" aria-labelledby="monitor-title"><h3 id="monitor-title">Live system monitor</h3><p className="rk-native-description">CPU, memory, disk space, network rates and battery from this Mac. Refreshes every two seconds while this panel is open and visible.</p>
+  return <section className="rk-native-panel" aria-labelledby="monitor-title"><h3 id="monitor-title">Live system monitor</h3><p className="rk-native-description">CPU, GPU, memory, disk space, network rates and battery from this Mac. Refreshes every two seconds while this panel is open and visible.</p>
     <Button onClick={() => { if (!live) { setSamples([]); setData(null); } setLive(!live); }}>{live ? "Pause monitor" : "Start monitor"}</Button><p className="rk-note">{live ? "Monitoring" : data ? "Paused · last sample shown" : "Off"}</p>
     {error && <p role="alert" className="rk-error">{error} Start the monitor to retry.</p>}
     {live && !data && <p role="status">Reading this Mac…</p>}
-    {data && <><dl className="grid grid-cols-2 gap-2"><dt>CPU</dt><dd>{data.cpuPercent == null ? "Sampling…" : `${data.cpuPercent.toFixed(1)}%`}</dd><dt>Active + wired + compressed RAM</dt><dd>{sizeText(data.memoryUsed)} / {sizeText(data.memoryTotal)}</dd><dt>Compressed memory</dt><dd>{sizeText(data.memoryCompressed)}</dd><dt>Swap used</dt><dd>{sizeText(data.swapUsed)}</dd><dt>Home volume free space</dt><dd>{sizeText(data.diskAvailable)} / {sizeText(data.diskTotal)}</dd><dt>Battery</dt><dd>{data.battery ? `${data.battery.percent == null ? "Unknown" : `${data.battery.percent.toFixed(0)}%`} · ${data.battery.charging ? "Charging" : data.battery.powerSource}${data.battery.minutesRemaining ? ` · about ${data.battery.minutesRemaining} minutes` : ""}` : "No internal battery reported"}</dd></dl>
+    {data && <><dl className="grid grid-cols-2 gap-2"><dt>CPU</dt><dd>{data.cpuPercent == null ? "Sampling…" : `${data.cpuPercent.toFixed(1)}%`}</dd><dt>Active + wired + compressed RAM</dt><dd>{sizeText(data.memoryUsed)} / {sizeText(data.memoryTotal)}</dd><dt>Compressed memory</dt><dd>{sizeText(data.memoryCompressed)}</dd><dt>Swap used</dt><dd>{sizeText(data.swapUsed)}</dd><dt>Home volume free space</dt><dd>{sizeText(data.diskAvailable)} / {sizeText(data.diskTotal)}</dd><dt>Battery</dt><dd>{data.battery ? `${data.battery.percent == null ? "Unknown" : `${data.battery.percent.toFixed(0)}%`} · ${data.battery.charging ? "Charging" : data.battery.powerSource}${data.battery.minutesRemaining ? ` · about ${data.battery.minutesRemaining} minutes` : ""}` : "No internal battery reported"}</dd>{(data.gpus ?? []).map((gpu) => <div key={gpu.name} className="contents"><dt>GPU · {gpu.name}</dt><dd>{gpu.utilization == null ? "Utilization unavailable" : `${gpu.utilization}% busy`}{gpu.memoryUsed != null ? ` · ${sizeText(gpu.memoryUsed)} in use` : ""}</dd></div>)}</dl>
       {samples.length > 1 && <svg viewBox="0 0 300 64" role="img" aria-label={`CPU history, ${samples.length} recent readings, latest ${samples.at(-1)!.toFixed(1)} percent`} className="mt-3 h-20 w-full text-primary"><polyline fill="none" stroke="currentColor" strokeWidth="2" points={samples.map((value, index) => `${index * 300 / (samples.length - 1)},${62 - value * .6}`).join(" ")} /></svg>}
       <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><caption className="text-left">Network interfaces · live rates</caption><thead><tr><th scope="col">Interface</th><th scope="col">Download</th><th scope="col">Upload</th></tr></thead><tbody>{data.interfaces.map((item) => <tr key={item.name}><th scope="row">{item.name}</th><td>{item.receivePerSecond == null ? "Sampling…" : `${sizeText(item.receivePerSecond)}/s`}</td><td>{item.sendPerSecond == null ? "Sampling…" : `${sizeText(item.sendPerSecond)}/s`}</td></tr>)}</tbody></table></div><p className="rk-note">VPNs and physical interfaces may count the same traffic. Rates are separate to avoid double-counting. RAM is an active-use estimate, not Activity Monitor’s memory-pressure reading.</p>
     </>}
