@@ -751,13 +751,13 @@ static void focusTimerFired(CFRunLoopTimerRef timer, void *info) {
     AXUIElementPerformAction(window, kAXRaiseAction);
     CFRelease(window);
     dispatch_async(dispatch_get_main_queue(), ^{
-        if (@available(macOS 14.0, *)) [app activate];
-        else {
+        // activateWithOptions: is deprecated from macOS 14 but declared in every
+        // SDK this project builds with; the newer -activate is not, so the
+        // deprecated call is used everywhere rather than gated by availability.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-            [app activateWithOptions:0];
+        [app activateWithOptions:0];
 #pragma clang diagnostic pop
-        }
     });
 }
 static CGEventRef inputCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *info) {
